@@ -199,3 +199,6 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# IDE/Agent artifacts
+.artifacts/
