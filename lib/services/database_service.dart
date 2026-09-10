@@ -308,4 +308,11 @@ class DatabaseService {
     await db.delete('prices');
     await db.delete('operations');
   }
+
+  static Future<void> close() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+  }
 }

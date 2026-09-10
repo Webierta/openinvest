@@ -65,11 +65,14 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                 tag: 'avatar_${fund.isin}',
                 child: CircleAvatar(
                   radius: 16,
-                  backgroundColor: (dailyVarColor ?? Colors.blue).withValues(alpha: 0.1),
-                  child: Icon(
-                    dailyVariation != null && dailyVariation < 0 ? Icons.trending_down : Icons.trending_up, 
-                    color: dailyVarColor ?? Colors.blue, 
-                    size: 16
+                  backgroundColor: _getFundColor(fund.isin).withValues(alpha: 0.2),
+                  child: Text(
+                    fund.name.isNotEmpty ? fund.name[0].toUpperCase() : 'F',
+                    style: TextStyle(
+                      color: _getFundColor(fund.isin),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -746,4 +749,20 @@ class _IndexInfoRow extends StatelessWidget {
   const _IndexInfoRow({required this.title, required this.description});
   @override
   Widget build(BuildContext context) { return Padding(padding: const EdgeInsets.symmetric(vertical: 8.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF38BDF8))), const SizedBox(height: 4), Text(description, style: const TextStyle(fontSize: 13, height: 1.3, color: Colors.white70)), const Divider(color: Colors.white10)])); }
+}
+
+Color _getFundColor(String isin) {
+  final int hash = isin.hashCode;
+  final List<Color> colors = [
+    Colors.blueAccent,
+    Colors.purpleAccent,
+    Colors.orangeAccent,
+    Colors.tealAccent,
+    Colors.pinkAccent,
+    Colors.indigoAccent,
+    Colors.amberAccent,
+    Colors.cyanAccent,
+    Colors.lightGreenAccent,
+  ];
+  return colors[hash.abs() % colors.length];
 }

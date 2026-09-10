@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -6,8 +7,11 @@ import '../providers/fund_provider.dart';
 import '../services/fund_scraper.dart';
 import '../widgets/gradient_background.dart';
 import '../services/export_service.dart';
+import '../services/database_service.dart';
 import 'fund_search_page.dart';
 import 'fund_details_page.dart';
+import 'info_page.dart';
+import 'about_page.dart';
 
 class PortfolioPage extends StatelessWidget {
   const PortfolioPage({super.key});
@@ -103,15 +107,8 @@ class PortfolioPage extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Mi Cartera de Fondos'),
+        title: const Text('OpenInvest'),
         actions: [
-          if (provider.portfolio.isNotEmpty) ...[
-            IconButton(
-              icon: provider.isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.refresh),
-              onPressed: provider.isLoading ? null : provider.updateAllPortfolio,
-              tooltip: 'Actualizar toda la cartera',
-            ),
-          ],
           IconButton(
             icon: const Icon(Icons.file_download_outlined, color: Colors.white),
             onPressed: () async {
@@ -122,6 +119,13 @@ class PortfolioPage extends StatelessWidget {
             },
             tooltip: 'Importar fondo (JSON)',
           ),
+          if (provider.portfolio.isNotEmpty) ...[
+            IconButton(
+              icon: provider.isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.refresh),
+              onPressed: provider.isLoading ? null : provider.updateAllPortfolio,
+              tooltip: 'Actualizar toda la cartera',
+            ),
+          ],
           if (provider.portfolio.isNotEmpty) ...[
             IconButton(
               icon: const Icon(Icons.delete_sweep),
@@ -142,6 +146,73 @@ class PortfolioPage extends StatelessWidget {
             ),
           ],
         ],
+      ),
+      drawer: Drawer(
+        backgroundColor: const Color(0xFF0F172A),
+        child: Column(
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.account_balance, color: Colors.blueAccent, size: 32),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'OpenInvest',
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: Colors.white70),
+              title: const Text('Info', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const InfoPage()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.code, color: Colors.white70),
+              title: const Text('Acerca de', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutPage()));
+              },
+            ),
+            const Divider(color: Colors.white10),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.redAccent),
+              title: const Text('Salir', style: TextStyle(color: Colors.white)),
+              onTap: () async {
+                await DatabaseService.close();
+                exit(0);
+              },
+            ),
+            const Spacer(),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'v1.0.0',
+                style: TextStyle(color: Colors.white24, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
       ),
       body: GradientBackground(
         child: SafeArea(
@@ -304,11 +375,14 @@ class PortfolioPage extends StatelessWidget {
                                       tag: 'avatar_${item.isin}',
                                       child: CircleAvatar(
                                         radius: 20,
-                                        backgroundColor: (dailyVarColor ?? Colors.blue).withValues(alpha: 0.1),
-                                        child: Icon(
-                                          dailyVariation != null && dailyVariation < 0 ? Icons.trending_down : Icons.trending_up, 
-                                          color: dailyVarColor ?? Colors.blue, 
-                                          size: 20
+                                        backgroundColor: _getFundColor(item.isin).withValues(alpha: 0.2),
+                                        child: Text(
+                                          item.name.isNotEmpty ? item.name[0].toUpperCase() : 'F',
+                                          style: TextStyle(
+                                            color: _getFundColor(item.isin),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -438,5 +512,21 @@ class PortfolioPage extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
     );
+  }
+
+  Color _getFundColor(String isin) {
+    final int hash = isin.hashCode;
+    final List<Color> colors = [
+      Colors.blueAccent,
+      Colors.purpleAccent,
+      Colors.orangeAccent,
+      Colors.tealAccent,
+      Colors.pinkAccent,
+      Colors.indigoAccent,
+      Colors.amberAccent,
+      Colors.cyanAccent,
+      Colors.lightGreenAccent,
+    ];
+    return colors[hash.abs() % colors.length];
   }
 }
