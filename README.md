@@ -1,6 +1,6 @@
 # OpenInvest
 
-Gestor de Cartera de Fondos de Inversión avanzado y de código abierto.
+Aplicación de código abierto para la gestión de una cartera de fondos de inversión.
 
 ## Funciones principales
 
@@ -28,4 +28,6 @@ Gestor de Cartera de Fondos de Inversión avanzado y de código abierto.
 - **Linux (Desktop)**
 
 ---
-Desarrollado por [Webierta.com](https://webierta.com)
+Desarrollado por *Webierta*
+
+
