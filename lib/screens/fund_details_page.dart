@@ -55,7 +55,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
     }
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
@@ -191,13 +191,14 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
               ],
             ),
           ],
-          bottom: TabBar(
+          bottom: const TabBar(
             isScrollable: true,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white38,
             indicatorColor: Colors.white,
-            tabs: const [
+            tabs: [
               Tab(icon: Icon(Icons.info_outline), text: 'Resumen'),
+              Tab(icon: Icon(Icons.account_balance_wallet_outlined), text: 'Balance'),
               Tab(icon: Icon(Icons.show_chart), text: 'Gráfico'),
               Tab(icon: Icon(Icons.table_rows), text: 'Tabla'),
               Tab(icon: Icon(Icons.account_balance), text: 'Operaciones'),
@@ -209,6 +210,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
             child: TabBarView(
               children: [
                 RefreshIndicator(onRefresh: () => provider.searchFund(fund.isin), child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16), child: _buildSummaryCard(context, fund, priceFormat, percentFormat, dateFormat))),
+                RefreshIndicator(onRefresh: () => provider.searchFund(fund.isin), child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16), child: fund.operations.isEmpty ? const Center(child: Text('No hay operaciones registradas', style: TextStyle(color: Colors.white38))) : _buildBalanceSection(context, fund, priceFormat, percentFormat))),
                 RefreshIndicator(onRefresh: () => provider.searchFund(fund.isin), child: fund.lastValue == 0 && fund.history.isEmpty ? const Center(child: Text('No hay datos disponibles')) : SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16), child: _buildGraphSection(context, fund, priceFormat, percentFormat, dateFormat))),
                 RefreshIndicator(onRefresh: () => provider.searchFund(fund.isin), child: fund.lastValue == 0 && fund.history.isEmpty ? const Center(child: Text('No hay datos disponibles')) : SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16), child: _buildTableSection(context, fund, priceFormat, percentFormat))),
                 _buildOperationsSection(context, provider, fund, priceFormat, dateFormat),
@@ -268,10 +270,6 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
               ],
               const SizedBox(height: 24),
               _buildStatsGrid(context, fund, priceFormat, percentFormat, dateFormat),
-              if (fund.operations.isNotEmpty) ...[
-                const Divider(height: 48, color: Colors.white10),
-                _buildBalanceSection(context, fund, priceFormat, percentFormat),
-              ],
             ],
           ],
         ),
@@ -356,8 +354,6 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
 
     final smartFormat = NumberFormat('#,##0.####', 'es_ES');
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Balance de Cartera', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
-      const SizedBox(height: 16),
       _buildBalanceRow('Participaciones totales', totalUnits.toStringAsFixed(4).replaceAll('.', ',').replaceAll(RegExp(r',0000$'), '')),
       _buildBalanceRow('Inversión neta', '${smartFormat.format(totalInvested)} ${fund.currency}'),
       _buildBalanceRow('Precio medio compra', '${priceFormat.format(avgPurchasePrice)} ${fund.currency}'),
@@ -701,6 +697,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
   }
 
   Widget _buildOperationsSection(BuildContext context, FundProvider provider, FundData fund, NumberFormat priceFormat, DateFormat dateFormat) {
+    final smartFormat = NumberFormat('#,##0.####', 'es_ES');
     return Column(children: [
       Padding(padding: const EdgeInsets.all(16.0), child: ElevatedButton.icon(onPressed: () => _showOperationDialog(context, provider, fund), icon: const Icon(Icons.add), label: const Text('Nueva Operación'), style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)))),
       Expanded(child: fund.operations.isEmpty ? const Center(child: Text('No hay operaciones registradas', style: TextStyle(color: Colors.white38))) : ListView.separated(itemCount: fund.operations.length, separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.white10), itemBuilder: (context, index) {
@@ -710,8 +707,8 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
           title: Text(isBuy ? 'Suscripción' : 'Reembolso', style: const TextStyle(color: Colors.white, fontSize: 14)),
           subtitle: Text(DateFormat('dd/MM/yyyy').format(op.date), style: const TextStyle(color: Colors.white38, fontSize: 12)),
           trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('${isBuy ? '' : '-'}${priceFormat.format(op.amount)} ${fund.currency}', style: TextStyle(fontWeight: FontWeight.bold, color: isBuy ? Colors.greenAccent[400] : Colors.redAccent[200], fontSize: 14)),
-            Text('${op.units.toStringAsFixed(4).replaceAll('.', ',')} part. @ ${priceFormat.format(op.price)}', style: const TextStyle(color: Colors.white38, fontSize: 11)),
+            Text('${isBuy ? '' : '-'}${smartFormat.format(op.amount)} ${fund.currency}', style: TextStyle(fontWeight: FontWeight.bold, color: isBuy ? Colors.greenAccent[400] : Colors.redAccent[200], fontSize: 14)),
+            Text('${smartFormat.format(op.units)} part. @ ${smartFormat.format(op.price)}', style: const TextStyle(color: Colors.white38, fontSize: 11)),
           ]),
           onTap: () => _showOperationDialog(context, provider, fund, operation: op),
           onLongPress: () { showDialog(context: context, builder: (context) => AlertDialog(title: const Text('Eliminar Operación'), content: const Text('¿Estás seguro?'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')), TextButton(onPressed: () { provider.deleteOperation(op.id!); Navigator.pop(context); }, child: const Text('Eliminar', style: TextStyle(color: Colors.red)))])); },

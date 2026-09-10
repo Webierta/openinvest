@@ -260,6 +260,7 @@ class PortfolioPage extends StatelessWidget {
                       }
                       final hasOps = item.operations.isNotEmpty;
                       final double currentValue = totalUnits * item.lastValue;
+                      final double fundWeight = globalTotalValue > 0 ? (currentValue / globalTotalValue) * 100 : 0;
                       final double profitAbs = currentValue - totalInvested;
                       
                       double displayPercentage = 0;
@@ -377,39 +378,42 @@ class PortfolioPage extends StatelessWidget {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           const Text('VALOR TOTAL', style: TextStyle(fontSize: 9, color: Colors.white38, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                                          Row(
-                                            children: [
-                                              Text(
-                                                '${priceFormat.format(currentValue)} ${item.currency}', 
-                                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white70)
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                '(${profitAbs > 0 ? '+' : ''}${smartFormat.format(profitAbs)})',
-                                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: profitColor),
-                                              ),
-                                            ],
+                                          Text(
+                                            '${priceFormat.format(currentValue)} ${item.currency}', 
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white70)
+                                          ),
+                                          const SizedBox(height: 10),
+                                          const Text('RENDIMIENTO', style: TextStyle(fontSize: 9, color: Colors.white38, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                          Text(
+                                            '${profitAbs > 0 ? '+' : ''}${smartFormat.format(profitAbs)} ${item.currency}',
+                                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: profitColor),
                                           ),
                                         ],
                                       ),
                                       Column(
                                         crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [
+                                          const Text('PESO', style: TextStyle(fontSize: 9, color: Colors.white38, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                          Text(
+                                            '${percentFormat.format(fundWeight)}%',
+                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white70)
+                                          ),
+                                          const SizedBox(height: 8),
                                           Text(
                                             isAnnualized ? 'TAE' : 'GANANCIA TOTAL', 
                                             style: const TextStyle(fontSize: 9, color: Colors.white38, fontWeight: FontWeight.bold, letterSpacing: 0.5)
                                           ),
-                                          const SizedBox(height: 4),
+                                          const SizedBox(height: 6),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: profitColor.withValues(alpha: 0.2),
-                                              borderRadius: BorderRadius.circular(4),
+                                              color: profitColor.withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(6),
                                               border: Border.all(color: profitColor.withValues(alpha: 0.3)),
                                             ),
                                             child: Text(
                                               '${displayPercentage > 0 ? '+' : ''}${percentFormat.format(displayPercentage)}%',
-                                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: profitColor),
+                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: profitColor),
                                             ),
                                           ),
                                         ],
