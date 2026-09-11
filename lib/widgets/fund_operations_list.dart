@@ -146,6 +146,76 @@ class FundOperationsList extends StatelessWidget {
     }
   }
 
+  Future<void> _deleteEditedOperation(
+    BuildContext context,
+    BuildContext dialogContext,
+    FundProvider provider,
+    FundOperation operation,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: dialogContext,
+      builder: (confirmationContext) => AlertDialog(
+        title: const Text('Eliminar Operación'),
+        content: const Text('¿Deseas eliminar esta operación?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(confirmationContext, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(confirmationContext, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || operation.id == null || provider.isBusy) return;
+
+    try {
+      await provider.deleteOperation(operation.id!);
+      if (!dialogContext.mounted) return;
+      Navigator.pop(dialogContext);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Operación eliminada correctamente'),
+          action: SnackBarAction(
+            label: 'Deshacer',
+            onPressed: () async {
+              try {
+                await provider.restoreOperation(operation);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Eliminación deshecha')),
+                );
+              } catch (_) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'No se pudo restaurar la operación. Haz un backup y reinicia la aplicación.',
+                    ),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se pudo eliminar la operación. Haz un backup y reinicia la aplicación.',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
   Future<void> _showOperationDialog(
     BuildContext context,
     FundProvider provider, {
@@ -187,165 +257,170 @@ class FundOperationsList extends StatelessWidget {
       }
     }
 
-    try {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: Text(
-              operation == null ? 'Nueva Operación' : 'Editar Operación',
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SegmentedButton<OperationType>(
-                    segments: const [
-                      ButtonSegment(
-                        value: OperationType.buy,
-                        label: Text('Compra'),
-                      ),
-                      ButtonSegment(
-                        value: OperationType.sell,
-                        label: Text('Venta'),
-                      ),
-                    ],
-                    selected: {selectedType},
-                    onSelectionChanged: (selection) =>
-                        setState(() => selectedType = selection.first),
-                  ),
-                  const SizedBox(height: 16),
-                  ListTile(
-                    title: const Text('Fecha'),
-                    subtitle: Text(
-                      DateFormat('dd/MM/yyyy').format(selectedDate),
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (formContext, setState) => AlertDialog(
+          title: Text(
+            operation == null ? 'Nueva Operación' : 'Editar Operación',
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SegmentedButton<OperationType>(
+                  segments: const [
+                    ButtonSegment(
+                      value: OperationType.buy,
+                      label: Text('Compra'),
                     ),
-                    trailing: const Icon(Icons.calendar_today),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked == null) return;
-                      setState(() {
-                        selectedDate = picked;
-                        if (operation == null) {
-                          final historicalPoint = fund.history
-                              .cast<PricePoint?>()
-                              .firstWhere(
-                                (point) =>
-                                    point!.date.year == picked.year &&
-                                    point.date.month == picked.month &&
-                                    point.date.day == picked.day,
-                                orElse: () => null,
-                              );
-                          if (historicalPoint != null) {
-                            priceController.text = historicalPoint.price
-                                .toString()
-                                .replaceAll('.', ',');
-                            updateAmount();
-                          }
+                    ButtonSegment(
+                      value: OperationType.sell,
+                      label: Text('Venta'),
+                    ),
+                  ],
+                  selected: {selectedType},
+                  onSelectionChanged: (selection) =>
+                      setState(() => selectedType = selection.first),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  title: const Text('Fecha'),
+                  subtitle: Text(DateFormat('dd/MM/yyyy').format(selectedDate)),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: formContext,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked == null) return;
+                    setState(() {
+                      selectedDate = picked;
+                      if (operation == null) {
+                        final historicalPoint = fund.history
+                            .cast<PricePoint?>()
+                            .firstWhere(
+                              (point) =>
+                                  point!.date.year == picked.year &&
+                                  point.date.month == picked.month &&
+                                  point.date.day == picked.day,
+                              orElse: () => null,
+                            );
+                        if (historicalPoint != null) {
+                          priceController.text = historicalPoint.price
+                              .toString()
+                              .replaceAll('.', ',');
+                          updateAmount();
                         }
-                      });
-                    },
+                      }
+                    });
+                  },
+                ),
+                TextField(
+                  controller: priceController,
+                  decoration: const InputDecoration(labelText: 'Precio (VL)'),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                  TextField(
-                    controller: priceController,
-                    decoration: const InputDecoration(labelText: 'Precio (VL)'),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    onChanged: (_) => updateAmount(),
+                  onChanged: (_) => updateAmount(),
+                ),
+                TextField(
+                  controller: unitsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Participaciones',
                   ),
-                  TextField(
-                    controller: unitsController,
-                    decoration: const InputDecoration(
-                      labelText: 'Participaciones',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    onChanged: (_) => updateAmount(),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                  TextField(
-                    controller: amountController,
-                    decoration: const InputDecoration(
-                      labelText: 'Importe Total',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    onChanged: (_) => updateUnits(),
+                  onChanged: (_) => updateAmount(),
+                ),
+                TextField(
+                  controller: amountController,
+                  decoration: const InputDecoration(labelText: 'Importe Total'),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                ],
-              ),
+                  onChanged: (_) => updateUnits(),
+                ),
+              ],
             ),
-            actions: [
+          ),
+          actions: [
+            if (operation != null)
               TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
+                onPressed: provider.isBusy
+                    ? null
+                    : () => _deleteEditedOperation(
+                        context,
+                        dialogContext,
+                        provider,
+                        operation,
+                      ),
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  final units =
-                      double.tryParse(
-                        unitsController.text.replaceAll(',', '.'),
-                      ) ??
-                      0;
-                  final price =
-                      double.tryParse(
-                        priceController.text.replaceAll(',', '.'),
-                      ) ??
-                      0;
-                  final amount =
-                      double.tryParse(
-                        amountController.text.replaceAll(',', '.'),
-                      ) ??
-                      0;
-                  if (units <= 0 ||
-                      price <= 0 ||
-                      amount <= 0 ||
-                      provider.isBusy) {
-                    return;
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final units =
+                    double.tryParse(
+                      unitsController.text.replaceAll(',', '.'),
+                    ) ??
+                    0;
+                final price =
+                    double.tryParse(
+                      priceController.text.replaceAll(',', '.'),
+                    ) ??
+                    0;
+                final amount =
+                    double.tryParse(
+                      amountController.text.replaceAll(',', '.'),
+                    ) ??
+                    0;
+                if (units <= 0 ||
+                    price <= 0 ||
+                    amount <= 0 ||
+                    provider.isBusy) {
+                  return;
+                }
+                try {
+                  await provider.addOperation(
+                    FundOperation(
+                      id: operation?.id,
+                      isin: fund.isin,
+                      date: selectedDate,
+                      type: selectedType,
+                      units: units,
+                      price: price,
+                      amount: amount,
+                    ),
+                  );
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
                   }
-                  try {
-                    await provider.addOperation(
-                      FundOperation(
-                        id: operation?.id,
-                        isin: fund.isin,
-                        date: selectedDate,
-                        type: selectedType,
-                        units: units,
-                        price: price,
-                        amount: amount,
+                } catch (_) {
+                  if (dialogContext.mounted) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('No se pudo guardar la operación'),
+                        backgroundColor: Colors.redAccent,
                       ),
                     );
-                    if (dialogContext.mounted) {
-                      Navigator.pop(dialogContext);
-                    }
-                  } catch (_) {
-                    if (dialogContext.mounted) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(
-                          content: Text('No se pudo guardar la operación'),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
-                    }
                   }
-                },
-                child: const Text('Guardar'),
-              ),
-            ],
-          ),
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
         ),
-      );
-    } finally {
-      unitsController.dispose();
-      priceController.dispose();
-      amountController.dispose();
-    }
+      ),
+    );
   }
 }

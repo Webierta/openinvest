@@ -190,6 +190,22 @@ class DatabaseService {
     }
   }
 
+  static Future<void> restoreOperation(FundOperation operation) async {
+    final db = await database;
+    if (operation.id == null) {
+      throw ArgumentError('No se puede restaurar una operación sin id.');
+    }
+    await db.insert('operations', {
+      'id': operation.id,
+      'isin': operation.isin,
+      'date': operation.date.toIso8601String(),
+      'type': operation.type.name,
+      'units': operation.units,
+      'price': operation.price,
+      'amount': operation.amount,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   static Future<void> deletePricePoint(String isin, DateTime date) async {
     final db = await database;
     final String pDate = DateTime(

@@ -172,21 +172,22 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
             ],
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white10, width: 0.5),
-            borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(8),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.white10, width: 0.5),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(8),
+              ),
             ),
-          ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: tableData.length,
-            separatorBuilder: (context, index) =>
-                const Divider(height: 1, color: Colors.white10),
-            itemBuilder: (context, index) =>
-                _buildRow(context, tableData[index]),
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: tableData.length,
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, color: Colors.white10),
+              itemBuilder: (context, index) =>
+                  _buildRow(context, tableData[index]),
+            ),
           ),
         ),
       ],

@@ -234,6 +234,13 @@ class FundProvider with ChangeNotifier {
     });
   }
 
+  Future<void> restoreOperation(FundOperation operation) async {
+    await _runDatabaseOperation(() async {
+      await DatabaseService.restoreOperation(operation);
+      await loadPortfolio();
+    });
+  }
+
   Future<void> deletePricePoint(String isin, DateTime date) async {
     await _runDatabaseOperation(() async {
       await DatabaseService.deletePricePoint(isin, date);

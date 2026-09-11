@@ -353,14 +353,10 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                             ? const Center(
                                 child: Text('No hay datos disponibles'),
                               )
-                            : SingleChildScrollView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                padding: const EdgeInsets.all(16),
-                                child: PriceHistoryTable(
-                                  fund: fund,
-                                  priceFormat: priceFormat,
-                                  percentFormat: percentFormat,
-                                ),
+                            : PriceHistoryTable(
+                                fund: fund,
+                                priceFormat: priceFormat,
+                                percentFormat: percentFormat,
                               ),
                       ),
                       FundOperationsList(fund: fund, priceFormat: priceFormat),

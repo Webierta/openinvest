@@ -102,4 +102,43 @@ void main() {
       ]);
     },
   );
+
+  test('restaurar una operación recupera sus datos y su id', () async {
+    final date = DateTime(2026, 9, 2);
+    await DatabaseService.saveFund(
+      FundData(
+        isin: 'TEST',
+        symbol: 'TST',
+        name: 'Test Fund',
+        lastValue: 20,
+        currency: 'EUR',
+        date: date,
+        history: [PricePoint(date, 20)],
+      ),
+    );
+    await DatabaseService.saveOperation(
+      FundOperation(
+        isin: 'TEST',
+        date: date,
+        type: OperationType.buy,
+        units: 3,
+        price: 20,
+        amount: 60,
+      ),
+    );
+
+    final savedFund = await DatabaseService.getFund('TEST');
+    final operation = savedFund!.operations.single;
+    expect(operation.id, isNotNull);
+
+    await DatabaseService.deleteOperation(operation.id!);
+    expect((await DatabaseService.getFund('TEST'))!.operations, isEmpty);
+
+    await DatabaseService.restoreOperation(operation);
+
+    final restoredFund = await DatabaseService.getFund('TEST');
+    expect(restoredFund!.operations, hasLength(1));
+    expect(restoredFund.operations.single.id, operation.id);
+    expect(restoredFund.operations.single.amount, 60);
+  });
 }
