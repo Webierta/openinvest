@@ -7,6 +7,17 @@ import 'fund_scraper.dart';
 
 class DatabaseService {
   static Database? _database;
+  static String? _databasePathOverride;
+
+  static Future<void> useDatabasePathForTesting(String path) async {
+    await close();
+    _databasePathOverride = path;
+  }
+
+  static Future<void> resetDatabasePathForTesting() async {
+    await close();
+    _databasePathOverride = null;
+  }
 
   static Future<Database> get database async {
     if (_database != null) return _database!;
@@ -17,10 +28,13 @@ class DatabaseService {
   static Future<Database> _initDB() async {
     String databasesPath = await getDatabasesPath();
     String oldPath = join(databasesPath, 'investi_scrap.db');
-    String newPath = join(databasesPath, 'open_invest.db');
+    String newPath =
+        _databasePathOverride ?? join(databasesPath, 'open_invest.db');
 
     // Migración de nombre de archivo de base de datos
-    if (await databaseExists(oldPath) && !await databaseExists(newPath)) {
+    if (_databasePathOverride == null &&
+        await databaseExists(oldPath) &&
+        !await databaseExists(newPath)) {
       final File oldFile = File(oldPath);
       await oldFile.copy(newPath);
       // Opcionalmente borrar el antiguo, pero mejor dejarlo por seguridad un tiempo
