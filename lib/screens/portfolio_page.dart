@@ -12,6 +12,7 @@ import 'fund_search_page.dart';
 import 'fund_details_page.dart';
 import 'info_page.dart';
 import 'about_page.dart';
+import 'support_page.dart';
 
 class PortfolioPage extends StatelessWidget {
   const PortfolioPage({super.key});
@@ -109,42 +110,133 @@ class PortfolioPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('OpenInvest'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.file_download_outlined, color: Colors.white),
-            onPressed: () async {
-              final fund = await ExportService.importFund(context);
-              if (fund != null && context.mounted) {
-                context.read<FundProvider>().loadPortfolio();
-              }
-            },
-            tooltip: 'Importar fondo (JSON)',
-          ),
           if (provider.portfolio.isNotEmpty) ...[
             IconButton(
-              icon: provider.isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.refresh),
+              icon: provider.isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.refresh),
               onPressed: provider.isLoading ? null : provider.updateAllPortfolio,
               tooltip: 'Actualizar toda la cartera',
             ),
           ],
-          if (provider.portfolio.isNotEmpty) ...[
-            IconButton(
-              icon: const Icon(Icons.delete_sweep),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Vaciar Cartera'),
-                    content: const Text('¿Estás seguro de que quieres eliminar todos los fondos de tu cartera?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-                      TextButton(onPressed: () { provider.clearPortfolio(); Navigator.pop(context); }, child: const Text('Eliminar', style: TextStyle(color: Colors.red))),
+          if (provider.portfolio.isNotEmpty)
+            PopupMenuButton<SortCriteria>(
+              icon: const Icon(Icons.sort, color: Colors.white),
+              tooltip: 'Ordenar cartera',
+              onSelected: (criteria) {
+                context.read<FundProvider>().setSortCriteria(criteria);
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: SortCriteria.name,
+                  child: Row(
+                    children: [
+                      Icon(Icons.sort_by_alpha,
+                          size: 20,
+                          color: provider.sortCriteria == SortCriteria.name
+                              ? Colors.blueAccent
+                              : Colors.white70),
+                      const SizedBox(width: 12),
+                      const Text('Nombre del Fondo'),
                     ],
                   ),
-                );
-              },
-              tooltip: 'Vaciar cartera',
+                ),
+                PopupMenuItem(
+                  value: SortCriteria.value,
+                  child: Row(
+                    children: [
+                      Icon(Icons.euro_symbol,
+                          size: 20,
+                          color: provider.sortCriteria == SortCriteria.value
+                              ? Colors.blueAccent
+                              : Colors.white70),
+                      const SizedBox(width: 12),
+                      const Text('Valor Total'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: SortCriteria.performance,
+                  child: Row(
+                    children: [
+                      Icon(Icons.trending_up,
+                          size: 20,
+                          color: provider.sortCriteria == SortCriteria.performance
+                              ? Colors.blueAccent
+                              : Colors.white70),
+                      const SizedBox(width: 12),
+                      const Text('Rendimiento (TAE)'),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            tooltip: 'Más opciones',
+            onSelected: (value) async {
+              switch (value) {
+                case 'import':
+                  final fund = await ExportService.importFund(context);
+                  if (fund != null && context.mounted) {
+                    context.read<FundProvider>().loadPortfolio();
+                  }
+                  break;
+                case 'clear':
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Vaciar Cartera'),
+                      content: const Text(
+                          '¿Estás seguro de que quieres eliminar todos los fondos de tu cartera?'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancelar')),
+                        TextButton(
+                          onPressed: () {
+                            provider.clearPortfolio();
+                            Navigator.pop(context);
+                          },
+                          child: const Text('Eliminar',
+                              style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  );
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'import',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download_outlined,
+                        size: 20, color: Colors.white70),
+                    SizedBox(width: 12),
+                    Text('Importar fondo (JSON)'),
+                  ],
+                ),
+              ),
+              if (provider.portfolio.isNotEmpty)
+                const PopupMenuItem(
+                  value: 'clear',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_sweep, size: 20, color: Colors.redAccent),
+                      SizedBox(width: 12),
+                      Text('Vaciar cartera',
+                          style: TextStyle(color: Colors.redAccent)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
       drawer: Drawer(
@@ -192,6 +284,14 @@ class PortfolioPage extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutPage()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.favorite_outline, color: Colors.white70),
+              title: const Text('Apoyar', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()));
               },
             ),
             const Divider(color: Colors.white10),

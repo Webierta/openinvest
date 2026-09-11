@@ -1,20 +1,109 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../services/fund_scraper.dart';
 import '../services/database_service.dart';
+
+enum SortCriteria { name, value, performance }
 
 class FundProvider with ChangeNotifier {
   List<FundData> portfolio = [];
   FundData? currentFund;
   bool isLoading = false;
   String? error;
+  SortCriteria sortCriteria = SortCriteria.name;
 
   Future<void> loadPortfolio() async {
     portfolio = await DatabaseService.getPortfolio();
-    portfolio.sort((a, b) => a.name.compareTo(b.name));
+    _sortPortfolio();
     if (currentFund != null) {
       currentFund = await DatabaseService.getFund(currentFund!.isin);
     }
     notifyListeners();
+  }
+
+  void setSortCriteria(SortCriteria criteria) {
+    sortCriteria = criteria;
+    _sortPortfolio();
+    notifyListeners();
+  }
+
+  void _sortPortfolio() {
+    switch (sortCriteria) {
+      case SortCriteria.name:
+        portfolio.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case SortCriteria.value:
+        portfolio.sort((a, b) {
+          final valA = _calculateTotalValue(a);
+          final valB = _calculateTotalValue(b);
+          return valB.compareTo(valA); // Descendente por defecto para valores
+        });
+        break;
+      case SortCriteria.performance:
+        portfolio.sort((a, b) {
+          final perfA = _calculatePerformance(a);
+          final perfB = _calculatePerformance(b);
+          return perfB.compareTo(perfA); // Descendente por defecto para rendimiento
+        });
+        break;
+    }
+  }
+
+  double _calculateTotalValue(FundData fund) {
+    double totalUnits = 0;
+    for (var op in fund.operations) {
+      if (op.type == OperationType.buy) {
+        totalUnits += op.units;
+      } else {
+        totalUnits -= op.units;
+      }
+    }
+    return totalUnits * fund.lastValue;
+  }
+
+  double _calculatePerformance(FundData fund) {
+    double totalUnits = 0;
+    double totalInvested = 0;
+    DateTime? firstOpDate;
+    
+    for (var op in fund.operations) {
+      if (op.type == OperationType.buy) {
+        totalUnits += op.units;
+        totalInvested += op.amount;
+      } else {
+        totalUnits -= op.units;
+        totalInvested -= op.amount;
+      }
+      if (firstOpDate == null || op.date.isBefore(firstOpDate)) {
+        firstOpDate = op.date;
+      }
+    }
+
+    if (totalInvested <= 0 || firstOpDate == null) return -999;
+
+    final currentValue = totalUnits * fund.lastValue;
+    final daysDiff = DateTime.now().difference(firstOpDate).inDays;
+    
+    // Intentar TWR (TAE)
+    final firstOpPricePoint = fund.history.cast<PricePoint?>().lastWhere(
+      (p) => p!.date.isBefore(firstOpDate!.add(const Duration(days: 1))),
+      orElse: () => null,
+    );
+
+    double performanceTotal = 0;
+    if (firstOpPricePoint != null && firstOpPricePoint.price > 0) {
+      performanceTotal = (fund.lastValue / firstOpPricePoint.price) - 1;
+    } else {
+      // Fallback ROI
+      performanceTotal = (currentValue - totalInvested) / totalInvested;
+    }
+
+    if (daysDiff >= 30) {
+      final double years = daysDiff / 365.25;
+      return (pow(1 + performanceTotal, 1 / years) - 1) * 100;
+    } else {
+      return performanceTotal * 100;
+    }
   }
 
   Future<ScrapeResult> fetchFundOnly(String isin) async {

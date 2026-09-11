@@ -50,9 +50,15 @@ class _FundSearchPageState extends State<FundSearchPage> {
     final provider = context.watch<FundProvider>();
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Añadir Fondo')),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Añadir Fondo'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: GradientBackground(
         child: SafeArea(
+          bottom: false,
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(

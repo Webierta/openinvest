@@ -235,4 +235,21 @@ class FundScraper {
       return ScrapeResult(error: 'Error: $e');
     }
   }
+
+  static Future<double> getExchangeRate(String from, String to) async {
+    if (from == to) return 1.0;
+    try {
+      final String symbol = '$from$to=X';
+      final response = await http.get(Uri.parse('$_chartUrl$symbol?range=1d&interval=1d'), headers: _headers);
+      if (response.statusCode != 200) return 1.0;
+      
+      final data = json.decode(response.body);
+      final result = data['chart']?['result']?[0];
+      final double? rate = result?['meta']?['regularMarketPrice']?.toDouble();
+      
+      return rate ?? 1.0;
+    } catch (e) {
+      return 1.0;
+    }
+  }
 }
