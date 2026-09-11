@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/fund_scraper.dart';
 import '../services/database_service.dart';
+import '../utils/app_error.dart';
 
 enum SortCriteria { name, value, performance }
 
@@ -11,16 +12,52 @@ class FundProvider with ChangeNotifier {
   List<FundData> portfolio = [];
   FundData? currentFund;
   bool isLoading = false;
-  String? error;
+  AppError? lastError;
   SortCriteria sortCriteria = SortCriteria.name;
   Map<String, double> exchangeRates = {'EUR': 1.0};
 
+  String? get error => lastError?.message;
+
+  void _clearError() {
+    lastError = null;
+  }
+
+  AppError _asError(
+    Object error,
+    StackTrace stackTrace, {
+    AppErrorType type = AppErrorType.unknown,
+  }) {
+    if (error is AppError) return error;
+    return AppError.fromException(error, stackTrace, type: type);
+  }
+
+  void _setError(AppError error) {
+    lastError = error;
+    notifyListeners();
+  }
+
+  Future<void> _runDatabaseOperation(Future<void> Function() operation) async {
+    _clearError();
+    try {
+      await operation();
+    } catch (error, stackTrace) {
+      final appError = _asError(error, stackTrace, type: AppErrorType.database);
+      _setError(appError);
+      throw appError;
+    }
+  }
+
   Future<void> loadPortfolio() async {
-    portfolio = await DatabaseService.getPortfolio();
-    await _updateExchangeRates();
-    _sortPortfolio();
-    if (currentFund != null) {
-      currentFund = await DatabaseService.getFund(currentFund!.isin);
+    _clearError();
+    try {
+      portfolio = await DatabaseService.getPortfolio();
+      await _updateExchangeRates();
+      _sortPortfolio();
+      if (currentFund != null) {
+        currentFund = await DatabaseService.getFund(currentFund!.isin);
+      }
+    } catch (error, stackTrace) {
+      _setError(_asError(error, stackTrace, type: AppErrorType.database));
     }
     notifyListeners();
   }
@@ -29,8 +66,12 @@ class FundProvider with ChangeNotifier {
     final currencies = portfolio.map((f) => f.currency).toSet();
     for (var cur in currencies) {
       if (cur != 'EUR' && cur.isNotEmpty) {
-        final rate = await FundScraper.getExchangeRate(cur, 'EUR');
-        exchangeRates[cur] = rate;
+        try {
+          exchangeRates[cur] = await FundScraper.getExchangeRate(cur, 'EUR');
+        } catch (error, stackTrace) {
+          exchangeRates[cur] = 1.0;
+          _setError(_asError(error, stackTrace));
+        }
       }
     }
   }
@@ -128,121 +169,157 @@ class FundProvider with ChangeNotifier {
 
   Future<ScrapeResult> fetchFundOnly(String isin) async {
     if (isin.length != 12) {
-      error = 'El ISIN debe tener 12 caracteres.';
-      notifyListeners();
-      return ScrapeResult(error: error);
+      final appError = AppError.validation('El ISIN debe tener 12 caracteres.');
+      _setError(appError);
+      return ScrapeResult(error: appError);
     }
     isLoading = true;
-    error = null;
+    _clearError();
     notifyListeners();
-    final result = await FundScraper.getFundByIsin(isin.toUpperCase());
-    isLoading = false;
-    error = result.error;
-    notifyListeners();
-    return result;
+    try {
+      final result = await FundScraper.getFundByIsin(isin.toUpperCase());
+      if (result.error != null) lastError = result.error;
+      return result;
+    } catch (error, stackTrace) {
+      final appError = _asError(error, stackTrace);
+      lastError = appError;
+      return ScrapeResult(error: appError);
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> addToPortfolio(FundData fund) async {
-    await DatabaseService.saveFund(fund);
-    currentFund = fund;
-    await loadPortfolio();
+    await _runDatabaseOperation(() async {
+      await DatabaseService.saveFund(fund);
+      currentFund = fund;
+      await loadPortfolio();
+    });
   }
 
   Future<void> addOperation(FundOperation op) async {
-    await DatabaseService.saveOperation(op);
-    await loadPortfolio();
+    await _runDatabaseOperation(() async {
+      await DatabaseService.saveOperation(op);
+      await loadPortfolio();
+    });
   }
 
   Future<void> deleteOperation(int id) async {
-    await DatabaseService.deleteOperation(id);
-    await loadPortfolio();
+    await _runDatabaseOperation(() async {
+      await DatabaseService.deleteOperation(id);
+      await loadPortfolio();
+    });
   }
 
   Future<void> deletePricePoint(String isin, DateTime date) async {
-    await DatabaseService.deletePricePoint(isin, date);
-    await loadPortfolio();
+    await _runDatabaseOperation(() async {
+      await DatabaseService.deletePricePoint(isin, date);
+      await loadPortfolio();
+    });
   }
 
   Future<void> restorePricePoint(String isin, PricePoint point) async {
-    await DatabaseService.restorePricePoint(isin, point);
-    await loadPortfolio();
+    await _runDatabaseOperation(() async {
+      await DatabaseService.restorePricePoint(isin, point);
+      await loadPortfolio();
+    });
   }
 
   Future<bool> searchFund(String isin) async {
     if (isin.length != 12) {
-      error = 'El ISIN debe tener 12 caracteres.';
-      notifyListeners();
+      _setError(AppError.validation('El ISIN debe tener 12 caracteres.'));
       return false;
     }
     isLoading = true;
-    error = null;
+    _clearError();
     notifyListeners();
-    final result = await FundScraper.getFundByIsin(isin.toUpperCase());
-    isLoading = false;
-    if (result.data != null) {
-      await DatabaseService.saveFund(result.data!);
-      currentFund = result.data;
-      await loadPortfolio();
-      return true;
-    } else {
-      error = result.error;
-      notifyListeners();
+    try {
+      final result = await FundScraper.getFundByIsin(isin.toUpperCase());
+      if (result.data != null) {
+        await _runDatabaseOperation(() async {
+          await DatabaseService.saveFund(result.data!);
+          currentFund = result.data;
+          await loadPortfolio();
+        });
+        return true;
+      }
+      lastError = result.error;
       return false;
+    } catch (error, stackTrace) {
+      lastError = _asError(error, stackTrace);
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<bool> searchFundByRange(String isin, DateTimeRange range) async {
     isLoading = true;
-    error = null;
+    _clearError();
     notifyListeners();
-    final result = await FundScraper.getFundByIsin(
-      isin.toUpperCase(),
-      startDate: range.start,
-      endDate: range.end,
-    );
-    isLoading = false;
-    if (result.data != null) {
-      await DatabaseService.saveFund(result.data!);
-      currentFund = result.data;
-      await loadPortfolio();
-      return true;
-    } else {
-      error = result.error;
-      notifyListeners();
+    try {
+      final result = await FundScraper.getFundByIsin(
+        isin.toUpperCase(),
+        startDate: range.start,
+        endDate: range.end,
+      );
+      if (result.data != null) {
+        await _runDatabaseOperation(() async {
+          await DatabaseService.saveFund(result.data!);
+          currentFund = result.data;
+          await loadPortfolio();
+        });
+        return true;
+      }
+      lastError = result.error;
       return false;
+    } catch (error, stackTrace) {
+      lastError = _asError(error, stackTrace);
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
   }
 
   void selectFund(FundData fund) {
     currentFund = fund;
-    error = null;
+    _clearError();
     notifyListeners();
   }
 
   Future<void> removeFromPortfolio(String isin) async {
-    await DatabaseService.deleteFund(isin);
-    if (currentFund?.isin == isin) currentFund = null;
-    await loadPortfolio();
+    await _runDatabaseOperation(() async {
+      await DatabaseService.deleteFund(isin);
+      if (currentFund?.isin == isin) currentFund = null;
+      await loadPortfolio();
+    });
   }
 
   Future<void> clearCurrentFundData() async {
     if (currentFund != null) {
-      await DatabaseService.clearAllData(currentFund!.isin);
-      await loadPortfolio();
+      await _runDatabaseOperation(() async {
+        await DatabaseService.clearAllData(currentFund!.isin);
+        await loadPortfolio();
+      });
     }
   }
 
   Future<void> clearPortfolio() async {
-    await DatabaseService.clearPortfolio();
-    portfolio = [];
-    currentFund = null;
-    notifyListeners();
+    await _runDatabaseOperation(() async {
+      await DatabaseService.clearPortfolio();
+      portfolio = [];
+      currentFund = null;
+      notifyListeners();
+    });
   }
 
   Future<void> updateAllPortfolio() async {
     if (portfolio.isEmpty) return;
     isLoading = true;
-    error = null;
+    _clearError();
     notifyListeners();
     try {
       final isins = portfolio.map((f) => f.isin).toList();
@@ -266,8 +343,8 @@ class FundProvider with ChangeNotifier {
         }
       }
       await loadPortfolio();
-    } catch (e) {
-      error = "Error al actualizar la cartera: $e";
+    } catch (error, stackTrace) {
+      _setError(_asError(error, stackTrace, type: AppErrorType.database));
     } finally {
       isLoading = false;
       notifyListeners();
@@ -275,8 +352,9 @@ class FundProvider with ChangeNotifier {
   }
 
   Future<void> setAlerts(String isin, double? min, double? max) async {
-    final fund = await DatabaseService.getFund(isin);
-    if (fund != null) {
+    await _runDatabaseOperation(() async {
+      final fund = await DatabaseService.getFund(isin);
+      if (fund == null) return;
       final updated = FundData(
         isin: fund.isin,
         symbol: fund.symbol,
@@ -291,6 +369,6 @@ class FundProvider with ChangeNotifier {
       );
       await DatabaseService.saveFund(updated);
       await loadPortfolio();
-    }
+    });
   }
 }

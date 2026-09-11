@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+
 import 'fund_scraper.dart';
 import 'database_service.dart';
+import '../utils/app_error.dart';
 
 class ExportService {
   static Future<void> exportFund(BuildContext context, FundData fund) async {
@@ -29,10 +32,18 @@ class ExportService {
           const SnackBar(content: Text('Fondo exportado correctamente')),
         );
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
+      final appError = AppError.fromException(
+        error,
+        stackTrace,
+        type: AppErrorType.database,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al exportar: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(appError.message),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -51,7 +62,7 @@ class ExportService {
       final File file = File(result.first.path!);
       final String jsonString = await file.readAsString();
       final Map<String, dynamic> jsonData = json.decode(jsonString);
-      
+
       final FundData fund = FundData.fromJson(jsonData);
 
       // Save to database
@@ -66,10 +77,18 @@ class ExportService {
         );
       }
       return fund;
-    } catch (e) {
+    } catch (error, stackTrace) {
+      final appError = AppError.fromException(
+        error,
+        stackTrace,
+        type: AppErrorType.database,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al importar: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(appError.message),
+            backgroundColor: Colors.red,
+          ),
         );
       }
       return null;

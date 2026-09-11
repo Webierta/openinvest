@@ -9,6 +9,7 @@ import '../providers/fund_provider.dart';
 import '../services/fund_scraper.dart';
 import '../widgets/gradient_background.dart';
 import '../services/export_service.dart';
+import '../widgets/error_banner.dart';
 
 class FundDetailsPage extends StatefulWidget {
   const FundDetailsPage({super.key});
@@ -284,50 +285,22 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
         ),
         body: GradientBackground(
           child: SafeArea(
-            child: TabBarView(
+            child: Column(
               children: [
-                RefreshIndicator(
-                  onRefresh: () => provider.searchFund(fund.isin),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: _buildSummaryCard(
-                      context,
-                      fund,
-                      priceFormat,
-                      percentFormat,
-                      dateFormat,
-                    ),
+                if (provider.error != null)
+                  ErrorBanner(
+                    message: provider.error!,
+                    onRetry: () => provider.searchFund(fund.isin),
                   ),
-                ),
-                RefreshIndicator(
-                  onRefresh: () => provider.searchFund(fund.isin),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: fund.operations.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No hay operaciones registradas',
-                              style: TextStyle(color: Colors.white38),
-                            ),
-                          )
-                        : _buildBalanceSection(
-                            context,
-                            fund,
-                            priceFormat,
-                            percentFormat,
-                          ),
-                  ),
-                ),
-                RefreshIndicator(
-                  onRefresh: () => provider.searchFund(fund.isin),
-                  child: fund.lastValue == 0 && fund.history.isEmpty
-                      ? const Center(child: Text('No hay datos disponibles'))
-                      : SingleChildScrollView(
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      RefreshIndicator(
+                        onRefresh: () => provider.searchFund(fund.isin),
+                        child: SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.all(16),
-                          child: _buildGraphSection(
+                          child: _buildSummaryCard(
                             context,
                             fund,
                             priceFormat,
@@ -335,28 +308,71 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                             dateFormat,
                           ),
                         ),
-                ),
-                RefreshIndicator(
-                  onRefresh: () => provider.searchFund(fund.isin),
-                  child: fund.lastValue == 0 && fund.history.isEmpty
-                      ? const Center(child: Text('No hay datos disponibles'))
-                      : SingleChildScrollView(
+                      ),
+                      RefreshIndicator(
+                        onRefresh: () => provider.searchFund(fund.isin),
+                        child: SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.all(16),
-                          child: _buildTableSection(
-                            context,
-                            fund,
-                            priceFormat,
-                            percentFormat,
-                          ),
+                          child: fund.operations.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'No hay operaciones registradas',
+                                    style: TextStyle(color: Colors.white38),
+                                  ),
+                                )
+                              : _buildBalanceSection(
+                                  context,
+                                  fund,
+                                  priceFormat,
+                                  percentFormat,
+                                ),
                         ),
-                ),
-                _buildOperationsSection(
-                  context,
-                  provider,
-                  fund,
-                  priceFormat,
-                  dateFormat,
+                      ),
+                      RefreshIndicator(
+                        onRefresh: () => provider.searchFund(fund.isin),
+                        child: fund.lastValue == 0 && fund.history.isEmpty
+                            ? const Center(
+                                child: Text('No hay datos disponibles'),
+                              )
+                            : SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(16),
+                                child: _buildGraphSection(
+                                  context,
+                                  fund,
+                                  priceFormat,
+                                  percentFormat,
+                                  dateFormat,
+                                ),
+                              ),
+                      ),
+                      RefreshIndicator(
+                        onRefresh: () => provider.searchFund(fund.isin),
+                        child: fund.lastValue == 0 && fund.history.isEmpty
+                            ? const Center(
+                                child: Text('No hay datos disponibles'),
+                              )
+                            : SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(16),
+                                child: _buildTableSection(
+                                  context,
+                                  fund,
+                                  priceFormat,
+                                  percentFormat,
+                                ),
+                              ),
+                      ),
+                      _buildOperationsSection(
+                        context,
+                        provider,
+                        fund,
+                        priceFormat,
+                        dateFormat,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

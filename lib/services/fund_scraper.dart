@@ -1,6 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:math' as math;
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
+
+import '../utils/app_error.dart';
 
 class PricePoint {
   final DateTime date;
@@ -154,9 +159,11 @@ class FundData {
 
 class ScrapeResult {
   final FundData? data;
-  final String? error;
+  final AppError? error;
 
   ScrapeResult({this.data, this.error});
+
+  String? get errorMessage => error?.message;
 }
 
 class FundScraper {
@@ -170,23 +177,52 @@ class FundScraper {
     'Accept': 'application/json',
   };
 
+  static Future<http.Response> _getWithRetry(Uri uri) async {
+    Object? lastError;
+    StackTrace? lastStackTrace;
+
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await http
+            .get(uri, headers: _headers)
+            .timeout(const Duration(seconds: 15));
+      } on SocketException catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+      } on TimeoutException catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+      } on http.ClientException catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+      }
+
+      if (attempt < 2) {
+        await Future<void>.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+      }
+    }
+
+    throw AppError.network(cause: lastError, stackTrace: lastStackTrace);
+  }
+
   static Future<ScrapeResult> getFundByIsin(
     String isin, {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
     try {
-      final searchResponse = await http.get(
-        Uri.parse('$_searchUrl$isin'),
-        headers: _headers,
-      );
+      final searchResponse = await _getWithRetry(Uri.parse('$_searchUrl$isin'));
       if (searchResponse.statusCode != 200) {
-        return ScrapeResult(error: 'Error de búsqueda');
+        return ScrapeResult(
+          error: AppError.remote('El servicio de búsqueda no está disponible.'),
+        );
       }
 
       final searchData = json.decode(searchResponse.body);
       final List quotes = searchData['quotes'] ?? [];
-      if (quotes.isEmpty) return ScrapeResult(error: 'ISIN no encontrado');
+      if (quotes.isEmpty) {
+        return ScrapeResult(error: AppError.notFound('ISIN no encontrado.'));
+      }
 
       final firstResult = quotes.first;
       final String symbol = firstResult['symbol'];
@@ -205,15 +241,23 @@ class FundScraper {
         url += '?range=1mo&interval=1d';
       }
 
-      final chartResponse = await http.get(Uri.parse(url), headers: _headers);
+      final chartResponse = await _getWithRetry(Uri.parse(url));
 
       if (chartResponse.statusCode != 200) {
-        return ScrapeResult(error: 'Error de cotización');
+        return ScrapeResult(
+          error: AppError.remote(
+            'El servicio de cotizaciones no está disponible.',
+          ),
+        );
       }
 
       final chartData = json.decode(chartResponse.body);
       final result = chartData['chart']?['result']?[0];
-      if (result == null) return ScrapeResult(error: 'Sin datos');
+      if (result == null) {
+        return ScrapeResult(
+          error: AppError.notFound('No hay cotizaciones disponibles.'),
+        );
+      }
 
       final meta = result['meta'];
       final double? price = meta['regularMarketPrice']?.toDouble();
@@ -227,7 +271,18 @@ class FundScraper {
       final List<PricePoint> history = [];
 
       if (timestamps != null && closePrices != null) {
-        for (int i = 0; i < timestamps.length; i++) {
+        if (timestamps.length != closePrices.length) {
+          return ScrapeResult(
+            error: AppError.data(
+              'La respuesta de cotizaciones está incompleta.',
+            ),
+          );
+        }
+        for (
+          int i = 0;
+          i < math.min(timestamps.length, closePrices.length);
+          i++
+        ) {
           if (closePrices[i] != null) {
             final date = DateTime.fromMillisecondsSinceEpoch(
               timestamps[i] * 1000,
@@ -267,7 +322,9 @@ class FundScraper {
         );
       }
 
-      if (price == null) return ScrapeResult(error: 'Precio no disponible');
+      if (price == null) {
+        return ScrapeResult(error: AppError.data('Precio no disponible.'));
+      }
 
       return ScrapeResult(
         data: FundData(
@@ -280,8 +337,16 @@ class FundScraper {
           history: history,
         ),
       );
-    } catch (e) {
-      return ScrapeResult(error: 'Error: $e');
+    } on AppError catch (error) {
+      return ScrapeResult(error: error);
+    } catch (error, stackTrace) {
+      return ScrapeResult(
+        error: AppError.fromException(
+          error,
+          stackTrace,
+          type: AppErrorType.data,
+        ),
+      );
     }
   }
 
@@ -289,19 +354,25 @@ class FundScraper {
     if (from == to) return 1.0;
     try {
       final String symbol = '$from$to=X';
-      final response = await http.get(
+      final response = await _getWithRetry(
         Uri.parse('$_chartUrl$symbol?range=1d&interval=1d'),
-        headers: _headers,
       );
-      if (response.statusCode != 200) return 1.0;
+      if (response.statusCode != 200) {
+        throw AppError.remote('No se pudo obtener el tipo de cambio.');
+      }
 
       final data = json.decode(response.body);
       final result = data['chart']?['result']?[0];
       final double? rate = result?['meta']?['regularMarketPrice']?.toDouble();
 
-      return rate ?? 1.0;
-    } catch (e) {
-      return 1.0;
+      if (rate == null) {
+        throw AppError.data('Tipo de cambio no disponible.');
+      }
+      return rate;
+    } on AppError {
+      rethrow;
+    } catch (error, stackTrace) {
+      throw AppError.fromException(error, stackTrace, type: AppErrorType.data);
     }
   }
 }
