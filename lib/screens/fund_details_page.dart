@@ -10,6 +10,9 @@ import '../services/fund_scraper.dart';
 import '../widgets/gradient_background.dart';
 import '../services/export_service.dart';
 import '../widgets/error_banner.dart';
+import '../widgets/fund_history_chart.dart';
+import '../widgets/fund_operations_list.dart';
+import '../widgets/price_history_table.dart';
 
 class FundDetailsPage extends StatefulWidget {
   const FundDetailsPage({super.key});
@@ -338,12 +341,9 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                             : SingleChildScrollView(
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 padding: const EdgeInsets.all(16),
-                                child: _buildGraphSection(
-                                  context,
-                                  fund,
-                                  priceFormat,
-                                  percentFormat,
-                                  dateFormat,
+                                child: FundHistoryChart(
+                                  fund: fund,
+                                  priceFormat: priceFormat,
                                 ),
                               ),
                       ),
@@ -356,21 +356,14 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                             : SingleChildScrollView(
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 padding: const EdgeInsets.all(16),
-                                child: _buildTableSection(
-                                  context,
-                                  fund,
-                                  priceFormat,
-                                  percentFormat,
+                                child: PriceHistoryTable(
+                                  fund: fund,
+                                  priceFormat: priceFormat,
+                                  percentFormat: percentFormat,
                                 ),
                               ),
                       ),
-                      _buildOperationsSection(
-                        context,
-                        provider,
-                        fund,
-                        priceFormat,
-                        dateFormat,
-                      ),
+                      FundOperationsList(fund: fund, priceFormat: priceFormat),
                     ],
                   ),
                 ),
@@ -947,6 +940,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildGraphSection(
     BuildContext context,
     FundData fund,
@@ -1216,6 +1210,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildTableSection(
     BuildContext context,
     FundData fund,
@@ -1732,6 +1727,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildOperationsSection(
     BuildContext context,
     FundProvider provider,
