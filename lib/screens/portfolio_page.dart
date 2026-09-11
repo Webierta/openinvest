@@ -50,11 +50,12 @@ class PortfolioPage extends StatelessWidget {
         }
       }
 
-      final fundValue = totalUnits * item.lastValue;
-      final fundProfitAbs = fundValue - totalInvested;
+      final double rate = provider.exchangeRates[item.currency] ?? 1.0;
+      final fundValue = (totalUnits * item.lastValue) * rate;
+      final fundProfitAbs = fundValue - (totalInvested * rate);
       
       globalTotalValue += fundValue;
-      globalTotalInvested += totalInvested;
+      globalTotalInvested += (totalInvested * rate);
       globalProfitAbs += fundProfitAbs;
 
       // Cálculo del TAE individual (con respaldo si no hay historial)
@@ -250,24 +251,7 @@ class PortfolioPage extends StatelessWidget {
                 ),
               ),
               child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.account_balance, color: Colors.blueAccent, size: 32),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'OpenInvest',
-                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
+                child: Image.asset('assets/images/logo.png', width: 100, height: 100),
               ),
             ),
             ListTile(
@@ -495,10 +479,21 @@ class PortfolioPage extends StatelessWidget {
                                             tag: 'name_${item.isin}',
                                             child: Material(
                                               color: Colors.transparent,
-                                              child: Text(
-                                                item.name, 
-                                                overflow: TextOverflow.ellipsis, 
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)
+                                              child: Row(
+                                                children: [
+                                                  Flexible(
+                                                    child: Text(
+                                                      item.name, 
+                                                      overflow: TextOverflow.ellipsis, 
+                                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)
+                                                    ),
+                                                  ),
+                                                  if ((item.alertMin != null && item.lastValue <= item.alertMin!) || 
+                                                      (item.alertMax != null && item.lastValue >= item.alertMax!)) ...[
+                                                    const SizedBox(width: 6),
+                                                    const Icon(Icons.notifications_active_rounded, color: Colors.amber, size: 16),
+                                                  ],
+                                                ],
                                               ),
                                             ),
                                           ),

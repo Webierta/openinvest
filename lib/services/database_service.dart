@@ -26,7 +26,7 @@ class DatabaseService {
 
     return await openDatabase(
       newPath,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE funds (
@@ -35,7 +35,9 @@ class DatabaseService {
             name TEXT,
             currency TEXT,
             last_value REAL,
-            last_update TEXT
+            last_update TEXT,
+            alert_min REAL,
+            alert_max REAL
           )
         ''');
         await db.execute('''
@@ -74,10 +76,14 @@ class DatabaseService {
         if (oldVersion < 3) {
           try {
             await db.execute('ALTER TABLE operations ADD COLUMN amount REAL');
-          } catch (e) {
-            // Column might already exist if versioning was messy
-          }
+          } catch (e) {}
           await db.execute('UPDATE operations SET amount = units * price WHERE amount IS NULL');
+        }
+        if (oldVersion < 4) {
+          try {
+            await db.execute('ALTER TABLE funds ADD COLUMN alert_min REAL');
+            await db.execute('ALTER TABLE funds ADD COLUMN alert_max REAL');
+          } catch (e) {}
         }
       },
     );
@@ -97,6 +103,8 @@ class DatabaseService {
         'currency': fund.currency,
         'last_value': fund.lastValue,
         'last_update': normalizedDate,
+        'alert_min': fund.alertMin,
+        'alert_max': fund.alertMax,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -226,6 +234,8 @@ class DatabaseService {
         date: DateTime.parse(m['last_update']),
         history: history,
         operations: operations,
+        alertMin: m['alert_min'],
+        alertMax: m['alert_max'],
       ));
     }
     return funds;
@@ -285,6 +295,8 @@ class DatabaseService {
       date: DateTime.parse(m['last_update']),
       history: history,
       operations: operations,
+      alertMin: m['alert_min'],
+      alertMax: m['alert_max'],
     );
   }
 

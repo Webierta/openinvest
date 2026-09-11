@@ -40,20 +40,6 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
     final percentFormat = NumberFormat('#,##0.00', 'es_ES');
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
-    // Variación diaria para el Hero Avatar (consistencia visual)
-    double? dailyVariation;
-    Color? dailyVarColor;
-    if (fund.history.length > 1) {
-      final last = fund.history.last.price;
-      final prev = fund.history[fund.history.length - 2].price;
-      if (prev != 0) {
-        dailyVariation = ((last - prev) / prev) * 100;
-        if (dailyVariation > 0) {
-          dailyVarColor = Colors.greenAccent[400];
-        } else if (dailyVariation < 0) dailyVarColor = Colors.redAccent[200];
-      }
-    }
-
     return DefaultTabController(
       length: 5,
       child: Scaffold(
@@ -221,6 +207,87 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
             ),
           ),
         ),
+        floatingActionButton: Builder(
+          builder: (context) {
+            final tabController = DefaultTabController.of(context);
+            return AnimatedBuilder(
+              animation: tabController,
+              builder: (context, _) {
+                if (tabController.index == 0) {
+                  return FloatingActionButton(
+                    onPressed: () => _showAlertDialog(context, provider, fund),
+                    backgroundColor: Colors.amber,
+                    child: const Icon(Icons.add_alert_rounded, color: Colors.black87),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showAlertDialog(BuildContext context, FundProvider provider, FundData fund) {
+    final minController = TextEditingController(text: fund.alertMin?.toString().replaceAll('.', ',') ?? '');
+    final maxController = TextEditingController(text: fund.alertMax?.toString().replaceAll('.', ',') ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.notifications_active, color: Colors.amber),
+            const SizedBox(width: 10),
+            const Text('Configurar Alertas'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Notificar si el Valor Liquidativo alcanza los siguientes límites:', style: TextStyle(fontSize: 13, color: Colors.white70)),
+            const SizedBox(height: 20),
+            TextField(
+              controller: minController,
+              decoration: InputDecoration(
+                labelText: 'Mínimo',
+                suffixText: fund.currency,
+                prefixIcon: const Icon(Icons.arrow_downward, color: Colors.redAccent),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: maxController,
+              decoration: InputDecoration(
+                labelText: 'Máximo',
+                suffixText: fund.currency,
+                prefixIcon: const Icon(Icons.arrow_upward, color: Colors.greenAccent),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              provider.setAlerts(fund.isin, null, null);
+              Navigator.pop(context);
+            },
+            child: const Text('Borrar Alertas', style: TextStyle(color: Colors.white38)),
+          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () {
+              final min = double.tryParse(minController.text.replaceAll(',', '.'));
+              final max = double.tryParse(maxController.text.replaceAll(',', '.'));
+              provider.setAlerts(fund.isin, min, max);
+              Navigator.pop(context);
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
       ),
     );
   }
@@ -229,9 +296,15 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
     double? diff, percent; Color? varColor; double? totalDiff, totalPercent; Color? totalVarColor; DateTime? oldestDate;
     if (fund.history.length > 1) {
       final prevVal = fund.history[fund.history.length - 2].price;
-      if (prevVal != 0) { diff = fund.lastValue - prevVal; percent = (diff / prevVal) * 100; if (diff > 0) {
-        varColor = Colors.greenAccent[400];
-      } else if (diff < 0) varColor = Colors.redAccent[200]; }
+      if (prevVal != 0) { 
+        diff = fund.lastValue - prevVal; 
+        percent = (diff / prevVal) * 100; 
+        if (diff > 0) {
+          varColor = Colors.greenAccent[400];
+        } else if (diff < 0) {
+          varColor = Colors.redAccent[200];
+        }
+      }
       final oldestVal = fund.history.first.price; oldestDate = fund.history.first.date;
       if (oldestVal != 0) { totalDiff = fund.lastValue - oldestVal; totalPercent = (totalDiff / oldestVal) * 100; if (totalDiff > 0) {
         totalVarColor = Colors.greenAccent[400];
@@ -260,7 +333,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text('Actualizado: ${dateFormat.format(fund.date)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white38)),
+              Text('Actualizado: ${DateFormat('dd/MM/yyyy').format(fund.date)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white38)),
               if (totalDiff != null && totalPercent != null && oldestDate != null) ...[
                 const Divider(height: 32, color: Colors.white10),
                 Row(
@@ -322,11 +395,11 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
 
         // 3. MWR (Money-Weighted Return / IRR)
         // Flujos: Compras (negativos), Ventas (positivos), Valor Actual (positivo final)
-        List<Map<String, Object>> flows = fund.operations.map((op) => {
+        List<Map<String, Object>> flows = fund.operations.map((op) => <String, Object>{
           'amount': op.type == OperationType.buy ? -op.amount : op.amount,
           'date': op.date,
         }).toList();
-        flows.add({'amount': currentValue, 'date': DateTime.now()});
+        flows.add(<String, Object>{'amount': currentValue, 'date': DateTime.now()});
 
         final double irr = _calculateIRR(flows);
         if (!irr.isNaN) {

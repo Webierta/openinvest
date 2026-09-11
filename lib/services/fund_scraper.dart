@@ -67,6 +67,8 @@ class FundData {
   final DateTime date;
   final List<PricePoint> history;
   final List<FundOperation> operations;
+  final double? alertMin;
+  final double? alertMax;
 
   FundData({
     required this.isin,
@@ -77,6 +79,8 @@ class FundData {
     required this.date,
     required List<PricePoint> history,
     this.operations = const [],
+    this.alertMin,
+    this.alertMax,
   }) : history = _syncHistory(history, lastValue, date);
 
   // Asegura que lastValue esté en history y sea el punto más reciente para esa fecha
@@ -111,6 +115,8 @@ class FundData {
     'date': date.toIso8601String(),
     'history': history.map((e) => e.toJson()).toList(),
     'operations': operations.map((e) => e.toJson()).toList(),
+    'alertMin': alertMin,
+    'alertMax': alertMax,
   };
 
   factory FundData.fromJson(Map<String, dynamic> json) => FundData(
@@ -122,6 +128,8 @@ class FundData {
     date: DateTime.parse(json['date']),
     history: (json['history'] as List?)?.map((e) => PricePoint.fromJson(e)).toList() ?? [],
     operations: (json['operations'] as List?)?.map((e) => FundOperation.fromJson(e)).toList() ?? [],
+    alertMin: json['alertMin']?.toDouble(),
+    alertMax: json['alertMax']?.toDouble(),
   );
 }
 

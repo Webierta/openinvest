@@ -1,4 +1,5 @@
 # OpenInvest
+![Logo](assets/images/logo.png)
 
 Aplicación de código abierto para la gestión de una cartera de fondos de inversión.
 

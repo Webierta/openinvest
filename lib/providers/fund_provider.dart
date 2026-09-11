@@ -11,14 +11,26 @@ class FundProvider with ChangeNotifier {
   bool isLoading = false;
   String? error;
   SortCriteria sortCriteria = SortCriteria.name;
+  Map<String, double> exchangeRates = {'EUR': 1.0};
 
   Future<void> loadPortfolio() async {
     portfolio = await DatabaseService.getPortfolio();
+    await _updateExchangeRates();
     _sortPortfolio();
     if (currentFund != null) {
       currentFund = await DatabaseService.getFund(currentFund!.isin);
     }
     notifyListeners();
+  }
+
+  Future<void> _updateExchangeRates() async {
+    final currencies = portfolio.map((f) => f.currency).toSet();
+    for (var cur in currencies) {
+      if (cur != 'EUR' && cur.isNotEmpty) {
+        final rate = await FundScraper.getExchangeRate(cur, 'EUR');
+        exchangeRates[cur] = rate;
+      }
+    }
   }
 
   void setSortCriteria(SortCriteria criteria) {
@@ -219,7 +231,22 @@ class FundProvider with ChangeNotifier {
       final isins = portfolio.map((f) => f.isin).toList();
       for (final isin in isins) {
         final result = await FundScraper.getFundByIsin(isin);
-        if (result.data != null) await DatabaseService.saveFund(result.data!);
+        if (result.data != null) {
+          // Mantener las alertas existentes al actualizar
+          final existing = portfolio.firstWhere((f) => f.isin == isin);
+          final updatedFund = FundData(
+            isin: result.data!.isin,
+            symbol: result.data!.symbol,
+            name: result.data!.name,
+            lastValue: result.data!.lastValue,
+            currency: result.data!.currency,
+            date: result.data!.date,
+            history: result.data!.history,
+            alertMin: existing.alertMin,
+            alertMax: existing.alertMax,
+          );
+          await DatabaseService.saveFund(updatedFund);
+        }
       }
       await loadPortfolio();
     } catch (e) {
@@ -227,6 +254,26 @@ class FundProvider with ChangeNotifier {
     } finally {
       isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> setAlerts(String isin, double? min, double? max) async {
+    final fund = await DatabaseService.getFund(isin);
+    if (fund != null) {
+      final updated = FundData(
+        isin: fund.isin,
+        symbol: fund.symbol,
+        name: fund.name,
+        lastValue: fund.lastValue,
+        currency: fund.currency,
+        date: fund.date,
+        history: fund.history,
+        operations: fund.operations,
+        alertMin: min,
+        alertMax: max,
+      );
+      await DatabaseService.saveFund(updated);
+      await loadPortfolio();
     }
   }
 }
