@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fund_scraper.dart';
-import 'database_service.dart';
 import '../utils/app_error.dart';
 
 class ExportService {
@@ -82,17 +81,6 @@ class ExportService {
 
       final FundData fund = FundData.fromJson(jsonData);
 
-      // Save to database
-      await DatabaseService.saveFund(fund);
-      for (var op in fund.operations) {
-        await DatabaseService.saveOperation(op);
-      }
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fondo importado correctamente')),
-        );
-      }
       return fund;
     } catch (error, stackTrace) {
       final appError = AppError.fromException(

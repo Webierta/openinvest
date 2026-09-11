@@ -55,7 +55,23 @@ class _FundSearchPageState extends State<FundSearchPage> {
         ),
       );
       if (confirm == true && mounted) {
-        await provider.addToPortfolio(result.data!);
+        final fund = result.data!;
+        final exists = provider.portfolio.any((item) => item.isin == fund.isin);
+        var overwrite = false;
+        if (exists) {
+          final decision = await _confirmOverwrite(context, fund.name);
+          if (decision != true || !mounted) return;
+          overwrite = true;
+        }
+        try {
+          if (overwrite) {
+            await provider.replaceFund(fund);
+          } else {
+            await provider.addToPortfolio(fund);
+          }
+        } catch (_) {
+          return;
+        }
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -64,6 +80,31 @@ class _FundSearchPageState extends State<FundSearchPage> {
         }
       }
     }
+  }
+
+  Future<bool?> _confirmOverwrite(BuildContext context, String fundName) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Fondo ya existente'),
+        content: Text(
+          '$fundName ya está en tu cartera. ¿Quieres sobrescribirlo? Se eliminarán sus datos actuales, incluido el historial y las operaciones.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              'Sobrescribir',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

@@ -224,6 +224,14 @@ class FundProvider with ChangeNotifier {
     });
   }
 
+  Future<void> replaceFund(FundData fund) async {
+    await _runDatabaseOperation(() async {
+      await DatabaseService.replaceFund(fund);
+      currentFund = fund;
+      await loadPortfolio();
+    });
+  }
+
   Future<void> addOperation(FundOperation op) async {
     await _runDatabaseOperation(() async {
       await DatabaseService.saveOperation(op);

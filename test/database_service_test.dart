@@ -141,4 +141,60 @@ void main() {
     expect(restoredFund.operations.single.id, operation.id);
     expect(restoredFund.operations.single.amount, 60);
   });
+
+  test(
+    'reemplazar un fondo elimina sus datos anteriores atómicamente',
+    () async {
+      final date = DateTime(2026, 9, 2);
+      final original = FundData(
+        isin: 'TEST',
+        symbol: 'OLD',
+        name: 'Old Fund',
+        lastValue: 10,
+        currency: 'EUR',
+        date: date,
+        history: [PricePoint(date, 10)],
+      );
+      await DatabaseService.saveFund(original);
+      await DatabaseService.saveOperation(
+        FundOperation(
+          isin: 'TEST',
+          date: date,
+          type: OperationType.buy,
+          units: 1,
+          price: 10,
+          amount: 10,
+        ),
+      );
+
+      final replacement = FundData(
+        isin: 'TEST',
+        symbol: 'NEW',
+        name: 'New Fund',
+        lastValue: 25,
+        currency: 'EUR',
+        date: date,
+        history: [PricePoint(date, 25)],
+        operations: [
+          FundOperation(
+            id: 999,
+            isin: 'TEST',
+            date: date,
+            type: OperationType.sell,
+            units: 2,
+            price: 25,
+            amount: 50,
+          ),
+        ],
+      );
+      await DatabaseService.replaceFund(replacement);
+
+      final storedFund = await DatabaseService.getFund('TEST');
+      expect(storedFund!.name, 'New Fund');
+      expect(storedFund.lastValue, 25);
+      expect(storedFund.operations, hasLength(1));
+      expect(storedFund.operations.single.type, OperationType.sell);
+      expect(storedFund.operations.single.id, isNot(999));
+    },
+  );
 }

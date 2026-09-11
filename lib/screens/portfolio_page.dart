@@ -19,6 +19,32 @@ import 'support_page.dart';
 
 class PortfolioPage extends StatelessWidget {
   const PortfolioPage({super.key});
+
+  Future<bool?> _confirmOverwrite(BuildContext context, String fundName) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Fondo ya existente'),
+        content: Text(
+          '$fundName ya está en tu cartera. ¿Quieres sobrescribirlo? Se eliminarán sus datos actuales, incluido el historial y las operaciones.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              'Sobrescribir',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<FundProvider>();
@@ -204,7 +230,34 @@ class PortfolioPage extends StatelessWidget {
                 case 'import':
                   final fund = await ExportService.importFund(context);
                   if (fund != null && context.mounted) {
-                    context.read<FundProvider>().loadPortfolio();
+                    final existing = provider.portfolio.any(
+                      (item) => item.isin == fund.isin,
+                    );
+                    var overwrite = false;
+                    if (existing) {
+                      final decision = await _confirmOverwrite(
+                        context,
+                        fund.name,
+                      );
+                      if (decision != true || !context.mounted) break;
+                      overwrite = true;
+                    }
+                    try {
+                      if (overwrite) {
+                        await provider.replaceFund(fund);
+                      } else {
+                        await provider.addToPortfolio(fund);
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Fondo importado correctamente'),
+                          ),
+                        );
+                      }
+                    } catch (_) {
+                      // El proveedor expone el error en la interfaz principal.
+                    }
                   }
                   break;
                 case 'clear':

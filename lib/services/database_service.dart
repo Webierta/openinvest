@@ -185,6 +185,63 @@ class DatabaseService {
     }
   }
 
+  static Future<void> replaceFund(FundData fund) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('funds', where: 'isin = ?', whereArgs: [fund.isin]);
+      await txn.delete('prices', where: 'isin = ?', whereArgs: [fund.isin]);
+      await txn.delete('operations', where: 'isin = ?', whereArgs: [fund.isin]);
+
+      final normalizedDate = DateTime(
+        fund.date.year,
+        fund.date.month,
+        fund.date.day,
+      ).toIso8601String();
+      await txn.insert('funds', {
+        'isin': fund.isin,
+        'symbol': fund.symbol,
+        'name': fund.name,
+        'currency': fund.currency,
+        'last_value': fund.lastValue,
+        'last_update': normalizedDate,
+        'alert_min': fund.alertMin,
+        'alert_max': fund.alertMax,
+      });
+
+      final batch = txn.batch();
+      for (final point in fund.history) {
+        final date = DateTime(
+          point.date.year,
+          point.date.month,
+          point.date.day,
+        ).toIso8601String();
+        batch.insert('prices', {
+          'isin': fund.isin,
+          'date': date,
+          'price': point.price,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      if (fund.lastValue > 0) {
+        batch.insert('prices', {
+          'isin': fund.isin,
+          'date': normalizedDate,
+          'price': fund.lastValue,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final operation in fund.operations) {
+        batch.insert('operations', {
+          'isin': operation.isin,
+          'date': operation.date.toIso8601String(),
+          'type': operation.type.name,
+          'units': operation.units,
+          'price': operation.price,
+          'amount': operation.amount,
+        });
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
   static Future<void> restoreOperation(FundOperation operation) async {
     final db = await database;
     if (operation.id == null) {

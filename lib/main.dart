@@ -1,8 +1,10 @@
 import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:provider/provider.dart';
+
 import 'providers/fund_provider.dart';
 import 'screens/portfolio_page.dart';
 
@@ -38,9 +40,7 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('es', 'ES'),
-      ],
+      supportedLocales: const [Locale('es', 'ES')],
       locale: const Locale('es', 'ES'),
       theme: ThemeData(
         useMaterial3: true,
@@ -58,7 +58,9 @@ class MyApp extends StatelessWidget {
           centerTitle: false,
         ),
         cardTheme: CardThemeData(
-          color: slateBlue.withValues(alpha: 0.4), // Más transparente para ver el fondo
+          color: slateBlue.withValues(
+            alpha: 0.4,
+          ), // Más transparente para ver el fondo
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
