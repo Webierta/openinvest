@@ -1,5 +1,5 @@
 # OpenInvest
-![Logo](assets/images/logo.png)
+<img src="assets/images/logo.png" width="150" height="150" alt="Logo">
 
 Aplicación de código abierto para la gestión de una cartera de fondos de inversión.
 
@@ -14,6 +14,9 @@ Aplicación de código abierto para la gestión de una cartera de fondos de inve
   - **MWR/TIR**: Tu éxito personal basado en el momento exacto de cada inversión.
 - **Gráficos Interactivos**: Visualiza la evolución de tus fondos con filtros de rango rápido (1M, 6M, 1Y, ALL) y líneas de tendencia media.
 - **Exportación e Importación**: Lleva tus datos contigo. Exporta e importa tus fondos y operaciones en formato JSON para moverlos entre dispositivos o hacer copias de seguridad.
+- **Soporte Multidivisa**: Gestión automática de fondos en diversas divisas con conversión en tiempo real.
+- **Notificaciones**: Recibe alertas configurables para estar al tanto de tus fondos y objetivos.
+
 
 ## Información del Proyecto
 

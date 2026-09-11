@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+
 import 'fund_scraper.dart';
 
 class DatabaseService {
@@ -77,7 +79,9 @@ class DatabaseService {
           try {
             await db.execute('ALTER TABLE operations ADD COLUMN amount REAL');
           } catch (e) {}
-          await db.execute('UPDATE operations SET amount = units * price WHERE amount IS NULL');
+          await db.execute(
+            'UPDATE operations SET amount = units * price WHERE amount IS NULL',
+          );
         }
         if (oldVersion < 4) {
           try {
@@ -91,52 +95,50 @@ class DatabaseService {
 
   static Future<void> saveFund(FundData fund) async {
     final db = await database;
-    final String normalizedDate = DateTime(fund.date.year, fund.date.month, fund.date.day).toIso8601String();
-    
+    final String normalizedDate = DateTime(
+      fund.date.year,
+      fund.date.month,
+      fund.date.day,
+    ).toIso8601String();
+
     // Save fund info
-    await db.insert(
-      'funds',
-      {
-        'isin': fund.isin,
-        'symbol': fund.symbol,
-        'name': fund.name,
-        'currency': fund.currency,
-        'last_value': fund.lastValue,
-        'last_update': normalizedDate,
-        'alert_min': fund.alertMin,
-        'alert_max': fund.alertMax,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('funds', {
+      'isin': fund.isin,
+      'symbol': fund.symbol,
+      'name': fund.name,
+      'currency': fund.currency,
+      'last_value': fund.lastValue,
+      'last_update': normalizedDate,
+      'alert_min': fund.alertMin,
+      'alert_max': fund.alertMax,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     // Save historical prices
     Batch batch = db.batch();
-    
+
     if (fund.history.isNotEmpty) {
       for (var point in fund.history) {
-        final String pDate = DateTime(point.date.year, point.date.month, point.date.day).toIso8601String();
-        batch.insert(
-          'prices',
-          {
-            'isin': fund.isin,
-            'date': pDate,
-            'price': point.price,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        final String pDate = DateTime(
+          point.date.year,
+          point.date.month,
+          point.date.day,
+        ).toIso8601String();
+        batch.insert('prices', {
+          'isin': fund.isin,
+          'date': pDate,
+          'price': point.price,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     }
 
-    // Force current lastValue to be the record for its day
-    batch.insert(
-      'prices',
-      {
+    // Force current lastValue to be the record for its day when data exists.
+    if (fund.lastValue > 0) {
+      batch.insert('prices', {
         'isin': fund.isin,
         'date': normalizedDate,
         'price': fund.lastValue,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
 
     await batch.commit(noResult: true);
   }
@@ -170,15 +172,81 @@ class DatabaseService {
     }
   }
 
-  static Future<void> deleteOperation(int id) async {
-    final db = await database;
-    await db.delete('operations', where: 'id = ?', whereArgs: [id]);
-  }
-
   static Future<void> deletePricePoint(String isin, DateTime date) async {
     final db = await database;
-    final String pDate = DateTime(date.year, date.month, date.day).toIso8601String();
-    await db.delete('prices', where: 'isin = ? AND date = ?', whereArgs: [isin, pDate]);
+    final String pDate = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).toIso8601String();
+    await db.transaction((txn) async {
+      await txn.delete(
+        'prices',
+        where: 'isin = ? AND date = ?',
+        whereArgs: [isin, pDate],
+      );
+
+      final remaining = await txn.query(
+        'prices',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'date DESC',
+        limit: 1,
+      );
+
+      if (remaining.isEmpty) {
+        await txn.update(
+          'funds',
+          {'last_value': 0.0},
+          where: 'isin = ?',
+          whereArgs: [isin],
+        );
+      } else {
+        await txn.update(
+          'funds',
+          {
+            'last_value': remaining.first['price'],
+            'last_update': remaining.first['date'],
+          },
+          where: 'isin = ?',
+          whereArgs: [isin],
+        );
+      }
+    });
+  }
+
+  static Future<void> restorePricePoint(String isin, PricePoint point) async {
+    final db = await database;
+    final String pDate = DateTime(
+      point.date.year,
+      point.date.month,
+      point.date.day,
+    ).toIso8601String();
+    await db.transaction((txn) async {
+      await txn.insert('prices', {
+        'isin': isin,
+        'date': pDate,
+        'price': point.price,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      final latest = await txn.query(
+        'prices',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'date DESC',
+        limit: 1,
+      );
+      if (latest.isNotEmpty) {
+        await txn.update(
+          'funds',
+          {
+            'last_value': latest.first['price'],
+            'last_update': latest.first['date'],
+          },
+          where: 'isin = ?',
+          whereArgs: [isin],
+        );
+      }
+    });
   }
 
   static Future<List<FundData>> getPortfolio() async {
@@ -188,7 +256,7 @@ class DatabaseService {
     List<FundData> funds = [];
     for (var m in maps) {
       final String isin = m['isin'];
-      
+
       // Get all prices for this fund
       final List<Map<String, dynamic>> priceMaps = await db.query(
         'prices',
@@ -205,7 +273,8 @@ class DatabaseService {
         final key = normalizedDate.toIso8601String();
         historyMap[key] = PricePoint(normalizedDate, pm['price']);
       }
-      final history = historyMap.values.toList()..sort((a, b) => a.date.compareTo(b.date));
+      final history = historyMap.values.toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
 
       // Get all operations for this fund
       final List<Map<String, dynamic>> opMaps = await db.query(
@@ -215,28 +284,36 @@ class DatabaseService {
         orderBy: 'date DESC',
       );
 
-      final operations = opMaps.map((om) => FundOperation(
-        id: om['id'],
-        isin: isin,
-        date: DateTime.parse(om['date']),
-        type: om['type'] == 'buy' ? OperationType.buy : OperationType.sell,
-        units: om['units'],
-        price: om['price'],
-        amount: om['amount'] ?? (om['units'] * om['price']),
-      )).toList();
+      final operations = opMaps
+          .map(
+            (om) => FundOperation(
+              id: om['id'],
+              isin: isin,
+              date: DateTime.parse(om['date']),
+              type: om['type'] == 'buy'
+                  ? OperationType.buy
+                  : OperationType.sell,
+              units: om['units'],
+              price: om['price'],
+              amount: om['amount'] ?? (om['units'] * om['price']),
+            ),
+          )
+          .toList();
 
-      funds.add(FundData(
-        isin: isin,
-        symbol: m['symbol'],
-        name: m['name'],
-        lastValue: m['last_value'],
-        currency: m['currency'],
-        date: DateTime.parse(m['last_update']),
-        history: history,
-        operations: operations,
-        alertMin: m['alert_min'],
-        alertMax: m['alert_max'],
-      ));
+      funds.add(
+        FundData(
+          isin: isin,
+          symbol: m['symbol'],
+          name: m['name'],
+          lastValue: m['last_value'],
+          currency: m['currency'],
+          date: DateTime.parse(m['last_update']),
+          history: history,
+          operations: operations,
+          alertMin: m['alert_min'],
+          alertMax: m['alert_max'],
+        ),
+      );
     }
     return funds;
   }
@@ -252,7 +329,7 @@ class DatabaseService {
     if (maps.isEmpty) return null;
 
     final m = maps.first;
-    
+
     final List<Map<String, dynamic>> priceMaps = await db.query(
       'prices',
       where: 'isin = ?',
@@ -267,7 +344,8 @@ class DatabaseService {
       final key = normalizedDate.toIso8601String();
       historyMap[key] = PricePoint(normalizedDate, pm['price']);
     }
-    final history = historyMap.values.toList()..sort((a, b) => a.date.compareTo(b.date));
+    final history = historyMap.values.toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
 
     final List<Map<String, dynamic>> opMaps = await db.query(
       'operations',
@@ -276,15 +354,19 @@ class DatabaseService {
       orderBy: 'date DESC',
     );
 
-    final operations = opMaps.map((om) => FundOperation(
-      id: om['id'],
-      isin: isin,
-      date: DateTime.parse(om['date']),
-      type: om['type'] == 'buy' ? OperationType.buy : OperationType.sell,
-      units: om['units'],
-      price: om['price'],
-      amount: om['amount'] ?? (om['units'] * om['price']),
-    )).toList();
+    final operations = opMaps
+        .map(
+          (om) => FundOperation(
+            id: om['id'],
+            isin: isin,
+            date: DateTime.parse(om['date']),
+            type: om['type'] == 'buy' ? OperationType.buy : OperationType.sell,
+            units: om['units'],
+            price: om['price'],
+            amount: om['amount'] ?? (om['units'] * om['price']),
+          ),
+        )
+        .toList();
 
     return FundData(
       isin: isin,
@@ -311,7 +393,12 @@ class DatabaseService {
     final db = await database;
     await db.delete('prices', where: 'isin = ?', whereArgs: [isin]);
     await db.delete('operations', where: 'isin = ?', whereArgs: [isin]);
-    await db.update('funds', {'last_value': 0.0}, where: 'isin = ?', whereArgs: [isin]);
+    await db.update(
+      'funds',
+      {'last_value': 0.0},
+      where: 'isin = ?',
+      whereArgs: [isin],
+    );
   }
 
   static Future<void> clearPortfolio() async {
@@ -319,6 +406,11 @@ class DatabaseService {
     await db.delete('funds');
     await db.delete('prices');
     await db.delete('operations');
+  }
+
+  static Future<void> deleteOperation(int id) async {
+    final db = await database;
+    await db.delete("operations", where: "id = ?", whereArgs: [id]);
   }
 
   static Future<void> close() async {

@@ -1,5 +1,7 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
+
 import '../services/fund_scraper.dart';
 import '../services/database_service.dart';
 
@@ -42,7 +44,9 @@ class FundProvider with ChangeNotifier {
   void _sortPortfolio() {
     switch (sortCriteria) {
       case SortCriteria.name:
-        portfolio.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        portfolio.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
         break;
       case SortCriteria.value:
         portfolio.sort((a, b) {
@@ -55,12 +59,15 @@ class FundProvider with ChangeNotifier {
         portfolio.sort((a, b) {
           final perfA = _calculatePerformance(a);
           final perfB = _calculatePerformance(b);
-          return perfB.compareTo(perfA); // Descendente por defecto para rendimiento
+          return perfB.compareTo(
+            perfA,
+          ); // Descendente por defecto para rendimiento
         });
         break;
     }
   }
 
+  // ignore: unused_element
   double _calculateTotalValue(FundData fund) {
     double totalUnits = 0;
     for (var op in fund.operations) {
@@ -73,11 +80,12 @@ class FundProvider with ChangeNotifier {
     return totalUnits * fund.lastValue;
   }
 
+  // ignore: unused_element
   double _calculatePerformance(FundData fund) {
     double totalUnits = 0;
     double totalInvested = 0;
     DateTime? firstOpDate;
-    
+
     for (var op in fund.operations) {
       if (op.type == OperationType.buy) {
         totalUnits += op.units;
@@ -95,7 +103,7 @@ class FundProvider with ChangeNotifier {
 
     final currentValue = totalUnits * fund.lastValue;
     final daysDiff = DateTime.now().difference(firstOpDate).inDays;
-    
+
     // Intentar TWR (TAE)
     final firstOpPricePoint = fund.history.cast<PricePoint?>().lastWhere(
       (p) => p!.date.isBefore(firstOpDate!.add(const Duration(days: 1))),
@@ -155,6 +163,11 @@ class FundProvider with ChangeNotifier {
     await loadPortfolio();
   }
 
+  Future<void> restorePricePoint(String isin, PricePoint point) async {
+    await DatabaseService.restorePricePoint(isin, point);
+    await loadPortfolio();
+  }
+
   Future<bool> searchFund(String isin) async {
     if (isin.length != 12) {
       error = 'El ISIN debe tener 12 caracteres.';
@@ -182,7 +195,11 @@ class FundProvider with ChangeNotifier {
     isLoading = true;
     error = null;
     notifyListeners();
-    final result = await FundScraper.getFundByIsin(isin.toUpperCase(), startDate: range.start, endDate: range.end);
+    final result = await FundScraper.getFundByIsin(
+      isin.toUpperCase(),
+      startDate: range.start,
+      endDate: range.end,
+    );
     isLoading = false;
     if (result.data != null) {
       await DatabaseService.saveFund(result.data!);

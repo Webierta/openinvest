@@ -48,6 +48,17 @@ class InfoPage extends StatelessWidget {
                 title: 'Exportación e Importación',
                 description: 'Lleva tus datos contigo. Exporta e importa tus fondos y operaciones en formato JSON para moverlos entre dispositivos o hacer copias de seguridad.',
               ),
+              _InfoSection(
+                icon: Icons.attach_money,
+                title: 'Soporte Multidivisa',
+                description: 'Gestión automática de fondos en diversas divisas con conversión en tiempo real para una valoración precisa de tu cartera global.',
+              ),
+              _InfoSection(
+                icon: Icons.notifications,
+                title: 'Notificaciones',
+                description: 'Configura alertas personalizadas para mantenerte informado sobre tus fondos y objetivos financieros.',
+              ),
+
             ],
           ),
         ),
