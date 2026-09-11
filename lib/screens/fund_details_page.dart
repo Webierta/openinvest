@@ -161,7 +161,8 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
               onSelected: (value) async {
                 switch (value) {
                   case 'export':
-                    ExportService.exportFund(context, fund);
+                    await ExportService.exportFund(context, fund);
+                    if (mounted) setState(() {});
                     break;
                   case 'clear':
                     showDialog(
@@ -357,6 +358,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                                 fund: fund,
                                 priceFormat: priceFormat,
                                 percentFormat: percentFormat,
+                                onExported: () => setState(() {}),
                               ),
                       ),
                       FundOperationsList(fund: fund, priceFormat: priceFormat),
@@ -575,6 +577,41 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                 'Actualizado: ${DateFormat('dd/MM/yyyy').format(fund.date)}',
                 style: Theme.of(context).textTheme.bodySmall
                     ?.copyWith(color: Colors.white38),
+              ),
+              const SizedBox(height: 6),
+              FutureBuilder<DateTime?>(
+                future: ExportService.getLastExportDate(fund.isin),
+                builder: (context, snapshot) {
+                  final lastExport = snapshot.data;
+                  final hasExport = lastExport != null;
+                  return Row(
+                    children: [
+                      Icon(
+                        hasExport
+                            ? Icons.cloud_done_outlined
+                            : Icons.warning_amber_outlined,
+                        size: 14,
+                        color: hasExport
+                            ? Colors.greenAccent[400]
+                            : Colors.amberAccent,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          hasExport
+                              ? 'Último backup: ${DateFormat('dd/MM/yyyy HH:mm').format(lastExport)}'
+                              : 'No hay backup. Se recomienda exportar este fondo.',
+                          style: TextStyle(
+                            color: hasExport
+                                ? Colors.white38
+                                : Colors.amberAccent,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               if (totalDiff != null &&
                   totalPercent != null &&

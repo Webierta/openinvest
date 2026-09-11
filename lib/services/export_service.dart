@@ -4,13 +4,22 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fund_scraper.dart';
 import 'database_service.dart';
 import '../utils/app_error.dart';
 
 class ExportService {
-  static Future<void> exportFund(BuildContext context, FundData fund) async {
+  static String _lastExportKey(String isin) => 'last_export_$isin';
+
+  static Future<DateTime?> getLastExportDate(String isin) async {
+    final preferences = await SharedPreferences.getInstance();
+    final value = preferences.getString(_lastExportKey(isin));
+    return value == null ? null : DateTime.tryParse(value);
+  }
+
+  static Future<bool> exportFund(BuildContext context, FundData fund) async {
     try {
       final String fileName = "investi_export_${fund.isin}.json";
       final String jsonString = json.encode(fund.toJson());
@@ -25,13 +34,20 @@ class ExportService {
         allowedExtensions: ['json'],
       );
 
-      if (result == null) return;
+      if (result == null) return false;
+
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(
+        _lastExportKey(fund.isin),
+        DateTime.now().toIso8601String(),
+      );
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Fondo exportado correctamente')),
         );
       }
+      return true;
     } catch (error, stackTrace) {
       final appError = AppError.fromException(
         error,
@@ -46,6 +62,7 @@ class ExportService {
           ),
         );
       }
+      return false;
     }
   }
 

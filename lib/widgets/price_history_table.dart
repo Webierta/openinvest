@@ -10,12 +10,14 @@ class PriceHistoryTable extends StatefulWidget {
   final FundData fund;
   final NumberFormat priceFormat;
   final NumberFormat percentFormat;
+  final VoidCallback? onExported;
 
   const PriceHistoryTable({
     super.key,
     required this.fund,
     required this.priceFormat,
     required this.percentFormat,
+    this.onExported,
   });
 
   @override
@@ -49,7 +51,11 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         action: SnackBarAction(
           label: 'Backup',
           textColor: Colors.white,
-          onPressed: () => ExportService.exportFund(context, widget.fund),
+          onPressed: () async {
+            if (await ExportService.exportFund(context, widget.fund)) {
+              widget.onExported?.call();
+            }
+          },
         ),
       ),
     );
