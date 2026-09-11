@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 enum AppErrorType {
   network,
   database,
+  busy,
   validation,
   notFound,
   remote,
@@ -44,6 +45,12 @@ class AppError implements Exception {
         'No se pudo guardar el cambio. Haz un backup y reinicia la aplicación.',
     cause: cause,
     stackTrace: stackTrace,
+  );
+
+  factory AppError.busy() => const AppError(
+    type: AppErrorType.busy,
+    message:
+        'Hay otra operación en curso. Espera un momento e inténtalo de nuevo.',
   );
 
   factory AppError.validation(String message) =>

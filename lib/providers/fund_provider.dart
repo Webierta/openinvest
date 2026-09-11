@@ -12,11 +12,14 @@ class FundProvider with ChangeNotifier {
   List<FundData> portfolio = [];
   FundData? currentFund;
   bool isLoading = false;
+  bool _databaseOperationInProgress = false;
+  bool _portfolioLoadInProgress = false;
   AppError? lastError;
   SortCriteria sortCriteria = SortCriteria.name;
   Map<String, double> exchangeRates = {'EUR': 1.0};
 
   String? get error => lastError?.message;
+  bool get isBusy => isLoading || _databaseOperationInProgress;
 
   void _clearError() {
     lastError = null;
@@ -37,17 +40,29 @@ class FundProvider with ChangeNotifier {
   }
 
   Future<void> _runDatabaseOperation(Future<void> Function() operation) async {
+    if (_databaseOperationInProgress) {
+      final appError = AppError.busy();
+      _setError(appError);
+      throw appError;
+    }
+    _databaseOperationInProgress = true;
     _clearError();
+    notifyListeners();
     try {
       await operation();
     } catch (error, stackTrace) {
       final appError = _asError(error, stackTrace, type: AppErrorType.database);
       _setError(appError);
       throw appError;
+    } finally {
+      _databaseOperationInProgress = false;
+      notifyListeners();
     }
   }
 
   Future<void> loadPortfolio() async {
+    if (_portfolioLoadInProgress) return;
+    _portfolioLoadInProgress = true;
     _clearError();
     try {
       portfolio = await DatabaseService.getPortfolio();
@@ -58,6 +73,8 @@ class FundProvider with ChangeNotifier {
       }
     } catch (error, stackTrace) {
       _setError(_asError(error, stackTrace, type: AppErrorType.database));
+    } finally {
+      _portfolioLoadInProgress = false;
     }
     notifyListeners();
   }
@@ -168,6 +185,11 @@ class FundProvider with ChangeNotifier {
   }
 
   Future<ScrapeResult> fetchFundOnly(String isin) async {
+    if (isBusy) {
+      final appError = AppError.busy();
+      _setError(appError);
+      return ScrapeResult(error: appError);
+    }
     if (isin.length != 12) {
       final appError = AppError.validation('El ISIN debe tener 12 caracteres.');
       _setError(appError);
@@ -227,6 +249,10 @@ class FundProvider with ChangeNotifier {
   }
 
   Future<bool> searchFund(String isin) async {
+    if (isBusy) {
+      _setError(AppError.busy());
+      return false;
+    }
     if (isin.length != 12) {
       _setError(AppError.validation('El ISIN debe tener 12 caracteres.'));
       return false;
@@ -256,6 +282,10 @@ class FundProvider with ChangeNotifier {
   }
 
   Future<bool> searchFundByRange(String isin, DateTimeRange range) async {
+    if (isBusy) {
+      _setError(AppError.busy());
+      return false;
+    }
     isLoading = true;
     _clearError();
     notifyListeners();
@@ -317,7 +347,7 @@ class FundProvider with ChangeNotifier {
   }
 
   Future<void> updateAllPortfolio() async {
-    if (portfolio.isEmpty) return;
+    if (portfolio.isEmpty || isBusy) return;
     isLoading = true;
     _clearError();
     notifyListeners();

@@ -124,7 +124,7 @@ class PortfolioPage extends StatelessWidget {
         actions: [
           if (provider.portfolio.isNotEmpty) ...[
             IconButton(
-              icon: provider.isLoading
+              icon: provider.isBusy
                   ? const SizedBox(
                       width: 20,
                       height: 20,
@@ -134,9 +134,7 @@ class PortfolioPage extends StatelessWidget {
                       ),
                     )
                   : const Icon(Icons.refresh),
-              onPressed: provider.isLoading
-                  ? null
-                  : provider.updateAllPortfolio,
+              onPressed: provider.isBusy ? null : provider.updateAllPortfolio,
               tooltip: 'Actualizar toda la cartera',
             ),
           ],

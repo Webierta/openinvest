@@ -124,14 +124,14 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
           actions: [
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: provider.isLoading
+              onPressed: provider.isBusy
                   ? null
                   : () => provider.searchFund(fund.isin),
               tooltip: 'Actualizar datos',
             ),
             IconButton(
               icon: const Icon(Icons.date_range, color: Colors.white),
-              onPressed: provider.isLoading
+              onPressed: provider.isBusy
                   ? null
                   : () async {
                       final DateTimeRange? picked = await showDateRangePicker(
