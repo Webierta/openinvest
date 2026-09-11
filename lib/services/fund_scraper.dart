@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
@@ -205,6 +204,134 @@ class FundScraper {
     throw AppError.network(cause: lastError, stackTrace: lastStackTrace);
   }
 
+  static ScrapeResult parseChartPayload({
+    required String isin,
+    required String symbol,
+    required String name,
+    required Map<String, dynamic> payload,
+  }) {
+    final chart = payload['chart'];
+    if (chart is! Map<String, dynamic>) {
+      return ScrapeResult(
+        error: AppError.data(
+          'La respuesta de cotizaciones no tiene un formato válido.',
+        ),
+      );
+    }
+
+    final results = chart['result'];
+    if (results is! List ||
+        results.isEmpty ||
+        results.first is! Map<String, dynamic>) {
+      return ScrapeResult(
+        error: AppError.notFound('No hay cotizaciones disponibles.'),
+      );
+    }
+
+    final result = results.first as Map<String, dynamic>;
+    final meta = result['meta'];
+    if (meta != null && meta is! Map<String, dynamic>) {
+      return ScrapeResult(
+        error: AppError.data(
+          'Los metadatos de cotización no tienen un formato válido.',
+        ),
+      );
+    }
+
+    final metaMap = meta is Map<String, dynamic> ? meta : <String, dynamic>{};
+    final price = _asDouble(metaMap['regularMarketPrice']);
+    final currency = metaMap['currency'] is String
+        ? metaMap['currency'] as String
+        : '';
+    final timestamp = _asInt(metaMap['regularMarketTime']);
+    final timestamps = result['timestamp'];
+    final indicators = result['indicators'];
+    final quote = indicators is Map<String, dynamic>
+        ? indicators['quote']
+        : null;
+    final closePrices =
+        quote is List && quote.isNotEmpty && quote.first is Map<String, dynamic>
+        ? (quote.first as Map<String, dynamic>)['close']
+        : null;
+
+    final historyResult = _parseHistory(timestamps, closePrices);
+    if (historyResult.error != null) {
+      return ScrapeResult(error: historyResult.error);
+    }
+
+    final history = historyResult.data!;
+    if (price == null && history.isEmpty) {
+      return ScrapeResult(error: AppError.data('Precio no disponible.'));
+    }
+
+    final effectivePrice = price ?? history.last.price;
+    final effectiveDate = timestamp == null
+        ? (history.isNotEmpty ? history.last.date : DateTime.now())
+        : DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+
+    return ScrapeResult(
+      data: FundData(
+        isin: isin,
+        symbol: symbol,
+        name: name,
+        lastValue: effectivePrice,
+        currency: currency,
+        date: DateTime(
+          effectiveDate.year,
+          effectiveDate.month,
+          effectiveDate.day,
+        ),
+        history: history,
+      ),
+    );
+  }
+
+  static ({List<PricePoint>? data, AppError? error}) _parseHistory(
+    Object? timestampsValue,
+    Object? closePricesValue,
+  ) {
+    if (timestampsValue == null && closePricesValue == null) {
+      return (data: <PricePoint>[], error: null);
+    }
+    if (timestampsValue is! List || closePricesValue is! List) {
+      return (
+        data: null,
+        error: AppError.data('El historial de cotizaciones está incompleto.'),
+      );
+    }
+    if (timestampsValue.length != closePricesValue.length) {
+      return (
+        data: null,
+        error: AppError.data('El historial de cotizaciones está incompleto.'),
+      );
+    }
+
+    final history = <PricePoint>[];
+    for (int i = 0; i < timestampsValue.length; i++) {
+      final closePrice = _asDouble(closePricesValue[i]);
+      if (closePrice == null) continue;
+      final timestamp = _asInt(timestampsValue[i]);
+      if (timestamp == null) {
+        return (
+          data: null,
+          error: AppError.data(
+            'El historial de cotizaciones contiene datos inválidos.',
+          ),
+        );
+      }
+      final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+      history.add(
+        PricePoint(DateTime(date.year, date.month, date.day), closePrice),
+      );
+    }
+    return (data: history, error: null);
+  }
+
+  static double? _asDouble(Object? value) =>
+      value is num ? value.toDouble() : null;
+
+  static int? _asInt(Object? value) => value is num ? value.toInt() : null;
+
   static Future<ScrapeResult> getFundByIsin(
     String isin, {
     DateTime? startDate,
@@ -219,16 +346,33 @@ class FundScraper {
       }
 
       final searchData = json.decode(searchResponse.body);
-      final List quotes = searchData['quotes'] ?? [];
-      if (quotes.isEmpty) {
+      if (searchData is! Map<String, dynamic> ||
+          searchData['quotes'] is! List) {
+        return ScrapeResult(
+          error: AppError.data(
+            'La respuesta de búsqueda no tiene un formato válido.',
+          ),
+        );
+      }
+      final quotes = searchData['quotes'] as List;
+      if (quotes.isEmpty || quotes.first is! Map<String, dynamic>) {
         return ScrapeResult(error: AppError.notFound('ISIN no encontrado.'));
       }
 
-      final firstResult = quotes.first;
-      final String symbol = firstResult['symbol'];
+      final firstResult = quotes.first as Map<String, dynamic>;
+      final symbol = firstResult['symbol'];
+      if (symbol is! String || symbol.isEmpty) {
+        return ScrapeResult(
+          error: AppError.data('El fondo no tiene un símbolo válido.'),
+        );
+      }
       final String name =
-          firstResult['longname'] ??
-          firstResult['shortname'] ??
+          (firstResult['longname'] is String
+              ? firstResult['longname']
+              : null) ??
+          (firstResult['shortname'] is String
+              ? firstResult['shortname']
+              : null) ??
           'Fondo desconocido';
 
       // Build chart URL
@@ -252,90 +396,18 @@ class FundScraper {
       }
 
       final chartData = json.decode(chartResponse.body);
-      final result = chartData['chart']?['result']?[0];
-      if (result == null) {
+      if (chartData is! Map<String, dynamic>) {
         return ScrapeResult(
-          error: AppError.notFound('No hay cotizaciones disponibles.'),
-        );
-      }
-
-      final meta = result['meta'];
-      final double? price = meta['regularMarketPrice']?.toDouble();
-      final String currency = meta['currency'] ?? '';
-      final int? timestamp = meta['regularMarketTime'];
-
-      // Extract history
-      final List<dynamic>? timestamps = result['timestamp'];
-      final List<dynamic>? closePrices =
-          result['indicators']?['quote']?[0]['close'];
-      final List<PricePoint> history = [];
-
-      if (timestamps != null && closePrices != null) {
-        if (timestamps.length != closePrices.length) {
-          return ScrapeResult(
-            error: AppError.data(
-              'La respuesta de cotizaciones está incompleta.',
-            ),
-          );
-        }
-        for (
-          int i = 0;
-          i < math.min(timestamps.length, closePrices.length);
-          i++
-        ) {
-          if (closePrices[i] != null) {
-            final date = DateTime.fromMillisecondsSinceEpoch(
-              timestamps[i] * 1000,
-            );
-            history.add(
-              PricePoint(
-                DateTime(date.year, date.month, date.day),
-                closePrices[i].toDouble(),
-              ),
-            );
-          }
-        }
-      }
-
-      final DateTime updateDate = timestamp != null
-          ? DateTime.fromMillisecondsSinceEpoch(timestamp * 1000)
-          : DateTime.now();
-      final DateTime normalizedUpdateDate = DateTime(
-        updateDate.year,
-        updateDate.month,
-        updateDate.day,
-      );
-
-      if (price == null && history.isNotEmpty) {
-        // Use last history point if regularMarketPrice is null (happens sometimes with ranges)
-        final lastPoint = history.last;
-        return ScrapeResult(
-          data: FundData(
-            isin: isin,
-            symbol: symbol,
-            name: name,
-            lastValue: lastPoint.price,
-            currency: currency,
-            date: lastPoint.date,
-            history: history,
+          error: AppError.data(
+            'La respuesta de cotizaciones no tiene un formato válido.',
           ),
         );
       }
-
-      if (price == null) {
-        return ScrapeResult(error: AppError.data('Precio no disponible.'));
-      }
-
-      return ScrapeResult(
-        data: FundData(
-          isin: isin,
-          symbol: symbol,
-          name: name,
-          lastValue: price,
-          currency: currency,
-          date: normalizedUpdateDate,
-          history: history,
-        ),
+      return parseChartPayload(
+        isin: isin,
+        symbol: symbol,
+        name: name,
+        payload: chartData,
       );
     } on AppError catch (error) {
       return ScrapeResult(error: error);
