@@ -364,7 +364,15 @@ class PortfolioPage extends StatelessWidget {
                   onRetry: provider.loadPortfolio,
                 ),
               Expanded(
-                child: provider.portfolio.isEmpty
+                child: provider.hasPortfolioLoadError
+                    ? const Center(
+                        child: Text(
+                          'No se pudieron cargar los datos de la cartera.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      )
+                    : provider.portfolio.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,

@@ -14,6 +14,7 @@ class FundProvider with ChangeNotifier {
   bool isLoading = false;
   bool _databaseOperationInProgress = false;
   bool _portfolioLoadInProgress = false;
+  bool hasPortfolioLoadError = false;
   AppError? lastError;
   SortCriteria sortCriteria = SortCriteria.name;
   Map<String, double> exchangeRates = {'EUR': 1.0};
@@ -64,14 +65,17 @@ class FundProvider with ChangeNotifier {
     if (_portfolioLoadInProgress) return;
     _portfolioLoadInProgress = true;
     _clearError();
+    hasPortfolioLoadError = false;
     try {
-      portfolio = await DatabaseService.getPortfolio();
+      final loadedPortfolio = await DatabaseService.getPortfolio();
+      portfolio = loadedPortfolio;
       await _updateExchangeRates();
       _sortPortfolio();
       if (currentFund != null) {
         currentFund = await DatabaseService.getFund(currentFund!.isin);
       }
     } catch (error, stackTrace) {
+      hasPortfolioLoadError = true;
       _setError(_asError(error, stackTrace, type: AppErrorType.database));
     } finally {
       _portfolioLoadInProgress = false;

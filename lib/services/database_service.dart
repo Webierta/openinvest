@@ -119,24 +119,21 @@ class DatabaseService {
       fund.date.day,
     ).toIso8601String();
 
-    // Save fund info
-    await db.insert('funds', {
-      'isin': fund.isin,
-      'symbol': fund.symbol,
-      'name': fund.name,
-      'currency': fund.currency,
-      'last_value': fund.lastValue,
-      'last_update': normalizedDate,
-      'alert_min': fund.alertMin,
-      'alert_max': fund.alertMax,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.transaction((txn) async {
+      await txn.insert('funds', {
+        'isin': fund.isin,
+        'symbol': fund.symbol,
+        'name': fund.name,
+        'currency': fund.currency,
+        'last_value': fund.lastValue,
+        'last_update': normalizedDate,
+        'alert_min': fund.alertMin,
+        'alert_max': fund.alertMax,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
 
-    // Save historical prices
-    Batch batch = db.batch();
-
-    if (fund.history.isNotEmpty) {
-      for (var point in fund.history) {
-        final String pDate = DateTime(
+      final batch = txn.batch();
+      for (final point in fund.history) {
+        final pDate = DateTime(
           point.date.year,
           point.date.month,
           point.date.day,
@@ -147,18 +144,16 @@ class DatabaseService {
           'price': point.price,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
-    }
 
-    // Force current lastValue to be the record for its day when data exists.
-    if (fund.lastValue > 0) {
-      batch.insert('prices', {
-        'isin': fund.isin,
-        'date': normalizedDate,
-        'price': fund.lastValue,
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
-    }
-
-    await batch.commit(noResult: true);
+      if (fund.lastValue > 0) {
+        batch.insert('prices', {
+          'isin': fund.isin,
+          'date': normalizedDate,
+          'price': fund.lastValue,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      await batch.commit(noResult: true);
+    });
   }
 
   static Future<void> saveOperation(FundOperation op) async {
@@ -418,33 +413,41 @@ class DatabaseService {
 
   static Future<void> deleteFund(String isin) async {
     final db = await database;
-    await db.delete('funds', where: 'isin = ?', whereArgs: [isin]);
-    await db.delete('prices', where: 'isin = ?', whereArgs: [isin]);
-    await db.delete('operations', where: 'isin = ?', whereArgs: [isin]);
+    await db.transaction((txn) async {
+      await txn.delete('funds', where: 'isin = ?', whereArgs: [isin]);
+      await txn.delete('prices', where: 'isin = ?', whereArgs: [isin]);
+      await txn.delete('operations', where: 'isin = ?', whereArgs: [isin]);
+    });
   }
 
   static Future<void> clearAllData(String isin) async {
     final db = await database;
-    await db.delete('prices', where: 'isin = ?', whereArgs: [isin]);
-    await db.delete('operations', where: 'isin = ?', whereArgs: [isin]);
-    await db.update(
-      'funds',
-      {'last_value': 0.0},
-      where: 'isin = ?',
-      whereArgs: [isin],
-    );
+    await db.transaction((txn) async {
+      await txn.delete('prices', where: 'isin = ?', whereArgs: [isin]);
+      await txn.delete('operations', where: 'isin = ?', whereArgs: [isin]);
+      await txn.update(
+        'funds',
+        {'last_value': 0.0},
+        where: 'isin = ?',
+        whereArgs: [isin],
+      );
+    });
   }
 
   static Future<void> clearPortfolio() async {
     final db = await database;
-    await db.delete('funds');
-    await db.delete('prices');
-    await db.delete('operations');
+    await db.transaction((txn) async {
+      await txn.delete('funds');
+      await txn.delete('prices');
+      await txn.delete('operations');
+    });
   }
 
   static Future<void> deleteOperation(int id) async {
     final db = await database;
-    await db.delete("operations", where: "id = ?", whereArgs: [id]);
+    await db.transaction((txn) async {
+      await txn.delete('operations', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   static Future<void> close() async {
