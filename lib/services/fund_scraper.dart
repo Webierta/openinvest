@@ -180,8 +180,9 @@ class FundScraper {
         Uri.parse('$_searchUrl$isin'),
         headers: _headers,
       );
-      if (searchResponse.statusCode != 200)
+      if (searchResponse.statusCode != 200) {
         return ScrapeResult(error: 'Error de búsqueda');
+      }
 
       final searchData = json.decode(searchResponse.body);
       final List quotes = searchData['quotes'] ?? [];
@@ -206,8 +207,9 @@ class FundScraper {
 
       final chartResponse = await http.get(Uri.parse(url), headers: _headers);
 
-      if (chartResponse.statusCode != 200)
+      if (chartResponse.statusCode != 200) {
         return ScrapeResult(error: 'Error de cotización');
+      }
 
       final chartData = json.decode(chartResponse.body);
       final result = chartData['chart']?['result']?[0];

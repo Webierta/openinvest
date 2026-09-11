@@ -55,11 +55,12 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
   Widget build(BuildContext context) {
     final provider = context.watch<FundProvider>();
     final fund = provider.currentFund;
-    if (fund == null)
+    if (fund == null) {
       return Scaffold(
         appBar: AppBar(),
         body: const Center(child: Text('No hay datos disponibles')),
       );
+    }
     final priceFormat = NumberFormat('#,##0.0000', 'es_ES');
     final percentFormat = NumberFormat('#,##0.00', 'es_ES');
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
@@ -144,8 +145,9 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                           end: DateTime.now(),
                         ),
                       );
-                      if (picked != null)
+                      if (picked != null) {
                         provider.searchFundByRange(fund.isin, picked);
+                      }
                     },
               tooltip: 'Descargar rango',
             ),
@@ -509,8 +511,9 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
         totalPercent = (totalDiff / oldestVal) * 100;
         if (totalDiff > 0) {
           totalVarColor = Colors.greenAccent[400];
-        } else if (totalDiff < 0)
+        } else if (totalDiff < 0) {
           totalVarColor = Colors.redAccent[200];
+        }
       }
     }
     return Card(
@@ -645,8 +648,9 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
         totalUnits -= op.units;
         totalInvested -= op.amount;
       }
-      if (firstOpDate == null || op.date.isBefore(firstOpDate))
+      if (firstOpDate == null || op.date.isBefore(firstOpDate)) {
         firstOpDate = op.date;
+      }
     }
     final double currentValue = totalUnits * fund.lastValue;
     final double profitAbs = currentValue - totalInvested;
@@ -1049,8 +1053,9 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                     interval: max(1, filteredHistory.length / 5).toDouble(),
                     getTitlesWidget: (v, m) {
                       final i = v.toInt();
-                      if (i < 0 || i >= filteredHistory.length)
+                      if (i < 0 || i >= filteredHistory.length) {
                         return const SizedBox.shrink();
+                      }
                       return Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
@@ -1121,20 +1126,22 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                   dotData: FlDotData(
                     show: true,
                     getDotPainter: (spot, percent, barData, index) {
-                      if (spot.y == maxPrice)
+                      if (spot.y == maxPrice) {
                         return FlDotCirclePainter(
                           radius: 4,
                           color: Colors.greenAccent[400]!,
                           strokeWidth: 2,
                           strokeColor: Colors.white,
                         );
-                      if (spot.y == minPrice)
+                      }
+                      if (spot.y == minPrice) {
                         return FlDotCirclePainter(
                           radius: 4,
                           color: Colors.redAccent[200]!,
                           strokeWidth: 2,
                           strokeColor: Colors.white,
                         );
+                      }
                       return FlDotCirclePainter(radius: 0);
                     },
                   ),
@@ -1849,16 +1856,18 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
     void updateAmount() {
       final u = double.tryParse(unitsController.text.replaceAll(',', '.')) ?? 0;
       final p = double.tryParse(priceController.text.replaceAll(',', '.')) ?? 0;
-      if (u > 0 && p > 0)
+      if (u > 0 && p > 0) {
         amountController.text = (u * p).toString().replaceAll('.', ',');
+      }
     }
 
     void updateUnits() {
       final a =
           double.tryParse(amountController.text.replaceAll(',', '.')) ?? 0;
       final p = double.tryParse(priceController.text.replaceAll(',', '.')) ?? 0;
-      if (a > 0 && p > 0)
+      if (a > 0 && p > 0) {
         unitsController.text = (a / p).toStringAsFixed(6).replaceAll('.', ',');
+      }
     }
 
     await showDialog(
@@ -1899,7 +1908,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                       firstDate: DateTime(2000),
                       lastDate: DateTime.now(),
                     );
-                    if (p != null)
+                    if (p != null) {
                       setState(() {
                         selectedDate = p;
                         if (operation == null) {
@@ -1920,6 +1929,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                           }
                         }
                       });
+                    }
                   },
                 ),
                 TextField(

@@ -92,7 +92,9 @@ class DatabaseService {
         if (oldVersion < 3) {
           try {
             await db.execute('ALTER TABLE operations ADD COLUMN amount REAL');
-          } catch (e) {}
+          } catch (e) {
+            // La columna puede existir en bases de datos parcialmente migradas.
+          }
           await db.execute(
             'UPDATE operations SET amount = units * price WHERE amount IS NULL',
           );
@@ -101,7 +103,9 @@ class DatabaseService {
           try {
             await db.execute('ALTER TABLE funds ADD COLUMN alert_min REAL');
             await db.execute('ALTER TABLE funds ADD COLUMN alert_max REAL');
-          } catch (e) {}
+          } catch (e) {
+            // Las columnas pueden existir en bases de datos parcialmente migradas.
+          }
         }
       },
     );
