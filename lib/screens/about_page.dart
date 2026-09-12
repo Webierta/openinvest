@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../widgets/gradient_background.dart';
 
 class AboutPage extends StatelessWidget {
@@ -17,7 +18,7 @@ class AboutPage extends StatelessWidget {
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(20),
-            children: const [
+            children: [
               _AboutItem(
                 title: 'Licencia',
                 content: 'Esta aplicación es Software Libre bajo la licencia GNU General Public License v3 (GPLv3).',
@@ -43,13 +44,22 @@ class AboutPage extends StatelessWidget {
                 content: 'OpenInvest es una aplicación 100% gratuita y sin publicidad. No recopilamos datos personales. Toda tu información financiera se guarda exclusivamente de forma local en tu dispositivo.',
               ),
               SizedBox(height: 20),
-              Center(
-                child: Text(
-                  'Versión 1.0.0\nWebierta.com',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white24, fontSize: 12),
+              FutureBuilder<PackageInfo>(
+                future: PackageInfo.fromPlatform(),
+                builder: (context, snapshot) {
+                  final version = snapshot.data?.version;
+                  return Center(
+                    child: Text(
+                      'Versión ${version ?? '...'}\nWebierta.com',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white24,
+                        fontSize: 12,
+                      ),
+                    ),
+                  );
+                },
                 ),
-              ),
             ],
           ),
         ),

@@ -354,11 +354,16 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                             ? const Center(
                                 child: Text('No hay datos disponibles'),
                               )
-                            : PriceHistoryTable(
-                                fund: fund,
-                                priceFormat: priceFormat,
-                                percentFormat: percentFormat,
-                                onExported: () => setState(() {}),
+                            : Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                child: PriceHistoryTable(
+                                  fund: fund,
+                                  priceFormat: priceFormat,
+                                  percentFormat: percentFormat,
+                                  onExported: () => setState(() {}),
+                                ),
                               ),
                       ),
                       FundOperationsList(fund: fund, priceFormat: priceFormat),
@@ -583,28 +588,34 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                 future: ExportService.getLastExportDate(fund.isin),
                 builder: (context, snapshot) {
                   final lastExport = snapshot.data;
-                  final hasExport = lastExport != null;
+                  final backupPending =
+                      lastExport == null ||
+                      lastExport.isBefore(
+                        DateTime.now().subtract(const Duration(days: 30)),
+                      );
                   return Row(
                     children: [
                       Icon(
-                        hasExport
-                            ? Icons.cloud_done_outlined
-                            : Icons.warning_amber_outlined,
+                        backupPending
+                            ? Icons.warning_amber_outlined
+                            : Icons.cloud_done_outlined,
                         size: 14,
-                        color: hasExport
-                            ? Colors.greenAccent[400]
-                            : Colors.amberAccent,
+                        color: backupPending
+                            ? Colors.amberAccent
+                            : Colors.greenAccent[400],
                       ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          hasExport
-                              ? 'Último backup: ${DateFormat('dd/MM/yyyy HH:mm').format(lastExport)}'
-                              : 'No hay backup. Se recomienda exportar este fondo.',
+                          backupPending
+                              ? lastExport == null
+                                    ? 'No hay backup. Se recomienda exportar este fondo.'
+                                    : 'El último backup tiene más de un mes. Se recomienda exportar este fondo.'
+                              : 'Último backup: ${DateFormat('dd/MM/yyyy HH:mm').format(lastExport)}',
                           style: TextStyle(
-                            color: hasExport
-                                ? Colors.white38
-                                : Colors.amberAccent,
+                            color: backupPending
+                                ? Colors.amberAccent
+                                : Colors.white38,
                             fontSize: 11,
                           ),
                         ),
@@ -856,7 +867,11 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
             Expanded(child: _buildSimpleStat('TWR (Total)', twrTotalStr)),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildSimpleStat('TWR Anualizado', twrAnnualizedStr),
+              child: _buildSimpleStat(
+                'TWR Anualizado',
+                twrAnnualizedStr,
+                color: profitColor,
+              ),
             ),
           ],
         ),

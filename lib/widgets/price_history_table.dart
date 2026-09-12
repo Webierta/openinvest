@@ -121,7 +121,10 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
           decoration: BoxDecoration(
             color: Colors.white10,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-            border: Border.all(color: Colors.white10, width: 0.5),
+            border: const Border(
+              top: BorderSide(color: Colors.white10, width: 0.5),
+              bottom: BorderSide(color: Colors.white10, width: 0.5),
+            ),
           ),
           child: Row(
             children: [
@@ -181,7 +184,9 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.white10, width: 0.5),
+              border: const Border(
+                bottom: BorderSide(color: Colors.white10, width: 0.5),
+              ),
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(8),
               ),

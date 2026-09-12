@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../providers/fund_provider.dart';
 import '../services/fund_scraper.dart';
@@ -336,11 +337,12 @@ class PortfolioPage extends StatelessWidget {
                   colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
                 ),
               ),
-              child: Center(
-                child: Image.asset(
+              child: LayoutBuilder(
+                builder: (context, constraints) => Image.asset(
                   'assets/images/logo.png',
-                  width: 100,
-                  height: 100,
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight,
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
@@ -396,13 +398,22 @@ class PortfolioPage extends StatelessWidget {
               },
             ),
             const Spacer(),
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'v1.0.0',
-                style: TextStyle(color: Colors.white24, fontSize: 12),
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                final version = snapshot.data?.version;
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    version == null ? 'v...' : 'v$version',
+                    style: const TextStyle(
+                      color: Colors.white24,
+                      fontSize: 12,
+                    ),
+                  ),
+                );
+              },
               ),
-            ),
           ],
         ),
       ),
