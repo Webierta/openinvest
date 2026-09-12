@@ -372,6 +372,7 @@ class FundProvider with ChangeNotifier {
     notifyListeners();
     try {
       final isins = portfolio.map((f) => f.isin).toList();
+      AppError? updateError;
       for (final isin in isins) {
         final result = await FundScraper.getFundByIsin(isin);
         if (result.data != null) {
@@ -389,9 +390,12 @@ class FundProvider with ChangeNotifier {
             alertMax: existing.alertMax,
           );
           await DatabaseService.saveFund(updatedFund);
+        } else if (updateError == null && result.error != null) {
+          updateError = result.error;
         }
       }
       await loadPortfolio();
+      if (updateError != null) lastError = updateError;
     } catch (error, stackTrace) {
       _setError(_asError(error, stackTrace, type: AppErrorType.database));
     } finally {

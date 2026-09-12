@@ -51,6 +51,37 @@ void main() {
     expect(storedFund.history.map((point) => point.date), [firstDate]);
   });
 
+  test('guardar un fondo persiste sus operaciones', () async {
+    final date = DateTime(2026, 9, 2);
+    final fund = FundData(
+      isin: 'TEST',
+      symbol: 'TST',
+      name: 'Test Fund',
+      lastValue: 20,
+      currency: 'EUR',
+      date: date,
+      history: [PricePoint(date, 20)],
+      operations: [
+        FundOperation(
+          isin: 'TEST',
+          date: date,
+          type: OperationType.buy,
+          units: 3,
+          price: 20,
+          amount: 60,
+        ),
+      ],
+    );
+
+    await DatabaseService.saveFund(fund);
+
+    final storedFund = await DatabaseService.getFund('TEST');
+    expect(storedFund, isNotNull);
+    expect(storedFund!.operations, hasLength(1));
+    expect(storedFund.operations.single.type, OperationType.buy);
+    expect(storedFund.operations.single.amount, 60);
+  });
+
   test('eliminar el único precio deja el historial vacío', () async {
     final date = DateTime(2026, 9, 2);
     final fund = FundData(

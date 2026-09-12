@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+
 import '../widgets/gradient_background.dart';
 
 class AboutPage extends StatelessWidget {
@@ -50,7 +51,7 @@ class AboutPage extends StatelessWidget {
                   final version = snapshot.data?.version;
                   return Center(
                     child: Text(
-                      'Versión ${version ?? '...'}\nWebierta.com',
+                      'Versión ${version ?? '...'}\nhttps://github.com/Webierta/openinvest',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white24,
@@ -59,7 +60,7 @@ class AboutPage extends StatelessWidget {
                     ),
                   );
                 },
-                ),
+              ),
             ],
           ),
         ),

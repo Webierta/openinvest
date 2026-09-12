@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/fund_provider.dart';
-import '../services/fund_scraper.dart';
+import '../../providers/fund_provider.dart';
+import '../../services/fund_scraper.dart';
 
 class FundOperationsList extends StatelessWidget {
   final FundData fund;

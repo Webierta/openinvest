@@ -143,6 +143,7 @@ class PortfolioPage extends StatelessWidget {
     final Color globalProfitColor = globalProfitAbs >= 0
         ? Colors.greenAccent[400]!
         : Colors.redAccent[200]!;
+    final bool showPortfolioSummary = globalTotalInvested > 0;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -406,14 +407,11 @@ class PortfolioPage extends StatelessWidget {
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     version == null ? 'v...' : 'v$version',
-                    style: const TextStyle(
-                      color: Colors.white24,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.white24, fontSize: 12),
                   ),
                 );
               },
-              ),
+            ),
           ],
         ),
       ),
@@ -425,7 +423,7 @@ class PortfolioPage extends StatelessWidget {
               if (provider.error != null)
                 ErrorBanner(
                   message: provider.error!,
-                  onRetry: provider.loadPortfolio,
+                  onRetry: provider.updateAllPortfolio,
                 ),
               Expanded(
                 child: provider.hasPortfolioLoadError
@@ -465,9 +463,11 @@ class PortfolioPage extends StatelessWidget {
                         onRefresh: provider.loadPortfolio,
                         child: ListView.builder(
                           padding: const EdgeInsets.only(bottom: 100, top: 12),
-                          itemCount: provider.portfolio.length + 1,
+                          itemCount:
+                              provider.portfolio.length +
+                              (showPortfolioSummary ? 1 : 0),
                           itemBuilder: (context, index) {
-                            if (index == 0) {
+                            if (showPortfolioSummary && index == 0) {
                               return Card(
                                 margin: const EdgeInsets.all(12),
                                 color: Colors.white.withValues(alpha: 0.05),
@@ -559,7 +559,9 @@ class PortfolioPage extends StatelessWidget {
                               );
                             }
 
-                            final item = provider.portfolio[index - 1];
+                            final item =
+                                provider.portfolio[index -
+                                    (showPortfolioSummary ? 1 : 0)];
 
                             double? dailyVariation;
                             Color? dailyVarColor;

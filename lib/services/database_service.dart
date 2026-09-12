@@ -152,6 +152,16 @@ class DatabaseService {
           'price': fund.lastValue,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
+      for (final operation in fund.operations) {
+        batch.insert('operations', {
+          'isin': operation.isin,
+          'date': operation.date.toIso8601String(),
+          'type': operation.type.name,
+          'units': operation.units,
+          'price': operation.price,
+          'amount': operation.amount,
+        });
+      }
       await batch.commit(noResult: true);
     });
   }
