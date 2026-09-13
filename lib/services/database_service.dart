@@ -120,6 +120,13 @@ class DatabaseService {
     ).toIso8601String();
 
     await db.transaction((txn) async {
+      final existingFund = await txn.query(
+        'funds',
+        columns: ['isin'],
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+        limit: 1,
+      );
       await txn.insert('funds', {
         'isin': fund.isin,
         'symbol': fund.symbol,
@@ -152,15 +159,17 @@ class DatabaseService {
           'price': fund.lastValue,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
-      for (final operation in fund.operations) {
-        batch.insert('operations', {
-          'isin': operation.isin,
-          'date': operation.date.toIso8601String(),
-          'type': operation.type.name,
-          'units': operation.units,
-          'price': operation.price,
-          'amount': operation.amount,
-        });
+      if (existingFund.isEmpty) {
+        for (final operation in fund.operations) {
+          batch.insert('operations', {
+            'isin': operation.isin,
+            'date': operation.date.toIso8601String(),
+            'type': operation.type.name,
+            'units': operation.units,
+            'price': operation.price,
+            'amount': operation.amount,
+          });
+        }
       }
       await batch.commit(noResult: true);
     });

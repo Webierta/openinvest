@@ -163,6 +163,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
           ],
           bottom: const TabBar(
             isScrollable: true,
+            tabAlignment: TabAlignment.start,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white38,
             indicatorColor: Colors.white,
@@ -182,10 +183,13 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
           child: SafeArea(
             child: Column(
               children: [
-                if (provider.error != null)
+                if (provider.error != null || provider.info != null)
                   ErrorBanner(
-                    message: provider.error!,
-                    onRetry: () => provider.searchFund(fund.isin),
+                    message: provider.info ?? provider.error!,
+                    isInfo: provider.info != null,
+                    onRetry: provider.info != null
+                        ? null
+                        : () => provider.searchFund(fund.isin),
                   ),
                 Expanded(
                   child: TabBarView(

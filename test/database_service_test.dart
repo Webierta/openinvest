@@ -82,6 +82,49 @@ void main() {
     expect(storedFund.operations.single.amount, 60);
   });
 
+  test('actualizar las alertas no duplica las operaciones', () async {
+    final date = DateTime(2026, 9, 2);
+    final operation = FundOperation(
+      isin: 'TEST',
+      date: date,
+      type: OperationType.buy,
+      units: 3,
+      price: 20,
+      amount: 60,
+    );
+    final fund = FundData(
+      isin: 'TEST',
+      symbol: 'TST',
+      name: 'Test Fund',
+      lastValue: 20,
+      currency: 'EUR',
+      date: date,
+      history: [PricePoint(date, 20)],
+      operations: [operation],
+    );
+
+    await DatabaseService.saveFund(fund);
+    await DatabaseService.saveFund(
+      FundData(
+        isin: fund.isin,
+        symbol: fund.symbol,
+        name: fund.name,
+        lastValue: fund.lastValue,
+        currency: fund.currency,
+        date: fund.date,
+        history: fund.history,
+        operations: [operation],
+        alertMin: 10,
+        alertMax: 30,
+      ),
+    );
+
+    final storedFund = await DatabaseService.getFund('TEST');
+    expect(storedFund!.alertMin, 10);
+    expect(storedFund.alertMax, 30);
+    expect(storedFund.operations, hasLength(1));
+  });
+
   test('eliminar el único precio deja el historial vacío', () async {
     final date = DateTime(2026, 9, 2);
     final fund = FundData(

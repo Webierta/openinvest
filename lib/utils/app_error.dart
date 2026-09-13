@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 enum AppErrorType {
+  info,
   network,
   database,
   busy,
@@ -55,6 +56,9 @@ class AppError implements Exception {
 
   factory AppError.validation(String message) =>
       AppError(type: AppErrorType.validation, message: message);
+
+  factory AppError.info(String message) =>
+      AppError(type: AppErrorType.info, message: message);
 
   factory AppError.notFound(String message) =>
       AppError(type: AppErrorType.notFound, message: message);

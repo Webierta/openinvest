@@ -19,7 +19,10 @@ class FundProvider with ChangeNotifier {
   SortCriteria sortCriteria = SortCriteria.name;
   Map<String, double> exchangeRates = {'EUR': 1.0};
 
-  String? get error => lastError?.message;
+  String? get error =>
+      lastError?.type == AppErrorType.info ? null : lastError?.message;
+  String? get info =>
+      lastError?.type == AppErrorType.info ? lastError?.message : null;
   bool get isBusy => isLoading || _databaseOperationInProgress;
 
   void _clearError() {
@@ -282,6 +285,15 @@ class FundProvider with ChangeNotifier {
     try {
       final result = await FundScraper.getFundByIsin(isin.toUpperCase());
       if (result.data != null) {
+        final existingFund = await DatabaseService.getFund(result.data!.isin);
+        if (existingFund != null && !_hasNewData(existingFund, result.data!)) {
+          _setError(
+            AppError.info(
+              'Los datos ya están actualizados y no se han producido cambios.',
+            ),
+          );
+          return true;
+        }
         await _runDatabaseOperation(() async {
           await DatabaseService.saveFund(result.data!);
           currentFund = result.data;
@@ -298,6 +310,23 @@ class FundProvider with ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  bool _hasNewData(FundData existing, FundData fetched) {
+    if (existing.lastValue != fetched.lastValue ||
+        existing.date != fetched.date) {
+      return true;
+    }
+
+    final existingPrices = <DateTime, double>{
+      for (final point in existing.history)
+        DateTime(point.date.year, point.date.month, point.date.day):
+            point.price,
+    };
+    return fetched.history.any((point) {
+      final date = DateTime(point.date.year, point.date.month, point.date.day);
+      return existingPrices[date] != point.price;
+    });
   }
 
   Future<bool> searchFundByRange(String isin, DateTimeRange range) async {
@@ -373,29 +402,38 @@ class FundProvider with ChangeNotifier {
     try {
       final isins = portfolio.map((f) => f.isin).toList();
       AppError? updateError;
+      var hasChanges = false;
       for (final isin in isins) {
         final result = await FundScraper.getFundByIsin(isin);
         if (result.data != null) {
           // Mantener las alertas existentes al actualizar
           final existing = portfolio.firstWhere((f) => f.isin == isin);
-          final updatedFund = FundData(
-            isin: result.data!.isin,
-            symbol: result.data!.symbol,
-            name: result.data!.name,
-            lastValue: result.data!.lastValue,
-            currency: result.data!.currency,
-            date: result.data!.date,
-            history: result.data!.history,
-            alertMin: existing.alertMin,
-            alertMax: existing.alertMax,
-          );
-          await DatabaseService.saveFund(updatedFund);
+          if (_hasNewData(existing, result.data!)) {
+            hasChanges = true;
+            final updatedFund = FundData(
+              isin: result.data!.isin,
+              symbol: result.data!.symbol,
+              name: result.data!.name,
+              lastValue: result.data!.lastValue,
+              currency: result.data!.currency,
+              date: result.data!.date,
+              history: result.data!.history,
+              alertMin: existing.alertMin,
+              alertMax: existing.alertMax,
+            );
+            await DatabaseService.saveFund(updatedFund);
+          }
         } else if (updateError == null && result.error != null) {
           updateError = result.error;
         }
       }
       await loadPortfolio();
       if (updateError != null) lastError = updateError;
+      if (updateError == null && !hasChanges) {
+        lastError = AppError.info(
+          'Los datos ya están actualizados y no se han producido cambios.',
+        );
+      }
     } catch (error, stackTrace) {
       _setError(_asError(error, stackTrace, type: AppErrorType.database));
     } finally {

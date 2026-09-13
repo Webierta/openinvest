@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../widgets/gradient_background.dart';
 
 class SupportPage extends StatelessWidget {
   const SupportPage({super.key});
 
-  static const String paypalUrl = 'https://www.paypal.com/donate?hosted_button_id=986PSAHLH6N4L';
+  static const String paypalUrl =
+      'https://www.paypal.com/donate?hosted_button_id=986PSAHLH6N4L';
   static const String githubUrl = 'https://github.com/Webierta/openinvest';
   static const String btcAddress = '15ZpNzqbYFx9P7wg4U438JMwZr2q3W6fkS';
 
@@ -33,21 +35,33 @@ class SupportPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Icon(Icons.favorite_rounded, size: 80, color: Colors.redAccent),
+                const Icon(
+                  Icons.favorite_rounded,
+                  size: 80,
+                  color: Colors.redAccent,
+                ),
                 const SizedBox(height: 24),
                 const Text(
                   '¡Hola! Soy el desarrollador de OpenInvest',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'OpenInvest es una herramienta de código abierto creada para ayudar a los inversores a gestionar sus carteras de forma gratuita y privada. Si la aplicación te resulta útil, considera apoyarla para asegurar su mantenimiento y evolución futura.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white70,
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 40),
-                
+
                 // Sugerencias / GitHub
                 _SupportCard(
                   icon: Icons.bug_report_outlined,
@@ -57,21 +71,21 @@ class SupportPage extends StatelessWidget {
                   color: Colors.white12,
                   onPressed: () => _launchUrl(githubUrl),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // PayPal
                 _SupportCard(
                   icon: Icons.payment_rounded,
                   title: 'Donar vía PayPal',
-                  description: 'Las donaciones ayudan a cubrir los costes de desarrollo y servidores de información.',
+                  description: 'Las donaciones ayudan a mantener activo su desarrollo resolviendo posibles errores e incorporando mejoras y nuevas funciones.',
                   buttonLabel: 'Donar con PayPal',
                   color: const Color(0xFF003087).withValues(alpha: 0.3),
                   onPressed: () => _launchUrl(paypalUrl),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Bitcoin
                 _SupportCard(
                   icon: Icons.currency_bitcoin_rounded,
@@ -82,23 +96,39 @@ class SupportPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.black26,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: Colors.orangeAccent.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
                         const Expanded(
                           child: Text(
                             btcAddress,
-                            style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.orangeAccent),
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                              color: Colors.orangeAccent,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.copy, size: 18, color: Colors.orangeAccent),
+                          icon: const Icon(
+                            Icons.copy,
+                            size: 18,
+                            color: Colors.orangeAccent,
+                          ),
                           onPressed: () {
-                            Clipboard.setData(const ClipboardData(text: btcAddress));
+                            Clipboard.setData(
+                              const ClipboardData(text: btcAddress),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Dirección Bitcoin copiada al portapapeles')),
+                              const SnackBar(
+                                content: Text(
+                                  'Dirección Bitcoin copiada al portapapeles',
+                                ),
+                              ),
                             );
                           },
                           tooltip: 'Copiar dirección',
@@ -111,15 +141,23 @@ class SupportPage extends StatelessWidget {
                   onPressed: () {
                     Clipboard.setData(const ClipboardData(text: btcAddress));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Dirección Bitcoin copiada al portapapeles')),
+                      const SnackBar(
+                        content: Text(
+                          'Dirección Bitcoin copiada al portapapeles',
+                        ),
+                      ),
                     );
                   },
                 ),
-                
+
                 const SizedBox(height: 40),
                 const Text(
                   '¡Muchas gracias por usar OpenInvest!',
-                  style: TextStyle(color: Colors.white38, fontSize: 13, fontStyle: FontStyle.italic),
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -169,7 +207,11 @@ class _SupportCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
@@ -177,21 +219,27 @@ class _SupportCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             description,
-            style: const TextStyle(fontSize: 14, color: Colors.white70, height: 1.4),
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white70,
+              height: 1.4,
+            ),
           ),
-          if (content != null) ...[
-            const SizedBox(height: 16),
-            content!,
-          ],
+          if (content != null) ...[const SizedBox(height: 16), content!],
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: onPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: Colors.black87,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              buttonLabel,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

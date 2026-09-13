@@ -420,10 +420,13 @@ class PortfolioPage extends StatelessWidget {
           bottom: false,
           child: Column(
             children: [
-              if (provider.error != null)
+              if (provider.error != null || provider.info != null)
                 ErrorBanner(
-                  message: provider.error!,
-                  onRetry: provider.updateAllPortfolio,
+                  message: provider.info ?? provider.error!,
+                  isInfo: provider.info != null,
+                  onRetry: provider.info != null
+                      ? null
+                      : provider.updateAllPortfolio,
                 ),
               Expanded(
                 child: provider.hasPortfolioLoadError
