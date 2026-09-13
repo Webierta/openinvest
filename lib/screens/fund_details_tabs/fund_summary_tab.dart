@@ -65,7 +65,95 @@ class FundSummaryTab extends StatelessWidget {
             if (fund.lastValue == 0 && fund.history.isEmpty)
               const Center(child: Text('Sin datos de cotización.'))
             else ...[
-              Text(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.rectangle,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.fill,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                //color: Colors.red,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(8),
+                                    topRight: Radius.circular(8),
+                                  ),
+                                ),
+                                child: Text(
+                                  DateFormat('MM/yy').format(fund.date),
+                                ),
+                              ),
+                              Text(
+                                DateFormat('d').format(fund.date),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Valor Liquidativo',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      Text(
+                        '${priceFormat.format(fund.lastValue)} ${fund.currency}',
+                        style: Theme.of(context).textTheme.displaySmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                            ),
+                      ),
+                      if (diff != null && percent != null) ...[
+                        Row(
+                          children: [
+                            Text(
+                              '${diff > 0 ? '+' : ''}${priceFormat.format(diff)}',
+                              style: TextStyle(
+                                color: varColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              '(${percent > 0 ? '+' : ''}${percentFormat.format(percent)}%)',
+                              style: TextStyle(color: varColor, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+              /* Text(
                 'Valor Liquidativo',
                 style: Theme.of(context).textTheme.labelLarge,
               ),
@@ -103,15 +191,15 @@ class FundSummaryTab extends StatelessWidget {
                     ),
                   ],
                 ],
-              ),
-              const SizedBox(height: 8),
-              Text(
+              ), */
+              //const SizedBox(height: 8),
+              /* Text(
                 'Actualizado: ${DateFormat('dd/MM/yyyy').format(fund.date)}',
                 style: Theme.of(context).textTheme.bodySmall
                     ?.copyWith(color: Colors.white38),
-              ),
-              const SizedBox(height: 6),
-              FutureBuilder<DateTime?>(
+              ), */
+              //const SizedBox(height: 6),
+              /* FutureBuilder<DateTime?>(
                 future: ExportService.getLastExportDate(fund.isin),
                 builder: (context, snapshot) {
                   final lastExport = snapshot.data;
@@ -150,7 +238,7 @@ class FundSummaryTab extends StatelessWidget {
                     ],
                   );
                 },
-              ),
+              ), */
               if (totalDiff != null &&
                   totalPercent != null &&
                   oldestDate != null) ...[
@@ -233,6 +321,47 @@ class FundSummaryTab extends StatelessWidget {
                   Colors.greenAccent[400]!,
                 ),
             ],
+            const Divider(height: 32, color: Colors.white10),
+            FutureBuilder<DateTime?>(
+              future: ExportService.getLastExportDate(fund.isin),
+              builder: (context, snapshot) {
+                final lastExport = snapshot.data;
+                final backupPending =
+                    lastExport == null ||
+                    lastExport.isBefore(
+                      DateTime.now().subtract(const Duration(days: 30)),
+                    );
+                return Row(
+                  children: [
+                    Icon(
+                      backupPending
+                          ? Icons.warning_amber_outlined
+                          : Icons.cloud_done_outlined,
+                      size: 14,
+                      color: backupPending
+                          ? Colors.amberAccent
+                          : Colors.greenAccent[400],
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        backupPending
+                            ? lastExport == null
+                                  ? 'No hay backup. Se recomienda exportar este fondo.'
+                                  : 'El último backup tiene más de un mes. Se recomienda exportar este fondo.'
+                            : 'Último backup: ${DateFormat('dd/MM/yyyy HH:mm').format(lastExport)}',
+                        style: TextStyle(
+                          color: backupPending
+                              ? Colors.amberAccent
+                              : Colors.white38,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),

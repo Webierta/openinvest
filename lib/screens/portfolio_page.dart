@@ -148,7 +148,22 @@ class PortfolioPage extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('OpenInvest'),
+        //title: const Text('OpenInvest'),
+        title: Text.rich(
+          TextSpan(
+            text: 'Open',
+            style: const TextStyle(color: Colors.white),
+            children: [
+              TextSpan(
+                text: 'Invest',
+                style: const TextStyle(
+                  color: Colors.greenAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
         actions: [
           if (provider.portfolio.isNotEmpty) ...[
             IconButton(
@@ -787,7 +802,7 @@ class PortfolioPage extends StatelessWidget {
                                                     const SizedBox(width: 6),
                                                   ],
                                                   Text(
-                                                    DateFormat('dd/MM/yyyy')
+                                                    DateFormat('dd/MM/yy')
                                                         .format(item.date),
                                                     style: Theme.of(context)
                                                         .textTheme
@@ -795,7 +810,7 @@ class PortfolioPage extends StatelessWidget {
                                                         ?.copyWith(
                                                           height: 1.0,
                                                           fontSize: 10,
-                                                          color: Colors.white38,
+                                                          color: Colors.white70,
                                                         ),
                                                   ),
                                                 ],
@@ -806,14 +821,14 @@ class PortfolioPage extends StatelessWidget {
                                       ),
                                       if (hasOps) ...[
                                         const Divider(
-                                          height: 32,
+                                          height: 30,
                                           color: Colors.white10,
                                         ),
                                         Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           crossAxisAlignment:
-                                              CrossAxisAlignment.end,
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Column(
                                               crossAxisAlignment:

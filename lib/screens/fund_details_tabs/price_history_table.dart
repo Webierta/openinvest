@@ -307,7 +307,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Text(
-                  DateFormat('dd/MM/yyyy').format(date),
+                  DateFormat('dd/MM/yy').format(date),
                   style: const TextStyle(fontSize: 11, color: Colors.white70),
                 ),
               ),
