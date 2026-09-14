@@ -48,6 +48,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
           'No se pudo eliminar el precio. Haz un backup del fondo y reinicia la aplicación.',
         ),
         backgroundColor: Colors.redAccent,
+        duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: 'Backup',
           textColor: Colors.white,
@@ -259,9 +260,10 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
           );
           _pendingDeletedPricePoints.remove(key);
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
+          final snackBarController = ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('Precio eliminado correctamente'),
+              duration: const Duration(seconds: 4),
               action: SnackBarAction(
                 label: 'Deshacer',
                 onPressed: () async {
@@ -280,6 +282,10 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                 },
               ),
             ),
+          );
+          Future<void>.delayed(
+            const Duration(seconds: 4),
+            snackBarController.close,
           );
         } catch (_) {
           _pendingDeletedPricePoints.remove(key);

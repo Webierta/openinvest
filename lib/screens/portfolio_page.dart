@@ -17,6 +17,7 @@ import 'fund_details_page.dart';
 import 'info_page.dart';
 import 'about_page.dart';
 import 'support_page.dart';
+import 'settings_page.dart';
 import '../utils/route_observer.dart';
 
 class PortfolioPage extends StatefulWidget {
@@ -387,6 +388,24 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
               ),
             ),
             ListTile(
+              leading: const Icon(
+                Icons.settings_outlined,
+                color: Colors.white70,
+              ),
+              title: const Text(
+                'Ajustes',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+            ),
+            const Divider(color: Colors.white10),
+            ListTile(
               leading: const Icon(Icons.info_outline, color: Colors.white70),
               title: const Text('Info', style: TextStyle(color: Colors.white)),
               onTap: () {
@@ -428,6 +447,23 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                 );
               },
             ),
+            /*ListTile(
+              leading: const Icon(
+                Icons.settings_outlined,
+                color: Colors.white70,
+              ),
+              title: const Text(
+                'Ajustes',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+            ),*/
             const Divider(color: Colors.white10),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent),

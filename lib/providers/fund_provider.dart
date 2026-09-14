@@ -13,7 +13,7 @@ class FundProvider with ChangeNotifier {
   FundData? currentFund;
   bool isLoading = false;
   bool _databaseOperationInProgress = false;
-  bool _portfolioLoadInProgress = false;
+  Future<void>? _portfolioLoadFuture;
   bool hasPortfolioLoadError = false;
   AppError? lastError;
   SortCriteria sortCriteria = SortCriteria.name;
@@ -71,25 +71,37 @@ class FundProvider with ChangeNotifier {
   }
 
   Future<void> loadPortfolio() async {
-    if (_portfolioLoadInProgress) return;
-    _portfolioLoadInProgress = true;
-    _clearError();
-    hasPortfolioLoadError = false;
-    try {
-      final loadedPortfolio = await DatabaseService.getPortfolio();
-      portfolio = loadedPortfolio;
-      await _updateExchangeRates();
-      _sortPortfolio();
-      if (currentFund != null) {
-        currentFund = await DatabaseService.getFund(currentFund!.isin);
-      }
-    } catch (error, stackTrace) {
-      hasPortfolioLoadError = true;
-      _setError(_asError(error, stackTrace, type: AppErrorType.database));
-    } finally {
-      _portfolioLoadInProgress = false;
+    final pendingLoad = _portfolioLoadFuture;
+    if (pendingLoad != null) {
+      await pendingLoad;
+      return loadPortfolio();
     }
-    notifyListeners();
+
+    final loadFuture = () async {
+      _clearError();
+      hasPortfolioLoadError = false;
+      try {
+        final loadedPortfolio = await DatabaseService.getPortfolio();
+        portfolio = loadedPortfolio;
+        await _updateExchangeRates();
+        _sortPortfolio();
+        if (currentFund != null) {
+          currentFund = await DatabaseService.getFund(currentFund!.isin);
+        }
+      } catch (error, stackTrace) {
+        hasPortfolioLoadError = true;
+        _setError(_asError(error, stackTrace, type: AppErrorType.database));
+      }
+      notifyListeners();
+    }();
+    _portfolioLoadFuture = loadFuture;
+    try {
+      await loadFuture;
+    } finally {
+      if (identical(_portfolioLoadFuture, loadFuture)) {
+        _portfolioLoadFuture = null;
+      }
+    }
   }
 
   Future<void> _updateExchangeRates() async {
@@ -303,6 +315,7 @@ class FundProvider with ChangeNotifier {
         await _runDatabaseOperation(() async {
           await DatabaseService.saveFund(result.data!);
           currentFund = result.data;
+          await _syncFundState(result.data!.isin);
           await loadPortfolio();
         });
         return true;
@@ -353,6 +366,7 @@ class FundProvider with ChangeNotifier {
         await _runDatabaseOperation(() async {
           await DatabaseService.saveFund(result.data!);
           currentFund = result.data;
+          await _syncFundState(result.data!.isin);
           await loadPortfolio();
         });
         return true;
@@ -372,6 +386,19 @@ class FundProvider with ChangeNotifier {
     currentFund = fund;
     _clearError();
     notifyListeners();
+  }
+
+  Future<void> _syncFundState(String isin) async {
+    final updatedFund = await DatabaseService.getFund(isin);
+    if (updatedFund == null) return;
+
+    final portfolioIndex = portfolio.indexWhere((fund) => fund.isin == isin);
+    if (portfolioIndex != -1) {
+      portfolio[portfolioIndex] = updatedFund;
+    }
+    if (currentFund?.isin == isin) {
+      currentFund = updatedFund;
+    }
   }
 
   Future<void> removeFromPortfolio(String isin) async {
@@ -428,6 +455,7 @@ class FundProvider with ChangeNotifier {
               alertMax: existing.alertMax,
             );
             await DatabaseService.saveFund(updatedFund);
+            await _syncFundState(isin);
           }
         } else if (updateError == null && result.error != null) {
           updateError = result.error;

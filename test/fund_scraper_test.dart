@@ -94,6 +94,38 @@ void main() {
     expect(result.data?.history, isNotEmpty);
   });
 
+  test(
+    'usa el último cierre como valor vigente si la fecha del metadato difiere',
+    () {
+      final payload = {
+        'chart': {
+          'result': [
+            {
+              'meta': {
+                'regularMarketPrice': 12.5,
+                'currency': 'EUR',
+                'regularMarketTime': 1788220800,
+              },
+              'timestamp': [1788307200],
+              'indicators': {
+                'quote': [
+                  {
+                    'close': [13.0],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+
+      final result = parse(payload);
+
+      expect(result.data?.lastValue, 13.0);
+      expect(result.data?.date, DateTime(2026, 9, 2));
+    },
+  );
+
   test('ignora cierres nulos manteniendo el historial válido', () {
     final payload = {
       ...basePayload,

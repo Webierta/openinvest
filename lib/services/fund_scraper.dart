@@ -264,9 +264,11 @@ class FundScraper {
       return ScrapeResult(error: AppError.data('Precio no disponible.'));
     }
 
-    final effectivePrice = price ?? history.last.price;
-    final effectiveDate = timestamp == null
-        ? (history.isNotEmpty ? history.last.date : DateTime.now())
+    final effectivePrice = history.isNotEmpty ? history.last.price : price!;
+    final effectiveDate = history.isNotEmpty
+        ? history.last.date
+        : timestamp == null
+        ? DateTime.now()
         : DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
 
     return ScrapeResult(
