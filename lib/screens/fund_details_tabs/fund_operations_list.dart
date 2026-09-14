@@ -139,6 +139,7 @@ class FundOperationsList extends StatelessWidget {
             const SnackBar(
               content: Text('No se pudo eliminar la operación'),
               backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 4),
             ),
           );
         }
@@ -176,9 +177,10 @@ class FundOperationsList extends StatelessWidget {
       if (!dialogContext.mounted) return;
       Navigator.pop(dialogContext);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      final snackBarController = ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Operación eliminada correctamente'),
+          duration: const Duration(seconds: 4),
           action: SnackBarAction(
             label: 'Deshacer',
             onPressed: () async {
@@ -186,7 +188,10 @@ class FundOperationsList extends StatelessWidget {
                 await provider.restoreOperation(operation);
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Eliminación deshecha')),
+                  const SnackBar(
+                    content: Text('Eliminación deshecha'),
+                    duration: Duration(seconds: 4),
+                  ),
                 );
               } catch (_) {
                 if (!context.mounted) return;
@@ -196,12 +201,17 @@ class FundOperationsList extends StatelessWidget {
                       'No se pudo restaurar la operación. Haz un backup y reinicia la aplicación.',
                     ),
                     backgroundColor: Colors.redAccent,
+                    duration: Duration(seconds: 4),
                   ),
                 );
               }
             },
           ),
         ),
+      );
+      Future<void>.delayed(
+        const Duration(seconds: 4),
+        snackBarController.close,
       );
     } catch (_) {
       if (!context.mounted) return;
@@ -211,6 +221,7 @@ class FundOperationsList extends StatelessWidget {
             'No se pudo eliminar la operación. Haz un backup y reinicia la aplicación.',
           ),
           backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 4),
         ),
       );
     }
@@ -411,6 +422,7 @@ class FundOperationsList extends StatelessWidget {
                       const SnackBar(
                         content: Text('No se pudo guardar la operación'),
                         backgroundColor: Colors.redAccent,
+                        duration: Duration(seconds: 4),
                       ),
                     );
                   }

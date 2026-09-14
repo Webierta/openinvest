@@ -955,17 +955,22 @@ class PortfolioPage extends StatelessWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const FundSearchPage()),
         ),
-        icon: const Icon(Icons.search, color: Colors.white),
-        label: const Text(
-          'Buscar Fondo',
-          style: TextStyle(color: Colors.white),
+        //icon: const Icon(Icons.add_business, color: Colors.black87),
+        /* label: const Text(
+          'Añadir Fondo',
+          style: TextStyle(color: Colors.black87),
+        ), */
+        backgroundColor: Colors.amber,
+        child: const Icon(
+          Icons.add_chart_rounded,
+          color: Colors.black87,
+          size: 32,
         ),
-        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
     );
   }

@@ -140,12 +140,52 @@ class FundBalanceTab extends StatelessWidget {
           'Precio medio compra',
           '${priceFormat.format(averagePurchasePrice)} ${fund.currency}',
         ),
+        /* _buildBalanceRow(
+          'Valor actual',
+          '${smartFormat.format(currentValue)} ${fund.currency}',
+          isBold: true,
+        ), */
+        const Divider(height: 20, color: Colors.white10),
+        // AQUÏ PLUSVALIA / MINUSVALÍA
         _buildBalanceRow(
           'Valor actual',
           '${smartFormat.format(currentValue)} ${fund.currency}',
           isBold: true,
+          fontSize: 16,
         ),
-        const Divider(height: 32, color: Colors.white10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              //'Plusvalía / Minusvalía',
+              profit > 0 ? 'Plusvalía' : 'Minusvalía',
+              style: TextStyle(color: Colors.white70),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${profit > 0 ? '+' : ''}${smartFormat.format(profit)} ${fund.currency}',
+                  style: TextStyle(
+                    color: profitColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  '${profitPercent > 0 ? '+' : ''}${percentFormat.format(profitPercent)}%',
+                  style: TextStyle(
+                    color: profitColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const Divider(height: 20, color: Colors.white10),
+        const SizedBox(height: 10),
         Row(
           children: [
             const Text(
@@ -224,8 +264,8 @@ class FundBalanceTab extends StatelessWidget {
             ),
           ],
         ),
-        const Divider(height: 32, color: Colors.white10),
-        Row(
+        //const Divider(height: 32, color: Colors.white10),
+        /* Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
@@ -253,7 +293,7 @@ class FundBalanceTab extends StatelessWidget {
               ],
             ),
           ],
-        ),
+        ), */
       ],
     );
   }
@@ -300,7 +340,7 @@ class FundBalanceTab extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 9,
+              fontSize: 11,
               color: Colors.white38,
               fontWeight: FontWeight.bold,
             ),
@@ -309,7 +349,7 @@ class FundBalanceTab extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
               color: color ?? Colors.white70,
             ),
@@ -319,7 +359,12 @@ class FundBalanceTab extends StatelessWidget {
     );
   }
 
-  Widget _buildBalanceRow(String label, String value, {bool isBold = false}) {
+  Widget _buildBalanceRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    double fontSize = 13,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -334,7 +379,7 @@ class FundBalanceTab extends StatelessWidget {
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               color: isBold ? Colors.white : Colors.white70,
-              fontSize: 13,
+              fontSize: fontSize,
             ),
           ),
         ],

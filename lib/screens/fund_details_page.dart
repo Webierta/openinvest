@@ -282,6 +282,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                   child: const Icon(
                     Icons.add_alert_rounded,
                     color: Colors.black87,
+                    size: 32,
                   ),
                 );
               },
