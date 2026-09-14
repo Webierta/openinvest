@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'providers/fund_provider.dart';
 import 'screens/portfolio_page.dart';
+import 'utils/route_observer.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +43,7 @@ class MyApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('es', 'ES')],
       locale: const Locale('es', 'ES'),
+      navigatorObservers: [routeObserver],
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,

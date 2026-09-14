@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 class ErrorBanner extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
+  final VoidCallback? onDismiss;
   final bool isInfo;
 
   const ErrorBanner({
     super.key,
     required this.message,
     this.onRetry,
+    this.onDismiss,
     this.isInfo = false,
   });
 
@@ -37,6 +39,14 @@ class ErrorBanner extends StatelessWidget {
           ),
           if (onRetry != null)
             TextButton(onPressed: onRetry, child: const Text('Reintentar')),
+          if (onDismiss != null)
+            IconButton(
+              onPressed: onDismiss,
+              icon: const Icon(Icons.close),
+              tooltip: 'Cerrar aviso',
+              color: color,
+              visualDensity: VisualDensity.compact,
+            ),
         ],
       ),
     );

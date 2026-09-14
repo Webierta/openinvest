@@ -29,6 +29,12 @@ class FundProvider with ChangeNotifier {
     lastError = null;
   }
 
+  void clearError() {
+    if (lastError == null) return;
+    _clearError();
+    notifyListeners();
+  }
+
   AppError _asError(
     Object error,
     StackTrace stackTrace, {

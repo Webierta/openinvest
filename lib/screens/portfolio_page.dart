@@ -17,9 +17,33 @@ import 'fund_details_page.dart';
 import 'info_page.dart';
 import 'about_page.dart';
 import 'support_page.dart';
+import '../utils/route_observer.dart';
 
-class PortfolioPage extends StatelessWidget {
+class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
+
+  @override
+  State<PortfolioPage> createState() => _PortfolioPageState();
+}
+
+class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) routeObserver.subscribe(this, route);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() {
+    context.read<FundProvider>().clearError();
+  }
 
   Future<bool?> _confirmOverwrite(BuildContext context, String fundName) {
     return showDialog<bool>(
@@ -442,6 +466,7 @@ class PortfolioPage extends StatelessWidget {
                   onRetry: provider.info != null
                       ? null
                       : provider.updateAllPortfolio,
+                  onDismiss: provider.clearError,
                 ),
               Expanded(
                 child: provider.hasPortfolioLoadError

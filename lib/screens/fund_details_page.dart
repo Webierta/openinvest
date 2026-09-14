@@ -12,6 +12,7 @@ import 'fund_details_tabs/fund_history_chart.dart';
 import 'fund_details_tabs/fund_operations_list.dart';
 import 'fund_details_tabs/price_history_table.dart';
 import 'fund_details_tabs/fund_summary_tab.dart';
+import '../utils/route_observer.dart';
 
 class FundDetailsPage extends StatefulWidget {
   const FundDetailsPage({super.key});
@@ -20,7 +21,30 @@ class FundDetailsPage extends StatefulWidget {
   State<FundDetailsPage> createState() => _FundDetailsPageState();
 }
 
-class _FundDetailsPageState extends State<FundDetailsPage> {
+class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) routeObserver.subscribe(this, route);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() {
+    context.read<FundProvider>().clearError();
+  }
+
+  @override
+  void didPop() {
+    context.read<FundProvider>().clearError();
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<FundProvider>();
@@ -168,14 +192,14 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
             unselectedLabelColor: Colors.white38,
             indicatorColor: Colors.white,
             tabs: [
-              Tab(icon: Icon(Icons.info_outline), text: 'Resumen'),
+              Tab(icon: Icon(Icons.info_outline), text: 'Valores'),
               Tab(
                 icon: Icon(Icons.account_balance_wallet_outlined),
                 text: 'Balance',
               ),
               Tab(icon: Icon(Icons.show_chart), text: 'Gráfico'),
               Tab(icon: Icon(Icons.table_rows), text: 'Tabla'),
-              Tab(icon: Icon(Icons.account_balance), text: 'Operaciones'),
+              Tab(icon: Icon(Icons.account_balance), text: 'Mercado'),
             ],
           ),
         ),
@@ -190,6 +214,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> {
                     onRetry: provider.info != null
                         ? null
                         : () => provider.searchFund(fund.isin),
+                    onDismiss: provider.clearError,
                   ),
                 Expanded(
                   child: TabBarView(
