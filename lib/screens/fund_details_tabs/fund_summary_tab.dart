@@ -473,7 +473,7 @@ class FundSummaryTab extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Row(
             children: [
@@ -482,7 +482,7 @@ class FundSummaryTab extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 11,
                   color: color,
                   fontWeight: FontWeight.bold,
                 ),
@@ -493,14 +493,14 @@ class FundSummaryTab extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
           Text(
             date,
-            style: const TextStyle(fontSize: 9, color: Colors.white38),
+            style: const TextStyle(fontSize: 10, color: Colors.white54),
           ),
         ],
       ),

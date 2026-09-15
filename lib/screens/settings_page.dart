@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+
 import '../services/settings_service.dart';
 import '../widgets/gradient_background.dart';
 
@@ -40,7 +42,17 @@ class _SettingsPageState extends State<SettingsPage> {
         }
       } else {
         final authenticated = await SettingsService.authenticate();
-        if (!authenticated) return;
+        if (!authenticated) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Autenticación fallida o cancelada'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+          return;
+        }
       }
     }
     await SettingsService.setAuthRequired(value);
@@ -64,7 +76,9 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Define una contraseña para proteger el acceso a OpenInvest en este equipo.'),
+              const Text(
+                'Define una contraseña para proteger el acceso a OpenInvest en este equipo.',
+              ),
               const SizedBox(height: 20),
               TextFormField(
                 controller: controller,
@@ -74,13 +88,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   labelText: 'Contraseña',
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) => (v == null || v.length < 4) ? 'Mínimo 4 caracteres' : null,
+                validator: (v) =>
+                    (v == null || v.length < 4) ? 'Mínimo 4 caracteres' : null,
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
@@ -123,25 +141,36 @@ class _SettingsPageState extends State<SettingsPage> {
                     SwitchListTile(
                       title: const Text(
                         'Acceso Protegido',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       subtitle: Text(
-                        Platform.isLinux 
+                        Platform.isLinux
                             ? 'Requerir contraseña de aplicación para entrar.'
                             : _canAuthenticate
-                                ? 'Requerir huella, rostro o PIN del dispositivo para entrar.'
-                                : 'Tu dispositivo no soporta autenticación biométrica.',
+                            ? 'Requerir huella, rostro o PIN del dispositivo para entrar.'
+                            : 'Tu dispositivo no soporta autenticación biométrica.',
                         style: const TextStyle(color: Colors.white70),
                       ),
                       value: _requireAuth,
-                      onChanged: _canAuthenticate || Platform.isLinux ? _toggleAuth : null,
+                      onChanged: _canAuthenticate || Platform.isLinux
+                          ? _toggleAuth
+                          : null,
                       activeThumbColor: Colors.blueAccent,
                     ),
                     if (_requireAuth && Platform.isLinux) ...[
                       const Divider(height: 1, color: Colors.white10),
                       ListTile(
-                        title: const Text('Cambiar contraseña', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                        trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+                        title: const Text(
+                          'Cambiar contraseña',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                        trailing: const Icon(
+                          Icons.chevron_right,
+                          color: Colors.white38,
+                        ),
                         onTap: () => _showSetPasswordDialog(context),
                       ),
                     ],

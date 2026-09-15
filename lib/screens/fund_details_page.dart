@@ -192,7 +192,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
             unselectedLabelColor: Colors.white38,
             indicatorColor: Colors.white,
             tabs: [
-              Tab(icon: Icon(Icons.info_outline), text: 'Valores'),
+              Tab(icon: Icon(Icons.info_outline), text: 'Estado'),
               Tab(
                 icon: Icon(Icons.account_balance_wallet_outlined),
                 text: 'Balance',

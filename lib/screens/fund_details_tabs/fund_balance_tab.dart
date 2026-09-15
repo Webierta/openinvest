@@ -341,17 +341,20 @@ class FundBalanceTab extends StatelessWidget {
             label,
             style: const TextStyle(
               fontSize: 11,
-              color: Colors.white38,
+              color: Colors.white54,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: color ?? Colors.white70,
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: color ?? Colors.white70,
+              ),
             ),
           ),
         ],
@@ -372,7 +375,7 @@ class FundBalanceTab extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.white38, fontSize: 13),
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
           ),
           Text(
             value,
