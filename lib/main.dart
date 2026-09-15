@@ -21,7 +21,7 @@ void main() {
 
   runApp(
     ChangeNotifierProvider(
-      create: (_) => FundProvider()..loadPortfolio(),
+      create: (_) => FundProvider()..initialize(),
       child: const MyApp(),
     ),
   );
@@ -161,9 +161,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (_authenticated == null) {
       return const Scaffold(
         body: GradientBackground(
-          child: Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          ),
+          child: Center(child: CircularProgressIndicator(color: Colors.white)),
         ),
       );
     }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/fund_scraper.dart';
 import '../services/database_service.dart';
+import '../services/settings_service.dart';
 import '../utils/app_error.dart';
 
 enum SortCriteria { name, value, performance }
@@ -102,6 +103,34 @@ class FundProvider with ChangeNotifier {
         _portfolioLoadFuture = null;
       }
     }
+  }
+
+  Future<void> initialize() async {
+    await loadPortfolio();
+    await refreshOnStartupIfNeeded();
+  }
+
+  Future<void> refreshOnStartupIfNeeded() async {
+    if (!await SettingsService.isAutoRefreshEnabled() || portfolio.isEmpty) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final allFundsAreStale = portfolio.every((fund) {
+      final fundDate = DateTime(fund.date.year, fund.date.month, fund.date.day);
+      return fundDate.isBefore(today);
+    });
+    if (!allFundsAreStale) return;
+
+    final lastGlobalRefresh = await SettingsService.getLastGlobalRefresh();
+    if (lastGlobalRefresh != null &&
+        now.isBefore(lastGlobalRefresh.add(const Duration(hours: 24)))) {
+      return;
+    }
+
+    await updateAllPortfolio();
+    await SettingsService.setLastGlobalRefresh(now);
   }
 
   Future<void> _updateExchangeRates() async {
@@ -363,10 +392,26 @@ class FundProvider with ChangeNotifier {
         endDate: range.end,
       );
       if (result.data != null) {
+        final fetchedFund = result.data!;
+        final existingFund = await DatabaseService.getFund(fetchedFund.isin);
+        final fundToSave = existingFund == null
+            ? fetchedFund
+            : FundData(
+                isin: fetchedFund.isin,
+                symbol: fetchedFund.symbol,
+                name: fetchedFund.name,
+                lastValue: existingFund.lastValue,
+                currency: fetchedFund.currency,
+                date: existingFund.date,
+                history: fetchedFund.history,
+                operations: existingFund.operations,
+                alertMin: existingFund.alertMin,
+                alertMax: existingFund.alertMax,
+              );
         await _runDatabaseOperation(() async {
-          await DatabaseService.saveFund(result.data!);
-          currentFund = result.data;
-          await _syncFundState(result.data!.isin);
+          await DatabaseService.saveFund(fundToSave);
+          currentFund = fundToSave;
+          await _syncFundState(fundToSave.isin);
           await loadPortfolio();
         });
         return true;

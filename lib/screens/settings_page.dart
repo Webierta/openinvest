@@ -15,6 +15,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _requireAuth = false;
   bool _canAuthenticate = false;
+  bool _autoRefresh = false;
 
   @override
   void initState() {
@@ -25,9 +26,19 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadSettings() async {
     final requireAuth = await SettingsService.isAuthRequired();
     final canAuth = await SettingsService.canAuthenticate();
+    final autoRefresh = await SettingsService.isAutoRefreshEnabled();
     setState(() {
       _requireAuth = requireAuth;
       _canAuthenticate = canAuth;
+      _autoRefresh = autoRefresh;
+    });
+  }
+
+  Future<void> _toggleAutoRefresh(bool value) async {
+    await SettingsService.setAutoRefreshEnabled(value);
+    if (!mounted) return;
+    setState(() {
+      _autoRefresh = value;
     });
   }
 
@@ -175,6 +186,31 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ],
                   ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildSectionTitle('Datos'),
+              Card(
+                color: Colors.white.withValues(alpha: 0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: SwitchListTile(
+                  title: const Text(
+                    'Actualizar fondos al iniciar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Actualizar cuando los datos tengan al menos un día y no se hayan actualizado en las últimas 24 horas.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  value: _autoRefresh,
+                  onChanged: _toggleAutoRefresh,
+                  activeThumbColor: Colors.blueAccent,
                 ),
               ),
               const SizedBox(height: 24),

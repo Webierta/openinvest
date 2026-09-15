@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,8 @@ import 'package:flutter/services.dart';
 class SettingsService {
   static const String _keyRequireAuth = 'require_auth';
   static const String _keyAppPassword = 'app_password';
+  static const String _keyAutoRefresh = 'auto_refresh';
+  static const String _keyLastGlobalRefresh = 'last_global_refresh';
   static final LocalAuthentication _auth = LocalAuthentication();
 
   static Future<bool> isAuthRequired() async {
@@ -28,12 +31,36 @@ class SettingsService {
     await prefs.setString(_keyAppPassword, password);
   }
 
+  static Future<bool> isAutoRefreshEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyAutoRefresh) ?? false;
+  }
+
+  static Future<void> setAutoRefreshEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoRefresh, value);
+  }
+
+  static Future<DateTime?> getLastGlobalRefresh() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_keyLastGlobalRefresh);
+    return value == null ? null : DateTime.tryParse(value);
+  }
+
+  static Future<void> setLastGlobalRefresh(DateTime value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyLastGlobalRefresh, value.toIso8601String());
+  }
+
   static Future<bool> canAuthenticate() async {
-    if (Platform.isLinux) return true; // Siempre podemos usar contraseña en Linux
-    
+    if (Platform.isLinux) {
+      return true; // Siempre podemos usar contraseña en Linux
+    }
+
     try {
       final bool canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
-      final bool canAuthenticate = canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
+      final bool canAuthenticate =
+          canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
       return canAuthenticate;
     } on PlatformException catch (_) {
       return false;
