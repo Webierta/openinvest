@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/export_service.dart';
 import '../../services/fund_scraper.dart';
@@ -321,6 +323,81 @@ class FundSummaryTab extends StatelessWidget {
                   Colors.greenAccent[400]!,
                 ),
             ],
+            FutureBuilder<String?>(
+              future: _getCnmvUrl(context),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data != null) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 24),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => launchUrl(
+                        Uri.parse(snapshot.data!),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                          /*color: const Color(0xFF003D7C).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFF003D7C).withValues(
+                              alpha: 0.4,
+                            ),
+                          ),*/
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFA50A37),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'CNMV',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 10,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'Ficha en el Registro Oficial',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.open_in_new,
+                              size: 14,
+                              color: Colors.blueAccent,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             const Divider(height: 32, color: Colors.white10),
             FutureBuilder<DateTime?>(
               future: ExportService.getLastExportDate(fund.isin),
@@ -505,6 +582,24 @@ class FundSummaryTab extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<String?> _getCnmvUrl(BuildContext context) async {
+    try {
+      final String response = await DefaultAssetBundle.of(context).loadString(
+        'assets/files/fondos_armonizados.json',
+      );
+      final List<dynamic> data = json.decode(response);
+      for (final item in data) {
+        final List<dynamic> isins = item['isins'] ?? [];
+        if (isins.contains(fund.isin)) {
+          return item['url'];
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading CNMV data: $e');
+    }
+    return null;
   }
 
   Widget _buildAlertValue(

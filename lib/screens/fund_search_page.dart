@@ -225,7 +225,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                         subtitle: Text(
                           match.isin == null
                               ? 'ISIN no disponible'
-                              : 'ISIN: ${match.isin}',
+                              : '${match.isin}',
                           style: TextStyle(
                             color: match.isin == null ? Colors.grey : null,
                           ),
