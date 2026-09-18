@@ -266,6 +266,47 @@ class FundProvider with ChangeNotifier {
     }
   }
 
+  Future<List<FundSearchMatch>> searchFunds(String query) async {
+    if (isBusy) return [];
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.length < 2) return [];
+    isLoading = true;
+    _clearError();
+    notifyListeners();
+    try {
+      return await FundScraper.searchFunds(normalizedQuery);
+    } catch (error, stackTrace) {
+      lastError = _asError(error, stackTrace);
+      return [];
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<ScrapeResult> fetchFundMatch(FundSearchMatch match) async {
+    if (isBusy) {
+      final appError = AppError.busy();
+      _setError(appError);
+      return ScrapeResult(error: appError);
+    }
+    isLoading = true;
+    _clearError();
+    notifyListeners();
+    try {
+      final result = await FundScraper.getFundBySearchMatch(match);
+      if (result.error != null) lastError = result.error;
+      return result;
+    } catch (error, stackTrace) {
+      final appError = _asError(error, stackTrace);
+      lastError = appError;
+      return ScrapeResult(error: appError);
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> addToPortfolio(FundData fund) async {
     await _runDatabaseOperation(() async {
       await DatabaseService.saveFund(fund);

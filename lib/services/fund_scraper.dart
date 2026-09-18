@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import '../utils/app_error.dart';
@@ -165,7 +166,28 @@ class ScrapeResult {
   String? get errorMessage => error?.message;
 }
 
+class FundSearchMatch {
+  final String? isin;
+  final String symbol;
+  final String name;
+
+  const FundSearchMatch({
+    required this.isin,
+    required this.symbol,
+    required this.name,
+  });
+}
+
+class _FundCatalog {
+  final Map<String, List<String>> isinsByName;
+  final Map<String, String> names;
+
+  const _FundCatalog({required this.isinsByName, required this.names});
+}
+
 class FundScraper {
+  static const String _fundCatalogAsset =
+      'assets/files/fondos_armonizados.json';
   static const String _searchUrl =
       'https://query1.finance.yahoo.com/v1/finance/search?q=';
   static const String _chartUrl =
@@ -175,6 +197,194 @@ class FundScraper {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
     'Accept': 'application/json',
   };
+  static Future<_FundCatalog>? _fundCatalog;
+  static final Map<String, String> _fundCatalogNames = {};
+
+  static String _normalizeFundName(String value) {
+    const replacements = {
+      'á': 'a',
+      'à': 'a',
+      'ä': 'a',
+      'â': 'a',
+      'é': 'e',
+      'è': 'e',
+      'ë': 'e',
+      'ê': 'e',
+      'í': 'i',
+      'ì': 'i',
+      'ï': 'i',
+      'î': 'i',
+      'ó': 'o',
+      'ò': 'o',
+      'ö': 'o',
+      'ô': 'o',
+      'ú': 'u',
+      'ù': 'u',
+      'ü': 'u',
+      'û': 'u',
+      'ñ': 'n',
+    };
+    var normalized = value.toLowerCase();
+    replacements.forEach((from, to) {
+      normalized = normalized.replaceAll(from, to);
+    });
+    return normalized.replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+  }
+
+  static Future<_FundCatalog> _loadFundCatalog() {
+    return _fundCatalog ??= _readFundCatalog();
+  }
+
+  static Future<_FundCatalog> _readFundCatalog() async {
+    final content = await rootBundle.loadString(_fundCatalogAsset);
+    final entries = json.decode(content);
+    if (entries is! List) {
+      return const _FundCatalog(isinsByName: {}, names: {});
+    }
+
+    final catalog = <String, List<String>>{};
+    final names = <String, String>{};
+    for (final entry in entries) {
+      if (entry is! Map<String, dynamic>) continue;
+      final name = entry['nombre'];
+      final isins = entry['isins'];
+      if (name is String && name.isNotEmpty && isins is List) {
+        final normalizedName = _normalizeFundName(name);
+        final catalogIsins = catalog.putIfAbsent(normalizedName, () => []);
+        for (final isin in isins) {
+          if (isin is String &&
+              isin.isNotEmpty &&
+              !catalogIsins.contains(isin)) {
+            catalogIsins.add(isin);
+          }
+        }
+        if (catalogIsins.isNotEmpty) {
+          names.putIfAbsent(normalizedName, () => name);
+        }
+      }
+    }
+    _fundCatalogNames.addAll(names);
+    return _FundCatalog(isinsByName: catalog, names: names);
+  }
+
+  static Future<List<FundSearchMatch>> _addCatalogIsins(
+    List<FundSearchMatch> matches,
+  ) async {
+    final catalog = await _loadFundCatalog();
+    return matches.expand((match) {
+      if (match.isin != null) return [match];
+      final isins = _findCatalogIsins(catalog, match.name);
+      if (isins.isEmpty) {
+        return [
+          FundSearchMatch(isin: null, symbol: match.symbol, name: match.name),
+        ];
+      }
+      return isins.map(
+        (isin) =>
+            FundSearchMatch(isin: isin, symbol: match.symbol, name: match.name),
+      );
+    }).toList();
+  }
+
+  static String? findCatalogIsin(Map<String, String> catalog, String fundName) {
+    final normalizedName = _normalizeFundName(fundName);
+    return catalog[normalizedName] ??
+        _findContainedCatalogIsin(catalog, normalizedName);
+  }
+
+  static String? _findContainedCatalogIsin(
+    Map<String, String> catalog,
+    String normalizedName,
+  ) {
+    if (normalizedName.length < 8) return null;
+    final queryTokens = normalizedName
+        .split(' ')
+        .where((token) => token.length >= 3)
+        .toSet();
+    final candidates =
+        catalog.entries.where((entry) {
+          if (entry.key.length < 8) return false;
+          if (normalizedName.contains(entry.key) ||
+              entry.key.contains(normalizedName)) {
+            return true;
+          }
+          final catalogTokens = entry.key.split(' ').toSet();
+          return queryTokens.isNotEmpty &&
+              queryTokens.every(catalogTokens.contains);
+        }).toList()..sort(
+          (first, second) => second.key.length.compareTo(first.key.length),
+        );
+    return candidates.isEmpty ? null : candidates.first.value;
+  }
+
+  static List<String> _findCatalogIsins(_FundCatalog catalog, String fundName) {
+    final normalizedName = _normalizeFundName(fundName);
+    final exact = catalog.isinsByName[normalizedName];
+    if (exact != null) return exact;
+
+    final queryTokens = normalizedName
+        .split(' ')
+        .where((token) => token.length >= 3)
+        .toSet();
+    final candidates =
+        catalog.isinsByName.entries.where((entry) {
+          if (entry.key.length < 8) return false;
+          if (normalizedName.contains(entry.key) ||
+              entry.key.contains(normalizedName)) {
+            return true;
+          }
+          final catalogTokens = entry.key.split(' ').toSet();
+          return queryTokens.isNotEmpty &&
+              queryTokens.every(catalogTokens.contains);
+        }).toList()..sort(
+          (first, second) => second.key.length.compareTo(first.key.length),
+        );
+    return candidates.expand((entry) => entry.value).toList();
+  }
+
+  static List<FundSearchMatch> _searchCatalog(
+    _FundCatalog catalog,
+    String query,
+  ) {
+    final normalizedQuery = _normalizeFundName(query);
+    final queryTokens = normalizedQuery
+        .split(' ')
+        .where((token) => token.length >= 3)
+        .toSet();
+    if (queryTokens.isEmpty) return [];
+
+    final matches =
+        catalog.isinsByName.entries.where((entry) {
+          final catalogTokens = entry.key.split(' ').toSet();
+          return queryTokens.every(catalogTokens.contains);
+        }).toList()..sort(
+          (first, second) => first.key.length.compareTo(second.key.length),
+        );
+
+    return matches
+        .take(10)
+        .expand(
+          (entry) => entry.value.map(
+            (isin) => FundSearchMatch(
+              isin: isin,
+              symbol: '',
+              name: catalog.names[entry.key] ?? entry.key,
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  static List<FundSearchMatch> searchCatalogMatches(
+    Map<String, String> catalog,
+    String query,
+  ) {
+    final internalCatalog = _FundCatalog(
+      isinsByName: catalog.map((name, isin) => MapEntry(name, [isin])),
+      names: _fundCatalogNames,
+    );
+    return _searchCatalog(internalCatalog, query);
+  }
 
   static Future<http.Response> _getWithRetry(Uri uri) async {
     Object? lastError;
@@ -334,6 +544,76 @@ class FundScraper {
 
   static int? _asInt(Object? value) => value is num ? value.toInt() : null;
 
+  static List<FundSearchMatch> parseSearchPayload(
+    Map<String, dynamic> payload,
+  ) {
+    final quotes = payload['quotes'];
+    if (quotes is! List) return [];
+
+    final matches = <FundSearchMatch>[];
+    final seen = <String>{};
+    for (final quote in quotes) {
+      if (quote is! Map<String, dynamic>) continue;
+      final symbol = quote['symbol'];
+      if (symbol is! String || symbol.isEmpty || !seen.add(symbol)) continue;
+      final name = quote['longname'] ?? quote['shortname'];
+      if (name is! String || name.isEmpty) continue;
+      final isin =
+          quote['isin'] is String && (quote['isin'] as String).isNotEmpty
+          ? quote['isin'] as String
+          : null;
+      matches.add(FundSearchMatch(isin: isin, symbol: symbol, name: name));
+    }
+    return matches;
+  }
+
+  static Future<List<FundSearchMatch>> searchFunds(String query) async {
+    final catalog = await _loadFundCatalog();
+    var yahooMatches = <FundSearchMatch>[];
+    try {
+      final response = await _getWithRetry(
+        Uri.parse(
+          '$_searchUrl${Uri.encodeQueryComponent(query)}&quotesCount=10',
+        ),
+      );
+      if (response.statusCode == 200) {
+        final payload = json.decode(response.body);
+        if (payload is Map<String, dynamic>) {
+          yahooMatches = await _addCatalogIsins(parseSearchPayload(payload));
+        }
+      }
+    } catch (_) {
+      // El catálogo local sigue permitiendo buscar sin conexión.
+    }
+
+    final localMatches = _searchCatalog(catalog, query);
+    final seenIsins = yahooMatches
+        .map((match) => match.isin)
+        .whereType<String>()
+        .toSet();
+    return [
+      ...yahooMatches,
+      ...localMatches.where((match) => !seenIsins.contains(match.isin)),
+    ];
+  }
+
+  static Future<ScrapeResult> getFundBySearchMatch(
+    FundSearchMatch match, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    if (match.symbol.isEmpty && match.isin != null) {
+      return getFundByIsin(match.isin!, startDate: startDate, endDate: endDate);
+    }
+    return _getFundBySymbol(
+      isin: match.isin ?? match.symbol,
+      symbol: match.symbol,
+      name: match.name,
+      startDate: startDate,
+      endDate: endDate,
+    );
+  }
+
   static Future<ScrapeResult> getFundByIsin(
     String isin, {
     DateTime? startDate,
@@ -377,6 +657,34 @@ class FundScraper {
               : null) ??
           'Fondo desconocido';
 
+      return await _getFundBySymbol(
+        isin: isin,
+        symbol: symbol,
+        name: name,
+        startDate: startDate,
+        endDate: endDate,
+      );
+    } on AppError catch (error) {
+      return ScrapeResult(error: error);
+    } catch (error, stackTrace) {
+      return ScrapeResult(
+        error: AppError.fromException(
+          error,
+          stackTrace,
+          type: AppErrorType.data,
+        ),
+      );
+    }
+  }
+
+  static Future<ScrapeResult> _getFundBySymbol({
+    required String isin,
+    required String symbol,
+    required String name,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
       // Build chart URL
       String url = '$_chartUrl$symbol';
       if (startDate != null && endDate != null) {

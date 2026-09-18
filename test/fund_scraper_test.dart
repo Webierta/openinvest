@@ -6,6 +6,39 @@ import 'package:investing/services/fund_scraper.dart';
 import 'package:investing/utils/app_error.dart';
 
 void main() {
+  test('encuentra el ISIN con términos separados del nombre', () {
+    final isin = FundScraper.findCatalogIsin({
+      'ing direct fondo naranja dinamico fi': 'ES0152743003',
+    }, 'ING DIRECT DINAMICO');
+
+    expect(isin, 'ES0152743003');
+  });
+
+  test('devuelve el fondo del catálogo aunque Yahoo no lo encuentre', () {
+    final matches = FundScraper.searchCatalogMatches({
+      'ing direct fondo naranja dinamico fi': 'ES0152743003',
+    }, 'ING DIRECT DINAMICO');
+
+    expect(matches, hasLength(1));
+    expect(matches.single.isin, 'ES0152743003');
+  });
+
+  test('parsea resultados de búsqueda con nombre e ISIN', () {
+    final matches = FundScraper.parseSearchPayload({
+      'quotes': [
+        {'symbol': 'FUND1', 'isin': 'ES0000000001', 'longname': 'Fondo Uno'},
+        {'symbol': 'FUND2', 'shortname': 'Fondo Dos'},
+        {'symbol': 'FUND1', 'longname': 'Duplicado'},
+      ],
+    });
+
+    expect(matches, hasLength(2));
+    expect(matches[0].name, 'Fondo Uno');
+    expect(matches[0].isin, 'ES0000000001');
+    expect(matches[1].name, 'Fondo Dos');
+    expect(matches[1].isin, isNull);
+  });
+
   const basePayload = {
     'chart': {
       'result': [

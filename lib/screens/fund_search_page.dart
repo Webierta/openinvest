@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/fund_provider.dart';
+import '../services/fund_scraper.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
 
@@ -13,9 +16,37 @@ class FundSearchPage extends StatefulWidget {
 
 class _FundSearchPageState extends State<FundSearchPage> {
   final TextEditingController _controller = TextEditingController();
-  Future<void> _handleSearch() async {
+  Timer? _searchTimer;
+  List<FundSearchMatch> _matches = [];
+  int _searchVersion = 0;
+
+  Future<void> _searchByName(String value) async {
+    final version = ++_searchVersion;
+    _searchTimer?.cancel();
+    if (value.trim().length < 2) {
+      setState(() => _matches = []);
+      return;
+    }
+    _searchTimer = Timer(const Duration(milliseconds: 300), () async {
+      final matches = await context.read<FundProvider>().searchFunds(value);
+      if (mounted && version == _searchVersion) {
+        setState(() => _matches = matches);
+      }
+    });
+  }
+
+  bool _looksLikeIsin(String value) =>
+      RegExp(r'^[A-Za-z]{2}[A-Za-z0-9]{10}$').hasMatch(value.trim());
+
+  Future<void> _handleSearch([FundSearchMatch? match]) async {
     final provider = context.read<FundProvider>();
-    final result = await provider.fetchFundOnly(_controller.text);
+    if (match == null && !_looksLikeIsin(_controller.text)) {
+      await _searchByName(_controller.text);
+      return;
+    }
+    final result = match == null
+        ? await provider.fetchFundOnly(_controller.text)
+        : await provider.fetchFundMatch(match);
     if (result.data != null && mounted) {
       final confirm = await showDialog<bool>(
         context: context,
@@ -108,6 +139,13 @@ class _FundSearchPageState extends State<FundSearchPage> {
   }
 
   @override
+  void dispose() {
+    _searchTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<FundProvider>();
     return Scaffold(
@@ -134,7 +172,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Introduce el ISIN para añadirlo a tu cartera',
+                  'Busca un fondo para añadirlo a tu cartera',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
@@ -142,23 +180,68 @@ class _FundSearchPageState extends State<FundSearchPage> {
                 TextField(
                   controller: _controller,
                   decoration: InputDecoration(
-                    labelText: 'Código ISIN',
-                    hintText: 'Ej: ES0152743003',
+                    labelText: 'Nombre o código ISIN',
+                    hintText: 'Ej: Amundi o ES0152743003',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.05),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.search),
-                      onPressed: _handleSearch,
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: IconButton(
+                          tooltip: 'Buscar fondo',
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          icon: const Icon(Icons.search),
+                          onPressed: _handleSearch,
+                        ),
+                      ),
                     ),
                   ),
                   textCapitalization: TextCapitalization.characters,
                   onSubmitted: (_) => _handleSearch(),
+                  onChanged: _searchByName,
                   autofocus: true,
                 ),
                 const SizedBox(height: 24),
+                if (_matches.isNotEmpty)
+                  ..._matches.map(
+                    (match) => Card(
+                      color: match.isin == null
+                          ? Colors.grey.withValues(alpha: 0.12)
+                          : null,
+                      child: ListTile(
+                        title: Text(
+                          match.name,
+                          style: TextStyle(
+                            color: match.isin == null ? Colors.grey : null,
+                          ),
+                        ),
+                        subtitle: Text(
+                          match.isin == null
+                              ? 'ISIN no disponible'
+                              : 'ISIN: ${match.isin}',
+                          style: TextStyle(
+                            color: match.isin == null ? Colors.grey : null,
+                          ),
+                        ),
+                        trailing: Icon(
+                          match.isin == null
+                              ? Icons.info_outline
+                              : Icons.add_circle_outline,
+                          color: match.isin == null ? Colors.grey : null,
+                        ),
+                        onTap: match.isin == null
+                            ? null
+                            : () => _handleSearch(match),
+                      ),
+                    ),
+                  ),
                 if (provider.isBusy)
                   const Center(
                     child: CircularProgressIndicator(color: Colors.white),
