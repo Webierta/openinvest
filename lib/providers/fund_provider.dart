@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/fund_scraper.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
+import '../services/isin_resolver.dart';
 import '../utils/app_error.dart';
 
 enum SortCriteria { name, value, performance }
@@ -254,8 +255,11 @@ class FundProvider with ChangeNotifier {
     notifyListeners();
     try {
       final result = await FundScraper.getFundByIsin(isin.toUpperCase());
-      if (result.error != null) lastError = result.error;
-      return result;
+      if (result.error != null) {
+        lastError = result.error;
+        return result;
+      }
+      return await _tryResolveIsin(result);
     } catch (error, stackTrace) {
       final appError = _asError(error, stackTrace);
       lastError = appError;
@@ -295,8 +299,11 @@ class FundProvider with ChangeNotifier {
     notifyListeners();
     try {
       final result = await FundScraper.getFundBySearchMatch(match);
-      if (result.error != null) lastError = result.error;
-      return result;
+      if (result.error != null) {
+        lastError = result.error;
+        return result;
+      }
+      return await _tryResolveIsin(result);
     } catch (error, stackTrace) {
       final appError = _asError(error, stackTrace);
       lastError = appError;
@@ -305,6 +312,41 @@ class FundProvider with ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<ScrapeResult> _tryResolveIsin(ScrapeResult result) async {
+    if (result.data == null) return result;
+
+    FundData fund = result.data!;
+    if (fund.hasValidIsin) return result;
+
+    final resolver = IsinResolver();
+    try {
+      final resolution = await resolver.resolve(
+        fundName: fund.name,
+        ticker: fund.symbol,
+      );
+
+      if (resolution != null) {
+        final resolvedFund = FundData(
+          isin: resolution.isin,
+          symbol: fund.symbol,
+          name: fund.name,
+          lastValue: fund.lastValue,
+          currency: fund.currency,
+          date: fund.date,
+          history: fund.history,
+          alertMin: fund.alertMin,
+          alertMax: fund.alertMax,
+          operations: fund.operations,
+        );
+        return ScrapeResult(data: resolvedFund, isResolved: true);
+      }
+    } finally {
+      resolver.dispose();
+    }
+
+    return result;
   }
 
   Future<void> addToPortfolio(FundData fund) async {

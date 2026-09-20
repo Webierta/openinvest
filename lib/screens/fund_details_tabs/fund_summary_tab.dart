@@ -32,6 +32,29 @@ class FundSummaryTab extends StatelessWidget {
     Color? totalVarColor;
     DateTime? oldestDate;
 
+    // Cálculos para la cabecera y estadísticas
+    double maxVal = -double.infinity;
+    double minVal = double.infinity;
+    double sum = 0;
+    PricePoint? maxPoint;
+    PricePoint? minPoint;
+
+    for (var p in fund.history) {
+      sum += p.price;
+      if (p.price > maxVal) {
+        maxVal = p.price;
+        maxPoint = p;
+      }
+      if (p.price < minVal) {
+        minVal = p.price;
+        minPoint = p;
+      }
+    }
+
+    final double meanVal = fund.history.isNotEmpty ? sum / fund.history.length : 0;
+    final double distToMaxAbs = maxVal > 0 ? fund.lastValue - maxVal : 0;
+    final double distToMaxRel = maxVal > 0 ? (distToMaxAbs / maxVal) * 100 : 0;
+
     if (fund.history.length > 1) {
       final previousValue = fund.history[fund.history.length - 2].price;
       if (previousValue != 0) {
@@ -150,6 +173,23 @@ class FundSummaryTab extends StatelessWidget {
                             ),
                           ],
                         ),
+                        if (distToMaxAbs < -0.0001) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.keyboard_double_arrow_up, size: 12, color: Colors.white.withValues(alpha: 0.3)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'A máximos: ${priceFormat.format(distToMaxAbs)} (${percentFormat.format(distToMaxRel)}%)',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ],
                   ),
@@ -287,7 +327,7 @@ class FundSummaryTab extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 24),
-              _buildStatsGrid(context),
+              _buildStatsGrid(context, meanVal, maxPoint, minPoint),
             ],
             if (fund.alertMin != null || fund.alertMax != null) ...[
               const Divider(height: 32, color: Colors.white10),
@@ -447,19 +487,13 @@ class FundSummaryTab extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsGrid(BuildContext context) {
+  Widget _buildStatsGrid(BuildContext context, double meanVal, PricePoint? maxPoint, PricePoint? minPoint) {
     if (fund.history.isEmpty) return const SizedBox.shrink();
 
-    double sum = 0;
-    PricePoint maxPoint = fund.history.first;
-    PricePoint minPoint = fund.history.first;
     final returns = <double>[];
 
     for (int i = 0; i < fund.history.length; i++) {
       final point = fund.history[i];
-      sum += point.price;
-      if (point.price > maxPoint.price) maxPoint = point;
-      if (point.price < minPoint.price) minPoint = point;
       if (i > 0) {
         final previousPrice = fund.history[i - 1].price;
         if (previousPrice != 0) {
@@ -468,7 +502,6 @@ class FundSummaryTab extends StatelessWidget {
       }
     }
 
-    final meanPrice = sum / fund.history.length;
     double annualVolatility = 0;
     if (returns.isNotEmpty) {
       final meanReturn = returns.reduce((a, b) => a + b) / returns.length;
@@ -478,27 +511,41 @@ class FundSummaryTab extends StatelessWidget {
       annualVolatility = sqrt(varianceSum / returns.length) * sqrt(252) * 100;
     }
 
-    // Cálculo de Max Drawdown
+    // Cálculo de Max Drawdown y Tiempo de Recuperación
     double maxDrawdown = 0;
-    double peak = -double.infinity;
+    double currentPeak = -1.0;
+    double peakAtMDD = -1.0;
+    DateTime? troughDate;
+
     for (var point in fund.history) {
-      if (point.price > peak) peak = point.price;
-      if (peak > 0) {
-        final drawdown = (point.price - peak) / peak;
-        if (drawdown < maxDrawdown) maxDrawdown = drawdown;
+      if (point.price > currentPeak) {
+        currentPeak = point.price;
+      }
+      if (currentPeak > 0) {
+        final drawdown = (point.price - currentPeak) / currentPeak;
+        if (drawdown < maxDrawdown) {
+          maxDrawdown = drawdown;
+          troughDate = point.date;
+          peakAtMDD = currentPeak;
+        }
       }
     }
 
-    // Calculo de Tiempo de recuperación (desde Max Drawdown)
-    int recoveryTime = 0;
-    double peakAfterDrawdown = -double.infinity;
-    for (var point in fund.history) {
-      if (point.price > peakAfterDrawdown) peakAfterDrawdown = point.price;
-      if (peakAfterDrawdown > 0) {
-        final recovery = (point.price - peakAfterDrawdown) / peakAfterDrawdown;
-        if (recovery >= 0) {
-          recoveryTime++;
+    String recoveryText = '---';
+    if (troughDate != null && peakAtMDD > 0) {
+      DateTime? recoveryDate;
+      for (var point in fund.history) {
+        if (point.date.isAfter(troughDate!) && point.price >= peakAtMDD) {
+          recoveryDate = point.date;
+          break;
         }
+      }
+
+      if (recoveryDate != null) {
+        recoveryText = '${recoveryDate.difference(troughDate!).inDays} días';
+      } else {
+        final daysElapsed = DateTime.now().difference(troughDate!).inDays;
+        recoveryText = '$daysElapsed días (en curso)';
       }
     }
 
@@ -511,8 +558,8 @@ class FundSummaryTab extends StatelessWidget {
               child: _buildInfoItem(
                 context,
                 'Máximo',
-                priceFormat.format(maxPoint.price),
-                format.format(maxPoint.date),
+                maxPoint != null ? priceFormat.format(maxPoint.price) : '---',
+                maxPoint != null ? format.format(maxPoint.date) : '',
                 Colors.greenAccent[400]!,
                 Icons.arrow_upward,
               ),
@@ -522,8 +569,8 @@ class FundSummaryTab extends StatelessWidget {
               child: _buildInfoItem(
                 context,
                 'Mínimo',
-                priceFormat.format(minPoint.price),
-                format.format(minPoint.date),
+                minPoint != null ? priceFormat.format(minPoint.price) : '---',
+                minPoint != null ? format.format(minPoint.date) : '',
                 Colors.redAccent[200]!,
                 Icons.arrow_downward,
               ),
@@ -537,7 +584,7 @@ class FundSummaryTab extends StatelessWidget {
               child: _buildInfoItem(
                 context,
                 'Media',
-                priceFormat.format(meanPrice),
+                priceFormat.format(meanVal),
                 'Histórico',
                 Colors.blueAccent,
                 Icons.functions,
@@ -573,14 +620,13 @@ class FundSummaryTab extends StatelessWidget {
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Tiempo Recuperación',
-                '$recoveryTime días',
-                'Desde Max Drawdown',
+                'Recuperación',
+                recoveryText,
+                'Desde el Trough',
                 Colors.greenAccent[400]!,
                 Icons.restore,
               ),
             ),
-            //const Expanded(child: SizedBox.shrink()),
           ],
         ),
       ],

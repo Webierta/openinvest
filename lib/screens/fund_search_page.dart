@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../providers/fund_provider.dart';
 import '../services/fund_scraper.dart';
-import '../services/isin_resolver.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
 
@@ -41,10 +40,18 @@ class _FundSearchPageState extends State<FundSearchPage> {
 
   Future<void> _handleSearch([FundSearchMatch? match]) async {
     final provider = context.read<FundProvider>();
+    
     if (match == null && !_looksLikeIsin(_controller.text)) {
       await _searchByName(_controller.text);
       return;
     }
+
+    // Ocultamos el teclado y limpiamos estados para asegurar que el indicador de carga sea visible
+    FocusScope.of(context).unfocus();
+    provider.clearError();
+    setState(() {
+      _matches = [];
+    });
 
     if (match != null && match.isin == null) {
       final confirm = await showDialog<bool>(
@@ -76,38 +83,8 @@ class _FundSearchPageState extends State<FundSearchPage> {
         : await provider.fetchFundMatch(match);
 
     if (result.data != null && mounted) {
-      FundData fund = result.data!;
-      bool isResolved = false;
-
-      // Si el ISIN actual no es válido, intentamos resolverlo con IsinResolver
-      if (!fund.hasValidIsin) {
-        final resolver = IsinResolver();
-        final resolution = await resolver.resolve(
-          //name: fund.name,
-          //yahooTicker: fund.symbol,
-          fundName: fund.name,
-          ticker: fund.symbol,
-        );
-        resolver.dispose();
-
-        if (resolution != null) {
-          isResolved = true;
-          // Creamos una nueva instancia de FundData con el ISIN corregido
-          fund = FundData(
-            isin: resolution.isin,
-            symbol: fund.symbol,
-            name: fund.name,
-            lastValue: fund.lastValue,
-            currency: fund.currency,
-            date: fund.date,
-            history: fund.history,
-            alertMin: fund.alertMin,
-            alertMax: fund.alertMax,
-            operations: fund.operations,
-          );
-        }
-      }
-
+      final fund = result.data!;
+      final bool isResolved = result.isResolved;
       final bool isValid = fund.hasValidIsin;
 
       final confirm = await showDialog<bool>(
@@ -356,8 +333,33 @@ class _FundSearchPageState extends State<FundSearchPage> {
                     ),
                   ),
                 if (provider.isBusy)
-                  const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(color: Colors.white),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Procesando fondo e identificando ISIN...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Esta operación puede tardar unos segundos',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   )
                 else if (provider.error != null)
                   Container(

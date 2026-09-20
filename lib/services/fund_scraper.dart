@@ -163,8 +163,9 @@ class FundData {
 class ScrapeResult {
   final FundData? data;
   final AppError? error;
+  final bool isResolved;
 
-  ScrapeResult({this.data, this.error});
+  ScrapeResult({this.data, this.error, this.isResolved = false});
 
   String? get errorMessage => error?.message;
 }
