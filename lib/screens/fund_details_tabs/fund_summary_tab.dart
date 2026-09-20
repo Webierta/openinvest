@@ -343,7 +343,9 @@ class FundSummaryTab extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.03),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
                           /*color: const Color(0xFF003D7C).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
@@ -376,7 +378,7 @@ class FundSummaryTab extends StatelessWidget {
                             const SizedBox(width: 12),
                             const Expanded(
                               child: Text(
-                                'Ficha en el Registro Oficial',
+                                'Consulta en el Registro Oficial',
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 12,
@@ -476,6 +478,30 @@ class FundSummaryTab extends StatelessWidget {
       annualVolatility = sqrt(varianceSum / returns.length) * sqrt(252) * 100;
     }
 
+    // Cálculo de Max Drawdown
+    double maxDrawdown = 0;
+    double peak = -double.infinity;
+    for (var point in fund.history) {
+      if (point.price > peak) peak = point.price;
+      if (peak > 0) {
+        final drawdown = (point.price - peak) / peak;
+        if (drawdown < maxDrawdown) maxDrawdown = drawdown;
+      }
+    }
+
+    // Calculo de Tiempo de recuperación (desde Max Drawdown)
+    int recoveryTime = 0;
+    double peakAfterDrawdown = -double.infinity;
+    for (var point in fund.history) {
+      if (point.price > peakAfterDrawdown) peakAfterDrawdown = point.price;
+      if (peakAfterDrawdown > 0) {
+        final recovery = (point.price - peakAfterDrawdown) / peakAfterDrawdown;
+        if (recovery >= 0) {
+          recoveryTime++;
+        }
+      }
+    }
+
     final format = DateFormat('dd/MM/yyyy');
     return Column(
       children: [
@@ -528,6 +554,33 @@ class FundSummaryTab extends StatelessWidget {
                 Icons.vibration,
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildInfoItem(
+                context,
+                'Max Drawdown',
+                '${percentFormat.format(maxDrawdown * 100)}%',
+                'Máxima Caída',
+                Colors.redAccent[400]!,
+                Icons.trending_down,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildInfoItem(
+                context,
+                'Tiempo Recuperación',
+                '$recoveryTime días',
+                'Desde Max Drawdown',
+                Colors.greenAccent[400]!,
+                Icons.restore,
+              ),
+            ),
+            //const Expanded(child: SizedBox.shrink()),
           ],
         ),
       ],
@@ -586,9 +639,8 @@ class FundSummaryTab extends StatelessWidget {
 
   Future<String?> _getCnmvUrl(BuildContext context) async {
     try {
-      final String response = await DefaultAssetBundle.of(context).loadString(
-        'assets/files/fondos_armonizados.json',
-      );
+      final String response = await DefaultAssetBundle.of(context)
+          .loadString('assets/files/fondos_armonizados.json');
       final List<dynamic> data = json.decode(response);
       for (final item in data) {
         final List<dynamic> isins = item['isins'] ?? [];

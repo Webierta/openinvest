@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/fund_provider.dart';
 import '../services/fund_scraper.dart';
+import '../services/isin_resolver.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
 
@@ -44,34 +45,16 @@ class _FundSearchPageState extends State<FundSearchPage> {
       await _searchByName(_controller.text);
       return;
     }
-    final result = match == null
-        ? await provider.fetchFundOnly(_controller.text)
-        : await provider.fetchFundMatch(match);
-    if (result.data != null && mounted) {
+
+    if (match != null && match.isin == null) {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Fondo Encontrado'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Se ha encontrado el siguiente fondo:'),
-              const SizedBox(height: 16),
-              Text(
-                result.data!.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Text(
-                result.data!.isin,
-                style: const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              const Text('¿Deseas añadirlo a tu cartera?'),
-            ],
+          title: const Text('ISIN no detectado'),
+          content: const Text(
+            'Yahoo Finance no ha proporcionado el código ISIN para este resultado. '
+            'Intentaremos obtenerlo de los metadatos o usaremos el símbolo como identificador.\n\n'
+            '¿Deseas continuar?',
           ),
           actions: [
             TextButton(
@@ -80,14 +63,128 @@ class _FundSearchPageState extends State<FundSearchPage> {
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Añadir a Cartera'),
+              child: const Text('Continuar'),
             ),
           ],
         ),
       );
+      if (confirm != true) return;
+    }
+
+    final result = match == null
+        ? await provider.fetchFundOnly(_controller.text)
+        : await provider.fetchFundMatch(match);
+
+    if (result.data != null && mounted) {
+      FundData fund = result.data!;
+      bool isResolved = false;
+
+      // Si el ISIN actual no es válido, intentamos resolverlo con IsinResolver
+      if (!fund.hasValidIsin) {
+        final resolver = IsinResolver();
+        final resolution = await resolver.resolve(
+          //name: fund.name,
+          //yahooTicker: fund.symbol,
+          fundName: fund.name,
+          ticker: fund.symbol,
+        );
+        resolver.dispose();
+
+        if (resolution != null) {
+          isResolved = true;
+          // Creamos una nueva instancia de FundData con el ISIN corregido
+          fund = FundData(
+            isin: resolution.isin,
+            symbol: fund.symbol,
+            name: fund.name,
+            lastValue: fund.lastValue,
+            currency: fund.currency,
+            date: fund.date,
+            history: fund.history,
+            alertMin: fund.alertMin,
+            alertMax: fund.alertMax,
+            operations: fund.operations,
+          );
+        }
+      }
+
+      final bool isValid = fund.hasValidIsin;
+
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(isValid ? 'Fondo Encontrado' : 'ISIN no disponible'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isValid ? 'Se ha encontrado el siguiente fondo:' : 'Este activo no proporciona un código ISIN válido y no puede ser añadido a la cartera.',
+              ),
+              const SizedBox(height: 16),
+              Text(
+                fund.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              Row(
+                children: [
+                  Text(
+                    isValid ? fund.isin : 'ID: ${fund.symbol}',
+                    style: TextStyle(
+                      color: isValid ? Colors.grey : Colors.redAccent,
+                    ),
+                  ),
+                  if (isResolved) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'RESUELTO',
+                        style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (isValid) ...[
+                const SizedBox(height: 16),
+                const Text('¿Deseas añadirlo a tu cartera?'),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cerrar'),
+            ),
+            if (isValid)
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Añadir a Cartera'),
+              ),
+          ],
+        ),
+      );
+
       if (confirm == true && mounted) {
-        final fund = result.data!;
         final exists = provider.portfolio.any((item) => item.isin == fund.isin);
+        // final exists = provider.portfolio.any(
+        //   (item) => item.isin == resolverISIN,
+        // );
         var overwrite = false;
         if (exists) {
           final decision = await _confirmOverwrite(context, fund.name);
@@ -155,6 +252,13 @@ class _FundSearchPageState extends State<FundSearchPage> {
         title: const Text('Añadir Fondo'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Colors.white),
+            onPressed: () => _showBadgeInfoDialog(context),
+            tooltip: 'Información sobre resultados',
+          ),
+        ],
       ),
       body: GradientBackground(
         child: SafeArea(
@@ -216,11 +320,22 @@ class _FundSearchPageState extends State<FundSearchPage> {
                           ? Colors.grey.withValues(alpha: 0.12)
                           : null,
                       child: ListTile(
-                        title: Text(
-                          match.name,
-                          style: TextStyle(
-                            color: match.isin == null ? Colors.grey : null,
-                          ),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                match.name,
+                                style: TextStyle(
+                                  color: match.isin == null
+                                      ? Colors.grey
+                                      : null,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildSourceBadge(match.source),
+                          ],
                         ),
                         subtitle: Text(
                           match.isin == null
@@ -232,13 +347,11 @@ class _FundSearchPageState extends State<FundSearchPage> {
                         ),
                         trailing: Icon(
                           match.isin == null
-                              ? Icons.info_outline
+                              ? Icons.search_off
                               : Icons.add_circle_outline,
                           color: match.isin == null ? Colors.grey : null,
                         ),
-                        onTap: match.isin == null
-                            ? null
-                            : () => _handleSearch(match),
+                        onTap: () => _handleSearch(match),
                       ),
                     ),
                   ),
@@ -262,6 +375,95 @@ class _FundSearchPageState extends State<FundSearchPage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showBadgeInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Origen de los Datos'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildBadgeInfoItem(
+              source: FundSource.local,
+              title: 'Registro CNMV',
+              description: 'Fondos españoles armonizados. Los datos provienen del catálogo oficial de la Comisión Nacional del Mercado de Valores.',
+            ),
+            const SizedBox(height: 20),
+            _buildBadgeInfoItem(
+              source: FundSource.global,
+              title: 'Mercado Global',
+              description: 'Fondos internacionales y ETFs. Los datos se obtienen de Yahoo Finance.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadgeInfoItem({
+    required FundSource source,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSourceBadge(source),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSourceBadge(FundSource source) {
+    final bool isLocal = source == FundSource.local;
+    final Color color = isLocal ? const Color(0xFFA50A37) : Colors.blueAccent;
+    final String label = isLocal ? 'CNMV' : 'GLOBAL';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
       ),
     );

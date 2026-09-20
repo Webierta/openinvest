@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-20T00:00:00Z",
+  "entries": [
+    {
+      "isin": "FR0010135103",
+      "name": "Carmignac Patrimoine A EUR Acc",
+      "ticker": "Y9U6.HM",
+      "morningstar": {
+        "performanceId": "0P00000FB4",
+        "securityId": null,
+        "fundId": null
+      },
+      "country": "FR",
+      "currency": "EUR",
+      "source": "manual",
+      "status": "active",
+      "verifiedAt": "2026-09-20"
+    },
+    {
+      "isin": "LU0261948904",
+      "name": "Fidelity Iberia A-Acc-EUR",
+      "ticker": "0P00006DAB.F",
+      "morningstar": {
+        "performanceId": "0P00006DAB",
+        "securityId": null,
+        "fundId": null
+      },
+      "country": "LU",
+      "currency": "EUR",
+      "source": "manual",
+      "status": "active",
+      "verifiedAt": "2026-09-20"
+    },
+    {
+      "isin": "LU0120690226",
+      "name": "Vontobel Fund - US Dollar Money B USD",
+      "ticker": "0P00000HZF.F",
+      "morningstar": {
+        "performanceId": "0P00000HZF",
+        "securityId": null,
+        "fundId": null
+      },
+      "country": "LU",
+      "currency": "USD",
+      "source": "manual",
+      "status": "active",
+      "verifiedAt": "2026-09-20"
+    }
+  ]
+}

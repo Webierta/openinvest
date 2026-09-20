@@ -135,6 +135,9 @@ class FundData {
     'alertMax': alertMax,
   };
 
+  bool get hasValidIsin => 
+    RegExp(r'^[A-Z]{2}[A-Z0-9]{9}[0-9]$').hasMatch(isin.toUpperCase());
+
   factory FundData.fromJson(Map<String, dynamic> json) => FundData(
     isin: json['isin'],
     symbol: json['symbol'],
@@ -166,23 +169,32 @@ class ScrapeResult {
   String? get errorMessage => error?.message;
 }
 
+enum FundSource { local, global }
+
 class FundSearchMatch {
   final String? isin;
   final String symbol;
   final String name;
+  final FundSource source;
 
   const FundSearchMatch({
     required this.isin,
     required this.symbol,
     required this.name,
+    this.source = FundSource.global,
   });
 }
 
 class _FundCatalog {
   final Map<String, List<String>> isinsByName;
   final Map<String, String> names;
+  final Set<String> allIsins;
 
-  const _FundCatalog({required this.isinsByName, required this.names});
+  const _FundCatalog({
+    required this.isinsByName,
+    required this.names,
+    required this.allIsins,
+  });
 }
 
 class FundScraper {
@@ -239,11 +251,12 @@ class FundScraper {
     final content = await rootBundle.loadString(_fundCatalogAsset);
     final entries = json.decode(content);
     if (entries is! List) {
-      return const _FundCatalog(isinsByName: {}, names: {});
+      return const _FundCatalog(isinsByName: {}, names: {}, allIsins: {});
     }
 
     final catalog = <String, List<String>>{};
     final names = <String, String>{};
+    final allIsins = <String>{};
     for (final entry in entries) {
       if (entry is! Map<String, dynamic>) continue;
       final name = entry['nombre'];
@@ -252,10 +265,11 @@ class FundScraper {
         final normalizedName = _normalizeFundName(name);
         final catalogIsins = catalog.putIfAbsent(normalizedName, () => []);
         for (final isin in isins) {
-          if (isin is String &&
-              isin.isNotEmpty &&
-              !catalogIsins.contains(isin)) {
-            catalogIsins.add(isin);
+          if (isin is String && isin.isNotEmpty) {
+            allIsins.add(isin);
+            if (!catalogIsins.contains(isin)) {
+              catalogIsins.add(isin);
+            }
           }
         }
         if (catalogIsins.isNotEmpty) {
@@ -264,7 +278,7 @@ class FundScraper {
       }
     }
     _fundCatalogNames.addAll(names);
-    return _FundCatalog(isinsByName: catalog, names: names);
+    return _FundCatalog(isinsByName: catalog, names: names, allIsins: allIsins);
   }
 
   static Future<List<FundSearchMatch>> _addCatalogIsins(
@@ -272,7 +286,20 @@ class FundScraper {
   ) async {
     final catalog = await _loadFundCatalog();
     return matches.expand((match) {
-      if (match.isin != null) return [match];
+      if (match.isin != null) {
+        final source =
+            catalog.allIsins.contains(match.isin)
+                ? FundSource.local
+                : FundSource.global;
+        return [
+          FundSearchMatch(
+            isin: match.isin,
+            symbol: match.symbol,
+            name: match.name,
+            source: source,
+          ),
+        ];
+      }
       final isins = _findCatalogIsins(catalog, match.name);
       if (isins.isEmpty) {
         return [
@@ -280,40 +307,33 @@ class FundScraper {
         ];
       }
       return isins.map(
-        (isin) =>
-            FundSearchMatch(isin: isin, symbol: match.symbol, name: match.name),
+        (isin) => FundSearchMatch(
+          isin: isin,
+          symbol: match.symbol,
+          name: match.name,
+          source: FundSource.local,
+        ),
       );
     }).toList();
   }
 
   static String? findCatalogIsin(Map<String, String> catalog, String fundName) {
     final normalizedName = _normalizeFundName(fundName);
-    return catalog[normalizedName] ??
-        _findContainedCatalogIsin(catalog, normalizedName);
-  }
+    final exact = catalog[normalizedName];
+    if (exact != null) return exact;
 
-  static String? _findContainedCatalogIsin(
-    Map<String, String> catalog,
-    String normalizedName,
-  ) {
-    if (normalizedName.length < 8) return null;
     final queryTokens = normalizedName
         .split(' ')
         .where((token) => token.length >= 3)
-        .toSet();
+        .toList();
+    if (queryTokens.isEmpty) return null;
+
     final candidates =
         catalog.entries.where((entry) {
-          if (entry.key.length < 8) return false;
-          if (normalizedName.contains(entry.key) ||
-              entry.key.contains(normalizedName)) {
-            return true;
-          }
-          final catalogTokens = entry.key.split(' ').toSet();
-          return queryTokens.isNotEmpty &&
-              queryTokens.every(catalogTokens.contains);
-        }).toList()..sort(
-          (first, second) => second.key.length.compareTo(first.key.length),
-        );
+          return queryTokens.every((qt) => entry.key.contains(qt));
+        }).toList()
+          ..sort((a, b) => a.key.length.compareTo(b.key.length));
+
     return candidates.isEmpty ? null : candidates.first.value;
   }
 
@@ -324,21 +344,23 @@ class FundScraper {
 
     final queryTokens = normalizedName
         .split(' ')
-        .where((token) => token.length >= 3)
-        .toSet();
+        .where((token) => token.length >= 2)
+        .toList();
+    if (queryTokens.isEmpty) return [];
+
     final candidates =
         catalog.isinsByName.entries.where((entry) {
-          if (entry.key.length < 8) return false;
-          if (normalizedName.contains(entry.key) ||
-              entry.key.contains(normalizedName)) {
-            return true;
-          }
-          final catalogTokens = entry.key.split(' ').toSet();
-          return queryTokens.isNotEmpty &&
-              queryTokens.every(catalogTokens.contains);
-        }).toList()..sort(
-          (first, second) => second.key.length.compareTo(first.key.length),
-        );
+          // Cada token de la búsqueda debe estar presente en alguna parte del nombre
+          return queryTokens.every((qt) => entry.key.contains(qt));
+        }).toList()
+          ..sort((a, b) {
+            // 1. Priorizar nombres más cortos (coincidencia más precisa)
+            int cmp = a.key.length.compareTo(b.key.length);
+            if (cmp != 0) return cmp;
+            // 2. Orden alfabético si miden lo mismo
+            return a.key.compareTo(b.key);
+          });
+
     return candidates.expand((entry) => entry.value).toList();
   }
 
@@ -349,26 +371,29 @@ class FundScraper {
     final normalizedQuery = _normalizeFundName(query);
     final queryTokens = normalizedQuery
         .split(' ')
-        .where((token) => token.length >= 3)
-        .toSet();
+        .where((token) => token.length >= 2)
+        .toList();
     if (queryTokens.isEmpty) return [];
 
     final matches =
         catalog.isinsByName.entries.where((entry) {
-          final catalogTokens = entry.key.split(' ').toSet();
-          return queryTokens.every(catalogTokens.contains);
-        }).toList()..sort(
-          (first, second) => first.key.length.compareTo(second.key.length),
-        );
+          // Búsqueda flexible: todos los trozos de la consulta deben estar en el nombre
+          return queryTokens.every((qt) => entry.key.contains(qt));
+        }).toList()
+          ..sort((a, b) {
+            // Coincidencia más corta arriba (normalmente más relevante)
+            return a.key.length.compareTo(b.key.length);
+          });
 
     return matches
-        .take(10)
+        .take(15)
         .expand(
           (entry) => entry.value.map(
             (isin) => FundSearchMatch(
               isin: isin,
               symbol: '',
               name: catalog.names[entry.key] ?? entry.key,
+              source: FundSource.local,
             ),
           ),
         )
@@ -382,6 +407,7 @@ class FundScraper {
     final internalCatalog = _FundCatalog(
       isinsByName: catalog.map((name, isin) => MapEntry(name, [isin])),
       names: _fundCatalogNames,
+      allIsins: catalog.values.toSet(),
     );
     return _searchCatalog(internalCatalog, query);
   }
@@ -453,6 +479,13 @@ class FundScraper {
     final currency = metaMap['currency'] is String
         ? metaMap['currency'] as String
         : '';
+
+    // Intentar descubrir el ISIN real en los metadatos si el proporcionado es nulo o parece un símbolo
+    String effectiveIsin = isin;
+    if (metaMap['isin'] is String && (metaMap['isin'] as String).isNotEmpty) {
+      effectiveIsin = metaMap['isin'] as String;
+    }
+
     final timestamp = _asInt(metaMap['regularMarketTime']);
     final timestamps = result['timestamp'];
     final indicators = result['indicators'];
@@ -483,7 +516,7 @@ class FundScraper {
 
     return ScrapeResult(
       data: FundData(
-        isin: isin,
+        isin: effectiveIsin,
         symbol: symbol,
         name: name,
         lastValue: effectivePrice,
@@ -685,6 +718,13 @@ class FundScraper {
     DateTime? endDate,
   }) async {
     try {
+      // 1. Antes de descargar el gráfico, intentamos descubrir un ISIN real si el actual es corto (símbolo)
+      String effectiveIsin = isin;
+      if (effectiveIsin.length < 12) {
+        final discovered = await _discoverRealIsin(symbol, name);
+        if (discovered != null) effectiveIsin = discovered;
+      }
+
       // Build chart URL
       String url = '$_chartUrl$symbol';
       if (startDate != null && endDate != null) {
@@ -714,7 +754,7 @@ class FundScraper {
         );
       }
       return parseChartPayload(
-        isin: isin,
+        isin: effectiveIsin,
         symbol: symbol,
         name: name,
         payload: chartData,
@@ -756,5 +796,68 @@ class FundScraper {
     } catch (error, stackTrace) {
       throw AppError.fromException(error, stackTrace, type: AppErrorType.data);
     }
+  }
+
+  static Future<String?> _discoverRealIsin(String symbol, String name) async {
+    // 1. Intentar nivel 1: Búsqueda específica en Yahoo con el símbolo exacto
+    try {
+      final response = await _getWithRetry(Uri.parse('$_searchUrl$symbol'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List quotes = data['quotes'] ?? [];
+        for (var quote in quotes) {
+          if (quote['symbol'] == symbol && quote['isin'] != null) {
+            final String foundIsin = (quote['isin'] as String).toUpperCase();
+            if (RegExp(r'^[A-Z]{2}[A-Z0-9]{10}$').hasMatch(foundIsin)) {
+              return foundIsin;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Intentar nivel 2: Búsqueda Web simplificada para evitar bloqueos
+    // Realizamos una única búsqueda muy amplia
+    try {
+      final query = Uri.encodeQueryComponent('"$symbol" ISIN');
+      final response = await http.get(
+        Uri.parse('https://html.duckduckgo.com/html/?q=$query'),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+        },
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final body = response.body;
+        // Regex robusto para ISIN (12 caracteres: 2 letras + 10 alfanuméricos)
+        final isinRegex = RegExp(r'\b[A-Za-z]{2}[A-Za-z0-9]{9}[0-9]\b');
+        final matches = isinRegex.allMatches(body);
+        
+        if (matches.isNotEmpty) {
+          // Extraemos todos los candidatos únicos
+          final candidates = matches.map((m) => m.group(0)!.toUpperCase()).toSet().toList();
+          
+          // Priorizamos prefijos de países conocidos para fondos/ETFs
+          for (var prefix in ['LU', 'IE', 'ES', 'FR', 'DE', 'GB', 'US', 'CH']) {
+            final best = candidates.where((c) => c.startsWith(prefix)).toList();
+            if (best.isNotEmpty) return best.first;
+          }
+          
+          // Si no hay de países prioritarios, devolvemos el primero que parezca válido
+          return candidates.first;
+        }
+      }
+    } catch (_) {}
+
+    // 3. Intentar nivel 3: Emparejamiento por nombre en catálogo local (CNMV)
+    try {
+      final catalog = await _loadFundCatalog();
+      final isins = _findCatalogIsins(catalog, name);
+      if (isins.isNotEmpty) return isins.first;
+    } catch (_) {}
+
+    return null;
   }
 }
