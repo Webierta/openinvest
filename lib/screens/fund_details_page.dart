@@ -12,6 +12,7 @@ import 'fund_details_tabs/fund_history_chart.dart';
 import 'fund_details_tabs/fund_operations_list.dart';
 import 'fund_details_tabs/price_history_table.dart';
 import 'fund_details_tabs/fund_summary_tab.dart';
+import 'fund_details_tabs/monthly_returns_tab.dart';
 import '../utils/route_observer.dart';
 
 class FundDetailsPage extends StatefulWidget {
@@ -61,7 +62,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
@@ -198,6 +199,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                 text: 'Balance',
               ),
               Tab(icon: Icon(Icons.show_chart), text: 'Gráfico'),
+              Tab(icon: Icon(Icons.calendar_month_outlined), text: 'Meses'),
               Tab(icon: Icon(Icons.table_rows), text: 'Tabla'),
               Tab(icon: Icon(Icons.account_balance), text: 'Mercado'),
             ],
@@ -263,6 +265,21 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                                 child: FundHistoryChart(
                                   fund: fund,
                                   priceFormat: priceFormat,
+                                ),
+                              ),
+                      ),
+                      RefreshIndicator(
+                        onRefresh: () => provider.searchFund(fund.isin),
+                        child: fund.lastValue == 0 && fund.history.isEmpty
+                            ? const Center(
+                                child: Text('No hay datos disponibles'),
+                              )
+                            : SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(16),
+                                child: MonthlyReturnsTab(
+                                  fund: fund,
+                                  percentFormat: percentFormat,
                                 ),
                               ),
                       ),

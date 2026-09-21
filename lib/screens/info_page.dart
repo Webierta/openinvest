@@ -39,9 +39,19 @@ class InfoPage extends StatelessWidget {
                 description: 'Cálculo de índices avanzados:\n• TAE: Rentabilidad anualizada de tu bolsillo.\n• TWR: Rendimiento real del fondo (activo).\n• MWR/TIR: Tu éxito personal según el momento de inversión.',
               ),
               _InfoSection(
+                icon: Icons.receipt_long_outlined,
+                title: 'Auditoría de Costes',
+                description: 'Introduce los Gastos Corrientes (TER) y la Comisión de Éxito de tus fondos para calcular la Ganancia Real neta, descontando el impacto de las comisiones en tu capital.',
+              ),
+              _InfoSection(
                 icon: Icons.show_chart,
                 title: 'Gráficos Interactivos',
                 description: 'Visualiza la evolución de tus fondos con filtros de rango rápido (1M, 6M, 1Y, etc.) y líneas de tendencia media.',
+              ),
+              _InfoSection(
+                icon: Icons.calendar_month_outlined,
+                title: 'Mapa de Calor Mensual',
+                description: 'Analiza la estacionalidad de tus inversiones con una cuadrícula de rentabilidades mes a mes y acumulados anuales, identificando periodos de éxito y correcciones.',
               ),
               _InfoSection(
                 icon: Icons.compare_arrows,

@@ -75,6 +75,8 @@ class FundData {
   final List<FundOperation> operations;
   final double? alertMin;
   final double? alertMax;
+  final double? ter;
+  final double? performanceFee;
 
   FundData({
     required this.isin,
@@ -87,6 +89,8 @@ class FundData {
     this.operations = const [],
     this.alertMin,
     this.alertMax,
+    this.ter,
+    this.performanceFee,
   }) : history = _syncHistory(history, lastValue, date);
 
   // Asegura que lastValue esté en history y sea el punto más reciente para esa fecha
@@ -133,6 +137,8 @@ class FundData {
     'operations': operations.map((e) => e.toJson()).toList(),
     'alertMin': alertMin,
     'alertMax': alertMax,
+    'ter': ter,
+    'performanceFee': performanceFee,
   };
 
   bool get hasValidIsin => 
@@ -157,6 +163,8 @@ class FundData {
         [],
     alertMin: json['alertMin']?.toDouble(),
     alertMax: json['alertMax']?.toDouble(),
+    ter: json['ter']?.toDouble(),
+    performanceFee: json['performanceFee']?.toDouble(),
   );
 }
 

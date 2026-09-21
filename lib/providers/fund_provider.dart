@@ -584,6 +584,8 @@ class FundProvider with ChangeNotifier {
               history: result.data!.history,
               alertMin: existing.alertMin,
               alertMax: existing.alertMax,
+              ter: existing.ter,
+              performanceFee: existing.performanceFee,
             );
             await DatabaseService.saveFund(updatedFund);
             await _syncFundState(isin);
@@ -622,6 +624,31 @@ class FundProvider with ChangeNotifier {
         operations: fund.operations,
         alertMin: min,
         alertMax: max,
+        ter: fund.ter,
+        performanceFee: fund.performanceFee,
+      );
+      await DatabaseService.saveFund(updated);
+      await loadPortfolio();
+    });
+  }
+
+  Future<void> setFees(String isin, double? ter, double? performanceFee) async {
+    await _runDatabaseOperation(() async {
+      final fund = await DatabaseService.getFund(isin);
+      if (fund == null) return;
+      final updated = FundData(
+        isin: fund.isin,
+        symbol: fund.symbol,
+        name: fund.name,
+        lastValue: fund.lastValue,
+        currency: fund.currency,
+        date: fund.date,
+        history: fund.history,
+        operations: fund.operations,
+        alertMin: fund.alertMin,
+        alertMax: fund.alertMax,
+        ter: ter,
+        performanceFee: performanceFee,
       );
       await DatabaseService.saveFund(updated);
       await loadPortfolio();

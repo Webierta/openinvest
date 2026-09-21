@@ -2,10 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/fund_provider.dart';
 import '../../services/fund_scraper.dart';
 
-class FundBalanceTab extends StatelessWidget {
+class FundBalanceTab extends StatefulWidget {
   final FundData fund;
   final NumberFormat priceFormat;
   final NumberFormat percentFormat;
@@ -18,12 +20,55 @@ class FundBalanceTab extends StatelessWidget {
   });
 
   @override
+  State<FundBalanceTab> createState() => _FundBalanceTabState();
+}
+
+class _FundBalanceTabState extends State<FundBalanceTab> {
+  late TextEditingController _fixedFeeController;
+  late TextEditingController _perfFeeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _fixedFeeController = TextEditingController(
+      text: widget.fund.ter?.toString().replaceAll('.', ',') ?? '',
+    );
+    _perfFeeController = TextEditingController(
+      text: widget.fund.performanceFee?.toString().replaceAll('.', ',') ?? '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(FundBalanceTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.fund.ter != widget.fund.ter) {
+      final newText = widget.fund.ter?.toString().replaceAll('.', ',') ?? '';
+      if (_fixedFeeController.text != newText) {
+        _fixedFeeController.text = newText;
+      }
+    }
+    if (oldWidget.fund.performanceFee != widget.fund.performanceFee) {
+      final newText = widget.fund.performanceFee?.toString().replaceAll('.', ',') ?? '';
+      if (_perfFeeController.text != newText) {
+        _perfFeeController.text = newText;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _fixedFeeController.dispose();
+    _perfFeeController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     double totalUnits = 0;
     double totalInvested = 0;
     DateTime? firstOperationDate;
 
-    for (final operation in fund.operations) {
+    for (final operation in widget.fund.operations) {
       if (operation.type == OperationType.buy) {
         totalUnits += operation.units;
         totalInvested += operation.amount;
@@ -37,17 +82,13 @@ class FundBalanceTab extends StatelessWidget {
       }
     }
 
-    final currentValue = totalUnits * fund.lastValue;
+    final currentValue = totalUnits * widget.fund.lastValue;
     final profit = currentValue - totalInvested;
-    final profitPercent = totalInvested > 0
-        ? (profit / totalInvested) * 100
-        : 0;
-    final profitColor = profit >= 0
-        ? Colors.greenAccent[400]!
-        : Colors.redAccent[200]!;
-    final averagePurchasePrice = totalUnits > 0
-        ? totalInvested / totalUnits
-        : 0;
+    final profitPercent =
+        totalInvested > 0 ? (profit / totalInvested) * 100 : 0.0;
+    final profitColor =
+        profit >= 0 ? Colors.greenAccent[400]! : Colors.redAccent[200]!;
+    final averagePurchasePrice = totalUnits > 0 ? totalInvested / totalUnits : 0;
     final moic = totalInvested > 0 ? currentValue / totalInvested : 0;
 
     String annualizedReturn = '-';
@@ -63,28 +104,33 @@ class FundBalanceTab extends StatelessWidget {
         final years = days / 365.25;
         final annualized =
             (pow(currentValue / totalInvested, 1 / years) - 1) * 100;
-        annualizedReturn = '${percentFormat.format(annualized)}%';
+        annualizedReturn = '${widget.percentFormat.format(annualized)}%';
 
-        final initialPricePoint = fund.history.cast<PricePoint?>().firstWhere(
+        final initialPricePoint = widget.fund.history.cast<PricePoint?>().firstWhere(
           (point) =>
               point!.date.year == firstOperationDate!.year &&
               point.date.month == firstOperationDate.month &&
               point.date.day == firstOperationDate.day,
-          orElse: () => fund.history.isNotEmpty ? fund.history.first : null,
+          orElse:
+              () =>
+                  widget.fund.history.isNotEmpty
+                      ? widget.fund.history.first
+                      : null,
         );
         if (initialPricePoint != null && initialPricePoint.price > 0) {
-          final twr = (fund.lastValue / initialPricePoint.price) - 1;
+          final twr = (widget.fund.lastValue / initialPricePoint.price) - 1;
           final twrAnnual = (pow(1 + twr, 1 / years) - 1) * 100;
-          twrTotal = '${percentFormat.format(twr * 100)}%';
-          twrAnnualized = '${percentFormat.format(twrAnnual)}%';
+          twrTotal = '${widget.percentFormat.format(twr * 100)}%';
+          twrAnnualized = '${widget.percentFormat.format(twrAnnual)}%';
         }
 
-        final flows = fund.operations
+        final flows = widget.fund.operations
             .map(
               (operation) => <String, Object>{
-                'amount': operation.type == OperationType.buy
-                    ? -operation.amount
-                    : operation.amount,
+                'amount':
+                    operation.type == OperationType.buy
+                        ? -operation.amount
+                        : operation.amount,
                 'date': operation.date,
               },
             )
@@ -96,9 +142,9 @@ class FundBalanceTab extends StatelessWidget {
 
         final irr = _calculateIrr(flows);
         if (!irr.isNaN) {
-          mwrAnnualized = '${percentFormat.format(irr * 100)}%';
+          mwrAnnualized = '${widget.percentFormat.format(irr * 100)}%';
           final mwr = (pow(1 + irr, years) - 1) * 100;
-          mwrTotal = '${percentFormat.format(mwr)}%';
+          mwrTotal = '${widget.percentFormat.format(mwr)}%';
         }
       }
     }
@@ -122,6 +168,40 @@ class FundBalanceTab extends StatelessWidget {
     }
 
     final smartFormat = NumberFormat('#,##0.####', 'es_ES');
+
+    // Cálculos de costes de gestión
+    final fixedFee = widget.fund.ter ?? 0.0;
+    final perfFee = widget.fund.performanceFee ?? 0.0;
+    
+    // 1. Costes Fijos (sobre valor actual)
+    final estFixedAnnualCost = currentValue * (fixedFee / 100);
+    
+    // 2. Comisión de Resultados (sobre plusvalía bruta si es positiva)
+    final estPerfAnnualCost = profit > 0 ? profit * (perfFee / 100) : 0.0;
+    
+    final totalEstAnnualCost = estFixedAnnualCost + estPerfAnnualCost;
+    final totalEstMonthlyCost = totalEstAnnualCost / 12;
+
+    // Cálculo de Plusvalía Neta (Estimación histórica acumulada)
+    double netProfit = profit;
+    double netProfitPercent = profitPercent;
+    double totalAccumulatedCost = 0.0;
+
+    if ((fixedFee > 0 || perfFee > 0) && days > 0) {
+      final double yearsHeld = days / 365.25;
+      
+      // Estimación costes fijos: media entre inversión inicial y actual por tiempo
+      final accumulatedFixed = ((currentValue + totalInvested) / 2) * (fixedFee / 100) * yearsHeld;
+      
+      // Estimación comisión resultados: aplicada sobre la plusvalía actual
+      final accumulatedPerf = profit > 0 ? profit * (perfFee / 100) : 0.0;
+      
+      totalAccumulatedCost = accumulatedFixed + accumulatedPerf;
+      netProfit = profit - totalAccumulatedCost;
+      netProfitPercent =
+          totalInvested > 0 ? (netProfit / totalInvested) * 100 : 0.0;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -134,38 +214,31 @@ class FundBalanceTab extends StatelessWidget {
         ),
         _buildBalanceRow(
           'Inversión neta',
-          '${smartFormat.format(totalInvested)} ${fund.currency}',
+          '${smartFormat.format(totalInvested)} ${widget.fund.currency}',
         ),
         _buildBalanceRow(
           'Precio medio compra',
-          '${priceFormat.format(averagePurchasePrice)} ${fund.currency}',
+          '${widget.priceFormat.format(averagePurchasePrice)} ${widget.fund.currency}',
         ),
-        /* _buildBalanceRow(
-          'Valor actual',
-          '${smartFormat.format(currentValue)} ${fund.currency}',
-          isBold: true,
-        ), */
         const Divider(height: 20, color: Colors.white10),
-        // AQUÏ PLUSVALIA / MINUSVALÍA
         _buildBalanceRow(
           'Valor actual',
-          '${smartFormat.format(currentValue)} ${fund.currency}',
+          '${smartFormat.format(currentValue)} ${widget.fund.currency}',
           isBold: true,
           fontSize: 16,
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              //'Plusvalía / Minusvalía',
-              profit > 0 ? 'Plusvalía' : 'Minusvalía',
+            const Text(
+              'Plusvalía Bruta',
               style: TextStyle(color: Colors.white70),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${profit > 0 ? '+' : ''}${smartFormat.format(profit)} ${fund.currency}',
+                  '${profit > 0 ? '+' : ''}${smartFormat.format(profit)} ${widget.fund.currency}',
                   style: TextStyle(
                     color: profitColor,
                     fontWeight: FontWeight.bold,
@@ -173,7 +246,7 @@ class FundBalanceTab extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${profitPercent > 0 ? '+' : ''}${percentFormat.format(profitPercent)}%',
+                  '${profitPercent > 0 ? '+' : ''}${widget.percentFormat.format(profitPercent)}%',
                   style: TextStyle(
                     color: profitColor,
                     fontWeight: FontWeight.bold,
@@ -184,7 +257,122 @@ class FundBalanceTab extends StatelessWidget {
             ),
           ],
         ),
-        const Divider(height: 20, color: Colors.white10),
+        if (totalAccumulatedCost > 0) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ganancia Real',
+                    style: TextStyle(
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '(Plusvalía Neta est.)',
+                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${netProfit > 0 ? '+' : ''}${smartFormat.format(netProfit)} ${widget.fund.currency}',
+                    style: TextStyle(
+                      color:
+                          netProfit >= 0
+                              ? Colors.greenAccent[400]
+                              : Colors.redAccent[200],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    '${netProfitPercent > 0 ? '+' : ''}${widget.percentFormat.format(netProfitPercent)}%',
+                    style: TextStyle(
+                      color:
+                          netProfit >= 0
+                              ? Colors.greenAccent[400]
+                              : Colors.redAccent[200],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+        const Divider(height: 32, color: Colors.white10),
+        
+        // SECCIÓN COSTES DE GESTIÓN
+        const Text(
+          'Costes de Gestión',
+          style: TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildFeeInput(
+                label: 'Gastos Corrientes',
+                hint: 'Fijos',
+                suffix: '% TER',
+                controller: _fixedFeeController,
+                onSave: () {
+                  final f = double.tryParse(_fixedFeeController.text.replaceAll(',', '.'));
+                  final p = double.tryParse(_perfFeeController.text.replaceAll(',', '.'));
+                  context.read<FundProvider>().setFees(widget.fund.isin, f, p);
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildFeeInput(
+                label: 'Com. Resultados',
+                hint: 'Sobre éxito',
+                suffix: '% Var',
+                controller: _perfFeeController,
+                onSave: () {
+                  final f = double.tryParse(_fixedFeeController.text.replaceAll(',', '.'));
+                  final p = double.tryParse(_perfFeeController.text.replaceAll(',', '.'));
+                  context.read<FundProvider>().setFees(widget.fund.isin, f, p);
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildSimpleStat(
+                'Coste Anual Est.',
+                '${smartFormat.format(totalEstAnnualCost)} ${widget.fund.currency}',
+                color: Colors.orangeAccent.withValues(alpha: 0.8),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildSimpleStat(
+                'Coste Mensual Est.',
+                '${smartFormat.format(totalEstMonthlyCost)} ${widget.fund.currency}',
+                color: Colors.orangeAccent.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
+        
+        const Divider(height: 40, color: Colors.white10),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -193,7 +381,7 @@ class FundBalanceTab extends StatelessWidget {
               style: TextStyle(
                 color: Colors.white70,
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
+                fontSize: 15,
               ),
             ),
             const SizedBox(width: 4),
@@ -259,41 +447,11 @@ class FundBalanceTab extends StatelessWidget {
             Expanded(
               child: _buildSimpleStat(
                 'Break-even',
-                priceFormat.format(averagePurchasePrice),
+                widget.priceFormat.format(averagePurchasePrice),
               ),
             ),
           ],
         ),
-        //const Divider(height: 32, color: Colors.white10),
-        /* Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Plusvalía / Minusvalía',
-              style: TextStyle(color: Colors.white70),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${profit > 0 ? '+' : ''}${smartFormat.format(profit)} ${fund.currency}',
-                  style: TextStyle(
-                    color: profitColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  '${profitPercent > 0 ? '+' : ''}${percentFormat.format(profitPercent)}%',
-                  style: TextStyle(
-                    color: profitColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ), */
       ],
     );
   }
@@ -324,6 +482,58 @@ class FundBalanceTab extends StatelessWidget {
       if ((high - low).abs() < 1e-6) break;
     }
     return (low + high) / 2;
+  }
+
+  Widget _buildFeeInput({
+    required String label,
+    required String hint,
+    required String suffix,
+    required TextEditingController controller,
+    required VoidCallback onSave,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: Colors.white38, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          height: 38,
+          child: TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
+            textAlign: TextAlign.end,
+            style: const TextStyle(color: Colors.blueAccent, fontSize: 13, fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
+              hintText: '0,00',
+              hintStyle: const TextStyle(color: Colors.white12),
+              suffixText: suffix,
+              suffixStyle: const TextStyle(color: Colors.white24, fontSize: 9),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.05),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.blueAccent, width: 1.5),
+              ),
+            ),
+            onSubmitted: (_) => onSave(),
+            onTapOutside: (_) {
+              onSave();
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildSimpleStat(String label, String value, {Color? color}) {
@@ -406,17 +616,21 @@ class FundBalanceTab extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text('Rentabilidades brutas sin consideración de costes ni comisiones.'),
               _IndexInfoRow(
                 title: 'Rent. Anualizada (TAE)',
-                description: 'Rentabilidad simple de TU inversión basándose en el capital total aportado y el tiempo transcurrido.',
+                description:
+                    'Rentabilidad simple de TU inversión basándose en el capital total aportado y el tiempo transcurrido.',
               ),
               _IndexInfoRow(
                 title: 'TWR (Total / Anualizado)',
-                description: 'Time-Weighted Return. Mide el rendimiento del FONDO, eliminando el impacto de tus entradas y salidas de dinero. Es la rentabilidad del activo en sí.',
+                description:
+                    'Time-Weighted Return. Mide el rendimiento del FONDO, eliminando el impacto de tus entradas y salidas de dinero. Es la rentabilidad del activo en sí.',
               ),
               _IndexInfoRow(
                 title: 'MWR (Total / Anualizado)',
-                description: 'Money-Weighted Return (o TIR). Rentabilidad real de tu bolsillo que tiene en cuenta el momento exacto de cada aportación. Refleja tu éxito como inversor al elegir cuándo entrar y salir.',
+                description:
+                    'Money-Weighted Return (o TIR). Rentabilidad real de tu bolsillo que tiene en cuenta el momento exacto de cada aportación. Refleja tu éxito como inversor al elegir cuándo entrar y salir.',
               ),
               _IndexInfoRow(
                 title: 'Multiplicador (MoIC)',

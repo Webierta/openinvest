@@ -12,7 +12,11 @@ Aplicación de código abierto para la gestión de una cartera de fondos de inve
   - **TAE**: Rentabilidad anualizada de tu bolsillo.
   - **TWR**: Rendimiento real del fondo (activo), eliminando el efecto de tus flujos de caja.
   - **MWR/TIR**: Tu éxito personal basado en el momento exacto de cada inversión.
+- **Auditoría de Costes**: Introduce los Gastos Corrientes (TER) y la Comisión de Éxito de tus fondos para calcular la Ganancia Real neta, descontando el impacto de las comisiones en tu capital.
 - **Gráficos Interactivos**: Visualiza la evolución de tus fondos con filtros de rango rápido (1M, 6M, 1Y, ALL) y líneas de tendencia media.
+- **Mapa de Calor Mensual**: Analiza la estacionalidad de tus inversiones con una cuadrícula de rentabilidades mes a mes y acumulados anuales, identificando periodos de éxito y correcciones.
+- **Comparación con Benchmarks**: Superpón la evolución de los principales índices mundiales (S&P 500, MSCI World, etc.) sobre el gráfico del fondo para medir su rendimiento relativo en porcentaje.
+- **Análisis de Riesgo**: Métricas de nivel profesional para evaluar la seguridad:  Max Drawdown: La mayor caída histórica desde un pico.\n• Recuperación: Tiempo que el fondo tarda en sanar sus pérdidas.
 - **Exportación e Importación**: Lleva tus datos contigo. Exporta e importa tus fondos y operaciones en formato JSON para moverlos entre dispositivos o hacer copias de seguridad.
 - **Soporte Multidivisa**: Gestión automática de fondos en diversas divisas con conversión en tiempo real.
 - **Notificaciones**: Recibe alertas configurables para estar al tanto de tus fondos y objetivos.

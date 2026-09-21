@@ -42,7 +42,7 @@ class DatabaseService {
 
     return await openDatabase(
       newPath,
-      version: 4,
+      version: 7,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE funds (
@@ -53,7 +53,9 @@ class DatabaseService {
             last_value REAL,
             last_update TEXT,
             alert_min REAL,
-            alert_max REAL
+            alert_max REAL,
+            ter REAL,
+            performance_fee REAL
           )
         ''');
         await db.execute('''
@@ -107,6 +109,30 @@ class DatabaseService {
             // Las columnas pueden existir en bases de datos parcialmente migradas.
           }
         }
+        if (oldVersion < 5) {
+          try {
+            await db.execute('ALTER TABLE funds ADD COLUMN ter REAL');
+          } catch (e) {
+            // La columna puede existir en bases de datos parcialmente migradas.
+          }
+        }
+        if (oldVersion < 6) {
+          // Aseguramos que la columna ter existe si por algún motivo la migración 5 falló o se saltó
+          try {
+            final columns = await db.rawQuery('PRAGMA table_info(funds)');
+            final hasTer = columns.any((c) => c['name'] == 'ter');
+            if (!hasTer) {
+              await db.execute('ALTER TABLE funds ADD COLUMN ter REAL');
+            }
+          } catch (e) {
+            // Ignorar errores si la columna ya existe
+          }
+        }
+        if (oldVersion < 7) {
+          try {
+            await db.execute('ALTER TABLE funds ADD COLUMN performance_fee REAL');
+          } catch (e) {}
+        }
       },
     );
   }
@@ -136,6 +162,8 @@ class DatabaseService {
         'last_update': normalizedDate,
         'alert_min': fund.alertMin,
         'alert_max': fund.alertMax,
+        'ter': fund.ter,
+        'performance_fee': fund.performanceFee,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 
       final batch = txn.batch();
@@ -225,6 +253,8 @@ class DatabaseService {
         'last_update': normalizedDate,
         'alert_min': fund.alertMin,
         'alert_max': fund.alertMax,
+        'ter': fund.ter,
+        'performance_fee': fund.performanceFee,
       });
 
       final batch = txn.batch();
@@ -417,6 +447,8 @@ class DatabaseService {
           operations: operations,
           alertMin: m['alert_min'],
           alertMax: m['alert_max'],
+          ter: m['ter'],
+          performanceFee: m['performance_fee'],
         ),
       );
     }
@@ -484,6 +516,8 @@ class DatabaseService {
       operations: operations,
       alertMin: m['alert_min'],
       alertMax: m['alert_max'],
+      ter: m['ter'],
+      performanceFee: m['performance_fee'],
     );
   }
 
