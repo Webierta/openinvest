@@ -73,7 +73,9 @@ class LocalIsinProvider implements ForeignIsinProvider {
     if (morningstarId != null) {
       final entry = _byMorningstarId![morningstarId];
       if (entry != null) {
-        print('  LocalIsinProvider: $morningstarId -> ${entry.isin}');
+        print(
+          '  LocalIsinProvider: Morningstar $morningstarId -> ${entry.isin}',
+        );
         return entry.isin;
       }
     }
@@ -141,10 +143,21 @@ class LocalIsinProvider implements ForeignIsinProvider {
     _byTicker = <String, LocalIsinEntry>{};
 
     for (final entry in entries) {
-      //final id = entry.morningstarId;
-      final id = entry.morningstar?.performanceId;
-      if (id != null && id.isNotEmpty) {
-        _byMorningstarId![id.toUpperCase()] = entry;
+      final morningstar = entry.morningstar;
+
+      // Morningstar puede identificar la misma clase mediante distintos
+      // identificadores. Los indexamos todos para no depender únicamente
+      // de performanceId.
+      final morningstarIds = <String?>[
+        morningstar?.performanceId,
+        morningstar?.securityId,
+        morningstar?.fundId,
+      ];
+
+      for (final id in morningstarIds) {
+        if (id != null && id.trim().isNotEmpty) {
+          _byMorningstarId![id.trim().toUpperCase()] = entry;
+        }
       }
 
       final entryTicker = entry.ticker;

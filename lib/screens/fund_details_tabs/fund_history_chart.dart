@@ -3,7 +3,9 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/fund_provider.dart';
 import '../../services/fund_scraper.dart';
 
 class FundHistoryChart extends StatefulWidget {
@@ -23,8 +25,39 @@ class FundHistoryChart extends StatefulWidget {
 class _FundHistoryChartState extends State<FundHistoryChart> {
   String _range = 'ALL';
 
+  static const Map<String, String> commonBenchmarks = {
+    'S&P 500': '^GSPC',
+    'MSCI World': 'URTH',
+    'EuroStoxx 50': '^STOXX50E',
+    'IBEX 35': '^IBEX',
+    'Nasdaq 100': '^NDX',
+    'DAX 40': '^GDAXI',
+    'CAC 40': '^FCHI',
+    'Nikkei 225': '^N225',
+  };
+
+  static const Map<String, String> benchmarkDescriptions = {
+    '^GSPC':
+        'El S&P 500 es un índice bursátil que agrupa a las 500 empresas más grandes y representativas de Estados Unidos.',
+    'URTH':
+        'El MSCI World es un índice que representa el rendimiento de empresas de mediana y gran capitalización en 23 países desarrollados.',
+    '^STOXX50E':
+        'El EuroStoxx 50 representa a las 50 empresas más grandes y líquidas de la eurozona.',
+    '^IBEX':
+        'El IBEX 35 es el índice de referencia de la bolsa española, compuesto por las 35 empresas con más liquidez.',
+    '^NDX':
+        'El Nasdaq 100 incluye a las 100 mayores empresas no financieras que cotizan en el mercado Nasdaq, con gran peso tecnológico.',
+    '^GDAXI':
+        'El DAX 40 es el índice de referencia de la bolsa alemana, compuesto por las 40 principales empresas de este mercado.',
+    '^FCHI':
+        'El CAC 40 es el principal índice bursátil francés, que agrupa a las 40 empresas más significativas de la Bolsa de París.',
+    '^N225':
+        'El Nikkei 225 es el índice más importante de la bolsa japonesa, compuesto por las 225 empresas más líquidas de Tokio.',
+  };
+
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<FundProvider>();
     if (widget.fund.history.isEmpty) return const SizedBox.shrink();
     final filtered = _filteredHistory();
     if (filtered.isEmpty) {
@@ -42,11 +75,27 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
       );
     }
 
+    final hasBenchmark = provider.selectedBenchmarkSymbol != null && provider.benchmarkHistory != null;
     final labelFormat = NumberFormat('#,##0.00', 'es_ES');
-    final prices = filtered.map((point) => point.price).toList();
-    final maxPrice = prices.reduce(max);
-    final minPrice = prices.reduce(min);
-    final meanPrice = prices.reduce((a, b) => a + b) / prices.length;
+
+    // Preparar datos para el gráfico
+    final fundSpots = _getFundSpots(filtered, hasBenchmark);
+    final benchmarkSpots =
+        hasBenchmark
+            ? _getBenchmarkSpots(filtered, provider.benchmarkHistory!)
+            : <FlSpot>[];
+
+    final List<double> allYValues = [
+      ...fundSpots.map((s) => s.y),
+      ...benchmarkSpots.map((s) => s.y),
+    ];
+    final maxY = allYValues.isEmpty ? 0.0 : allYValues.reduce(max);
+    final minY = allYValues.isEmpty ? 0.0 : allYValues.reduce(min);
+    final meanFundPrice =
+        filtered.isEmpty
+            ? 0.0
+            : filtered.map((e) => e.price).reduce((a, b) => a + b) /
+                filtered.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,16 +103,7 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Text(
-                'Evolución (${filtered.length} pts)',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            _buildBenchmarkSelector(provider, filtered),
             _buildRangeSelector(),
           ],
         ),
@@ -86,23 +126,24 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
               ),
               extraLinesData: ExtraLinesData(
                 horizontalLines: [
-                  HorizontalLine(
-                    y: meanPrice,
-                    color: Colors.blue.withValues(alpha: 0.4),
-                    strokeWidth: 1.5,
-                    dashArray: [5, 5],
-                    label: HorizontalLineLabel(
-                      show: true,
-                      alignment: Alignment.topRight,
-                      labelResolver: (line) =>
-                          'Media: ${labelFormat.format(line.y)}',
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
+                  if (!hasBenchmark)
+                    HorizontalLine(
+                      y: meanFundPrice,
+                      color: Colors.blue.withValues(alpha: 0.4),
+                      strokeWidth: 1.5,
+                      dashArray: [5, 5],
+                      label: HorizontalLineLabel(
+                        show: true,
+                        alignment: Alignment.topRight,
+                        labelResolver: (line) =>
+                            'Media: ${labelFormat.format(line.y)}',
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
               titlesData: FlTitlesData(
@@ -141,7 +182,9 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
                     showTitles: true,
                     reservedSize: 45,
                     getTitlesWidget: (value, _) => Text(
-                      labelFormat.format(value),
+                      hasBenchmark
+                          ? '${value.toStringAsFixed(1)}%'
+                          : labelFormat.format(value),
                       style: const TextStyle(
                         fontSize: 9,
                         color: Colors.white38,
@@ -155,12 +198,20 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
                   getTooltipColor: (_) => const Color(0xFF1E293B),
                   getTooltipItems: (spots) => spots.map((spot) {
                     final date = filtered[spot.x.toInt()].date;
+                    final isBenchmark = spot.barIndex == 1;
                     return LineTooltipItem(
-                      '${DateFormat('dd/MM/yyyy').format(date)}\n',
-                      const TextStyle(color: Colors.white38, fontSize: 10),
+                      isBenchmark
+                          ? 'Benchmark\n'
+                          : '${DateFormat('dd/MM/yyyy').format(date)}\n',
+                      TextStyle(
+                        color: isBenchmark ? Colors.orangeAccent : Colors.white38,
+                        fontSize: 10,
+                      ),
                       children: [
                         TextSpan(
-                          text: widget.priceFormat.format(spot.y),
+                          text: hasBenchmark
+                              ? '${spot.y.toStringAsFixed(2)}%'
+                              : widget.priceFormat.format(spot.y),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -175,22 +226,15 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
               borderData: FlBorderData(show: false),
               lineBarsData: [
                 LineChartBarData(
-                  spots: filtered
-                      .asMap()
-                      .entries
-                      .map(
-                        (entry) =>
-                            FlSpot(entry.key.toDouble(), entry.value.price),
-                      )
-                      .toList(),
+                  spots: fundSpots,
                   isCurved: true,
                   color: const Color(0xFF38BDF8),
                   barWidth: 3,
                   isStrokeCapRound: true,
                   dotData: FlDotData(
-                    show: true,
+                    show: !hasBenchmark,
                     getDotPainter: (spot, _, _, _) {
-                      if (spot.y == maxPrice) {
+                      if (spot.y == maxY && !hasBenchmark) {
                         return FlDotCirclePainter(
                           radius: 4,
                           color: Colors.greenAccent[400]!,
@@ -198,7 +242,7 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
                           strokeColor: Colors.white,
                         );
                       }
-                      if (spot.y == minPrice) {
+                      if (spot.y == minY && !hasBenchmark) {
                         return FlDotCirclePainter(
                           radius: 4,
                           color: Colors.redAccent[200]!,
@@ -214,10 +258,47 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
                     color: const Color(0xFF38BDF8).withValues(alpha: 0.1),
                   ),
                 ),
+                if (hasBenchmark)
+                  LineChartBarData(
+                    spots: benchmarkSpots,
+                    isCurved: true,
+                    color: Colors.orangeAccent.withValues(alpha: 0.6),
+                    barWidth: 2,
+                    dashArray: [5, 5],
+                    dotData: const FlDotData(show: false),
+                  ),
               ],
             ),
           ),
         ),
+        if (hasBenchmark)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 8),
+            child: Row(
+              children: [
+                Container(width: 12, height: 12, color: const Color(0xFF38BDF8)),
+                const SizedBox(width: 4),
+                const Text('Fondo (%)', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                const SizedBox(width: 16),
+                Container(width: 12, height: 12, decoration: BoxDecoration(border: Border.all(color: Colors.orangeAccent), color: Colors.orangeAccent.withValues(alpha: 0.2))),
+                const SizedBox(width: 4),
+                const Text('Benchmark (%)', style: TextStyle(color: Colors.white70, fontSize: 10)),
+              ],
+            ),
+          ),
+        if (hasBenchmark && provider.selectedBenchmarkSymbol != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 16, left: 8, right: 8),
+            child: Text(
+              benchmarkDescriptions[provider.selectedBenchmarkSymbol] ?? '',
+              style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 10,
+                fontStyle: FontStyle.italic,
+                height: 1.4,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -237,6 +318,70 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
         .toList();
   }
 
+  List<FlSpot> _getFundSpots(List<PricePoint> history, bool normalize) {
+    if (history.isEmpty) return [];
+    if (!normalize) {
+      return history.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.price)).toList();
+    }
+    final basePrice = history.first.price;
+    return history.asMap().entries.map((e) {
+      final percentage = (e.value.price / basePrice - 1) * 100;
+      return FlSpot(e.key.toDouble(), percentage);
+    }).toList();
+  }
+
+  List<FlSpot> _getBenchmarkSpots(List<PricePoint> fundHistory, List<PricePoint> benchmarkHistory) {
+    if (fundHistory.isEmpty || benchmarkHistory.isEmpty) return [];
+    
+    // Encontrar el punto base del benchmark (fecha más cercana al inicio del fondo filtrado)
+    final startDate = fundHistory.first.date;
+    final basePoint = benchmarkHistory.firstWhere(
+      (p) => !p.date.isBefore(startDate),
+      orElse: () => benchmarkHistory.last,
+    );
+    final basePrice = basePoint.price;
+
+    return fundHistory.asMap().entries.map((e) {
+      final date = e.value.date;
+      // Buscar el punto del benchmark más cercano a esta fecha
+      final benchPoint = benchmarkHistory.lastWhere(
+        (p) => !p.date.isAfter(date),
+        orElse: () => benchmarkHistory.first,
+      );
+      final percentage = (benchPoint.price / basePrice - 1) * 100;
+      return FlSpot(e.key.toDouble(), percentage);
+    }).toList();
+  }
+
+  Widget _buildBenchmarkSelector(FundProvider provider, List<PricePoint> filtered) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: provider.selectedBenchmarkSymbol,
+          hint: const Text('Comparar', style: TextStyle(color: Colors.white38, fontSize: 11)),
+          dropdownColor: const Color(0xFF0F172A),
+          icon: const Icon(Icons.compare_arrows, size: 16, color: Colors.white38),
+          onChanged: (symbol) {
+            if (symbol == null) {
+              provider.clearBenchmark();
+            } else {
+              provider.fetchBenchmark(symbol, startDate: filtered.first.date);
+            }
+          },
+          items: [
+            const DropdownMenuItem<String>(value: null, child: Text('Ninguno', style: TextStyle(fontSize: 12))),
+            ...commonBenchmarks.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: const TextStyle(fontSize: 12)))),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildRangeSelector() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -249,7 +394,17 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
         children: ['1M', '6M', 'YTD', '1Y', 'ALL'].map((range) {
           final selected = _range == range;
           return GestureDetector(
-            onTap: () => setState(() => _range = range),
+            onTap: () {
+              setState(() => _range = range);
+              // Re-fetch benchmark if visible
+              final provider = context.read<FundProvider>();
+              if (provider.selectedBenchmarkSymbol != null) {
+                 final newFiltered = _filteredHistory();
+                 if (newFiltered.isNotEmpty) {
+                    provider.fetchBenchmark(provider.selectedBenchmarkSymbol!, startDate: newFiltered.first.date);
+                 }
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(

@@ -342,10 +342,19 @@ class IsinResolver {
     print('Nombre: $fundName');
     print('------------------------------------------------------------');
 
-    if (_isIsin(normalizedTicker)) {
-      print('Ticker detectado como ISIN.');
+    // El ticker puede contener un ISIN embebido, por ejemplo:
+    //   LU0297942194-USD.LU
+    //   LU0319688791-USD.LU
+    //   LU0940716078.LU
+    //
+    // Buscamos una secuencia candidata de 12 caracteres y la validamos
+    // con el algoritmo ISIN antes de aceptarla.
+    final inputIsin = _extractEmbeddedIsin(normalizedTicker);
+
+    if (inputIsin != null) {
+      print('ISIN detectado en el ticker: $inputIsin');
       return IsinResult(
-        isin: normalizedTicker,
+        isin: inputIsin,
         source: 'INPUT',
         officialName: fundName,
       );
@@ -400,25 +409,45 @@ class IsinResolver {
 
     if (results.isEmpty) return null;
 
-    final yahooMatch = _selectBestYahooResult(results, ticker, fundName);
+    // No nos quedamos con un único resultado de Yahoo. Un mismo nombre puede
+    // devolver varias clases del mismo fondo, ETF, acción, etc. Probamos los
+    // candidatos por orden de relevancia hasta encontrar un ISIN verificable.
+    final rankedResults = _rankYahooResults(results, ticker, fundName);
 
-    if (yahooMatch == null) return null;
+    for (final yahooMatch in rankedResults) {
+      print(
+        'Yahoo candidato seleccionado para resolución: '
+        '${yahooMatch.symbol} | ${yahooMatch.name}',
+      );
 
-    print('Yahoo seleccionado: ${yahooMatch.symbol} | ${yahooMatch.name}');
+      // Yahoo puede proporcionar directamente el ISIN en el resultado de
+      // búsqueda. Es la vía más sencilla y no requiere consultar Morningstar.
+      final yahooIsin = yahooMatch.isin;
+      if (yahooIsin != null && _isIsin(yahooIsin)) {
+        print('  Yahoo ISIN directo: $yahooIsin');
+        return IsinResult(
+          isin: yahooIsin,
+          source: 'Yahoo',
+          officialName: yahooMatch.name,
+        );
+      }
 
-    final isin = await _resolveForeignIsin(
-      yahooResult: yahooMatch,
-      fundName: fundName,
-      ticker: ticker,
-    );
+      final isin = await _resolveForeignIsin(
+        yahooResult: yahooMatch,
+        fundName: fundName,
+        ticker: ticker,
+      );
 
-    if (isin == null) return null;
+      if (isin != null) {
+        return IsinResult(
+          isin: isin,
+          source: 'Yahoo/Foreign',
+          officialName: yahooMatch.name,
+        );
+      }
+    }
 
-    return IsinResult(
-      isin: isin,
-      source: 'Yahoo/Foreign',
-      officialName: yahooMatch.name,
-    );
+    return null;
   }
 
   Future<List<_YahooResult>> _searchYahoo({
@@ -459,6 +488,8 @@ class IsinResolver {
           final symbol = item['symbol']?.toString();
           if (symbol == null || symbol.isEmpty) continue;
 
+          final yahooIsin = item['isin']?.toString()?.trim().toUpperCase();
+
           results[symbol] = _YahooResult(
             symbol: symbol,
             name:
@@ -467,6 +498,7 @@ class IsinResolver {
                 '',
             exchange: item['exchange']?.toString() ?? '',
             type: item['quoteType']?.toString() ?? '',
+            isin: yahooIsin != null && _isIsin(yahooIsin) ? yahooIsin : null,
           );
         }
       } catch (e) {
@@ -477,48 +509,52 @@ class IsinResolver {
     return results.values.toList();
   }
 
-  _YahooResult? _selectBestYahooResult(
+  List<_YahooResult> _rankYahooResults(
     List<_YahooResult> results,
     String ticker,
     String fundName,
   ) {
-    _YahooResult? best;
-    var bestScore = double.negativeInfinity;
     final normalizedTicker = ticker.toUpperCase();
 
-    for (final result in results) {
-      final symbol = result.symbol.toUpperCase();
-      final type = result.type.toUpperCase();
-      final nameSimilarity = _nameSimilarity(fundName, result.name);
-      var score = nameSimilarity * 0.55;
+    final scored =
+        results
+            .map((result) {
+              final symbol = result.symbol.toUpperCase();
+              final type = result.type.toUpperCase();
+              final nameSimilarity = _nameSimilarity(fundName, result.name);
+              var score = nameSimilarity * 0.55;
 
-      if (symbol == normalizedTicker) score += 0.20;
-      if (symbol.startsWith(normalizedTicker)) score += 0.05;
+              if (symbol == normalizedTicker) score += 0.20;
+              if (symbol.startsWith(normalizedTicker)) score += 0.05;
 
-      if (type == 'MUTUALFUND') {
-        score += 0.30;
-      } else if (type == 'ETF') {
-        score -= 0.20;
-      } else if (type == 'EQUITY' || type == 'INDEX') {
-        score -= 0.30;
-      }
+              if (type == 'MUTUALFUND') {
+                score += 0.30;
+              } else if (type == 'ETF') {
+                score -= 0.20;
+              } else if (type == 'EQUITY' || type == 'INDEX') {
+                score -= 0.30;
+              }
 
-      if (_sameMorningstarId(symbol, normalizedTicker)) score += 0.10;
+              if (_sameMorningstarId(symbol, normalizedTicker)) score += 0.10;
 
-      print(
-        'Yahoo candidato ${result.symbol}: '
-        'score=${score.toStringAsFixed(3)} '
-        '| name=${nameSimilarity.toStringAsFixed(3)} '
-        '| type=${result.type}',
-      );
+              // Un ISIN proporcionado por Yahoo es una señal especialmente útil.
+              if (result.isin != null) score += 0.10;
 
-      if (score > bestScore) {
-        bestScore = score;
-        best = result;
-      }
-    }
+              print(
+                'Yahoo candidato ${result.symbol}: '
+                'score=${score.toStringAsFixed(3)} '
+                '| name=${nameSimilarity.toStringAsFixed(3)} '
+                '| type=${result.type}'
+                '${result.isin == null ? '' : ' | isin=${result.isin}'}',
+              );
 
-    return bestScore >= 0.50 ? best : null;
+              return (result: result, score: score);
+            })
+            .where((item) => item.score >= 0.50)
+            .toList()
+          ..sort((a, b) => b.score.compareTo(a.score));
+
+    return scored.map((item) => item.result).toList();
   }
 
   bool _sameMorningstarId(String a, String b) {
@@ -746,6 +782,27 @@ class IsinResolver {
     return null;
   }
 
+  /// Extrae un ISIN que aparezca dentro de una cadena y lo valida.
+  ///
+  /// Ejemplos:
+  ///   LU0297942194-USD.LU -> LU0297942194
+  ///   LU0319688791-USD.LU -> LU0319688791
+  ///   LU0940716078.LU -> LU0940716078
+  String? _extractEmbeddedIsin(String value) {
+    final upper = value.toUpperCase();
+    final regex = RegExp(r'[A-Z]{2}[A-Z0-9]{9}[0-9]');
+
+    for (final match in regex.allMatches(upper)) {
+      final candidate = match.group(0);
+
+      if (candidate != null && _isIsin(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
   bool _isIsin(String value) {
     final normalized = value.trim().toUpperCase();
     if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(normalized)) {
@@ -869,12 +926,14 @@ class _YahooResult {
   final String name;
   final String exchange;
   final String type;
+  final String? isin;
 
   const _YahooResult({
     required this.symbol,
     required this.name,
     required this.exchange,
     required this.type,
+    this.isin,
   });
 }
 

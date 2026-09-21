@@ -20,6 +20,8 @@ class FundProvider with ChangeNotifier {
   AppError? lastError;
   SortCriteria sortCriteria = SortCriteria.name;
   Map<String, double> exchangeRates = {'EUR': 1.0};
+  List<PricePoint>? benchmarkHistory;
+  String? selectedBenchmarkSymbol;
 
   String? get error =>
       lastError?.type == AppErrorType.info ? null : lastError?.message;
@@ -512,6 +514,7 @@ class FundProvider with ChangeNotifier {
 
   void selectFund(FundData fund) {
     currentFund = fund;
+    clearBenchmark();
     _clearError();
     notifyListeners();
   }
@@ -623,5 +626,39 @@ class FundProvider with ChangeNotifier {
       await DatabaseService.saveFund(updated);
       await loadPortfolio();
     });
+  }
+
+  Future<void> fetchBenchmark(
+    String symbol, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    isLoading = true;
+    _clearError();
+    notifyListeners();
+    try {
+      final result = await FundScraper.getHistoryBySymbol(
+        symbol,
+        startDate: startDate,
+        endDate: endDate,
+      );
+      if (result.data != null) {
+        benchmarkHistory = result.data!.history;
+        selectedBenchmarkSymbol = symbol;
+      } else {
+        lastError = result.error;
+      }
+    } catch (error, stackTrace) {
+      lastError = _asError(error, stackTrace);
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void clearBenchmark() {
+    benchmarkHistory = null;
+    selectedBenchmarkSymbol = null;
+    notifyListeners();
   }
 }

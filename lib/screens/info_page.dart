@@ -44,6 +44,16 @@ class InfoPage extends StatelessWidget {
                 description: 'Visualiza la evolución de tus fondos con filtros de rango rápido (1M, 6M, 1Y, etc.) y líneas de tendencia media.',
               ),
               _InfoSection(
+                icon: Icons.compare_arrows,
+                title: 'Comparación con Benchmarks',
+                description: 'Superpón la evolución de los principales índices mundiales (S&P 500, MSCI World, etc.) sobre el gráfico del fondo para medir su rendimiento relativo en porcentaje.',
+              ),
+              _InfoSection(
+                icon: Icons.warning_amber_outlined,
+                title: 'Análisis de Riesgo',
+                description: 'Métricas de nivel profesional para evaluar la seguridad:\n• Max Drawdown: La mayor caída histórica desde un pico.\n• Recuperación: Tiempo que el fondo tarda en sanar sus pérdidas.',
+              ),
+              _InfoSection(
                 icon: Icons.save_alt,
                 title: 'Exportación e Importación',
                 description: 'Lleva tus datos contigo. Exporta e importa tus fondos y operaciones en formato JSON para moverlos entre dispositivos o hacer copias de seguridad.',

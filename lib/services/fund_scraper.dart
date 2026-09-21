@@ -711,6 +711,20 @@ class FundScraper {
     }
   }
 
+  static Future<ScrapeResult> getHistoryBySymbol(
+    String symbol, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    return _getFundBySymbol(
+      isin: symbol,
+      symbol: symbol,
+      name: symbol,
+      startDate: startDate,
+      endDate: endDate,
+    );
+  }
+
   static Future<ScrapeResult> _getFundBySymbol({
     required String isin,
     required String symbol,
@@ -728,9 +742,9 @@ class FundScraper {
 
       // Build chart URL
       String url = '$_chartUrl$symbol';
-      if (startDate != null && endDate != null) {
+      if (startDate != null) {
         final start = startDate.millisecondsSinceEpoch ~/ 1000;
-        final end = endDate.millisecondsSinceEpoch ~/ 1000;
+        final end = (endDate ?? DateTime.now()).millisecondsSinceEpoch ~/ 1000;
         url += '?period1=$start&period2=$end&interval=1d';
       } else {
         url += '?range=1mo&interval=1d';
