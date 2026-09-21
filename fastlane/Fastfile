@@ -1,0 +1,35 @@
+default_platform(:android)
+
+platform :android do
+  desc "Construye el APK de lanzamiento (Release)"
+  lane :build do
+    sh("flutter build apk --release")
+  end
+
+  desc "Construye el App Bundle de lanzamiento (Release)"
+  lane :bundle do
+    sh("flutter build appbundle --release")
+  end
+
+  desc "Sube el App Bundle a la pista interna de Google Play"
+  lane :internal do
+    upload_to_play_store(
+      track: 'internal',
+      aab: '../build/app/outputs/bundle/release/app-release.aab'
+    )
+  end
+
+  desc "Captura capturas de pantalla automáticas"
+  lane :screenshots do
+    capture_android_screenshots
+  end
+
+  desc "Sincroniza los metadatos de la tienda"
+  lane :metadata do
+    upload_to_play_store(
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_screenshots: true
+    )
+  end
+end

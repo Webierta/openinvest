@@ -1,0 +1,1 @@
+Versión inicial con soporte para carteras de fondos, gráficos, benchmarks y análisis de riesgo.

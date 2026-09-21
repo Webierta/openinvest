@@ -488,7 +488,7 @@ class IsinResolver {
           final symbol = item['symbol']?.toString();
           if (symbol == null || symbol.isEmpty) continue;
 
-          final yahooIsin = item['isin']?.toString()?.trim().toUpperCase();
+          final yahooIsin = item['isin']?.toString().trim().toUpperCase();
 
           results[symbol] = _YahooResult(
             symbol: symbol,

@@ -42,22 +42,27 @@ class MonthlyReturnsTab extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Cálculo del ancho adaptativo
-        // 14 columnas (Año + 12 meses + Total)
-        // Definimos un ancho mínimo por celda para legibilidad
+        // Cálculo del ancho adaptativo real considerando márgenes internos
         const double minCellWidth = 38.0;
-        const double totalColumnWeight = 1.3; // La columna TOTAL es un poco más ancha
-        const double totalUnits = 13 + totalColumnWeight; // 1 (Año) + 12 (Meses) + 1.3 (Total)
+        const double totalColumnWeight = 1.3;
+        const double totalUnits = 14 + totalColumnWeight; 
+        const double totalMargins = 15 * 2; // 15 celdas * 2px de margen horizontal cada una
         
-        final double availableWidth = constraints.maxWidth - 16; // Menos padding
-        final double adaptiveCellWidth = max(minCellWidth, availableWidth / totalUnits);
+        final double availableWidth = constraints.maxWidth - 16; // Ancho menos padding del contenedor
+        final double availableForCells = availableWidth - totalMargins;
+        
+        final double adaptiveCellWidth = max(minCellWidth, availableForCells / totalUnits);
         final double adaptiveTotalWidth = adaptiveCellWidth * totalColumnWeight;
+
+        // Comprobamos si el contenido total realmente cabe
+        final double totalContentWidth = (adaptiveCellWidth * 14) + adaptiveTotalWidth + totalMargins;
+        final bool needsScroll = totalContentWidth > availableWidth;
 
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          physics: adaptiveCellWidth > minCellWidth 
-              ? const NeverScrollableScrollPhysics() 
-              : const AlwaysScrollableScrollPhysics(),
+          physics: needsScroll 
+              ? const AlwaysScrollableScrollPhysics() 
+              : const NeverScrollableScrollPhysics(),
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -70,6 +75,7 @@ class MonthlyReturnsTab extends StatelessWidget {
                       _HeatBox(text: 'Año', isHeader: true, width: adaptiveCellWidth),
                       ...months.map((m) => _HeatBox(text: m, isHeader: true, width: adaptiveCellWidth)),
                       _HeatBox(text: 'TOTAL', isHeader: true, width: adaptiveTotalWidth),
+                      _HeatBox(text: 'Año', isHeader: true, width: adaptiveCellWidth),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -99,6 +105,7 @@ class MonthlyReturnsTab extends StatelessWidget {
                             width: adaptiveTotalWidth,
                             isBold: true,
                           ),
+                          _HeatBox(text: year.toString(), isHeader: true, width: adaptiveCellWidth),
                         ],
                       ),
                     );

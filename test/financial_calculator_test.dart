@@ -5,9 +5,12 @@ import 'package:investing/utils/financial_calculator.dart';
 void main() {
   group('FinancialCalculator Tests', () {
     final baseDate = DateTime(2023, 1, 1);
-    final mockHistory = [PricePoint(baseDate, 10.0), PricePoint(baseDate.add(const Duration(days: 30)), 12.0)];
-    
-    test('calculateTotalValue should correctly sum units', () {
+    final mockHistory = [
+      PricePoint(baseDate, 10.0),
+      PricePoint(baseDate.add(const Duration(days: 30)), 12.0),
+    ];
+
+    test('calculateFundMetrics should correctly calculate units and value', () {
       final fund = FundData(
         isin: 'TEST',
         symbol: 'TST',
@@ -17,17 +20,32 @@ void main() {
         date: baseDate.add(const Duration(days: 30)),
         history: mockHistory,
         operations: [
-          FundOperation(isin: 'TEST', date: baseDate, type: OperationType.buy, units: 10, price: 10, amount: 100),
-          FundOperation(isin: 'TEST', date: baseDate.add(const Duration(days: 10)), type: OperationType.sell, units: 2, price: 11, amount: 22),
+          FundOperation(
+            isin: 'TEST',
+            date: baseDate,
+            type: OperationType.buy,
+            units: 10,
+            price: 10,
+            amount: 100,
+          ),
+          FundOperation(
+            isin: 'TEST',
+            date: baseDate.add(const Duration(days: 10)),
+            type: OperationType.sell,
+            units: 2,
+            price: 11,
+            amount: 22,
+          ),
         ],
       );
 
-      final value = FinancialCalculator.calculateTotalValue(fund);
+      final metrics = FinancialCalculator.calculateFundMetrics(fund);
       // (10 - 2) * 12 = 8 * 12 = 96
-      expect(value, 96.0);
+      expect(metrics.currentValue, 96.0);
+      expect(metrics.totalUnits, 8.0);
     });
 
-    test('calculatePerformance should return -999 for no investment', () {
+    test('calculateFundMetrics should handle no investment correctly', () {
       final fund = FundData(
         isin: 'TEST',
         symbol: 'TST',
@@ -39,7 +57,9 @@ void main() {
         operations: [],
       );
 
-      expect(FinancialCalculator.calculatePerformance(fund), -999);
+      final metrics = FinancialCalculator.calculateFundMetrics(fund);
+      expect(metrics.tae, 0);
+      expect(metrics.currentValue, 0);
     });
   });
 }

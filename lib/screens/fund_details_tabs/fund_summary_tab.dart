@@ -195,92 +195,7 @@ class FundSummaryTab extends StatelessWidget {
                   ),
                 ],
               ),
-              /* Text(
-                'Valor Liquidativo',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    '${priceFormat.format(fund.lastValue)} ${fund.currency}',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-                  ),
-                  if (diff != null && percent != null) ...[
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${diff > 0 ? '+' : ''}${priceFormat.format(diff)}',
-                          style: TextStyle(
-                            color: varColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          '(${percent > 0 ? '+' : ''}${percentFormat.format(percent)}%)',
-                          style: TextStyle(color: varColor, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ), */
-              //const SizedBox(height: 8),
-              /* Text(
-                'Actualizado: ${DateFormat('dd/MM/yyyy').format(fund.date)}',
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: Colors.white38),
-              ), */
-              //const SizedBox(height: 6),
-              /* FutureBuilder<DateTime?>(
-                future: ExportService.getLastExportDate(fund.isin),
-                builder: (context, snapshot) {
-                  final lastExport = snapshot.data;
-                  final backupPending =
-                      lastExport == null ||
-                      lastExport.isBefore(
-                        DateTime.now().subtract(const Duration(days: 30)),
-                      );
-                  return Row(
-                    children: [
-                      Icon(
-                        backupPending
-                            ? Icons.warning_amber_outlined
-                            : Icons.cloud_done_outlined,
-                        size: 14,
-                        color: backupPending
-                            ? Colors.amberAccent
-                            : Colors.greenAccent[400],
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          backupPending
-                              ? lastExport == null
-                                    ? 'No hay backup. Se recomienda exportar este fondo.'
-                                    : 'El último backup tiene más de un mes. Se recomienda exportar este fondo.'
-                              : 'Último backup: ${DateFormat('dd/MM/yyyy HH:mm').format(lastExport)}',
-                          style: TextStyle(
-                            color: backupPending
-                                ? Colors.amberAccent
-                                : Colors.white38,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ), */
+
               if (totalDiff != null &&
                   totalPercent != null &&
                   oldestDate != null) ...[
@@ -386,13 +301,6 @@ class FundSummaryTab extends StatelessWidget {
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.05),
                           ),
-                          /*color: const Color(0xFF003D7C).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFF003D7C).withValues(
-                              alpha: 0.4,
-                            ),
-                          ),*/
                         ),
                         child: Row(
                           children: [
@@ -535,16 +443,16 @@ class FundSummaryTab extends StatelessWidget {
     if (troughDate != null && peakAtMDD > 0) {
       DateTime? recoveryDate;
       for (var point in fund.history) {
-        if (point.date.isAfter(troughDate!) && point.price >= peakAtMDD) {
+        if (point.date.isAfter(troughDate) && point.price >= peakAtMDD) {
           recoveryDate = point.date;
           break;
         }
       }
 
       if (recoveryDate != null) {
-        recoveryText = '${recoveryDate.difference(troughDate!).inDays} días';
+        recoveryText = '${recoveryDate.difference(troughDate).inDays} días';
       } else {
-        final daysElapsed = DateTime.now().difference(troughDate!).inDays;
+        final daysElapsed = DateTime.now().difference(troughDate).inDays;
         recoveryText = '$daysElapsed días (en curso)';
       }
     }

@@ -1,0 +1,12 @@
+OpenInvest es una herramienta de código abierto diseñada para inversores que buscan un seguimiento detallado y privado de su cartera de fondos de inversión.
+
+Características principales:
+- Búsqueda global de fondos mediante ISIN.
+- Catálogo oficial de fondos armonizados de la CNMV.
+- Gráficos interactivos de evolución con comparación de benchmarks.
+- Análisis de riesgo avanzado: Max Drawdown y tiempo de recuperación.
+- Auditoría de costes: impacto del TER y comisiones de éxito.
+- Mapa de calor de rentabilidad mensual.
+- Privacidad total: tus datos se guardan localmente.
+- Exportación e importación en formato JSON.
+- Soporte multidivisa con conversión en tiempo real.

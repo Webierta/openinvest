@@ -1,0 +1,2 @@
+json_key_file("") # Path to the json secret file - prioritized over the json_key_file parameter
+package_name("com.github.webierta.openinvest") # The package name of your app

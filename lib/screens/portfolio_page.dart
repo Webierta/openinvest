@@ -1,24 +1,17 @@
-import 'dart:math';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../providers/fund_provider.dart';
-import '../services/fund_scraper.dart';
 import '../widgets/gradient_background.dart';
 import '../services/export_service.dart';
-import '../services/database_service.dart';
+//import '../services/database_service.dart';
 import '../widgets/error_banner.dart';
+import '../widgets/app_drawer.dart';
 import 'fund_search_page.dart';
 import 'fund_details_page.dart';
-import 'info_page.dart';
-import 'about_page.dart';
-import 'support_page.dart';
-import 'settings_page.dart';
 import '../utils/route_observer.dart';
+import '../utils/financial_calculator.dart';
 
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
@@ -78,102 +71,21 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     final percentFormat = NumberFormat('#,##0.00', 'es_ES');
     final smartFormat = NumberFormat('#,##0.##', 'es_ES');
 
-    double globalTotalValue = 0;
-    double globalTotalInvested = 0;
-    double globalProfitAbs = 0;
-    double globalWeightedTaeSum = 0;
-    DateTime? globalFirstOpDate;
+    final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
+      provider.portfolio,
+      provider.exchangeRates,
+    );
 
-    for (var item in provider.portfolio) {
-      double totalUnits = 0;
-      double totalInvested = 0;
-      DateTime? fundFirstOpDate;
+    final Color globalProfitColor =
+        globalMetrics.profitAbs >= 0
+            ? Colors.greenAccent[400]!
+            : Colors.redAccent[200]!;
 
-      for (var op in item.operations) {
-        if (op.type == OperationType.buy) {
-          totalUnits += op.units;
-          totalInvested += op.amount;
-        } else {
-          totalUnits -= op.units;
-          totalInvested -= op.amount;
-        }
-        if (globalFirstOpDate == null || op.date.isBefore(globalFirstOpDate)) {
-          globalFirstOpDate = op.date;
-        }
-        if (fundFirstOpDate == null || op.date.isBefore(fundFirstOpDate)) {
-          fundFirstOpDate = op.date;
-        }
-      }
-
-      final double rate = provider.exchangeRates[item.currency] ?? 1.0;
-      final fundValue = (totalUnits * item.lastValue) * rate;
-      final fundProfitAbs = fundValue - (totalInvested * rate);
-
-      globalTotalValue += fundValue;
-      globalTotalInvested += (totalInvested * rate);
-      globalProfitAbs += fundProfitAbs;
-
-      // Cálculo del TAE individual (con respaldo si no hay historial)
-      double fundTae = 0;
-      if (totalInvested > 0 && fundFirstOpDate != null) {
-        final daysDiff = DateTime.now().difference(fundFirstOpDate).inDays;
-
-        // 1. Intentar TWR (basado en precios históricos)
-        final firstOpPricePoint = item.history.cast<PricePoint?>().lastWhere(
-          (p) =>
-              p!.date.isBefore(fundFirstOpDate!.add(const Duration(days: 1))),
-          orElse: () => null,
-        );
-
-        double performanceTotal = 0;
-        if (firstOpPricePoint != null && firstOpPricePoint.price > 0) {
-          performanceTotal = (item.lastValue / firstOpPricePoint.price) - 1;
-        }
-
-        // 2. Respaldo: Si TWR es 0 pero hay beneficio real en €, usar ROI simple
-        if (performanceTotal == 0 && fundProfitAbs != 0) {
-          performanceTotal = fundProfitAbs / totalInvested;
-        }
-
-        if (daysDiff >= 30) {
-          final double years = daysDiff / 365.25;
-          fundTae = (pow(1 + performanceTotal, 1 / years) - 1) * 100;
-        } else {
-          fundTae = performanceTotal * 100;
-        }
-      }
-
-      // Acumulamos para la media ponderada global
-      if (fundValue > 0) {
-        globalWeightedTaeSum += fundTae * fundValue;
-      }
-    }
-
-    double globalProfitRel = globalTotalValue > 0
-        ? globalWeightedTaeSum / globalTotalValue
-        : 0;
-
-    // Si el TAE ponderado sigue siendo 0 pero hay beneficio global, calculamos ROI global
-    if (globalProfitRel == 0 &&
-        globalProfitAbs != 0 &&
-        globalTotalInvested > 0) {
-      globalProfitRel = (globalProfitAbs / globalTotalInvested) * 100;
-    }
-
-    bool isGlobalAnnualized = false;
-    if (globalFirstOpDate != null) {
-      isGlobalAnnualized =
-          DateTime.now().difference(globalFirstOpDate).inDays >= 30;
-    }
-    final Color globalProfitColor = globalProfitAbs >= 0
-        ? Colors.greenAccent[400]!
-        : Colors.redAccent[200]!;
-    final bool showPortfolioSummary = globalTotalInvested > 0;
+    final bool showPortfolioSummary = globalMetrics.totalInvested > 0;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        //title: const Text('OpenInvest'),
         title: Text.rich(
           TextSpan(
             text: 'Open',
@@ -368,128 +280,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
           ),
         ],
       ),
-      drawer: Drawer(
-        backgroundColor: const Color(0xFF0F172A),
-        child: Column(
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                ),
-              ),
-              child: LayoutBuilder(
-                builder: (context, constraints) => Image.asset(
-                  'assets/images/logo.png',
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.settings_outlined,
-                color: Colors.white70,
-              ),
-              title: const Text(
-                'Ajustes',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-            ),
-            const Divider(color: Colors.white10),
-            ListTile(
-              leading: const Icon(Icons.info_outline, color: Colors.white70),
-              title: const Text('Info', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const InfoPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.code, color: Colors.white70),
-              title: const Text(
-                'Acerca de',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AboutPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.favorite_outline,
-                color: Colors.white70,
-              ),
-              title: const Text(
-                'Apoyar',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SupportPage()),
-                );
-              },
-            ),
-            /*ListTile(
-              leading: const Icon(
-                Icons.settings_outlined,
-                color: Colors.white70,
-              ),
-              title: const Text(
-                'Ajustes',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-            ),*/
-            const Divider(color: Colors.white10),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.redAccent),
-              title: const Text('Salir', style: TextStyle(color: Colors.white)),
-              onTap: () async {
-                await DatabaseService.close();
-                exit(0);
-              },
-            ),
-            const Spacer(),
-            FutureBuilder<PackageInfo>(
-              future: PackageInfo.fromPlatform(),
-              builder: (context, snapshot) {
-                final version = snapshot.data?.version;
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    version == null ? 'v...' : 'v$version',
-                    style: const TextStyle(color: Colors.white24, fontSize: 12),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: const AppDrawer(),
       body: GradientBackground(
         child: SafeArea(
           bottom: false,
@@ -572,7 +363,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        '${smartFormat.format(globalTotalValue)} €',
+                                        '${smartFormat.format(globalMetrics.totalValue)} €',
                                         style: Theme.of(context)
                                             .textTheme
                                             .headlineMedium
@@ -583,7 +374,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Invertido: ${smartFormat.format(globalTotalInvested)} €',
+                                        'Invertido: ${smartFormat.format(globalMetrics.totalInvested)} €',
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -595,7 +386,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                             MainAxisAlignment.center,
                                         children: [
                                           Icon(
-                                            globalProfitAbs >= 0
+                                            globalMetrics.profitAbs >= 0
                                                 ? Icons.trending_up
                                                 : Icons.trending_down,
                                             color: globalProfitColor,
@@ -603,7 +394,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            '${globalProfitAbs > 0 ? '+' : ''}${smartFormat.format(globalProfitAbs)} €',
+                                            '${globalMetrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(globalMetrics.profitAbs)} €',
                                             style: TextStyle(
                                               color: globalProfitColor,
                                               fontWeight: FontWeight.bold,
@@ -622,7 +413,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                   BorderRadius.circular(6),
                                             ),
                                             child: Text(
-                                              '${isGlobalAnnualized ? 'TAE' : 'GANANCIA'}: ${globalProfitRel > 0 ? '+' : ''}${percentFormat.format(globalProfitRel)}%',
+                                              '${globalMetrics.isAnnualized ? 'TAE' : 'GANANCIA'}: ${globalMetrics.profitRel > 0 ? '+' : ''}${percentFormat.format(globalMetrics.profitRel)}%',
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.bold,
@@ -632,6 +423,68 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                           ),
                                         ],
                                       ),
+                                      if (globalMetrics.totalValue > 0) ...[
+                                        const SizedBox(height: 24),
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          child: SizedBox(
+                                            height: 8,
+                                            width: double.infinity,
+                                            child: Row(
+                                              children: provider.portfolio
+                                                  .map((item) {
+                                                    final metrics =
+                                                        FinancialCalculator
+                                                            .calculateFundMetrics(
+                                                              item,
+                                                            );
+                                                    final double rate =
+                                                        provider.exchangeRates[
+                                                              item.currency
+                                                            ] ??
+                                                            1.0;
+                                                    final fundValue =
+                                                        metrics.currentValue *
+                                                        rate;
+                                                    final weight =
+                                                        fundValue /
+                                                        globalMetrics
+                                                            .totalValue;
+
+                                                    if (weight <= 0) {
+                                                      return const SizedBox
+                                                          .shrink();
+                                                    }
+
+                                                    return Expanded(
+                                                      flex: (weight * 1000)
+                                                          .toInt(),
+                                                      child: Tooltip(
+                                                        message:
+                                                            '${item.name}\nPeso: ${percentFormat.format(weight * 100)}%',
+                                                        triggerMode:
+                                                            TooltipTriggerMode
+                                                                .tap,
+                                                        preferBelow: false,
+                                                        child: Container(
+                                                          color: _getFundColor(
+                                                            item.isin,
+                                                          ),
+                                                          margin:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                horizontal: 0.5,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  })
+                                                  .toList(),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -641,6 +494,9 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             final item =
                                 provider.portfolio[index -
                                     (showPortfolioSummary ? 1 : 0)];
+
+                            final metrics =
+                                FinancialCalculator.calculateFundMetrics(item);
 
                             double? dailyVariation;
                             Color? dailyVarColor;
@@ -658,69 +514,11 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               }
                             }
 
-                            double totalUnits = 0;
-                            double totalInvested = 0;
-                            DateTime? firstOpDate;
-                            for (var op in item.operations) {
-                              if (op.type == OperationType.buy) {
-                                totalUnits += op.units;
-                                totalInvested += op.amount;
-                              } else {
-                                totalUnits -= op.units;
-                                totalInvested -= op.amount;
-                              }
-                              if (firstOpDate == null ||
-                                  op.date.isBefore(firstOpDate)) {
-                                firstOpDate = op.date;
-                              }
-                            }
                             final hasOps = item.operations.isNotEmpty;
-                            final double currentValue =
-                                totalUnits * item.lastValue;
-                            final double fundWeight = globalTotalValue > 0
-                                ? (currentValue / globalTotalValue) * 100
-                                : 0;
-                            final double profitAbs =
-                                currentValue - totalInvested;
-
-                            double displayPercentage = 0;
-                            bool isAnnualized = false;
-                            if (totalInvested > 0 && firstOpDate != null) {
-                              final daysDiff = DateTime.now()
-                                  .difference(firstOpDate)
-                                  .inDays;
-                              // Buscamos el precio inicial para el TWR
-                              final firstOpPricePoint = item.history
-                                  .cast<PricePoint?>()
-                                  .firstWhere(
-                                    (p) =>
-                                        p!.date.year == firstOpDate!.year &&
-                                        p.date.month == firstOpDate.month &&
-                                        p.date.day == firstOpDate.day,
-                                    orElse: () => item.history.isNotEmpty
-                                        ? item.history.first
-                                        : null,
-                                  );
-
-                              if (daysDiff >= 30 &&
-                                  firstOpPricePoint != null &&
-                                  firstOpPricePoint.price > 0) {
-                                final double years = daysDiff / 365.25;
-                                final double twrTotal =
-                                    (item.lastValue / firstOpPricePoint.price) -
-                                    1;
-                                displayPercentage =
-                                    (pow(1 + twrTotal, 1 / years) - 1) * 100;
-                                isAnnualized = true;
-                              } else {
-                                displayPercentage =
-                                    (profitAbs / totalInvested) * 100;
-                              }
-                            }
-
-                            final Color profitColor = profitAbs >= 0
-                                ? Colors.greenAccent[400]!
-                                : Colors.redAccent[200]!;
+                            final Color profitColor =
+                                metrics.profitAbs >= 0
+                                    ? Colors.greenAccent[400]!
+                                    : Colors.redAccent[200]!;
 
                             return Card(
                               margin: const EdgeInsets.symmetric(
@@ -905,7 +703,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                   ),
                                                 ),
                                                 Text(
-                                                  '${priceFormat.format(currentValue)} ${item.currency}',
+                                                  '${priceFormat.format(metrics.currentValue)} ${item.currency}',
                                                   style: const TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.w500,
@@ -923,7 +721,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                   ),
                                                 ),
                                                 Text(
-                                                  '${profitAbs > 0 ? '+' : ''}${smartFormat.format(profitAbs)} ${item.currency}',
+                                                  '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${item.currency}',
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.bold,
@@ -936,26 +734,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.end,
                                               children: [
-                                                const Text(
-                                                  'PESO',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    color: Colors.white38,
-                                                    fontWeight: FontWeight.bold,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
                                                 Text(
-                                                  '${percentFormat.format(fundWeight)}%',
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Colors.white70,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  isAnnualized
+                                                  metrics.isAnnualized
                                                       ? 'TAE'
                                                       : 'GANANCIA TOTAL',
                                                   style: const TextStyle(
@@ -989,7 +769,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                     ),
                                                   ),
                                                   child: Text(
-                                                    '${displayPercentage > 0 ? '+' : ''}${percentFormat.format(displayPercentage)}%',
+                                                    '${(metrics.isAnnualized ? metrics.tae : metrics.profitRel) > 0 ? '+' : ''}${percentFormat.format(metrics.isAnnualized ? metrics.tae : metrics.profitRel)}%',
                                                     style: TextStyle(
                                                       fontSize: 12,
                                                       fontWeight:
@@ -1021,11 +801,6 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
           context,
           MaterialPageRoute(builder: (context) => const FundSearchPage()),
         ),
-        //icon: const Icon(Icons.add_business, color: Colors.black87),
-        /* label: const Text(
-          'Añadir Fondo',
-          style: TextStyle(color: Colors.black87),
-        ), */
         backgroundColor: Colors.amber,
         child: const Icon(
           Icons.add_chart_rounded,

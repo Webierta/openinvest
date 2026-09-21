@@ -1,7 +1,6 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../lib/services/local_isin_provider.dart';
+import 'package:investing/services/local_isin_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

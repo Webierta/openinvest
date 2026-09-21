@@ -151,7 +151,6 @@ Map<String, dynamic> _readJsonMap(File file) {
   } on FormatException catch (e) {
     _fatal('JSON inválido en ${file.path}: ${e.message}');
   }
-
   throw StateError('Unreachable');
 }
 
