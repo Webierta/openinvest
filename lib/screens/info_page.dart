@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:investing/l10n/app_localizations.dart';
 import '../widgets/gradient_background.dart';
 
 class InfoPage extends StatelessWidget {
@@ -6,10 +7,12 @@ class InfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Información'),
+        title: Text(l10n.info),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -17,68 +20,67 @@ class InfoPage extends StatelessWidget {
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(20),
-            children: const [
+            children: [
               _InfoSection(
                 icon: Icons.search,
-                title: 'Búsqueda de Fondos',
-                description: 'Busca cualquier fondo de inversión del mundo utilizando su código ISIN. Obtenemos los datos en tiempo real a través de fuentes públicas financieras.',
+                title: l10n.searchFundsTitle,
+                description: l10n.searchFundsDesc,
               ),
               _InfoSection(
                 icon: Icons.history,
-                title: 'Historial de Precios',
-                description: 'Descarga el histórico de valores liquidativos (VL) para analizar la evolución temporal. Puedes seleccionar rangos de fechas personalizados.',
+                title: l10n.priceHistoryTitle,
+                description: l10n.priceHistoryDesc,
               ),
               _InfoSection(
                 icon: Icons.account_balance_wallet,
-                title: 'Gestión de Operaciones',
-                description: 'Registra tus suscripciones (compras) y reembolsos (ventas). La aplicación calcula automáticamente tus participaciones totales y capital invertido.',
+                title: l10n.operationsMgmtTitle,
+                description: l10n.operationsMgmtDesc,
               ),
               _InfoSection(
                 icon: Icons.trending_up,
-                title: 'Análisis de Rentabilidad',
-                description: 'Cálculo de índices avanzados:\n• TAE: Rentabilidad anualizada de tu bolsillo.\n• TWR: Rendimiento real del fondo (activo).\n• MWR/TIR: Tu éxito personal según el momento de inversión.',
+                title: l10n.profitabilityAnalysisTitle,
+                description: l10n.profitabilityAnalysisDesc,
               ),
               _InfoSection(
                 icon: Icons.receipt_long_outlined,
-                title: 'Auditoría de Costes',
-                description: 'Introduce los Gastos Corrientes (TER) y la Comisión de Éxito de tus fondos para calcular la Ganancia Real neta, descontando el impacto de las comisiones en tu capital.',
+                title: l10n.costsAuditTitle,
+                description: l10n.costsAuditDesc,
               ),
               _InfoSection(
                 icon: Icons.show_chart,
-                title: 'Gráficos Interactivos',
-                description: 'Visualiza la evolución de tus fondos con filtros de rango rápido (1M, 6M, 1Y, etc.) y líneas de tendencia media.',
+                title: l10n.interactiveChartsTitle,
+                description: l10n.interactiveChartsDesc,
               ),
               _InfoSection(
                 icon: Icons.calendar_month_outlined,
-                title: 'Mapa de Calor Mensual',
-                description: 'Analiza la estacionalidad de tus inversiones con una cuadrícula de rentabilidades mes a mes y acumulados anuales, identificando periodos de éxito y correcciones.',
+                title: l10n.monthlyHeatmapTitle,
+                description: l10n.monthlyHeatmapDesc,
               ),
               _InfoSection(
                 icon: Icons.compare_arrows,
-                title: 'Comparación con Benchmarks',
-                description: 'Superpón la evolución de los principales índices mundiales (S&P 500, MSCI World, etc.) sobre el gráfico del fondo para medir su rendimiento relativo en porcentaje.',
+                title: l10n.benchmarkComparisonTitle,
+                description: l10n.benchmarkComparisonDesc,
               ),
               _InfoSection(
                 icon: Icons.warning_amber_outlined,
-                title: 'Análisis de Riesgo',
-                description: 'Métricas de nivel profesional para evaluar la seguridad:\n• Max Drawdown: La mayor caída histórica desde un pico.\n• Recuperación: Tiempo que el fondo tarda en sanar sus pérdidas.',
+                title: l10n.riskAnalysisTitle,
+                description: l10n.riskAnalysisDesc,
               ),
               _InfoSection(
                 icon: Icons.save_alt,
-                title: 'Exportación e Importación',
-                description: 'Lleva tus datos contigo. Exporta e importa tus fondos y operaciones en formato JSON para moverlos entre dispositivos o hacer copias de seguridad.',
+                title: l10n.exportImportTitle,
+                description: l10n.exportImportDesc,
               ),
               _InfoSection(
                 icon: Icons.attach_money,
-                title: 'Soporte Multidivisa',
-                description: 'Gestión automática de fondos en diversas divisas con conversión en tiempo real para una valoración precisa de tu cartera global.',
+                title: l10n.multicurrencySupportTitle,
+                description: l10n.multicurrencySupportDesc,
               ),
               _InfoSection(
                 icon: Icons.notifications,
-                title: 'Notificaciones',
-                description: 'Configura alertas personalizadas para mantenerte informado sobre tus fondos y objetivos financieros.',
+                title: l10n.notificationsTitle,
+                description: l10n.notificationsDesc,
               ),
-
             ],
           ),
         ),

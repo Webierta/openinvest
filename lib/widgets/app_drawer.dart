@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:investing/l10n/app_localizations.dart';
 
 import '../screens/settings_page.dart';
 import '../screens/info_page.dart';
@@ -14,6 +15,8 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Drawer(
       backgroundColor: const Color(0xFF0F172A),
       child: Column(
@@ -38,9 +41,9 @@ class AppDrawer extends StatelessWidget {
               Icons.settings_outlined,
               color: Colors.white70,
             ),
-            title: const Text(
-              'Ajustes',
-              style: TextStyle(color: Colors.white),
+            title: Text(
+              l10n.settings,
+              style: const TextStyle(color: Colors.white),
             ),
             onTap: () {
               Navigator.pop(context);
@@ -53,7 +56,7 @@ class AppDrawer extends StatelessWidget {
           const Divider(color: Colors.white10),
           ListTile(
             leading: const Icon(Icons.info_outline, color: Colors.white70),
-            title: const Text('Info', style: TextStyle(color: Colors.white)),
+            title: Text(l10n.info, style: const TextStyle(color: Colors.white)),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -64,9 +67,9 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.code, color: Colors.white70),
-            title: const Text(
-              'Acerca de',
-              style: TextStyle(color: Colors.white),
+            title: Text(
+              l10n.about,
+              style: const TextStyle(color: Colors.white),
             ),
             onTap: () {
               Navigator.pop(context);
@@ -81,9 +84,9 @@ class AppDrawer extends StatelessWidget {
               Icons.favorite_outline,
               color: Colors.white70,
             ),
-            title: const Text(
-              'Apoyar',
-              style: TextStyle(color: Colors.white),
+            title: Text(
+              l10n.support,
+              style: const TextStyle(color: Colors.white),
             ),
             onTap: () {
               Navigator.pop(context);
@@ -96,7 +99,7 @@ class AppDrawer extends StatelessWidget {
           const Divider(color: Colors.white10),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.redAccent),
-            title: const Text('Salir', style: TextStyle(color: Colors.white)),
+            title: Text(l10n.exit, style: const TextStyle(color: Colors.white)),
             onTap: () async {
               await DatabaseService.close();
               exit(0);

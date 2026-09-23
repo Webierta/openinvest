@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:investing/l10n/app_localizations.dart';
 
 import '../providers/fund_provider.dart';
 import '../services/fund_scraper.dart';
@@ -40,6 +41,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
 
   Future<void> _handleSearch([FundSearchMatch? match]) async {
     final provider = context.read<FundProvider>();
+    final l10n = AppLocalizations.of(context)!;
     
     if (match == null && !_looksLikeIsin(_controller.text)) {
       await _searchByName(_controller.text);
@@ -57,20 +59,16 @@ class _FundSearchPageState extends State<FundSearchPage> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('ISIN no detectado'),
-          content: const Text(
-            'Yahoo Finance no ha proporcionado el código ISIN para este resultado. '
-            'Intentaremos obtenerlo de los metadatos o usaremos el símbolo como identificador.\n\n'
-            '¿Deseas continuar?',
-          ),
+          title: Text(l10n.isinNotDetected),
+          content: Text(l10n.isinNotDetectedDesc),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Continuar'),
+              child: Text(l10n.continueText),
             ),
           ],
         ),
@@ -90,13 +88,15 @@ class _FundSearchPageState extends State<FundSearchPage> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(isValid ? 'Fondo Encontrado' : 'ISIN no disponible'),
+          title: Text(isValid ? l10n.fundFound : l10n.isinNotAvailable),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isValid ? 'Se ha encontrado el siguiente fondo:' : 'Este activo no proporciona un código ISIN válido y no puede ser añadido a la cartera.',
+                isValid
+                    ? l10n.fundFoundDesc
+                    : l10n.noValidIsinDesc,
               ),
               const SizedBox(height: 16),
               Text(
@@ -125,9 +125,9 @@ class _FundSearchPageState extends State<FundSearchPage> {
                         color: Colors.blueAccent.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
-                        'RESUELTO',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.resolved,
+                        style: const TextStyle(
                           color: Colors.blueAccent,
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
@@ -139,19 +139,19 @@ class _FundSearchPageState extends State<FundSearchPage> {
               ),
               if (isValid) ...[
                 const SizedBox(height: 16),
-                const Text('¿Deseas añadirlo a tu cartera?'),
+                Text(l10n.addToPortfolioPrompt),
               ],
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cerrar'),
+              child: Text(l10n.close),
             ),
             if (isValid)
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Añadir a Cartera'),
+                child: Text(l10n.addToPortfolioAction),
               ),
           ],
         ),
@@ -188,23 +188,22 @@ class _FundSearchPageState extends State<FundSearchPage> {
   }
 
   Future<bool?> _confirmOverwrite(BuildContext context, String fundName) {
+    final l10n = AppLocalizations.of(context)!;
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Fondo ya existente'),
-        content: Text(
-          '$fundName ya está en tu cartera. ¿Quieres sobrescribirlo? Se eliminarán sus datos actuales, incluido el historial y las operaciones.',
-        ),
+        title: Text(l10n.fundAlreadyInPortfolio),
+        content: Text(l10n.overwriteFundDesc(fundName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text(
-              'Sobrescribir',
-              style: TextStyle(color: Colors.redAccent),
+            child: Text(
+              l10n.overwrite,
+              style: const TextStyle(color: Colors.redAccent),
             ),
           ),
         ],
@@ -221,19 +220,20 @@ class _FundSearchPageState extends State<FundSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final provider = context.watch<FundProvider>();
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Añadir Fondo'),
+        title: Text(l10n.addFund),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline, color: Colors.white),
             onPressed: () => _showBadgeInfoDialog(context),
-            tooltip: 'Información sobre resultados',
+            tooltip: l10n.resultsInfo,
           ),
         ],
       ),
@@ -252,17 +252,17 @@ class _FundSearchPageState extends State<FundSearchPage> {
                   color: Colors.white24,
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Busca un fondo para añadirlo a tu cartera',
+                Text(
+                  l10n.searchFundPrompt,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
                 const SizedBox(height: 40),
                 TextField(
                   controller: _controller,
                   decoration: InputDecoration(
-                    labelText: 'Nombre o código ISIN',
-                    hintText: 'Ej: Amundi o ES0152743003',
+                    labelText: l10n.fundSearchLabel,
+                    hintText: l10n.fundSearchHint,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -276,7 +276,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: IconButton(
-                          tooltip: 'Buscar fondo',
+                          tooltip: l10n.searchFundAction,
                           color: Theme.of(context).colorScheme.onPrimary,
                           icon: const Icon(Icons.search),
                           onPressed: _handleSearch,
@@ -316,7 +316,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                         ),
                         subtitle: Text(
                           match.isin == null
-                              ? 'ISIN no disponible'
+                              ? l10n.isinNotAvailable
                               : '${match.isin}',
                           style: TextStyle(
                             color: match.isin == null ? Colors.grey : null,
@@ -341,18 +341,18 @@ class _FundSearchPageState extends State<FundSearchPage> {
                         children: [
                           const CircularProgressIndicator(color: Colors.white),
                           const SizedBox(height: 24),
-                          const Text(
-                            'Procesando fondo e identificando ISIN...',
-                            style: TextStyle(
+                          Text(
+                            l10n.processingFund,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Esta operación puede tardar unos segundos',
-                            style: TextStyle(
+                          Text(
+                            l10n.processingWait,
+                            style: const TextStyle(
                               color: Colors.white38,
                               fontSize: 12,
                             ),
@@ -383,30 +383,31 @@ class _FundSearchPageState extends State<FundSearchPage> {
   }
 
   void _showBadgeInfoDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Origen de los Datos'),
+        title: Text(l10n.dataSource),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildBadgeInfoItem(
               source: FundSource.local,
-              title: 'Registro CNMV',
-              description: 'Fondos españoles armonizados. Los datos provienen del catálogo oficial de la Comisión Nacional del Mercado de Valores.',
+              title: l10n.cnmvRegistry,
+              description: l10n.cnmvDesc,
             ),
             const SizedBox(height: 20),
             _buildBadgeInfoItem(
               source: FundSource.global,
-              title: 'Mercado Global',
-              description: 'Fondos internacionales y ETFs. Los datos se obtienen de Yahoo Finance.',
+              title: l10n.globalMarket,
+              description: l10n.globalMarketDesc,
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -448,9 +449,10 @@ class _FundSearchPageState extends State<FundSearchPage> {
   }
 
   Widget _buildSourceBadge(FundSource source) {
+    final l10n = AppLocalizations.of(context)!;
     final bool isLocal = source == FundSource.local;
     final Color color = isLocal ? const Color(0xFFA50A37) : Colors.blueAccent;
-    final String label = isLocal ? 'CNMV' : 'GLOBAL';
+    final String label = isLocal ? 'CNMV' : l10n.global;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

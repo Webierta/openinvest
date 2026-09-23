@@ -1,8 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:investing/l10n/app_localizations.dart';
 
 import '../services/settings_service.dart';
+import '../providers/fund_provider.dart';
 import '../widgets/gradient_background.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -43,6 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _toggleAuth(bool value) async {
+    final l10n = AppLocalizations.of(context)!;
     if (value) {
       if (Platform.isLinux) {
         final hasPassword = (await SettingsService.getAppPassword()) != null;
@@ -56,8 +60,8 @@ class _SettingsPageState extends State<SettingsPage> {
         if (!authenticated) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Autenticación fallida o cancelada'),
+              SnackBar(
+                content: Text(l10n.authFailed),
                 backgroundColor: Colors.redAccent,
               ),
             );
@@ -73,6 +77,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<bool> _showSetPasswordDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     final formKey = GlobalKey<FormState>();
     bool saved = false;
@@ -81,26 +86,24 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Establecer Contraseña'),
+        title: Text(l10n.setAppPassword),
         content: Form(
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Define una contraseña para proteger el acceso a OpenInvest en este equipo.',
-              ),
+              Text(l10n.setAppPasswordDescription),
               const SizedBox(height: 20),
               TextFormField(
                 controller: controller,
                 obscureText: true,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.password,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (v) =>
-                    (v == null || v.length < 4) ? 'Mínimo 4 caracteres' : null,
+                    (v == null || v.length < 4) ? l10n.minCharacters : null,
               ),
             ],
           ),
@@ -108,7 +111,7 @@ class _SettingsPageState extends State<SettingsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -118,7 +121,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 if (context.mounted) Navigator.pop(context);
               }
             },
-            child: const Text('Guardar'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -128,10 +131,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final provider = context.watch<FundProvider>();
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Ajustes'),
+        title: Text(l10n.settings),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -140,7 +146,47 @@ class _SettingsPageState extends State<SettingsPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _buildSectionTitle('Seguridad'),
+              _buildSectionTitle(l10n.language),
+              Card(
+                color: Colors.white.withValues(alpha: 0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: provider.locale?.languageCode ?? 'es',
+                      dropdownColor: const Color(0xFF1E293B),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'es',
+                          child: Text(
+                            l10n.spanish,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'en',
+                          child: Text(
+                            l10n.english,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                      onChanged: (code) {
+                        if (code != null) {
+                          provider.setLocale(Locale(code));
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildSectionTitle(l10n.security),
               Card(
                 color: Colors.white.withValues(alpha: 0.05),
                 shape: RoundedRectangleBorder(
@@ -150,19 +196,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   children: [
                     SwitchListTile(
-                      title: const Text(
-                        'Acceso Protegido',
-                        style: TextStyle(
+                      title: Text(
+                        l10n.protectedAccess,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       subtitle: Text(
                         Platform.isLinux
-                            ? 'Requerir contraseña de aplicación para entrar.'
+                            ? l10n.requirePasswordSubtitle
                             : _canAuthenticate
-                            ? 'Requerir huella, rostro o PIN del dispositivo para entrar.'
-                            : 'Tu dispositivo no soporta autenticación biométrica.',
+                            ? l10n.requireBiometricSubtitle
+                            : l10n.noBiometricSupport,
                         style: const TextStyle(color: Colors.white70),
                       ),
                       value: _requireAuth,
@@ -174,9 +220,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     if (_requireAuth && Platform.isLinux) ...[
                       const Divider(height: 1, color: Colors.white10),
                       ListTile(
-                        title: const Text(
-                          'Cambiar contraseña',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        title: Text(
+                          l10n.changePassword,
+                          style: const TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                         trailing: const Icon(
                           Icons.chevron_right,
@@ -189,7 +235,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              _buildSectionTitle('Datos'),
+              _buildSectionTitle(l10n.data),
               Card(
                 color: Colors.white.withValues(alpha: 0.05),
                 shape: RoundedRectangleBorder(
@@ -197,16 +243,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                 ),
                 child: SwitchListTile(
-                  title: const Text(
-                    'Actualizar fondos al iniciar',
-                    style: TextStyle(
+                  title: Text(
+                    l10n.autoRefreshTitle,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  subtitle: const Text(
-                    'Actualizar cuando los datos tengan al menos un día y no se hayan actualizado en las últimas 24 horas.',
-                    style: TextStyle(color: Colors.white70),
+                  subtitle: Text(
+                    l10n.autoRefreshSubtitle,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                   value: _autoRefresh,
                   onChanged: _toggleAutoRefresh,

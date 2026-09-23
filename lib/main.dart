@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:provider/provider.dart';
+import 'package:investing/l10n/app_localizations.dart';
 
 import 'providers/fund_provider.dart';
 import 'screens/portfolio_page.dart';
@@ -35,16 +36,19 @@ class MyApp extends StatelessWidget {
     const slateBlue = Color(0xFF1E293B);
     const skyBlue = Color(0xFF38BDF8);
 
+    final provider = context.watch<FundProvider>();
+
     return MaterialApp(
       title: 'OpenInvest',
       debugShowCheckedModeBanner: false,
       localizationsDelegates: const [
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('es', 'ES')],
-      locale: const Locale('es', 'ES'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: provider.locale,
       navigatorObservers: [routeObserver],
       theme: ThemeData(
         useMaterial3: true,
@@ -94,6 +98,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<bool> _promptLinuxPassword() async {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -101,7 +106,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Acceso protegido'),
+        title: Text(l10n.protectedAccessTitle),
         content: Form(
           key: formKey,
           child: TextFormField(
@@ -109,13 +114,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
             obscureText: true,
             autofocus: true,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: 'Contraseña de la aplicación',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.appPasswordLabel,
+              border: const OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Introduce la contraseña';
+                return l10n.enterPasswordError;
               }
               return null;
             },
@@ -124,7 +129,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -132,7 +137,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 Navigator.pop(dialogContext, true);
               }
             },
-            child: const Text('Entrar'),
+            child: Text(l10n.enter),
           ),
         ],
       ),
@@ -158,6 +163,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_authenticated == null) {
       return const Scaffold(
         body: GradientBackground(
@@ -175,24 +182,24 @@ class _AuthWrapperState extends State<AuthWrapper> {
               children: [
                 const Icon(Icons.lock_outline, size: 80, color: Colors.white24),
                 const SizedBox(height: 24),
-                const Text(
-                  'Acceso Protegido',
-                  style: TextStyle(
+                Text(
+                  l10n.protectedAccess,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Por favor, autentícate para continuar.',
-                  style: TextStyle(color: Colors.white70),
+                Text(
+                  l10n.authRequiredDescription,
+                  style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 40),
                 ElevatedButton.icon(
                   onPressed: _checkAuth,
                   icon: const Icon(Icons.fingerprint),
-                  label: const Text('Reintentar'),
+                  label: Text(l10n.retry),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
                     foregroundColor: Colors.white,

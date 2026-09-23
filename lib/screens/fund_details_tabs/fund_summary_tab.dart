@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:investing/l10n/app_localizations.dart';
 
 import '../../services/export_service.dart';
 import '../../services/fund_scraper.dart';
@@ -24,6 +25,8 @@ class FundSummaryTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
     double? diff;
     double? percent;
     Color? varColor;
@@ -88,7 +91,7 @@ class FundSummaryTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (fund.lastValue == 0 && fund.history.isEmpty)
-              const Center(child: Text('Sin datos de cotización.'))
+              Center(child: Text(l10n.noQuoteData))
             else ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -113,20 +116,20 @@ class FundSummaryTab extends StatelessWidget {
                                   horizontal: 8,
                                   vertical: 4,
                                 ),
-                                //color: Colors.red,
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: Colors.red,
-                                  borderRadius: const BorderRadius.only(
+                                  borderRadius: BorderRadius.only(
                                     topLeft: Radius.circular(8),
                                     topRight: Radius.circular(8),
                                   ),
                                 ),
                                 child: Text(
-                                  DateFormat('MM/yy').format(fund.date),
+                                  //DateFormat.MMMy(locale).format(fund.date),
+                                  DateFormat.yMMM(locale).format(fund.date),
                                 ),
                               ),
                               Text(
-                                DateFormat('d').format(fund.date),
+                                DateFormat.d(locale).format(fund.date),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 32,
@@ -143,7 +146,7 @@ class FundSummaryTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'Valor Liquidativo',
+                        l10n.navLabel,
                         style: Theme.of(context).textTheme.labelLarge,
                       ),
                       Text(
@@ -180,7 +183,7 @@ class FundSummaryTab extends StatelessWidget {
                               Icon(Icons.keyboard_double_arrow_up, size: 12, color: Colors.white.withValues(alpha: 0.3)),
                               const SizedBox(width: 4),
                               Text(
-                                'A máximos: ${priceFormat.format(distToMaxAbs)} (${percentFormat.format(distToMaxRel)}%)',
+                                '${l10n.toHighsLabel}: ${priceFormat.format(distToMaxAbs)} (${percentFormat.format(distToMaxRel)}%)',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.3),
                                   fontSize: 10,
@@ -207,11 +210,11 @@ class FundSummaryTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Variación Total',
+                          l10n.totalVariationLabel,
                           style: Theme.of(context).textTheme.labelLarge,
                         ),
                         Text(
-                          'Desde ${DateFormat('dd/MM/yyyy').format(oldestDate)}',
+                          '${l10n.sinceLabel} ${DateFormat.yMd(locale).format(oldestDate)}',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: Colors.white38),
                         ),
@@ -255,7 +258,7 @@ class FundSummaryTab extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Alertas configuradas',
+                    l10n.configuredAlertsLabel,
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ],
@@ -264,7 +267,7 @@ class FundSummaryTab extends StatelessWidget {
               if (fund.alertMin != null)
                 _buildAlertValue(
                   context,
-                  'Mínimo',
+                  l10n.minLabel,
                   fund.alertMin!,
                   Icons.arrow_downward,
                   Colors.redAccent[200]!,
@@ -272,7 +275,7 @@ class FundSummaryTab extends StatelessWidget {
               if (fund.alertMax != null)
                 _buildAlertValue(
                   context,
-                  'Máximo',
+                  l10n.maxLabel,
                   fund.alertMax!,
                   Icons.arrow_upward,
                   Colors.greenAccent[400]!,
@@ -324,10 +327,10 @@ class FundSummaryTab extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                'Consulta en el Registro Oficial',
-                                style: TextStyle(
+                                l10n.cnmvOfficialRegistryLabel,
+                                style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -374,9 +377,9 @@ class FundSummaryTab extends StatelessWidget {
                       child: Text(
                         backupPending
                             ? lastExport == null
-                                  ? 'No hay backup. Se recomienda exportar este fondo.'
-                                  : 'El último backup tiene más de un mes. Se recomienda exportar este fondo.'
-                            : 'Último backup: ${DateFormat('dd/MM/yyyy HH:mm').format(lastExport)}',
+                                  ? l10n.noBackupLabel
+                                  : l10n.oldBackupLabel
+                            : l10n.lastBackupLabel(DateFormat.yMd(locale).add_Hm().format(lastExport)),
                         style: TextStyle(
                           color: backupPending
                               ? Colors.amberAccent
@@ -396,6 +399,8 @@ class FundSummaryTab extends StatelessWidget {
   }
 
   Widget _buildStatsGrid(BuildContext context, double meanVal, PricePoint? maxPoint, PricePoint? minPoint) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
     if (fund.history.isEmpty) return const SizedBox.shrink();
 
     final returns = <double>[];
@@ -450,14 +455,16 @@ class FundSummaryTab extends StatelessWidget {
       }
 
       if (recoveryDate != null) {
-        recoveryText = '${recoveryDate.difference(troughDate).inDays} días';
+        //recoveryText = l10n.daysLabel(recoveryDate.difference(troughDate).inDays);
+        recoveryText = l10n.daysCount(recoveryDate.difference(troughDate).inDays);
       } else {
         final daysElapsed = DateTime.now().difference(troughDate).inDays;
-        recoveryText = '$daysElapsed días (en curso)';
+        //recoveryText = '${l10n.daysLabel(daysElapsed)} (${l10n.inProgressLabel})';
+        recoveryText = '${l10n.daysCount(daysElapsed)} (${l10n.inProgressLabel})';
       }
     }
 
-    final format = DateFormat('dd/MM/yyyy');
+    final format = DateFormat.yMd(locale);
     return Column(
       children: [
         Row(
@@ -465,7 +472,7 @@ class FundSummaryTab extends StatelessWidget {
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Máximo',
+                l10n.maxLabel,
                 maxPoint != null ? priceFormat.format(maxPoint.price) : '---',
                 maxPoint != null ? format.format(maxPoint.date) : '',
                 Colors.greenAccent[400]!,
@@ -476,7 +483,7 @@ class FundSummaryTab extends StatelessWidget {
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Mínimo',
+                l10n.minLabel,
                 minPoint != null ? priceFormat.format(minPoint.price) : '---',
                 minPoint != null ? format.format(minPoint.date) : '',
                 Colors.redAccent[200]!,
@@ -491,9 +498,9 @@ class FundSummaryTab extends StatelessWidget {
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Media',
+                l10n.averageLabel,
                 priceFormat.format(meanVal),
-                'Histórico',
+                l10n.historicalLabel,
                 Colors.blueAccent,
                 Icons.functions,
               ),
@@ -502,9 +509,9 @@ class FundSummaryTab extends StatelessWidget {
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Volatilidad',
+                l10n.volatilityLabel,
                 '${percentFormat.format(annualVolatility)}%',
-                'Anualizada',
+                l10n.annualizedLabel,
                 Colors.orangeAccent,
                 Icons.vibration,
               ),
@@ -517,9 +524,9 @@ class FundSummaryTab extends StatelessWidget {
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Max Drawdown',
+                l10n.maxDrawdownLabel,
                 '${percentFormat.format(maxDrawdown * 100)}%',
-                'Máxima Caída',
+                l10n.maxDropLabel,
                 Colors.redAccent[400]!,
                 Icons.trending_down,
               ),
@@ -528,9 +535,9 @@ class FundSummaryTab extends StatelessWidget {
             Expanded(
               child: _buildInfoItem(
                 context,
-                'Recuperación',
+                l10n.recoveryLabel,
                 recoveryText,
-                'Desde el Trough',
+                l10n.fromTroughLabel,
                 Colors.greenAccent[400]!,
                 Icons.restore,
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:investing/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/fund_provider.dart';
@@ -17,8 +18,10 @@ class FundOperationsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final provider = context.read<FundProvider>();
-    final smartFormat = NumberFormat('#,##0.####', 'es_ES');
+    final locale = Localizations.localeOf(context).toString();
+    final smartFormat = NumberFormat('#,##0.####', locale);
     return Column(
       children: [
         Padding(
@@ -28,7 +31,7 @@ class FundOperationsList extends StatelessWidget {
                 ? null
                 : () => _showOperationDialog(context, provider),
             icon: const Icon(Icons.add),
-            label: const Text('Nueva Operación'),
+            label: Text(l10n.newOperation),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
             ),
@@ -36,10 +39,10 @@ class FundOperationsList extends StatelessWidget {
         ),
         Expanded(
           child: fund.operations.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'No hay operaciones registradas',
-                    style: TextStyle(color: Colors.white38),
+                    l10n.noOperationsRegistered,
+                    style: const TextStyle(color: Colors.white38),
                   ),
                 )
               : ListView.separated(
@@ -57,7 +60,7 @@ class FundOperationsList extends StatelessWidget {
                             : Colors.redAccent[200],
                       ),
                       title: Text(
-                        isBuy ? 'Suscripción' : 'Reembolso',
+                        isBuy ? l10n.subscription : l10n.redemption,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -85,7 +88,10 @@ class FundOperationsList extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '${smartFormat.format(operation.units)} part. @ ${smartFormat.format(operation.price)}',
+                            l10n.unitsAtPrice(
+                              smartFormat.format(operation.units),
+                              smartFormat.format(operation.price),
+                            ),
                             style: const TextStyle(
                               color: Colors.white38,
                               fontSize: 11,
@@ -113,19 +119,20 @@ class FundOperationsList extends StatelessWidget {
     FundProvider provider,
     FundOperation operation,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar Operación'),
-        content: const Text('¿Estás seguro?'),
+        title: Text(l10n.deleteOperationTitle),
+        content: Text(l10n.areYouSure),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -136,10 +143,10 @@ class FundOperationsList extends StatelessWidget {
       } catch (_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se pudo eliminar la operación'),
+            SnackBar(
+              content: Text(l10n.deleteOperationFailed),
               backgroundColor: Colors.redAccent,
-              duration: Duration(seconds: 4),
+              duration: const Duration(seconds: 4),
             ),
           );
         }
@@ -153,19 +160,20 @@ class FundOperationsList extends StatelessWidget {
     FundProvider provider,
     FundOperation operation,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: dialogContext,
       builder: (confirmationContext) => AlertDialog(
-        title: const Text('Eliminar Operación'),
-        content: const Text('¿Deseas eliminar esta operación?'),
+        title: Text(l10n.deleteOperationTitle),
+        content: Text(l10n.deleteOperationConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(confirmationContext, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(confirmationContext, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -179,29 +187,27 @@ class FundOperationsList extends StatelessWidget {
       if (!context.mounted) return;
       final snackBarController = ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Operación eliminada correctamente'),
+          content: Text(l10n.operationDeletedSuccess),
           duration: const Duration(seconds: 4),
           action: SnackBarAction(
-            label: 'Deshacer',
+            label: l10n.undo,
             onPressed: () async {
               try {
                 await provider.restoreOperation(operation);
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Eliminación deshecha'),
-                    duration: Duration(seconds: 4),
+                  SnackBar(
+                    content: Text(l10n.deletionUndone),
+                    duration: const Duration(seconds: 4),
                   ),
                 );
               } catch (_) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'No se pudo restaurar la operación. Haz un backup y reinicia la aplicación.',
-                    ),
+                  SnackBar(
+                    content: Text(l10n.restoreOperationError),
                     backgroundColor: Colors.redAccent,
-                    duration: Duration(seconds: 4),
+                    duration: const Duration(seconds: 4),
                   ),
                 );
               }
@@ -216,12 +222,10 @@ class FundOperationsList extends StatelessWidget {
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No se pudo eliminar la operación. Haz un backup y reinicia la aplicación.',
-          ),
+        SnackBar(
+          content: Text(l10n.deleteOperationError),
           backgroundColor: Colors.redAccent,
-          duration: Duration(seconds: 4),
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -232,6 +236,7 @@ class FundOperationsList extends StatelessWidget {
     FundProvider provider, {
     FundOperation? operation,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     DateTime selectedDate = operation?.date ?? DateTime.now();
     OperationType selectedType = operation?.type ?? OperationType.buy;
     final unitsController = TextEditingController(
@@ -273,21 +278,21 @@ class FundOperationsList extends StatelessWidget {
       builder: (dialogContext) => StatefulBuilder(
         builder: (formContext, setState) => AlertDialog(
           title: Text(
-            operation == null ? 'Nueva Operación' : 'Editar Operación',
+            operation == null ? l10n.newOperation : l10n.editOperation,
           ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 SegmentedButton<OperationType>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: OperationType.buy,
-                      label: Text('Compra'),
+                      label: Text(l10n.buy),
                     ),
                     ButtonSegment(
                       value: OperationType.sell,
-                      label: Text('Venta'),
+                      label: Text(l10n.sell),
                     ),
                   ],
                   selected: {selectedType},
@@ -296,7 +301,7 @@ class FundOperationsList extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  title: const Text('Fecha'),
+                  title: Text(l10n.dateLabel),
                   subtitle: Text(DateFormat('dd/MM/yyyy').format(selectedDate)),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
@@ -331,7 +336,7 @@ class FundOperationsList extends StatelessWidget {
                 ),
                 TextField(
                   controller: priceController,
-                  decoration: const InputDecoration(labelText: 'Precio (VL)'),
+                  decoration: InputDecoration(labelText: l10n.priceNavLabel),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -339,9 +344,7 @@ class FundOperationsList extends StatelessWidget {
                 ),
                 TextField(
                   controller: unitsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Participaciones',
-                  ),
+                  decoration: InputDecoration(labelText: l10n.unitsLabel),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -349,7 +352,7 @@ class FundOperationsList extends StatelessWidget {
                 ),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(labelText: 'Importe Total'),
+                  decoration: InputDecoration(labelText: l10n.totalAmountLabel),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -369,14 +372,14 @@ class FundOperationsList extends StatelessWidget {
                         provider,
                         operation,
                       ),
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.redAccent),
+                child: Text(
+                  l10n.delete,
+                  style: const TextStyle(color: Colors.redAccent),
                 ),
               ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -419,16 +422,16 @@ class FundOperationsList extends StatelessWidget {
                 } catch (_) {
                   if (dialogContext.mounted) {
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      const SnackBar(
-                        content: Text('No se pudo guardar la operación'),
+                      SnackBar(
+                        content: Text(l10n.saveOperationFailed),
                         backgroundColor: Colors.redAccent,
-                        duration: Duration(seconds: 4),
+                        duration: const Duration(seconds: 4),
                       ),
                     );
                   }
                 }
               },
-              child: const Text('Guardar'),
+              child: Text(l10n.save),
             ),
           ],
         ),

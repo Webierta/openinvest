@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:investing/l10n/app_localizations.dart';
 
 import '../widgets/gradient_background.dart';
 
@@ -8,10 +9,12 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Acerca de OpenInvest'),
+        title: Text(l10n.aboutOpenInvest),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -21,37 +24,37 @@ class AboutPage extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             children: [
               _AboutItem(
-                title: 'Licencia',
-                content: 'Esta aplicación es Software Libre bajo la licencia GNU General Public License v3 (GPLv3).',
+                title: l10n.licenseTitle,
+                content: l10n.licenseDesc,
               ),
               _AboutItem(
-                title: 'Código Abierto',
-                content: 'El código fuente está disponible públicamente en nuestro repositorio de GitHub:\ngithub.com/Webierta/openinvest',
+                title: l10n.openSourceTitle,
+                content: l10n.openSourceDesc,
               ),
               _AboutItem(
-                title: 'Fuente de Datos',
-                content: 'Los datos financieros y cotizaciones se obtienen de Yahoo Finance. OpenInvest no se responsabiliza de la exactitud de los datos proporcionados por terceros.',
+                title: l10n.dataSourceTitle,
+                content: l10n.dataSourceDesc,
               ),
               _AboutItem(
-                title: 'Permisos',
-                content: '• Internet: Para descargar cotizaciones en tiempo real.\n• Almacenamiento: Para exportar e importar archivos JSON de copia de seguridad.',
+                title: l10n.permissionsTitle,
+                content: l10n.permissionsDesc,
               ),
               _AboutItem(
-                title: 'Garantía y Responsabilidad',
-                content: 'La aplicación se proporciona "tal cual", sin garantía de ningún tipo. No constituye asesoramiento financiero profesional. Invierte bajo tu propio riesgo.',
+                title: l10n.warrantyTitle,
+                content: l10n.warrantyDesc,
               ),
               _AboutItem(
-                title: 'Privacidad y Seguridad',
-                content: 'OpenInvest es una aplicación 100% gratuita y sin publicidad. No recopilamos datos personales. Toda tu información financiera se guarda exclusivamente de forma local en tu dispositivo.',
+                title: l10n.privacyTitle,
+                content: l10n.privacyDesc,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               FutureBuilder<PackageInfo>(
                 future: PackageInfo.fromPlatform(),
                 builder: (context, snapshot) {
                   final version = snapshot.data?.version;
                   return Center(
                     child: Text(
-                      'Versión ${version ?? '...'}\nhttps://github.com/Webierta/openinvest',
+                      '${l10n.versionLabel} ${version ?? '...'}\nhttps://github.com/Webierta/openinvest',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white24,

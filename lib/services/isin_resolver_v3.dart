@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/foreign_isin_provider.dart';
-import 'local_isin_provider.dart';
 import 'cnmv_local_fund_provider.dart';
 
 class IsinResult {
@@ -28,28 +27,18 @@ class IsinResult {
       'cnmvRegistration: $cnmvRegistration, cnmvNif: $cnmvNif)';
 }
 
-/// Proveedor extranjero basado en la ficha clásica de Morningstar.
+/// Resuelve el ISIN de una clase concreta de un fondo extranjero usando
+/// Morningstar.
 ///
-/// La ruta `lt.morningstar.com` sigue exponiendo una ficha HTML accesible
-/// sin API key. Cuando Yahoo devuelve un identificador Morningstar del tipo
-/// `0P000xxxxx.F`, podemos consultar directamente el snapshot y leer la
-/// variable JavaScript `HoldingIsin`.
-///
-/// Ejemplos reales comprobados:
-///   0P00000FB4 -> FR0010135103
-///   0P0000X83M -> IE00B8K7V925
-///   0P00006DAB -> LU0261948904
-///
-/// El proveedor es deliberadamente conservador: solo acepta el ISIN que
-/// Morningstar publica explícitamente en `HoldingIsin` y además lo valida con
-/// el checksum ISIN. Nunca intenta inferir una clase a partir del nombre.
-class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
+/// Yahoo Finance suele devolver para fondos un identificador de la forma
+/// `0P000xxxxx.F`. Morningstar utiliza el mismo identificador `0P000xxxxx`
+/// en sus fichas de fondos. Por ello podemos acceder directamente a la ficha
+/// sin depender de un buscador externo ni de un slug construido a partir del
+/// nombre.
+class MorningstarForeignIsinProvider implements ForeignIsinProvider {
   final http.Client client;
 
-  static const String _snapshotBaseUrl =
-      'https://lt.morningstar.com/2nhcdckzon/snapshot/snapshot.aspx';
-
-  MorningstarLtForeignIsinProvider({http.Client? client})
+  MorningstarForeignIsinProvider({http.Client? client})
     : client = client ?? http.Client();
 
   @override
@@ -59,59 +48,35 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
     required String yahooSymbol,
     required String yahooName,
   }) async {
+    // Morningstar solo se utiliza cuando ya conocemos su identificador.
+    //
+    // Importante: no intentamos descubrir el ID mediante el buscador/API
+    // interno de Morningstar. Esos endpoints están protegidos actualmente
+    // por AWS WAF y desde Dart responden con HTTP 202 + challenge JavaScript.
     final morningstarId = _extractMorningstarId(yahooSymbol);
 
     if (morningstarId == null) {
       print(
-        '  Morningstar LT: Yahoo no contiene un ID Morningstar '
-        '($yahooSymbol).',
+        '  Morningstar: no hay ID Morningstar en Yahoo '
+        '($yahooSymbol). Sin búsqueda por nombre.',
       );
       return null;
     }
 
-    print('  Morningstar LT ID: $morningstarId');
+    print('  Morningstar ID detectado: $morningstarId');
 
-    final uri = Uri.parse(_snapshotBaseUrl).replace(
-      queryParameters: <String, String>{
-        'Id': morningstarId,
-        'LanguageId': 'es-ES',
-      },
+    final isin = await _resolveByMorningstarId(
+      morningstarId,
+      expectedNames: <String>[fundName, yahooName],
     );
 
-    try {
-      final response = await client
-          .get(
-            uri,
-            headers: const <String, String>{
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-              'User-Agent':
-                  'Mozilla/5.0 (X11; Linux x86_64) '
-                  'AppleWebKit/537.36 (KHTML, like Gecko) '
-                  'Chrome/140.0.0.0 Safari/537.36',
-            },
-          )
-          .timeout(const Duration(seconds: 15));
+    if (isin != null) return isin;
 
-      print('  Morningstar LT GET: HTTP ${response.statusCode}');
-
-      if (response.statusCode != 200) return null;
-
-      final isin = _extractHoldingIsin(response.body);
-      if (isin == null) {
-        print(
-          '  Morningstar LT: la ficha $morningstarId no contiene '
-          'un HoldingIsin válido.',
-        );
-        return null;
-      }
-
-      print('  Morningstar LT ISIN: $isin');
-      return isin;
-    } catch (e) {
-      print('  Morningstar LT error: $e');
-      return null;
-    }
+    print(
+      '  Morningstar: no se encontró ISIN en la ficha '
+      '$morningstarId para $fundName',
+    );
+    return null;
   }
 
   String? _extractMorningstarId(String value) {
@@ -119,52 +84,178 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
       r'^(0P[0-9A-Z]+)(?:\.[A-Z]+)?$',
       caseSensitive: false,
     ).firstMatch(value.trim());
-
     return match?.group(1)?.toUpperCase();
   }
 
-  String? _extractHoldingIsin(String html) {
-    // Estructura comprobada en lt.morningstar.com:
-    //   var PerformanceId = '0P00000FB4';
-    //   var HoldingId = '0P00000FB4';
-    //   var HoldingIsin='FR0010135103';
-    //
-    // Buscamos exclusivamente HoldingIsin para no confundirlo con ISINs de
-    // benchmarks, documentos, carteras u otros instrumentos del HTML.
-    final patterns = <RegExp>[
-      RegExp(
-        r"""HoldingIsin\s*=\s*['"]([A-Z]{2}[A-Z0-9]{9}\d)['"]""",
-        caseSensitive: false,
-      ),
-      RegExp(
-        r"""HoldingIsin\s*:\s*['"]([A-Z]{2}[A-Z0-9]{9}\d)['"]""",
-        caseSensitive: false,
-      ),
-      /* RegExp(
-        r'''\bHoldingIsin\s*=\s*[\'\]([A-Z]{2}[A-Z0-9]{9}\d)[\'\"]''',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'''\bHoldingIsin\s*:\s*[\'\"]([A-Z]{2}[A-Z0-9]{9}\d)[\'\"]''',
-        caseSensitive: false,
-      ), */
+  Future<String?> _resolveByMorningstarId(
+    String morningstarId, {
+    required List<String> expectedNames,
+  }) async {
+    final urls = <String>[
+      'https://global.morningstar.com/es/inversiones/fondos/$morningstarId/cotizacion',
+      'https://global.morningstar.com/es/inversiones/fondos/$morningstarId/documentos',
+      'https://global.morningstar.com/en-eu/investments/funds/$morningstarId/risk',
+      'https://global.morningstar.com/en-eu/investments/funds/$morningstarId/documents',
     ];
 
-    for (final pattern in patterns) {
-      final match = pattern.firstMatch(html);
-      if (match == null) continue;
+    for (final url in urls) {
+      print('  Morningstar ficha: $url');
+      final html = await _readPage(url);
+      if (html == null) continue;
 
-      final isin = match.group(1)!.toUpperCase();
-      if (_isValidIsin(isin)) return isin;
+      final overviewIsin = _extractOverviewIsin(
+        html,
+        expectedNames: expectedNames,
+      );
+      if (overviewIsin != null) {
+        print('  Morningstar ISIN encontrado en overview: $overviewIsin');
+        return overviewIsin;
+      }
+
+      final rowIsin = _extractMatchingRowIsin(
+        html,
+        expectedNames: expectedNames,
+      );
+      if (rowIsin != null) {
+        print('  Morningstar ISIN encontrado en fila: $rowIsin');
+        return rowIsin;
+      }
+
+      final fallback = _extractUniqueIsin(html);
+      if (fallback != null) {
+        print('  Morningstar ISIN encontrado en HTML: $fallback');
+        return fallback;
+      }
     }
 
     return null;
   }
 
-  bool _isValidIsin(String isin) {
-    if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(isin)) {
-      return false;
+  Future<String?> _readPage(String url) async {
+    try {
+      final response = await client.get(
+        Uri.parse(url),
+        headers: const {
+          'Accept':
+              'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+          'Referer': 'https://global.morningstar.com/es/',
+          'User-Agent':
+              'Mozilla/5.0 (X11; Linux x86_64) '
+              'AppleWebKit/537.36 (KHTML, like Gecko) '
+              'Chrome/140.0.0.0 Safari/537.36',
+        },
+      );
+
+      print('  Morningstar GET: HTTP ${response.statusCode}');
+      if (response.statusCode != 200) {
+        if (response.statusCode == 202) {
+          print(
+            '  Morningstar: HTTP 202; la ficha requiere un challenge '
+            'de AWS WAF.',
+          );
+        }
+        return null;
+      }
+      return response.body;
+    } catch (e) {
+      print('  Error leyendo Morningstar: $e');
+      return null;
     }
+  }
+
+  String? _extractOverviewIsin(
+    String html, {
+    required List<String> expectedNames,
+  }) {
+    final pattern = RegExp(
+      r'''<h2\b[^>]*id=["']overview-investment-name["'][^>]*>([\s\S]*?)</h2>\s*<div\b[^>]*class=["']symbol["'][^>]*>([^<]+)</div>''',
+      caseSensitive: false,
+    );
+
+    for (final match in pattern.allMatches(html)) {
+      final name = _cleanHtmlText(match.group(1) ?? '');
+      final isin = _cleanHtmlText(match.group(2) ?? '').toUpperCase();
+      if (!_isValidIsin(isin)) continue;
+      if (expectedNames.any((n) => _namesCompatible(n, name))) return isin;
+    }
+    return null;
+  }
+
+  String? _extractMatchingRowIsin(
+    String html, {
+    required List<String> expectedNames,
+  }) {
+    for (final rowMatch in RegExp(
+      r'<tr\b[^>]*>([\s\S]*?)</tr>',
+      caseSensitive: false,
+    ).allMatches(html)) {
+      final row = rowMatch.group(1) ?? '';
+      final text = _cleanHtmlText(row);
+      if (!expectedNames.any((n) => _namesCompatible(n, text))) continue;
+
+      final isinMatch = RegExp(
+        r'''<td\b[^>]*class=["'][^"']*\bisin(?:-[^"']*)?\b[^"']*["'][^>]*>[\s\S]*?([A-Z]{2}[A-Z0-9]{9}\d)[\s\S]*?</td>''',
+        caseSensitive: false,
+      ).firstMatch(row);
+
+      final isin = isinMatch?.group(1)?.toUpperCase();
+      if (isin != null && _isValidIsin(isin)) return isin;
+    }
+    return null;
+  }
+
+  String? _extractUniqueIsin(String html) {
+    final found = <String>{};
+    for (final match in RegExp(
+      r'\b([A-Z]{2}[A-Z0-9]{9}\d)\b',
+      caseSensitive: false,
+    ).allMatches(_stripHtml(html))) {
+      final isin = match.group(1)!.toUpperCase();
+      if (_isValidIsin(isin)) found.add(isin);
+    }
+    return found.length == 1 ? found.first : null;
+  }
+
+  bool _namesCompatible(String expected, String actual) {
+    final a = _normalizeName(expected);
+    final b = _normalizeName(actual);
+    if (a.isEmpty || b.isEmpty) return false;
+    if (a == b || a.contains(b) || b.contains(a)) return true;
+    return _nameSimilarity(expected, actual) >= 0.70;
+  }
+
+  String _normalizeName(String value) => value
+      .toLowerCase()
+      .replaceAll('&amp;', '&')
+      .replaceAll(RegExp(r'[^a-z0-9áéíóúüñ]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+
+  String _cleanHtmlText(String html) => _stripHtml(html).trim();
+
+  String _stripHtml(String html) => html
+      .replaceAll(
+        RegExp(r'<script\b[\s\S]*?</script>', caseSensitive: false),
+        ' ',
+      )
+      .replaceAll(
+        RegExp(r'<style\b[\s\S]*?</style>', caseSensitive: false),
+        ' ',
+      )
+      .replaceAll(RegExp(r'<[^>]+>', caseSensitive: false), ' ')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll(RegExp(r'\\u002F'), '/')
+      .replaceAll(RegExp(r'\\u003A'), ':')
+      .replaceAll(RegExp(r'\\u002D'), '-')
+      .replaceAll(RegExp(r'\\u0026'), '&')
+      .replaceAll(RegExp(r'\s+'), ' ');
+
+  bool _isValidIsin(String isin) {
+    if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(isin)) return false;
 
     final digits = <int>[];
     for (final char in isin.split('')) {
@@ -179,7 +270,6 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
 
     var sum = 0;
     final parity = digits.length % 2;
-
     for (var i = 0; i < digits.length; i++) {
       var digit = digits[i];
       if (i % 2 == parity) {
@@ -188,15 +278,23 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
       }
       sum += digit;
     }
-
     return sum % 10 == 0;
   }
-}
 
-/// Alias de compatibilidad para código que utilizase el nombre anterior.
-/// La implementación real es `MorningstarLtForeignIsinProvider`.
-class MorningstarForeignIsinProvider extends MorningstarLtForeignIsinProvider {
-  MorningstarForeignIsinProvider({super.client});
+  double _nameSimilarity(String a, String b) {
+    final left = _normalizeName(a);
+    final right = _normalizeName(b);
+    if (left.isEmpty || right.isEmpty) return 0.0;
+    if (left == right) return 1.0;
+
+    final lt = left.split(' ').where((e) => e.length > 2).toSet();
+    final rt = right.split(' ').where((e) => e.length > 2).toSet();
+    if (lt.isEmpty || rt.isEmpty) return 0.0;
+
+    final intersection = lt.intersection(rt).length;
+    final union = lt.union(rt).length;
+    return union == 0 ? 0.0 : intersection / union;
+  }
 }
 
 class IsinResolver {
@@ -222,15 +320,9 @@ class IsinResolver {
   }) : _client = client ?? http.Client(),
        _cnmvLocalFundProvider =
            cnmvLocalFundProvider ?? CnmvLocalFundProvider() {
-    /* _foreignIsinProviders =
-        foreignIsinProviders ??
-        [MorningstarForeignIsinProvider(client: _client)]; */
     _foreignIsinProviders =
         foreignIsinProviders ??
-        [
-          LocalIsinProvider(),
-          MorningstarLtForeignIsinProvider(client: _client),
-        ];
+        [MorningstarForeignIsinProvider(client: _client)];
   }
 
   Future<IsinResult?> resolve({
@@ -286,7 +378,7 @@ class IsinResolver {
       fundName: fundName,
     );
 
-    if (cnmvFiResult != null) {
+    if (cnmvFiResult != null && _isIsin(cnmvFiResult.isin)) {
       print(
         'CNMV FI local: ${cnmvFiResult.fundName}'
         '${cnmvFiResult.compartmentName == null ? '' : ' / ${cnmvFiResult.compartmentName}'}'
@@ -295,7 +387,7 @@ class IsinResolver {
       );
 
       return IsinResult(
-        isin: cnmvFiResult.isin,
+        isin: cnmvFiResult.isin.trim().toUpperCase(),
         source: 'CNMV/FI local',
         officialName: cnmvFiResult.fundName,
         cnmvRegistration: cnmvFiResult.registrationNumber,
@@ -305,6 +397,11 @@ class IsinResolver {
     return _resolveForeignFund(ticker: normalizedTicker, fundName: fundName);
   }
 
+  /// Intenta resolver fondos no cubiertos por CNMV.
+  ///
+  /// Un proveedor extranjero nunca se considera autoridad por sí mismo:
+  /// el resultado solo se acepta si devuelve un ISIN válido según el
+  /// checksum ISIN. Si ningún proveedor puede demostrarlo, devuelve null.
   Future<IsinResult?> _resolveForeignFund({
     required String ticker,
     required String fundName,
@@ -512,7 +609,7 @@ class IsinResolver {
     if (html == null) return null;
 
     final isin = _extractIsin(html);
-    if (isin == null) return null;
+    if (isin == null || !_isIsin(isin)) return null;
 
     return IsinResult(
       isin: isin,
@@ -817,6 +914,12 @@ class IsinResolver {
     return 'https://www.cnmv.es/$url';
   }
 
+  bool _hasNextPage(String html) {
+    final text = _cleanHtmlText(html).toLowerCase();
+    return text.contains('siguiente') || text.contains('next');
+  }
+
+  /// Libera el cliente HTTP. Se mantiene `void` para conservar la API actual.
   void dispose() => _client.close();
 }
 
@@ -849,3 +952,5 @@ class _CnmvEntity {
     required this.url,
   });
 }
+
+double maxDouble(double a, double b) => a > b ? a : b;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:investing/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/fund_provider.dart';
@@ -42,15 +43,14 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
 
   void _showDeleteError(BuildContext context) {
     if (!context.mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text(
-          'No se pudo eliminar el precio. Haz un backup del fondo y reinicia la aplicación.',
-        ),
+        content: Text(l10n.deletePriceError),
         backgroundColor: Colors.redAccent,
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
-          label: 'Backup',
+          label: l10n.backup,
           textColor: Colors.white,
           onPressed: () async {
             if (await ExportService.exportFund(context, widget.fund)) {
@@ -64,6 +64,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final tableData = <Map<String, dynamic>>[];
     for (int i = 0; i < widget.fund.history.length; i++) {
       final point = widget.fund.history[i];
@@ -132,7 +133,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 8,
                 child: _SortableHeader(
-                  label: 'No.',
+                  label: l10n.numberLabel,
                   index: 0,
                   selectedIndex: _sortColumnIndex,
                   ascending: _isAscending,
@@ -142,7 +143,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 20,
                 child: _SortableHeader(
-                  label: 'Fecha',
+                  label: l10n.dateLabel,
                   index: 1,
                   selectedIndex: _sortColumnIndex,
                   ascending: _isAscending,
@@ -152,7 +153,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 18,
                 child: _SortableHeader(
-                  label: 'Precio',
+                  label: l10n.priceLabel,
                   index: 2,
                   selectedIndex: _sortColumnIndex,
                   ascending: _isAscending,
@@ -162,7 +163,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 15,
                 child: _SortableHeader(
-                  label: 'Diff.',
+                  label: l10n.diffLabel,
                   index: 3,
                   selectedIndex: _sortColumnIndex,
                   ascending: _isAscending,
@@ -172,7 +173,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 12,
                 child: _SortableHeader(
-                  label: 'Var.',
+                  label: l10n.varLabel,
                   index: 4,
                   selectedIndex: _sortColumnIndex,
                   ascending: _isAscending,
@@ -207,6 +208,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
   }
 
   Widget _buildRow(BuildContext context, Map<String, dynamic> row) {
+    final l10n = AppLocalizations.of(context)!;
     final absVar = row['absVar'] as double?;
     final variation = row['variation'] as double?;
     final date = row['date'] as DateTime;
@@ -229,20 +231,20 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
       confirmDismiss: (direction) => showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Eliminar Precio'),
+          title: Text(l10n.deletePriceTitle),
           content: Text(
-            '¿Deseas eliminar el registro del día ${DateFormat('dd/MM/yyyy').format(date)}?',
+            l10n.deletePriceConfirm(DateFormat('dd/MM/yyyy').format(date)),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancelar'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text(
-                'Eliminar',
-                style: TextStyle(color: Colors.red),
+              child: Text(
+                l10n.delete,
+                style: const TextStyle(color: Colors.red),
               ),
             ),
           ],
@@ -262,10 +264,10 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
           if (!context.mounted) return;
           final snackBarController = ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Precio eliminado correctamente'),
+              content: Text(l10n.priceDeletedSuccess),
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
-                label: 'Deshacer',
+                label: l10n.undo,
                 onPressed: () async {
                   try {
                     await context.read<FundProvider>().restorePricePoint(
@@ -274,7 +276,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                     );
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Eliminación deshecha')),
+                      SnackBar(content: Text(l10n.deletionUndone)),
                     );
                   } catch (_) {
                     _showDeleteError(context);

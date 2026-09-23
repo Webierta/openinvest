@@ -21,6 +21,22 @@ class FundProvider with ChangeNotifier {
   Map<String, double> exchangeRates = {'EUR': 1.0};
   List<PricePoint>? benchmarkHistory;
   String? selectedBenchmarkSymbol;
+  Locale? _locale;
+
+  Locale? get locale => _locale;
+
+  Future<void> setLocale(Locale locale) async {
+    _locale = locale;
+    await SettingsService.setLocale(locale.languageCode);
+    notifyListeners();
+  }
+
+  Future<void> _initializeLocale() async {
+    final languageCode = await SettingsService.getLocale();
+    if (languageCode != null) {
+      _locale = Locale(languageCode);
+    }
+  }
 
   String? get error =>
       lastError?.type == AppErrorType.info ? null : lastError?.message;
@@ -108,6 +124,7 @@ class FundProvider with ChangeNotifier {
   }
 
   Future<void> initialize() async {
+    await _initializeLocale();
     await loadPortfolio();
     await refreshOnStartupIfNeeded();
   }

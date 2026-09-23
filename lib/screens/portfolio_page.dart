@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:investing/l10n/app_localizations.dart';
 
 import '../providers/fund_provider.dart';
 import '../widgets/gradient_background.dart';
@@ -40,23 +41,22 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   }
 
   Future<bool?> _confirmOverwrite(BuildContext context, String fundName) {
+    final l10n = AppLocalizations.of(context)!;
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Fondo ya existente'),
-        content: Text(
-          '$fundName ya está en tu cartera. ¿Quieres sobrescribirlo? Se eliminarán sus datos actuales, incluido el historial y las operaciones.',
-        ),
+        title: Text(l10n.fundAlreadyInPortfolio),
+        content: Text(l10n.overwriteFundDesc(fundName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text(
-              'Sobrescribir',
-              style: TextStyle(color: Colors.redAccent),
+            child: Text(
+              l10n.overwrite,
+              style: const TextStyle(color: Colors.redAccent),
             ),
           ),
         ],
@@ -66,20 +66,22 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final provider = context.watch<FundProvider>();
-    final priceFormat = NumberFormat('#,##0.0000', 'es_ES');
-    final percentFormat = NumberFormat('#,##0.00', 'es_ES');
-    final smartFormat = NumberFormat('#,##0.##', 'es_ES');
+    final locale = Localizations.localeOf(context).toString();
+    final priceFormat = NumberFormat('#,##0.0000', locale);
+    final percentFormat = NumberFormat('#,##0.00', locale);
+    final smartFormat = NumberFormat('#,##0.##', locale);
+    //final smartDateFormat = DateFormat('dd/MM/yy', locale);
 
     final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
       provider.exchangeRates,
     );
 
-    final Color globalProfitColor =
-        globalMetrics.profitAbs >= 0
-            ? Colors.greenAccent[400]!
-            : Colors.redAccent[200]!;
+    final Color globalProfitColor = globalMetrics.profitAbs >= 0
+        ? Colors.greenAccent[400]!
+        : Colors.redAccent[200]!;
 
     final bool showPortfolioSummary = globalMetrics.totalInvested > 0;
 
@@ -115,13 +117,13 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                     )
                   : const Icon(Icons.refresh),
               onPressed: provider.isBusy ? null : provider.updateAllPortfolio,
-              tooltip: 'Actualizar toda la cartera',
+              tooltip: l10n.updatePortfolioTooltip,
             ),
           ],
           if (provider.portfolio.isNotEmpty)
             PopupMenuButton<SortCriteria>(
               icon: const Icon(Icons.sort, color: Colors.white),
-              tooltip: 'Ordenar cartera',
+              tooltip: l10n.sortPortfolioTooltip,
               onSelected: (criteria) {
                 context.read<FundProvider>().setSortCriteria(criteria);
               },
@@ -138,7 +140,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             : Colors.white70,
                       ),
                       const SizedBox(width: 12),
-                      const Text('Nombre del Fondo'),
+                      Text(l10n.sortByAlpha),
                     ],
                   ),
                 ),
@@ -154,7 +156,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             : Colors.white70,
                       ),
                       const SizedBox(width: 12),
-                      const Text('Valor Total'),
+                      Text(l10n.sortByValue),
                     ],
                   ),
                 ),
@@ -170,7 +172,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             : Colors.white70,
                       ),
                       const SizedBox(width: 12),
-                      const Text('Rendimiento (TAE)'),
+                      Text(l10n.sortByPerformance),
                     ],
                   ),
                 ),
@@ -178,7 +180,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
             ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
-            tooltip: 'Más opciones',
+            tooltip: l10n.moreOptionsTooltip,
             onSelected: (value) async {
               switch (value) {
                 case 'import':
@@ -204,8 +206,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                       }
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Fondo importado correctamente'),
+                          SnackBar(
+                            content: Text(l10n.fundImportedSuccess),
                           ),
                         );
                       }
@@ -218,23 +220,21 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Vaciar Cartera'),
-                      content: const Text(
-                        '¿Estás seguro de que quieres eliminar todos los fondos de tu cartera?',
-                      ),
+                      title: Text(l10n.clearPortfolioTitle),
+                      content: Text(l10n.clearPortfolioConfirm),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancelar'),
+                          child: Text(l10n.cancel),
                         ),
                         TextButton(
                           onPressed: () {
                             provider.clearPortfolio();
                             Navigator.pop(context);
                           },
-                          child: const Text(
-                            'Eliminar',
-                            style: TextStyle(color: Colors.red),
+                          child: Text(
+                            l10n.delete,
+                            style: const TextStyle(color: Colors.red),
                           ),
                         ),
                       ],
@@ -244,34 +244,34 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'import',
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.file_download_outlined,
                       size: 20,
                       color: Colors.white70,
                     ),
-                    SizedBox(width: 12),
-                    Text('Importar fondo (JSON)'),
+                    const SizedBox(width: 12),
+                    Text(l10n.importFundJson),
                   ],
                 ),
               ),
               if (provider.portfolio.isNotEmpty)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'clear',
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.delete_sweep,
                         size: 20,
                         color: Colors.redAccent,
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Text(
-                        'Vaciar cartera',
-                        style: TextStyle(color: Colors.redAccent),
+                        l10n.clearPortfolioAction,
+                        style: const TextStyle(color: Colors.redAccent),
                       ),
                     ],
                   ),
@@ -297,11 +297,11 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                 ),
               Expanded(
                 child: provider.hasPortfolioLoadError
-                    ? const Center(
+                    ? Center(
                         child: Text(
-                          'No se pudieron cargar los datos de la cartera.',
+                          l10n.portfolioLoadError,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white70),
+                          style: const TextStyle(color: Colors.white70),
                         ),
                       )
                     : provider.portfolio.isEmpty
@@ -315,7 +315,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               color: Colors.white24,
                             ),
                             const SizedBox(height: 16),
-                            const Text('Tu cartera está vacía.'),
+                            Text(l10n.emptyPortfolio),
                             TextButton.icon(
                               onPressed: () => Navigator.push(
                                 context,
@@ -324,7 +324,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                 ),
                               ),
                               icon: const Icon(Icons.search),
-                              label: const Text('Añadir mi primer fondo'),
+                              label: Text(l10n.addFirstFund),
                             ),
                           ],
                         ),
@@ -352,9 +352,9 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                   padding: const EdgeInsets.all(20),
                                   child: Column(
                                     children: [
-                                      const Text(
-                                        'RESUMEN DE CARTERA',
-                                        style: TextStyle(
+                                      Text(
+                                        l10n.portfolioSummary,
+                                        style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                           letterSpacing: 1.2,
@@ -374,7 +374,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Invertido: ${smartFormat.format(globalMetrics.totalInvested)} €',
+                                        '${l10n.invested}: ${smartFormat.format(globalMetrics.totalInvested)} €',
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -413,7 +413,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                   BorderRadius.circular(6),
                                             ),
                                             child: Text(
-                                              '${globalMetrics.isAnnualized ? 'TAE' : 'GANANCIA'}: ${globalMetrics.profitRel > 0 ? '+' : ''}${percentFormat.format(globalMetrics.profitRel)}%',
+                                              '${globalMetrics.isAnnualized ? l10n.sortByPerformance : l10n.gain}: ${globalMetrics.profitRel > 0 ? '+' : ''}${percentFormat.format(globalMetrics.profitRel)}%',
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.bold,
@@ -426,61 +426,54 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                       if (globalMetrics.totalValue > 0) ...[
                                         const SizedBox(height: 24),
                                         ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(4),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                           child: SizedBox(
                                             height: 8,
                                             width: double.infinity,
                                             child: Row(
-                                              children: provider.portfolio
-                                                  .map((item) {
-                                                    final metrics =
-                                                        FinancialCalculator
-                                                            .calculateFundMetrics(
-                                                              item,
-                                                            );
-                                                    final double rate =
-                                                        provider.exchangeRates[
-                                                              item.currency
-                                                            ] ??
-                                                            1.0;
-                                                    final fundValue =
-                                                        metrics.currentValue *
-                                                        rate;
-                                                    final weight =
-                                                        fundValue /
-                                                        globalMetrics
-                                                            .totalValue;
-
-                                                    if (weight <= 0) {
-                                                      return const SizedBox
-                                                          .shrink();
-                                                    }
-
-                                                    return Expanded(
-                                                      flex: (weight * 1000)
-                                                          .toInt(),
-                                                      child: Tooltip(
-                                                        message:
-                                                            '${item.name}\nPeso: ${percentFormat.format(weight * 100)}%',
-                                                        triggerMode:
-                                                            TooltipTriggerMode
-                                                                .tap,
-                                                        preferBelow: false,
-                                                        child: Container(
-                                                          color: _getFundColor(
-                                                            item.isin,
-                                                          ),
-                                                          margin:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                                horizontal: 0.5,
-                                                              ),
-                                                        ),
-                                                      ),
+                                              children: provider.portfolio.map((
+                                                item,
+                                              ) {
+                                                final metrics =
+                                                    FinancialCalculator.calculateFundMetrics(
+                                                      item,
                                                     );
-                                                  })
-                                                  .toList(),
+                                                final double rate =
+                                                    provider.exchangeRates[item
+                                                        .currency] ??
+                                                    1.0;
+                                                final fundValue =
+                                                    metrics.currentValue * rate;
+                                                final weight =
+                                                    fundValue /
+                                                    globalMetrics.totalValue;
+
+                                                if (weight <= 0) {
+                                                  return const SizedBox.shrink();
+                                                }
+
+                                                return Expanded(
+                                                  flex: (weight * 1000).toInt(),
+                                                  child: Tooltip(
+                                                    message:
+                                                        '${item.name}\n${l10n.weightLabel}: ${percentFormat.format(weight * 100)}%',
+                                                    triggerMode:
+                                                        TooltipTriggerMode.tap,
+                                                    preferBelow: false,
+                                                    child: Container(
+                                                      color: _getFundColor(
+                                                        item.isin,
+                                                      ),
+                                                      margin:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 0.5,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }).toList(),
                                             ),
                                           ),
                                         ),
@@ -515,10 +508,9 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             }
 
                             final hasOps = item.operations.isNotEmpty;
-                            final Color profitColor =
-                                metrics.profitAbs >= 0
-                                    ? Colors.greenAccent[400]!
-                                    : Colors.redAccent[200]!;
+                            final Color profitColor = metrics.profitAbs >= 0
+                                ? Colors.greenAccent[400]!
+                                : Colors.redAccent[200]!;
 
                             return Card(
                               margin: const EdgeInsets.symmetric(
@@ -661,8 +653,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                     const SizedBox(width: 6),
                                                   ],
                                                   Text(
-                                                    DateFormat('dd/MM/yy')
-                                                        .format(item.date),
+                                                    DateFormat.yMd(locale).format(item.date),
+                                                    //SmartDateFormat.format(),
                                                     style: Theme.of(context)
                                                         .textTheme
                                                         .bodySmall
@@ -693,9 +685,9 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                const Text(
-                                                  'VALOR TOTAL',
-                                                  style: TextStyle(
+                                                Text(
+                                                  l10n.valueLabel,
+                                                  style: const TextStyle(
                                                     fontSize: 9,
                                                     color: Colors.white38,
                                                     fontWeight: FontWeight.bold,
@@ -703,7 +695,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                   ),
                                                 ),
                                                 Text(
-                                                  '${priceFormat.format(metrics.currentValue)} ${item.currency}',
+                                                  '${smartFormat.format(metrics.currentValue)} ${item.currency}',
                                                   style: const TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.w500,
@@ -711,9 +703,9 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                   ),
                                                 ),
                                                 const SizedBox(height: 10),
-                                                const Text(
-                                                  'RENDIMIENTO',
-                                                  style: TextStyle(
+                                                Text(
+                                                  l10n.performanceLabel,
+                                                  style: const TextStyle(
                                                     fontSize: 9,
                                                     color: Colors.white38,
                                                     fontWeight: FontWeight.bold,
@@ -736,8 +728,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                               children: [
                                                 Text(
                                                   metrics.isAnnualized
-                                                      ? 'TAE'
-                                                      : 'GANANCIA TOTAL',
+                                                      ? l10n.sortByPerformance
+                                                      : l10n.totalGain,
                                                   style: const TextStyle(
                                                     fontSize: 9,
                                                     color: Colors.white38,

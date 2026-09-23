@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:investing/l10n/app_localizations.dart';
 
 import '../../providers/fund_provider.dart';
 import '../../services/fund_scraper.dart';
@@ -36,27 +37,21 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
     'Nikkei 225': '^N225',
   };
 
-  static const Map<String, String> benchmarkDescriptions = {
-    '^GSPC':
-        'El S&P 500 es un índice bursátil que agrupa a las 500 empresas más grandes y representativas de Estados Unidos.',
-    'URTH':
-        'El MSCI World es un índice que representa el rendimiento de empresas de mediana y gran capitalización en 23 países desarrollados.',
-    '^STOXX50E':
-        'El EuroStoxx 50 representa a las 50 empresas más grandes y líquidas de la eurozona.',
-    '^IBEX':
-        'El IBEX 35 es el índice de referencia de la bolsa española, compuesto por las 35 empresas con más liquidez.',
-    '^NDX':
-        'El Nasdaq 100 incluye a las 100 mayores empresas no financieras que cotizan en el mercado Nasdaq, con gran peso tecnológico.',
-    '^GDAXI':
-        'El DAX 40 es el índice de referencia de la bolsa alemana, compuesto por las 40 principales empresas de este mercado.',
-    '^FCHI':
-        'El CAC 40 es el principal índice bursátil francés, que agrupa a las 40 empresas más significativas de la Bolsa de París.',
-    '^N225':
-        'El Nikkei 225 es el índice más importante de la bolsa japonesa, compuesto por las 225 empresas más líquidas de Tokio.',
-  };
+  Map<String, String> _getBenchmarkDescriptions(AppLocalizations l10n) => {
+        '^GSPC': l10n.sp500Desc,
+        'URTH': l10n.msciWorldDesc,
+        '^STOXX50E': l10n.euroStoxx50Desc,
+        '^IBEX': l10n.ibex35Desc,
+        '^NDX': l10n.nasdaq100Desc,
+        '^GDAXI': l10n.dax40Desc,
+        '^FCHI': l10n.cac40Desc,
+        '^N225': l10n.nikkei225Desc,
+      };
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
     final provider = context.watch<FundProvider>();
     if (widget.fund.history.isEmpty) return const SizedBox.shrink();
     final filtered = _filteredHistory();
@@ -65,10 +60,10 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
         children: [
           _buildRangeSelector(),
           const SizedBox(height: 100),
-          const Center(
+          Center(
             child: Text(
-              'No hay datos en este rango',
-              style: TextStyle(color: Colors.white38),
+              l10n.noDataInRange,
+              style: const TextStyle(color: Colors.white38),
             ),
           ),
         ],
@@ -76,7 +71,7 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
     }
 
     final hasBenchmark = provider.selectedBenchmarkSymbol != null && provider.benchmarkHistory != null;
-    final labelFormat = NumberFormat('#,##0.00', 'es_ES');
+    final labelFormat = NumberFormat('#,##0.00', locale);
 
     // Preparar datos para el gráfico
     final fundSpots = _getFundSpots(filtered, hasBenchmark);
@@ -100,12 +95,9 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildBenchmarkSelector(provider, filtered),
-            _buildRangeSelector(),
-          ],
+        Align(
+          alignment: Alignment.centerRight,
+          child: _buildRangeSelector(),
         ),
         const SizedBox(height: 24),
         SizedBox(
@@ -136,7 +128,7 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
                         show: true,
                         alignment: Alignment.topRight,
                         labelResolver: (line) =>
-                            'Media: ${labelFormat.format(line.y)}',
+                            '${l10n.averageLabelShort}: ${labelFormat.format(line.y)}',
                         style: const TextStyle(
                           color: Colors.blue,
                           fontSize: 9,
@@ -161,7 +153,7 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
                       return Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          DateFormat('dd/MM').format(filtered[index].date),
+                          DateFormat.Md(locale).format(filtered[index].date),
                           style: const TextStyle(
                             fontSize: 9,
                             color: Colors.white38,
@@ -271,6 +263,10 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
             ),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: _buildBenchmarkSelector(provider, filtered),
+        ),
         if (hasBenchmark)
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 8),
@@ -278,11 +274,11 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
               children: [
                 Container(width: 12, height: 12, color: const Color(0xFF38BDF8)),
                 const SizedBox(width: 4),
-                const Text('Fondo (%)', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                Text(l10n.fundPercentLabel, style: const TextStyle(color: Colors.white70, fontSize: 10)),
                 const SizedBox(width: 16),
                 Container(width: 12, height: 12, decoration: BoxDecoration(border: Border.all(color: Colors.orangeAccent), color: Colors.orangeAccent.withValues(alpha: 0.2))),
                 const SizedBox(width: 4),
-                const Text('Benchmark (%)', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                Text(l10n.benchmarkPercentLabel, style: const TextStyle(color: Colors.white70, fontSize: 10)),
               ],
             ),
           ),
@@ -290,7 +286,7 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
           Padding(
             padding: const EdgeInsets.only(top: 16, left: 8, right: 8),
             child: Text(
-              benchmarkDescriptions[provider.selectedBenchmarkSymbol] ?? '',
+              _getBenchmarkDescriptions(l10n)[provider.selectedBenchmarkSymbol] ?? '',
               style: const TextStyle(
                 color: Colors.white38,
                 fontSize: 10,
@@ -354,6 +350,7 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
   }
 
   Widget _buildBenchmarkSelector(FundProvider provider, List<PricePoint> filtered) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -363,7 +360,10 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: provider.selectedBenchmarkSymbol,
-          hint: const Text('Comparar', style: TextStyle(color: Colors.white38, fontSize: 11)),
+          hint: Text(
+            l10n.compareWithBenchmark,
+            style: const TextStyle(color: Colors.white38, fontSize: 11),
+          ),
           dropdownColor: const Color(0xFF0F172A),
           icon: const Icon(Icons.compare_arrows, size: 16, color: Colors.white38),
           onChanged: (symbol) {
@@ -374,8 +374,17 @@ class _FundHistoryChartState extends State<FundHistoryChart> {
             }
           },
           items: [
-            const DropdownMenuItem<String>(value: null, child: Text('Ninguno', style: TextStyle(fontSize: 12))),
-            ...commonBenchmarks.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: const TextStyle(fontSize: 12)))),
+            if (provider.selectedBenchmarkSymbol != null)
+              DropdownMenuItem<String>(
+                value: null,
+                child: Text(l10n.noneLabel, style: const TextStyle(fontSize: 12)),
+              ),
+            ...commonBenchmarks.entries.map(
+              (e) => DropdownMenuItem(
+                value: e.value,
+                child: Text(e.key, style: const TextStyle(fontSize: 12)),
+              ),
+            ),
           ],
         ),
       ),

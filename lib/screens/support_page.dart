@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:investing/l10n/app_localizations.dart';
 
 import '../widgets/gradient_background.dart';
 
@@ -21,10 +22,12 @@ class SupportPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Apoyar OpenInvest'),
+        title: Text(l10n.supportOpenInvest),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -41,20 +44,20 @@ class SupportPage extends StatelessWidget {
                   color: Colors.redAccent,
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  '¡Hola! Soy el desarrollador de OpenInvest',
+                Text(
+                  l10n.helloDeveloper,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'OpenInvest es una herramienta de código abierto creada para ayudar a los inversores a gestionar sus carteras de forma gratuita y privada. Si la aplicación te resulta útil, considera apoyarla para asegurar su mantenimiento y evolución futura.',
+                Text(
+                  l10n.supportDescription,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white70,
                     height: 1.5,
@@ -65,9 +68,9 @@ class SupportPage extends StatelessWidget {
                 // Sugerencias / GitHub
                 _SupportCard(
                   icon: Icons.bug_report_outlined,
-                  title: 'Enviar Sugerencias o Errores',
-                  description: '¿Tienes alguna idea para mejorar o has encontrado un fallo? Cuéntamelo en el repositorio oficial.',
-                  buttonLabel: 'Ir a GitHub',
+                  title: l10n.githubTitle,
+                  description: l10n.githubDescription,
+                  buttonLabel: l10n.githubButton,
                   color: Colors.white12,
                   onPressed: () => _launchUrl(githubUrl),
                 ),
@@ -77,9 +80,9 @@ class SupportPage extends StatelessWidget {
                 // PayPal
                 _SupportCard(
                   icon: Icons.payment_rounded,
-                  title: 'Donar vía PayPal',
-                  description: 'Las donaciones ayudan a mantener activo su desarrollo resolviendo posibles errores e incorporando mejoras y nuevas funciones.',
-                  buttonLabel: 'Donar con PayPal',
+                  title: l10n.paypalTitle,
+                  description: l10n.paypalDescription,
+                  buttonLabel: l10n.paypalButton,
                   color: const Color(0xFF003087).withValues(alpha: 0.3),
                   onPressed: () => _launchUrl(paypalUrl),
                 ),
@@ -89,8 +92,8 @@ class SupportPage extends StatelessWidget {
                 // Bitcoin
                 _SupportCard(
                   icon: Icons.currency_bitcoin_rounded,
-                  title: 'Donar vía Bitcoin',
-                  description: 'También puedes enviar tu apoyo a través de la red Bitcoin.',
+                  title: l10n.bitcoinTitle,
+                  description: l10n.bitcoinDescription,
                   content: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -124,36 +127,32 @@ class SupportPage extends StatelessWidget {
                               const ClipboardData(text: btcAddress),
                             );
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Dirección Bitcoin copiada al portapapeles',
-                                ),
+                              SnackBar(
+                                content: Text(l10n.bitcoinCopied),
                               ),
                             );
                           },
-                          tooltip: 'Copiar dirección',
+                          tooltip: l10n.copyAddress,
                         ),
                       ],
                     ),
                   ),
-                  buttonLabel: 'Copiar Dirección',
+                  buttonLabel: l10n.copyAddress,
                   color: Colors.orangeAccent.withValues(alpha: 0.1),
                   onPressed: () {
                     Clipboard.setData(const ClipboardData(text: btcAddress));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Dirección Bitcoin copiada al portapapeles',
-                        ),
+                      SnackBar(
+                        content: Text(l10n.bitcoinCopied),
                       ),
                     );
                   },
                 ),
 
                 const SizedBox(height: 40),
-                const Text(
-                  '¡Muchas gracias por usar OpenInvest!',
-                  style: TextStyle(
+                Text(
+                  l10n.thanksForUsing,
+                  style: const TextStyle(
                     color: Colors.white38,
                     fontSize: 13,
                     fontStyle: FontStyle.italic,

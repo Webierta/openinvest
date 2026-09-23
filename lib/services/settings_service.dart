@@ -9,6 +9,7 @@ class SettingsService {
   static const String _keyAppPassword = 'app_password';
   static const String _keyAutoRefresh = 'auto_refresh';
   static const String _keyLastGlobalRefresh = 'last_global_refresh';
+  static const String _keyLocale = 'app_locale';
   static final LocalAuthentication _auth = LocalAuthentication();
 
   static Future<bool> isAuthRequired() async {
@@ -50,6 +51,16 @@ class SettingsService {
   static Future<void> setLastGlobalRefresh(DateTime value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyLastGlobalRefresh, value.toIso8601String());
+  }
+
+  static Future<String?> getLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyLocale);
+  }
+
+  static Future<void> setLocale(String languageCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyLocale, languageCode);
   }
 
   static Future<bool> canAuthenticate() async {

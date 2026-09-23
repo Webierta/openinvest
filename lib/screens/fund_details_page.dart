@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/fund_provider.dart';
 import '../services/export_service.dart';
 import '../services/fund_scraper.dart';
@@ -48,18 +49,20 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final provider = context.watch<FundProvider>();
     final fund = provider.currentFund;
     if (fund == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const Center(child: Text('No hay datos disponibles')),
+        body: Center(child: Text(l10n.noDataAvailable)),
       );
     }
 
-    final priceFormat = NumberFormat('#,##0.0000', 'es_ES');
-    final percentFormat = NumberFormat('#,##0.00', 'es_ES');
-    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    final locale = Localizations.localeOf(context).toString();
+    final priceFormat = NumberFormat('#,##0.0000', locale);
+    final percentFormat = NumberFormat('#,##0.00', locale);
+    final dateFormat = DateFormat.yMd(locale).add_Hm();
 
     return DefaultTabController(
       length: 6,
@@ -122,63 +125,63 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
               onPressed: provider.isBusy
                   ? null
                   : () => provider.searchFund(fund.isin),
-              tooltip: 'Actualizar datos',
+              tooltip: l10n.updateDataTooltip,
             ),
             IconButton(
               icon: const Icon(Icons.date_range, color: Colors.white),
               onPressed: provider.isBusy
                   ? null
                   : () => _selectDateRange(context, provider, fund),
-              tooltip: 'Descargar rango',
+              tooltip: l10n.downloadRangeTooltip,
             ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white),
-              tooltip: 'Más opciones',
+              tooltip: l10n.moreOptionsTooltip,
               onSelected: (value) =>
                   _handleMenuAction(context, provider, fund, value),
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'export',
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.file_upload_outlined,
                         size: 20,
                         color: Colors.white70,
                       ),
-                      SizedBox(width: 12),
-                      Text('Exportar fondo'),
+                      const SizedBox(width: 12),
+                      Text(l10n.exportFundAction),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'clear',
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.layers_clear_outlined,
                         size: 20,
                         color: Colors.white70,
                       ),
-                      SizedBox(width: 12),
-                      Text('Limpiar datos'),
+                      const SizedBox(width: 12),
+                      Text(l10n.clearDataAction),
                     ],
                   ),
                 ),
                 const PopupMenuDivider(),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.delete_outline,
                         size: 20,
                         color: Colors.redAccent,
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Text(
-                        'Eliminar de cartera',
-                        style: TextStyle(color: Colors.redAccent),
+                        l10n.deleteFromPortfolioAction,
+                        style: const TextStyle(color: Colors.redAccent),
                       ),
                     ],
                   ),
@@ -186,22 +189,22 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
               ],
             ),
           ],
-          bottom: const TabBar(
+          bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white38,
             indicatorColor: Colors.white,
             tabs: [
-              Tab(icon: Icon(Icons.info_outline), text: 'Estado'),
+              Tab(icon: const Icon(Icons.info_outline), text: l10n.statusTab),
               Tab(
-                icon: Icon(Icons.account_balance_wallet_outlined),
-                text: 'Balance',
+                icon: const Icon(Icons.account_balance_wallet_outlined),
+                text: l10n.balanceTab,
               ),
-              Tab(icon: Icon(Icons.show_chart), text: 'Gráfico'),
-              Tab(icon: Icon(Icons.calendar_month_outlined), text: 'Meses'),
-              Tab(icon: Icon(Icons.table_rows), text: 'Tabla'),
-              Tab(icon: Icon(Icons.account_balance), text: 'Mercado'),
+              Tab(icon: const Icon(Icons.show_chart), text: l10n.chartTab),
+              Tab(icon: const Icon(Icons.calendar_month_outlined), text: l10n.monthsTab),
+              Tab(icon: const Icon(Icons.table_rows), text: l10n.tableTab),
+              Tab(icon: const Icon(Icons.account_balance), text: l10n.marketTab),
             ],
           ),
         ),
@@ -240,10 +243,10 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.all(16),
                           child: fund.operations.isEmpty
-                              ? const Center(
+                              ? Center(
                                   child: Text(
-                                    'No hay operaciones registradas',
-                                    style: TextStyle(color: Colors.white38),
+                                    l10n.noOperationsRegistered,
+                                    style: const TextStyle(color: Colors.white38),
                                   ),
                                 )
                               : FundBalanceTab(
@@ -256,8 +259,8 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                       RefreshIndicator(
                         onRefresh: () => provider.searchFund(fund.isin),
                         child: fund.lastValue == 0 && fund.history.isEmpty
-                            ? const Center(
-                                child: Text('No hay datos disponibles'),
+                            ? Center(
+                                child: Text(l10n.noDataAvailable),
                               )
                             : SingleChildScrollView(
                                 physics: const AlwaysScrollableScrollPhysics(),
@@ -271,8 +274,8 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                       RefreshIndicator(
                         onRefresh: () => provider.searchFund(fund.isin),
                         child: fund.lastValue == 0 && fund.history.isEmpty
-                            ? const Center(
-                                child: Text('No hay datos disponibles'),
+                            ? Center(
+                                child: Text(l10n.noDataAvailable),
                               )
                             : SingleChildScrollView(
                                 physics: const AlwaysScrollableScrollPhysics(),
@@ -286,8 +289,8 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                       RefreshIndicator(
                         onRefresh: () => provider.searchFund(fund.isin),
                         child: fund.lastValue == 0 && fund.history.isEmpty
-                            ? const Center(
-                                child: Text('No hay datos disponibles'),
+                            ? Center(
+                                child: Text(l10n.noDataAvailable),
                               )
                             : Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -376,22 +379,23 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
   }
 
   void _showClearDataDialog(BuildContext context, FundProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Limpiar Datos'),
-        content: const Text('¿Quieres limpiar los precios e historial?'),
+        title: Text(l10n.clearDataTitle),
+        content: Text(l10n.clearDataConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () {
               provider.clearCurrentFundData();
               Navigator.pop(dialogContext);
             },
-            child: const Text('Limpiar'),
+            child: Text(l10n.clearDataAction.split(' ').last), // Use "Limpiar" / "Clear"
           ),
         ],
       ),
@@ -403,17 +407,16 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
     FundProvider provider,
     FundData fund,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar de Cartera'),
-        content: const Text(
-          '¿Estás seguro de que quieres eliminar este fondo?',
-        ),
+        title: Text(l10n.deleteFromPortfolioTitle),
+        content: Text(l10n.deleteFromPortfolioConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -423,7 +426,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -435,6 +438,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
     FundProvider provider,
     FundData fund,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final minController = TextEditingController(
       text: fund.alertMin?.toString().replaceAll('.', ',') ?? '',
     );
@@ -445,25 +449,25 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.notifications_active, color: Colors.amber),
-            SizedBox(width: 10),
-            Text('Configurar Alertas'),
+            const Icon(Icons.notifications_active, color: Colors.amber),
+            const SizedBox(width: 10),
+            Text(l10n.configureAlertsTitle),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Notificar si el Valor Liquidativo alcanza los siguientes límites:',
-              style: TextStyle(fontSize: 13, color: Colors.white70),
+            Text(
+              l10n.configureAlertsDesc,
+              style: const TextStyle(fontSize: 13, color: Colors.white70),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: minController,
               decoration: InputDecoration(
-                labelText: 'Mínimo',
+                labelText: l10n.minLabel,
                 suffixText: fund.currency,
                 prefixIcon: const Icon(
                   Icons.arrow_downward,
@@ -478,7 +482,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
             TextField(
               controller: maxController,
               decoration: InputDecoration(
-                labelText: 'Máximo',
+                labelText: l10n.maxLabel,
                 suffixText: fund.currency,
                 prefixIcon: const Icon(
                   Icons.arrow_upward,
@@ -497,14 +501,14 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
               provider.setAlerts(fund.isin, null, null);
               Navigator.pop(dialogContext);
             },
-            child: const Text(
-              'Borrar Alertas',
-              style: TextStyle(color: Colors.white38),
+            child: Text(
+              l10n.deleteAlertsAction,
+              style: const TextStyle(color: Colors.white38),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -517,7 +521,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
               provider.setAlerts(fund.isin, min, max);
               Navigator.pop(dialogContext);
             },
-            child: const Text('Guardar'),
+            child: Text(l10n.save),
           ),
         ],
       ),

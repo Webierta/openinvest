@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:investing/l10n/app_localizations.dart';
 import '../../services/fund_scraper.dart';
 
 class MonthlyReturnsTab extends StatelessWidget {
@@ -15,30 +16,31 @@ class MonthlyReturnsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    
     if (fund.history.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'No hay historial de precios para calcular rentabilidades.',
-          style: TextStyle(color: Colors.white38),
+          l10n.noHistoryForReturns,
+          style: const TextStyle(color: Colors.white38),
         ),
       );
     }
 
     final data = _calculateMonthlyReturns();
     if (data.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Datos insuficientes para generar el mapa de calor.',
-          style: TextStyle(color: Colors.white38),
+          l10n.insufficientDataForHeatmap,
+          style: const TextStyle(color: Colors.white38),
         ),
       );
     }
 
     final years = data.keys.toList()..sort((a, b) => b.compareTo(a));
-    final months = [
-      'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN',
-      'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'
-    ];
+    final months = List.generate(12, (i) => 
+      DateFormat.MMM(locale).format(DateTime(2023, i + 1)).toUpperCase());
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -72,10 +74,10 @@ class MonthlyReturnsTab extends StatelessWidget {
                   // Cabecera de meses
                   Row(
                     children: [
-                      _HeatBox(text: 'Año', isHeader: true, width: adaptiveCellWidth),
+                      _HeatBox(text: l10n.yearLabel, isHeader: true, width: adaptiveCellWidth),
                       ...months.map((m) => _HeatBox(text: m, isHeader: true, width: adaptiveCellWidth)),
                       _HeatBox(text: 'TOTAL', isHeader: true, width: adaptiveTotalWidth),
-                      _HeatBox(text: 'Año', isHeader: true, width: adaptiveCellWidth),
+                      _HeatBox(text: l10n.yearLabel, isHeader: true, width: adaptiveCellWidth),
                     ],
                   ),
                   const SizedBox(height: 4),

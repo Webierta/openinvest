@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers/fund_provider.dart';
 import '../../services/fund_scraper.dart';
 import '../../utils/financial_calculator.dart';
@@ -64,54 +65,54 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    context.watch<FundProvider>();
+    final locale = Localizations.localeOf(context).toString();
+    final smartFormat = NumberFormat('#,##0.##', locale);
+    final unitsFormat = NumberFormat('#,##0.####', locale);
+    final feeHintFormat = NumberFormat('0.00', locale);
+
     final metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
 
-    final profitColor =
-        metrics.profitAbs >= 0
-            ? Colors.greenAccent[400]!
-            : Colors.redAccent[200]!;
+    final profitColor = metrics.profitAbs >= 0
+        ? Colors.greenAccent[400]!
+        : Colors.redAccent[200]!;
 
     String annualizedReturnStr = '-';
     if (metrics.tae != 0 || metrics.days > 0) {
       annualizedReturnStr = '${widget.percentFormat.format(metrics.tae)}%';
     }
 
-    String twrTotalStr =
-        metrics.twrTotal != null
-            ? '${widget.percentFormat.format(metrics.twrTotal! * 100)}%'
-            : '-';
-    String twrAnnualizedStr =
-        metrics.twrAnnualized != null
-            ? '${widget.percentFormat.format(metrics.twrAnnualized! * 100)}%'
-            : '-';
-    String mwrTotalStr =
-        metrics.mwrTotal != null
-            ? '${widget.percentFormat.format(metrics.mwrTotal! * 100)}%'
-            : '-';
-    String mwrAnnualizedStr =
-        metrics.mwrAnnualized != null
-            ? '${widget.percentFormat.format(metrics.mwrAnnualized! * 100)}%'
-            : '-';
+    String twrTotalStr = metrics.twrTotal != null
+        ? '${widget.percentFormat.format(metrics.twrTotal! * 100)}%'
+        : '-';
+    String twrAnnualizedStr = metrics.twrAnnualized != null
+        ? '${widget.percentFormat.format(metrics.twrAnnualized! * 100)}%'
+        : '-';
+    String mwrTotalStr = metrics.mwrTotal != null
+        ? '${widget.percentFormat.format(metrics.mwrTotal! * 100)}%'
+        : '-';
+    String mwrAnnualizedStr = metrics.mwrAnnualized != null
+        ? '${widget.percentFormat.format(metrics.mwrAnnualized! * 100)}%'
+        : '-';
 
     String ageStr = '-';
     if (metrics.days > 0) {
       if (metrics.days < 60) {
-        ageStr = '${metrics.days} días';
+        ageStr = l10n.daysCount(metrics.days);
       } else if (metrics.days < 365) {
-        ageStr = '${metrics.days ~/ 30} meses';
+        ageStr = l10n.monthsCount(metrics.days ~/ 30);
       } else {
         final years = metrics.days ~/ 365;
         final months = (metrics.days % 365) ~/ 30;
         if (months == 0) {
-          ageStr = years == 1 ? '1 año' : '$years años';
+          ageStr = l10n.yearsCount(years);
         } else {
           ageStr =
-              '$years ${years == 1 ? 'año' : 'años'} y $months ${months == 1 ? 'mes' : 'meses'}';
+              '${l10n.yearsCount(years)} ${l10n.andLabel} ${l10n.monthsCount(months)}';
         }
       }
     }
-
-    final smartFormat = NumberFormat('#,##0.####', 'es_ES');
 
     // Cálculos de costes de gestión
     final fixedFee = widget.fund.ter ?? 0.0;
@@ -122,7 +123,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
 
     // 2. Comisión de Resultados (sobre plusvalía bruta si es positiva)
     final estPerfAnnualCost =
-        metrics.profitAbs > 0 ? metrics.profitAbs * (perfFee / 100) : 0.0;
+    metrics.profitAbs > 0 ? metrics.profitAbs * (perfFee / 100) : 0.0;
 
     final totalEstAnnualCost = estFixedAnnualCost + estPerfAnnualCost;
     final totalEstMonthlyCost = totalEstAnnualCost / 12;
@@ -138,42 +139,39 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
       // Estimación costes fijos: media entre inversión inicial y actual por tiempo
       final accumulatedFixed =
           ((metrics.currentValue + metrics.totalInvested) / 2) *
-          (fixedFee / 100) *
-          yearsHeld;
+              (fixedFee / 100) *
+              yearsHeld;
 
       // Estimación comisión resultados: aplicada sobre la plusvalía actual
       final accumulatedPerf =
-          metrics.profitAbs > 0 ? metrics.profitAbs * (perfFee / 100) : 0.0;
+      metrics.profitAbs > 0 ? metrics.profitAbs * (perfFee / 100) : 0.0;
 
       totalAccumulatedCost = accumulatedFixed + accumulatedPerf;
       netProfit = metrics.profitAbs - totalAccumulatedCost;
       netProfitPercent =
-          metrics.totalInvested > 0
-              ? (netProfit / metrics.totalInvested) * 100
-              : 0.0;
+      metrics.totalInvested > 0
+          ? (netProfit / metrics.totalInvested) * 100
+          : 0.0;
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildBalanceRow(
-          'Participaciones totales',
-          metrics.totalUnits
-              .toStringAsFixed(4)
-              .replaceAll('.', ',')
-              .replaceAll(RegExp(r',0000$'), ''),
+          l10n.totalUnitsLabel,
+          unitsFormat.format(metrics.totalUnits),
         ),
         _buildBalanceRow(
-          'Inversión neta',
+          l10n.netInvestmentLabel,
           '${smartFormat.format(metrics.totalInvested)} ${widget.fund.currency}',
         ),
         _buildBalanceRow(
-          'Precio medio compra',
+          l10n.avgPurchasePriceLabel,
           '${widget.priceFormat.format(metrics.avgPurchasePrice)} ${widget.fund.currency}',
         ),
         const Divider(height: 20, color: Colors.white10),
         _buildBalanceRow(
-          'Valor actual',
+          l10n.currentValueLabel,
           '${smartFormat.format(metrics.currentValue)} ${widget.fund.currency}',
           isBold: true,
           fontSize: 16,
@@ -182,7 +180,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              metrics.profitAbs > 0 ? 'Plusvalía Bruta' : 'Minusvalía Bruta',
+              metrics.profitAbs > 0 ? l10n.grossProfitLabel : l10n.grossLossLabel,
               style: const TextStyle(color: Colors.white70),
             ),
             Column(
@@ -213,19 +211,19 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ganancia Real',
-                    style: TextStyle(
+                    l10n.realGainLabel,
+                    style: const TextStyle(
                       color: Colors.blueAccent,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    '(Plusvalía Neta est.)',
-                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                    l10n.netProfitEstLabel,
+                    style: const TextStyle(color: Colors.white38, fontSize: 10),
                   ),
                 ],
               ),
@@ -261,9 +259,9 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
         ],
         const Divider(height: 32, color: Colors.white10),
         // SECCIÓN COSTES DE GESTIÓN
-        const Text(
-          'Costes de Gestión',
-          style: TextStyle(
+        Text(
+          l10n.managementFeesTitle,
+          style: const TextStyle(
             color: Colors.white70,
             fontWeight: FontWeight.bold,
             fontSize: 15,
@@ -274,9 +272,9 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           children: [
             Expanded(
               child: _buildFeeInput(
-                label: 'Gastos Corrientes',
-                hint: 'Fijos',
-                suffix: '% TER',
+                label: l10n.fixedFeesLabel,
+                hint: feeHintFormat.format(0),
+                suffix: l10n.fixedFeesSuffix,
                 controller: _fixedFeeController,
                 onSave: () {
                   final f = double.tryParse(
@@ -292,9 +290,9 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildFeeInput(
-                label: 'Com. Resultados',
-                hint: 'Sobre éxito',
-                suffix: '% Var',
+                label: l10n.perfFeesLabel,
+                hint: feeHintFormat.format(0),
+                suffix: l10n.perfFeesSuffix,
                 controller: _perfFeeController,
                 onSave: () {
                   final f = double.tryParse(
@@ -314,7 +312,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           children: [
             Expanded(
               child: _buildSimpleStat(
-                'Coste Anual Est.',
+                l10n.annualCostEstLabel,
                 '${smartFormat.format(totalEstAnnualCost)} ${widget.fund.currency}',
                 color: Colors.orangeAccent.withValues(alpha: 0.8),
               ),
@@ -322,7 +320,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildSimpleStat(
-                'Coste Mensual Est.',
+                l10n.monthlyCostEstLabel,
                 '${smartFormat.format(totalEstMonthlyCost)} ${widget.fund.currency}',
                 color: Colors.orangeAccent.withValues(alpha: 0.6),
               ),
@@ -333,9 +331,9 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
         const Divider(height: 40, color: Colors.white10),
         Row(
           children: [
-            const Text(
-              'Índices de Rentabilidad',
-              style: TextStyle(
+            Text(
+              l10n.profitabilityIndicesTitle,
+              style: const TextStyle(
                 color: Colors.white70,
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
@@ -360,7 +358,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           children: [
             Expanded(
               child: _buildSimpleStat(
-                'Rent. Anualizada',
+                l10n.annualizedReturnLabel,
                 annualizedReturnStr,
                 color: profitColor,
               ),
@@ -368,7 +366,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildSimpleStat(
-                'Multiplicador (MoIC)',
+                l10n.moicLabel,
                 '${metrics.moic.toStringAsFixed(2)}x',
               ),
             ),
@@ -377,11 +375,13 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildSimpleStat('TWR (Total)', twrTotalStr)),
+            Expanded(
+              child: _buildSimpleStat(l10n.twrTotalLabel, twrTotalStr),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildSimpleStat(
-                'TWR Anualizado',
+                l10n.twrAnnualizedLabel,
                 twrAnnualizedStr,
                 color: profitColor,
               ),
@@ -391,19 +391,29 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildSimpleStat('MWR Acumulado', mwrTotalStr)),
+            Expanded(
+              child: _buildSimpleStat(
+                l10n.mwrHistoricalLabel,
+                mwrTotalStr,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildSimpleStat('MWR Anualizado', mwrAnnualizedStr)),
+            Expanded(
+              child: _buildSimpleStat(
+                l10n.mwrAnnualizedLabel,
+                mwrAnnualizedStr,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildSimpleStat('Antigüedad', ageStr)),
+            Expanded(child: _buildSimpleStat(l10n.ageLabel, ageStr)),
             const SizedBox(width: 12),
             Expanded(
               child: _buildSimpleStat(
-                'Break-even',
+                l10n.breakEvenLabel,
                 widget.priceFormat.format(metrics.avgPurchasePrice),
               ),
             ),
@@ -445,7 +455,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
               fontWeight: FontWeight.bold,
             ),
             decoration: InputDecoration(
-              hintText: '0,00',
+              hintText: hint,
               hintStyle: const TextStyle(color: Colors.white12),
               suffixText: suffix,
               suffixStyle: const TextStyle(color: Colors.white24, fontSize: 9),
@@ -458,11 +468,16 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.blueAccent, width: 1.5),
+                borderSide: const BorderSide(
+                  color: Colors.blueAccent,
+                  width: 1.5,
+                ),
               ),
             ),
             onSubmitted: (_) => onSave(),
@@ -541,50 +556,48 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
   }
 
   void _showIndicesInfo(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.info_outline, color: Color(0xFF38BDF8)),
-            SizedBox(width: 10),
-            Text('Índices Financieros'),
+            const Icon(Icons.info_outline, color: Color(0xFF38BDF8)),
+            const SizedBox(width: 10),
+            Text(l10n.financialIndicesTitle),
           ],
         ),
-        content: const SingleChildScrollView(
+        content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Rentabilidades brutas sin consideración de costes ni comisiones.',
+                l10n.bruteReturnsNote,
               ),
               _IndexInfoRow(
-                title: 'Rent. Anualizada (TAE)',
-                description:
-                    'Rentabilidad simple de TU inversión basándose en el capital total aportado y el tiempo transcurrido.',
+                title: l10n.annualizedReturnLabel,
+                description: l10n.aprTaeDesc,
               ),
               _IndexInfoRow(
-                title: 'TWR (Total / Anualizado)',
-                description:
-                    'Time-Weighted Return. Mide el rendimiento del FONDO, eliminando el impacto de tus entradas y salidas de dinero. Es la rentabilidad del activo en sí.',
+                title: l10n.twrInfoTitle,
+                description: l10n.twrDesc,
               ),
               _IndexInfoRow(
-                title: 'MWR (Total / Anualizado)',
-                description:
-                    'Money-Weighted Return (o TIR). Rentabilidad real de tu bolsillo que tiene en cuenta el momento exacto de cada aportación. Refleja tu éxito como inversor al elegir cuándo entrar y salir.',
+                title: l10n.mwrInfoTitle,
+                description: l10n.mwrIrrDesc,
               ),
               _IndexInfoRow(
-                title: 'Multiplicador (MoIC)',
-                description: 'Capital final obtenido por cada euro invertido.',
+                title: l10n.moicLabel,
+                description: l10n.moicDesc,
               ),
               _IndexInfoRow(
-                title: 'Antigüedad',
-                description: 'Tiempo transcurrido desde la primera operación.',
+                title: l10n.ageLabel,
+                description: l10n.ageDesc,
               ),
               _IndexInfoRow(
-                title: 'Break-even',
-                description: 'Precio necesario para no tener pérdidas.',
+                title: l10n.breakEvenLabel,
+                description: l10n.breakEvenDesc,
               ),
             ],
           ),
@@ -592,7 +605,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
+            child: Text(l10n.close),
           ),
         ],
       ),
