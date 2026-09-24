@@ -1,3 +1,68 @@
+// =============================================================================
+// IsinResolver
+// =============================================================================
+//
+// Motor de resolución de ISIN para OpenInvest.
+//
+// ENTRADA DEL USUARIO:
+//   El usuario proporciona uno de los siguientes datos:
+//
+//   - ISIN: si el usuario ya conoce el identificador del fondo.
+//   - Nombre del fondo: si desea localizar el ISIN correspondiente.
+//
+//   El motor puede utilizar adicionalmente un ticker o identificador asociado
+//   al fondo como dato auxiliar para localizar y verificar la información
+//   en fuentes externas. El ticker no constituye necesariamente la entrada
+//   principal del usuario.
+//
+// FLUJO DE RESOLUCIÓN:
+//
+//   1. ISIN DIRECTO
+//      Si el usuario proporciona un ISIN, se valida mediante el algoritmo
+//      estándar de checksum ISIN. Si es válido, se devuelve directamente.
+//
+//   2. IDENTIFICACIÓN DEL FONDO
+//      Si se proporciona el nombre del fondo, el motor intenta identificar
+//      el fondo utilizando el nombre y, cuando está disponible, su ticker o
+//      identificador asociado.
+//
+//   3. CNMV - FONDOS DE INVERSIÓN ESPAÑOLES
+//      Se consulta la información local de la CNMV para identificar fondos,
+//      compartimentos y clases españolas.
+//
+//   4. CNMV - SIL
+//      Para Sociedades de Inversión Libre españolas se utiliza el registro
+//      de la CNMV y se obtiene el ISIN desde la ficha oficial de la sociedad.
+//
+//   5. YAHOO FINANCE
+//      Si el fondo no se identifica mediante CNMV, se utiliza Yahoo Finance
+//      como fuente auxiliar para localizar el instrumento correspondiente.
+//
+//   6. MORNINGSTAR
+//      Cuando Yahoo Finance proporciona un identificador Morningstar, este
+//      identificador se utiliza para localizar la información del fondo y
+//      obtener su ISIN.
+//
+//   7. VALIDACIÓN FINAL
+//      Todo ISIN obtenido mediante fuentes externas se valida mediante el
+//      algoritmo estándar de checksum ISIN antes de ser aceptado.
+//
+// RESULTADO:
+//
+//   Si se encuentra un ISIN válido y verificable:
+//      -> IsinResult con el ISIN, la fuente utilizada y el nombre oficial
+//         cuando está disponible.
+//
+//   Si no se puede obtener un ISIN suficientemente fiable:
+//      -> null.
+//
+// PRINCIPIO DE SEGURIDAD:
+//
+//   El motor no intenta adivinar un ISIN. Solo devuelve un resultado cuando
+//   puede obtener y validar un ISIN de una fuente o identificación verificable.
+//
+// =============================================================================
+
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -140,14 +205,6 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
         r"""HoldingIsin\s*:\s*['"]([A-Z]{2}[A-Z0-9]{9}\d)['"]""",
         caseSensitive: false,
       ),
-      /* RegExp(
-        r'''\bHoldingIsin\s*=\s*[\'\]([A-Z]{2}[A-Z0-9]{9}\d)[\'\"]''',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'''\bHoldingIsin\s*:\s*[\'\"]([A-Z]{2}[A-Z0-9]{9}\d)[\'\"]''',
-        caseSensitive: false,
-      ), */
     ];
 
     for (final pattern in patterns) {
@@ -636,23 +693,6 @@ class IsinResolver {
     }
 
     return null;
-  }
-
-  String _extractSocietyUrl(String html) {
-    final matches = RegExp(
-      //r'href\s*=\s*["\']([^"\']+)["\']',
-      r'''href\s*=\s*["']([^"']+)["']''',
-      caseSensitive: false,
-    ).allMatches(html);
-
-    for (final match in matches) {
-      final href = match.group(1) ?? '';
-      if (href.toLowerCase().contains('sociedadiic')) {
-        return _absoluteCnmvUrl(href);
-      }
-    }
-
-    return '';
   }
 
   Future<String?> _getCnmvSociety(String nif) async {
