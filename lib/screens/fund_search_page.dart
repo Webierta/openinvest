@@ -11,6 +11,7 @@ import 'fund_details_page.dart';
 
 class FundSearchPage extends StatefulWidget {
   const FundSearchPage({super.key});
+
   @override
   State<FundSearchPage> createState() => _FundSearchPageState();
 }
@@ -42,7 +43,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
   Future<void> _handleSearch([FundSearchMatch? match]) async {
     final provider = context.read<FundProvider>();
     final l10n = AppLocalizations.of(context)!;
-    
+
     if (match == null && !_looksLikeIsin(_controller.text)) {
       await _searchByName(_controller.text);
       return;
@@ -93,11 +94,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                isValid
-                    ? l10n.fundFoundDesc
-                    : l10n.noValidIsinDesc,
-              ),
+              Text(isValid ? l10n.fundFoundDesc : l10n.noValidIsinDesc),
               const SizedBox(height: 16),
               Text(
                 fund.name,
@@ -324,7 +321,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                         ),
                         trailing: Icon(
                           match.isin == null
-                              ? Icons.search_off
+                              ? Icons.search
                               : Icons.add_circle_outline,
                           color: match.isin == null ? Colors.grey : null,
                         ),
@@ -388,21 +385,35 @@ class _FundSearchPageState extends State<FundSearchPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.dataSource),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildBadgeInfoItem(
-              source: FundSource.local,
-              title: l10n.cnmvRegistry,
-              description: l10n.cnmvDesc,
-            ),
-            const SizedBox(height: 20),
-            _buildBadgeInfoItem(
-              source: FundSource.global,
-              title: l10n.globalMarket,
-              description: l10n.globalMarketDesc,
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildBadgeInfoItem(
+                source: FundSource.cnmv,
+                title: l10n.cnmvRegistry,
+                description: l10n.cnmvDesc,
+              ),
+              const SizedBox(height: 16),
+              _buildBadgeInfoItem(
+                source: FundSource.local,
+                title: l10n.localCatalog,
+                description: l10n.localCatalogDesc,
+              ),
+              const SizedBox(height: 16),
+              _buildBadgeInfoItem(
+                source: FundSource.morningstar,
+                title: l10n.morningstarSource,
+                description: l10n.morningstarSourceDesc,
+              ),
+              const SizedBox(height: 16),
+              _buildBadgeInfoItem(
+                source: FundSource.yahoo,
+                title: l10n.yahooSource,
+                description: l10n.yahooSourceDesc,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -419,40 +430,53 @@ class _FundSearchPageState extends State<FundSearchPage> {
     required String title,
     required String description,
   }) {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSourceBadge(source),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
+        Row(
+          children: [
+            _buildSourceBadge(source),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.white,
               ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
-              ),
-            ],
-          ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          description,
+          style: const TextStyle(fontSize: 12, color: Colors.white70),
         ),
       ],
     );
   }
 
   Widget _buildSourceBadge(FundSource source) {
-    final l10n = AppLocalizations.of(context)!;
-    final bool isLocal = source == FundSource.local;
-    final Color color = isLocal ? const Color(0xFFA50A37) : Colors.blueAccent;
-    final String label = isLocal ? 'CNMV' : l10n.global;
+    Color color;
+    String label;
+    switch (source) {
+      case FundSource.cnmv:
+        color = const Color(0xFFA50A37);
+        label = 'CNMV';
+        break;
+      case FundSource.local:
+        color = Colors.teal;
+        label = 'LOCAL';
+        break;
+      case FundSource.morningstar:
+        color = Colors.orangeAccent;
+        label = 'MORNINGSTAR';
+        break;
+      case FundSource.yahoo:
+        color = Colors.blueAccent;
+        label = 'YAHOO';
+        break;
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

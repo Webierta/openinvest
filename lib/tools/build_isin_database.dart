@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 /// Genera y valida assets/files/isin_database.json.
@@ -29,14 +30,14 @@ void main(List<String> args) {
   final databaseFile = File(_databasePath);
   final cnmvFile = File(_cnmvPath);
 
-  print('');
-  print('=' * 72);
-  print('BUILD ISIN DATABASE');
-  print('=' * 72);
-  print('CNMV    : ${cnmvFile.absolute.path}');
-  print('DATABASE: ${databaseFile.absolute.path}');
-  print('MODO    : ${checkOnly ? 'VALIDACIÓN' : 'GENERACIÓN'}');
-  print('');
+  _log('');
+  _log('=' * 72);
+  _log('BUILD ISIN DATABASE');
+  _log('=' * 72);
+  _log('CNMV    : ${cnmvFile.absolute.path}');
+  _log('DATABASE: ${databaseFile.absolute.path}');
+  _log('MODO    : ${checkOnly ? 'VALIDACIÓN' : 'GENERACIÓN'}');
+  _log('');
 
   if (!databaseFile.existsSync()) {
     _fatal('No existe $_databasePath');
@@ -51,18 +52,18 @@ void main(List<String> args) {
 
   final allExistingEntries = _extractExistingEntries(database);
 
-  print('Entradas existentes: ${allExistingEntries.length}');
+  _log('Entradas existentes: ${allExistingEntries.length}');
 
   // Primero inspeccionamos el catálogo CNMV. Nunca se importa al database.
   final cnmvStats = _inspectCnmv(cnmv);
 
-  print('');
-  print('CNMV/FI');
-  print('  FechaDatos       : ${cnmvStats.fechaDatos ?? '-'}');
-  print('  Entidades FI     : ${cnmvStats.entities}');
-  print('  Clases           : ${cnmvStats.classes}');
-  print('  ISIN únicos      : ${cnmvStats.uniqueIsins}');
-  print('  Clases inválidas : ${cnmvStats.invalidIsins}');
+  _log('');
+  _log('CNMV/FI');
+  _log('  FechaDatos       : ${cnmvStats.fechaDatos ?? '-'}');
+  _log('  Entidades FI     : ${cnmvStats.entities}');
+  _log('  Clases           : ${cnmvStats.classes}');
+  _log('  ISIN únicos      : ${cnmvStats.uniqueIsins}');
+  _log('  Clases inválidas : ${cnmvStats.invalidIsins}');
 
   if (cnmvStats.invalidIsins > 0) {
     _fatal(
@@ -85,27 +86,27 @@ void main(List<String> args) {
 
   final removed = allExistingEntries.length - manualEntries.length;
 
-  print('');
-  print('LIMPIEZA CNMV/FI');
-  print('  Entradas CNMV/FI eliminadas : $removed');
-  print('  Entradas conservadas        : ${manualEntries.length}');
+  _log('');
+  _log('LIMPIEZA CNMV/FI');
+  _log('  Entradas CNMV/FI eliminadas : $removed');
+  _log('  Entradas conservadas        : ${manualEntries.length}');
 
   _validateEntries(manualEntries);
 
-  print('');
-  print('VALIDACIÓN DE isin_database.json: OK');
-  print('  ISIN únicos      : ${manualEntries.length}');
-  print(
+  _log('');
+  _log('VALIDACIÓN DE isin_database.json: OK');
+  _log('  ISIN únicos      : ${manualEntries.length}');
+  _log(
     '  Ticker no nulos  : ${manualEntries.where((e) => e['ticker'] != null).length}',
   );
-  print(
+  _log(
     '  Morningstar IDs  : '
     '${_countMorningstarIds(manualEntries)}',
   );
 
   if (checkOnly) {
-    print('');
-    print('Modo --check: no se ha modificado ningún archivo.');
+    _log('');
+    _log('Modo --check: no se ha modificado ningún archivo.');
     return;
   }
 
@@ -119,12 +120,12 @@ void main(List<String> args) {
 
   databaseFile.writeAsStringSync('${encoder.convert(output)}\n');
 
-  print('');
-  print('Archivo generado: ${databaseFile.absolute.path}');
-  print('Entradas conservadas: ${manualEntries.length}');
-  print('Entradas CNMV/FI eliminadas: $removed');
-  print('CNMV/FI NO importado: ${cnmvStats.classes} clases');
-  print('VALIDACIÓN OK.');
+  _log('');
+  _log('Archivo generado: ${databaseFile.absolute.path}');
+  _log('Entradas conservadas: ${manualEntries.length}');
+  _log('Entradas CNMV/FI eliminadas: $removed');
+  _log('CNMV/FI NO importado: ${cnmvStats.classes} clases');
+  _log('VALIDACIÓN OK.');
 }
 
 bool _isCnmvFiEntry(Map<String, dynamic> entry) {
@@ -151,7 +152,7 @@ Map<String, dynamic> _readJsonMap(File file) {
   } on FormatException catch (e) {
     _fatal('JSON inválido en ${file.path}: ${e.message}');
   }
-  throw StateError('Unreachable');
+  // throw StateError('Unreachable');
 }
 
 int _readVersion(Map<String, dynamic> database) {
@@ -166,7 +167,7 @@ int _readVersion(Map<String, dynamic> database) {
   }
 
   _fatal('Campo "version" ausente o inválido en $_databasePath.');
-  throw StateError('Unreachable');
+  // throw StateError('Unreachable');
 }
 
 List<Map<String, dynamic>> _extractExistingEntries(
@@ -526,4 +527,9 @@ Never _fatal(String message) {
   stderr.writeln('');
   stderr.writeln('ERROR: $message');
   throw StateError(message);
+}
+
+void _log(String message) {
+  developer.log(message, name: 'BuildIsinDatabase');
+  print(message);
 }

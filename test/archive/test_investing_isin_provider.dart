@@ -1,3 +1,4 @@
+/*
 import '../lib/services/investing_isin_provider.dart';
 
 Future<void> main() async {
@@ -59,3 +60,4 @@ Future<void> main() async {
   print('RESULTADO FINAL: $passed / ${tests.length}');
   print('=' * 80);
 }
+*/

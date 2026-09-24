@@ -793,7 +793,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get twrAnnualizedLabel => 'TWR Anualizada';
 
   @override
-  String get mwrHistoricalLabel => 'MWR Histórico';
+  String get mwrHistoricalLabel => 'MWR Acumulado';
 
   @override
   String get mwrAnnualizedLabel => 'MWR Anualizada';
@@ -802,7 +802,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get twrInfoTitle => 'TWR (Total / Anualizada)';
 
   @override
-  String get mwrInfoTitle => 'MWR (Histórico / Anualizada)';
+  String get mwrInfoTitle => 'MWR (Acumulado / Anualizada)';
 
   @override
   String monthsCount(num count) {
@@ -881,4 +881,41 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get nikkei225Desc =>
       'El Nikkei 225 es el índice más importante de la bolsa japonesa, compuesto por las 225 empresas más líquidas de Tokio.';
+
+  @override
+  String get portfolioAlertsTitle => '¡Alertas de Fondos!';
+
+  @override
+  String get portfolioAlertsDesc =>
+      'Se han alcanzado los siguientes límites configurados en tus fondos:';
+
+  @override
+  String alertMinReached(String fundName, String current, String limit) {
+    return 'El fondo $fundName ha caído por debajo del límite de $limit: Valor actual $current';
+  }
+
+  @override
+  String alertMaxReached(String fundName, String current, String limit) {
+    return 'El fondo $fundName ha superado el límite de $limit: Valor actual $current';
+  }
+
+  @override
+  String get localCatalog => 'Catálogo Local';
+
+  @override
+  String get localCatalogDesc => 'Fondos armonizados del catálogo local.';
+
+  @override
+  String get morningstarSource => 'Morningstar';
+
+  @override
+  String get morningstarSourceDesc =>
+      'Fondos extranjeros resueltos mediante Morningstar LT.';
+
+  @override
+  String get yahooSource => 'Yahoo Finance';
+
+  @override
+  String get yahooSourceDesc =>
+      'Búsqueda y cotizaciones globales en Yahoo Finance.';
 }

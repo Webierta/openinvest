@@ -178,7 +178,7 @@ class ScrapeResult {
   String? get errorMessage => error?.message;
 }
 
-enum FundSource { local, global }
+enum FundSource { cnmv, local, morningstar, yahoo }
 
 class FundSearchMatch {
   final String? isin;
@@ -190,7 +190,7 @@ class FundSearchMatch {
     required this.isin,
     required this.symbol,
     required this.name,
-    this.source = FundSource.global,
+    this.source = FundSource.yahoo,
   });
 }
 
@@ -299,7 +299,7 @@ class FundScraper {
         final source =
             catalog.allIsins.contains(match.isin)
                 ? FundSource.local
-                : FundSource.global;
+                : match.source;
         return [
           FundSearchMatch(
             isin: match.isin,
@@ -312,7 +312,12 @@ class FundScraper {
       final isins = _findCatalogIsins(catalog, match.name);
       if (isins.isEmpty) {
         return [
-          FundSearchMatch(isin: null, symbol: match.symbol, name: match.name),
+          FundSearchMatch(
+            isin: null,
+            symbol: match.symbol,
+            name: match.name,
+            source: match.source,
+          ),
         ];
       }
       return isins.map(
@@ -602,9 +607,21 @@ class FundScraper {
       if (name is! String || name.isEmpty) continue;
       final isin =
           quote['isin'] is String && (quote['isin'] as String).isNotEmpty
-          ? quote['isin'] as String
-          : null;
-      matches.add(FundSearchMatch(isin: isin, symbol: symbol, name: name));
+              ? quote['isin'] as String
+              : null;
+      FundSource source = FundSource.yahoo;
+      if (symbol.toUpperCase().contains('0P') ||
+          symbol.toUpperCase().endsWith('.F')) {
+        source = FundSource.morningstar;
+      }
+      matches.add(
+        FundSearchMatch(
+          isin: isin,
+          symbol: symbol,
+          name: name,
+          source: source,
+        ),
+      );
     }
     return matches;
   }

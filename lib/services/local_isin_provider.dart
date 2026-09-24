@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../models/foreign_isin_provider.dart';
@@ -73,7 +75,7 @@ class LocalIsinProvider implements ForeignIsinProvider {
     if (morningstarId != null) {
       final entry = _byMorningstarId![morningstarId];
       if (entry != null) {
-        print(
+        _log(
           '  LocalIsinProvider: Morningstar $morningstarId -> ${entry.isin}',
         );
         return entry.isin;
@@ -88,18 +90,18 @@ class LocalIsinProvider implements ForeignIsinProvider {
     for (final symbol in symbols) {
       final entry = _byTicker![symbol];
       if (entry != null) {
-        print('  LocalIsinProvider: ticker $symbol -> ${entry.isin}');
+        _log('  LocalIsinProvider: ticker $symbol -> ${entry.isin}');
         return entry.isin;
       }
     }
 
     final best = _findBestNameMatch(fundName, yahooName);
     if (best != null) {
-      print('  LocalIsinProvider: nombre -> ${best.isin} (${best.name})');
+      _log('  LocalIsinProvider: nombre -> ${best.isin} (${best.name})');
       return best.isin;
     }
 
-    print('  LocalIsinProvider: no encontrado.');
+    _log('  LocalIsinProvider: no encontrado.');
     return null;
   }
 
@@ -166,7 +168,7 @@ class LocalIsinProvider implements ForeignIsinProvider {
       }
     }
 
-    print('LocalIsinProvider: ${entries.length} entradas cargadas.');
+    _log('LocalIsinProvider: ${entries.length} entradas cargadas.');
   }
 
   LocalIsinEntry? _findBestNameMatch(String fundName, String yahooName) {
@@ -281,5 +283,11 @@ class LocalIsinProvider implements ForeignIsinProvider {
     }
 
     return sum % 10 == 0;
+  }
+}
+
+void _log(String message) {
+  if (kDebugMode) {
+    developer.log(message, name: 'LocalIsinProvider');
   }
 }

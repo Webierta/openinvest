@@ -9,6 +9,20 @@ import '../utils/app_error.dart';
 
 enum SortCriteria { name, value, performance }
 
+class FundAlertInfo {
+  final FundData fund;
+  final double limitValue;
+  final bool isMinAlert;
+  final double currentValue;
+
+  FundAlertInfo({
+    required this.fund,
+    required this.limitValue,
+    required this.isMinAlert,
+    required this.currentValue,
+  });
+}
+
 class FundProvider with ChangeNotifier {
   List<FundData> portfolio = [];
   FundData? currentFund;
@@ -22,6 +36,7 @@ class FundProvider with ChangeNotifier {
   List<PricePoint>? benchmarkHistory;
   String? selectedBenchmarkSymbol;
   Locale? _locale;
+  List<FundAlertInfo> triggeredAlerts = [];
 
   Locale? get locale => _locale;
 
@@ -107,6 +122,7 @@ class FundProvider with ChangeNotifier {
         if (currentFund != null) {
           currentFund = await DatabaseService.getFund(currentFund!.isin);
         }
+        _checkPortfolioAlerts();
       } catch (error, stackTrace) {
         hasPortfolioLoadError = true;
         _setError(_asError(error, stackTrace, type: AppErrorType.database));
@@ -121,6 +137,38 @@ class FundProvider with ChangeNotifier {
         _portfolioLoadFuture = null;
       }
     }
+  }
+
+  void _checkPortfolioAlerts() {
+    triggeredAlerts.clear();
+    for (final fund in portfolio) {
+      if (fund.lastValue <= 0) continue;
+      if (fund.alertMin != null && fund.lastValue <= fund.alertMin!) {
+        triggeredAlerts.add(
+          FundAlertInfo(
+            fund: fund,
+            limitValue: fund.alertMin!,
+            isMinAlert: true,
+            currentValue: fund.lastValue,
+          ),
+        );
+      }
+      if (fund.alertMax != null && fund.lastValue >= fund.alertMax!) {
+        triggeredAlerts.add(
+          FundAlertInfo(
+            fund: fund,
+            limitValue: fund.alertMax!,
+            isMinAlert: false,
+            currentValue: fund.lastValue,
+          ),
+        );
+      }
+    }
+  }
+
+  void clearTriggeredAlerts() {
+    triggeredAlerts.clear();
+    notifyListeners();
   }
 
   Future<void> initialize() async {

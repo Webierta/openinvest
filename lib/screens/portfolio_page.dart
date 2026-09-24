@@ -22,11 +22,23 @@ class PortfolioPage extends StatefulWidget {
 }
 
 class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
+  bool _alertChecked = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final route = ModalRoute.of(context);
     if (route != null) routeObserver.subscribe(this, route);
+
+    final provider = context.read<FundProvider>();
+    if (!_alertChecked && provider.triggeredAlerts.isNotEmpty) {
+      _alertChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showTriggeredAlertsDialog(context, provider);
+        }
+      });
+    }
   }
 
   @override
@@ -799,6 +811,108 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
           color: Colors.black87,
           size: 32,
         ),
+      ),
+    );
+  }
+
+  void _showTriggeredAlertsDialog(BuildContext context, FundProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final priceFormat = NumberFormat('#,##0.0000', locale);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.notifications_active, color: Colors.amber),
+            const SizedBox(width: 10),
+            Text(l10n.portfolioAlertsTitle),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.portfolioAlertsDesc,
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: provider.triggeredAlerts.length,
+                  itemBuilder: (context, index) {
+                    final alert = provider.triggeredAlerts[index];
+                    final message = alert.isMinAlert
+                        ? l10n.alertMinReached(
+                            alert.fund.name,
+                            priceFormat.format(alert.currentValue),
+                            priceFormat.format(alert.limitValue),
+                          )
+                        : l10n.alertMaxReached(
+                            alert.fund.name,
+                            priceFormat.format(alert.currentValue),
+                            priceFormat.format(alert.limitValue),
+                          );
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            alert.isMinAlert
+                                ? Icons.arrow_downward
+                                : Icons.arrow_upward,
+                            color: alert.isMinAlert
+                                ? Colors.redAccent
+                                : Colors.greenAccent,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  alert.fund.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  message,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              provider.clearTriggeredAlerts();
+              Navigator.pop(dialogContext);
+            },
+            child: Text(l10n.close),
+          ),
+        ],
       ),
     );
   }

@@ -1,3 +1,4 @@
+/*
 import 'package:http/http.dart' as http;
 
 import '../lib/services/morningstar_web_isin_provider.dart';
@@ -62,3 +63,4 @@ Future<void> main() async {
   print('RESULTADO FINAL: $passed / ${tests.length}');
   print('=' * 80);
 }
+*/

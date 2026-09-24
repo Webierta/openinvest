@@ -1541,7 +1541,7 @@ abstract class AppLocalizations {
   /// No description provided for @mwrHistoricalLabel.
   ///
   /// In es, this message translates to:
-  /// **'MWR Histórico'**
+  /// **'MWR Acumulado'**
   String get mwrHistoricalLabel;
 
   /// No description provided for @mwrAnnualizedLabel.
@@ -1559,7 +1559,7 @@ abstract class AppLocalizations {
   /// No description provided for @mwrInfoTitle.
   ///
   /// In es, this message translates to:
-  /// **'MWR (Histórico / Anualizada)'**
+  /// **'MWR (Acumulado / Anualizada)'**
   String get mwrInfoTitle;
 
   /// No description provided for @monthsCount.
@@ -1669,6 +1669,66 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'El Nikkei 225 es el índice más importante de la bolsa japonesa, compuesto por las 225 empresas más líquidas de Tokio.'**
   String get nikkei225Desc;
+
+  /// No description provided for @portfolioAlertsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¡Alertas de Fondos!'**
+  String get portfolioAlertsTitle;
+
+  /// No description provided for @portfolioAlertsDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Se han alcanzado los siguientes límites configurados en tus fondos:'**
+  String get portfolioAlertsDesc;
+
+  /// No description provided for @alertMinReached.
+  ///
+  /// In es, this message translates to:
+  /// **'El fondo {fundName} ha caído por debajo del límite de {limit}: Valor actual {current}'**
+  String alertMinReached(String fundName, String current, String limit);
+
+  /// No description provided for @alertMaxReached.
+  ///
+  /// In es, this message translates to:
+  /// **'El fondo {fundName} ha superado el límite de {limit}: Valor actual {current}'**
+  String alertMaxReached(String fundName, String current, String limit);
+
+  /// No description provided for @localCatalog.
+  ///
+  /// In es, this message translates to:
+  /// **'Catálogo Local'**
+  String get localCatalog;
+
+  /// No description provided for @localCatalogDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Fondos armonizados del catálogo local.'**
+  String get localCatalogDesc;
+
+  /// No description provided for @morningstarSource.
+  ///
+  /// In es, this message translates to:
+  /// **'Morningstar'**
+  String get morningstarSource;
+
+  /// No description provided for @morningstarSourceDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Fondos extranjeros resueltos mediante Morningstar LT.'**
+  String get morningstarSourceDesc;
+
+  /// No description provided for @yahooSource.
+  ///
+  /// In es, this message translates to:
+  /// **'Yahoo Finance'**
+  String get yahooSource;
+
+  /// No description provided for @yahooSourceDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Búsqueda y cotizaciones globales en Yahoo Finance.'**
+  String get yahooSourceDesc;
 }
 
 class _AppLocalizationsDelegate

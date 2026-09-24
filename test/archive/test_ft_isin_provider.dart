@@ -1,3 +1,4 @@
+/*
 import 'package:http/http.dart' as http;
 
 import '../lib/services/ft_isin_provider.dart';
@@ -26,3 +27,4 @@ Future<void> main() async {
     provider.dispose();
   }
 }
+*/

@@ -64,7 +64,9 @@
 // =============================================================================
 
 import 'dart:convert';
+import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/foreign_isin_provider.dart';
@@ -127,14 +129,14 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
     final morningstarId = _extractMorningstarId(yahooSymbol);
 
     if (morningstarId == null) {
-      print(
+      _log(
         '  Morningstar LT: Yahoo no contiene un ID Morningstar '
         '($yahooSymbol).',
       );
       return null;
     }
 
-    print('  Morningstar LT ID: $morningstarId');
+    _log('  Morningstar LT ID: $morningstarId');
 
     final uri = Uri.parse(_snapshotBaseUrl).replace(
       queryParameters: <String, String>{
@@ -158,23 +160,23 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
           )
           .timeout(const Duration(seconds: 15));
 
-      print('  Morningstar LT GET: HTTP ${response.statusCode}');
+      _log('  Morningstar LT GET: HTTP ${response.statusCode}');
 
       if (response.statusCode != 200) return null;
 
       final isin = _extractHoldingIsin(response.body);
       if (isin == null) {
-        print(
+        _log(
           '  Morningstar LT: la ficha $morningstarId no contiene '
           'un HoldingIsin válido.',
         );
         return null;
       }
 
-      print('  Morningstar LT ISIN: $isin');
+      _log('  Morningstar LT ISIN: $isin');
       return isin;
     } catch (e) {
-      print('  Morningstar LT error: $e');
+      _log('  Morningstar LT error: $e');
       return null;
     }
   }
@@ -296,12 +298,12 @@ class IsinResolver {
   }) async {
     final normalizedTicker = ticker.trim().toUpperCase();
 
-    print('');
-    print('------------------------------------------------------------');
-    print('IsinResolver');
-    print('Ticker: $normalizedTicker');
-    print('Nombre: $fundName');
-    print('------------------------------------------------------------');
+    _log('');
+    _log('------------------------------------------------------------');
+    _log('IsinResolver');
+    _log('Ticker: $normalizedTicker');
+    _log('Nombre: $fundName');
+    _log('------------------------------------------------------------');
 
     // El ticker puede contener un ISIN embebido, por ejemplo:
     //   LU0297942194-USD.LU
@@ -313,7 +315,7 @@ class IsinResolver {
     final inputIsin = _extractEmbeddedIsin(normalizedTicker);
 
     if (inputIsin != null) {
-      print('ISIN detectado en el ticker: $inputIsin');
+      _log('ISIN detectado en el ticker: $inputIsin');
       return IsinResult(
         isin: inputIsin,
         source: 'INPUT',
@@ -344,7 +346,7 @@ class IsinResolver {
     );
 
     if (cnmvFiResult != null) {
-      print(
+      _log(
         'CNMV FI local: ${cnmvFiResult.fundName}'
         '${cnmvFiResult.compartmentName == null ? '' : ' / ${cnmvFiResult.compartmentName}'}'
         ' / ${cnmvFiResult.fundClass.name}'
@@ -376,7 +378,7 @@ class IsinResolver {
     final rankedResults = _rankYahooResults(results, ticker, fundName);
 
     for (final yahooMatch in rankedResults) {
-      print(
+      _log(
         'Yahoo candidato seleccionado para resolución: '
         '${yahooMatch.symbol} | ${yahooMatch.name}',
       );
@@ -385,7 +387,7 @@ class IsinResolver {
       // búsqueda. Es la vía más sencilla y no requiere consultar Morningstar.
       final yahooIsin = yahooMatch.isin;
       if (yahooIsin != null && _isIsin(yahooIsin)) {
-        print('  Yahoo ISIN directo: $yahooIsin');
+        _log('  Yahoo ISIN directo: $yahooIsin');
         return IsinResult(
           isin: yahooIsin,
           source: 'Yahoo',
@@ -463,7 +465,7 @@ class IsinResolver {
           );
         }
       } catch (e) {
-        print('Error Yahoo: $e');
+        _log('Error Yahoo: $e');
       }
     }
 
@@ -501,7 +503,7 @@ class IsinResolver {
               // Un ISIN proporcionado por Yahoo es una señal especialmente útil.
               if (result.isin != null) score += 0.10;
 
-              print(
+              _log(
                 'Yahoo candidato ${result.symbol}: '
                 'score=${score.toStringAsFixed(3)} '
                 '| name=${nameSimilarity.toStringAsFixed(3)} '
@@ -546,7 +548,7 @@ class IsinResolver {
         final normalized = isin.trim().toUpperCase();
         if (_isIsin(normalized)) return normalized;
       } catch (e) {
-        print('Error ${provider.runtimeType}: $e');
+        _log('Error ${provider.runtimeType}: $e');
       }
     }
 
@@ -599,12 +601,12 @@ class IsinResolver {
         );
 
         if (response.statusCode != 200) {
-          print('CNMV SIL: página $page -> HTTP ${response.statusCode}');
+          _log('CNMV SIL: página $page -> HTTP ${response.statusCode}');
           break;
         }
 
         final pageEntities = _parseCnmvListPage(response.body);
-        print('CNMV SIL: página $page -> ${pageEntities.length} entidades');
+        _log('CNMV SIL: página $page -> ${pageEntities.length} entidades');
 
         if (pageEntities.isEmpty) break;
 
@@ -612,7 +614,7 @@ class IsinResolver {
           entities[entity.registrationNumber] = entity;
         }
       } catch (e) {
-        print('Error CNMV SIL página $page: $e');
+        _log('Error CNMV SIL página $page: $e');
         break;
       }
     }
@@ -706,7 +708,7 @@ class IsinResolver {
 
       return response.statusCode == 200 ? response.body : null;
     } catch (e) {
-      print('Error CNMV society: $e');
+      _log('Error CNMV society: $e');
       return null;
     }
   }
@@ -888,4 +890,10 @@ class _CnmvEntity {
     required this.nif,
     required this.url,
   });
+}
+
+void _log(String message) {
+  if (kDebugMode) {
+    developer.log(message, name: 'IsinResolver');
+  }
 }

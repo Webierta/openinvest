@@ -1,3 +1,4 @@
+/*
 import 'package:http/http.dart' as http;
 
 import '../lib/services/ft_isin_provider.dart';
@@ -74,3 +75,4 @@ Future<void> main() async {
   print('RESULTADO FINAL: $passed / ${cases.length}');
   print('=' * 80);
 }
+*/

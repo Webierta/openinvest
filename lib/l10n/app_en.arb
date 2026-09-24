@@ -271,10 +271,10 @@
   "perfFeesSuffix": "% Success",
   "twrTotalLabel": "TWR (Total)",
   "twrAnnualizedLabel": "TWR Annualized",
-  "mwrHistoricalLabel": "MWR Historical",
+  "mwrHistoricalLabel": "MWR Cumulative",
   "mwrAnnualizedLabel": "MWR Annualized",
   "twrInfoTitle": "TWR (Total / Annualized)",
-  "mwrInfoTitle": "MWR (Historical / Annualized)",
+  "mwrInfoTitle": "MWR (Cumulative / Annualized)",
   "daysCount": "{count, plural, =1{1 day} other{{count} days}}",
   "monthsCount": "{count, plural, =1{1 month} other{{count} months}}",
   "yearsCount": "{count, plural, =1{1 year} other{{count} years}}",
@@ -293,5 +293,29 @@
   "nasdaq100Desc": "The Nasdaq 100 is a stock market index made up of 101 equity securities issued by 100 of the largest non-financial companies listed on the Nasdaq stock market.",
   "dax40Desc": "The DAX is a blue chip stock market index consisting of the 40 major German companies trading on the Frankfurt Stock Exchange.",
   "cac40Desc": "The CAC 40 is a benchmark French stock market index. The index represents a capitalization-weighted measure of the 40 most significant stocks among the 100 largest market caps on the Euronext Paris.",
-  "nikkei225Desc": "The Nikkei 225 is a stock market index for the Tokyo Stock Exchange. It has been calculated daily by the Nihon Keizai Shimbun newspaper since 1950."
+  "nikkei225Desc": "The Nikkei 225 is a stock market index for the Tokyo Stock Exchange. It has been calculated daily by the Nihon Keizai Shimbun newspaper since 1950.",
+  "portfolioAlertsTitle": "Fund Alerts Triggered!",
+  "portfolioAlertsDesc": "The following limits configured for your funds have been reached:",
+  "alertMinReached": "Fund {fundName} has fallen below the limit of {limit}: Current value {current}",
+  "@alertMinReached": {
+    "placeholders": {
+      "fundName": { "type": "String" },
+      "current": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "alertMaxReached": "Fund {fundName} has exceeded the limit of {limit}: Current value {current}",
+  "@alertMaxReached": {
+    "placeholders": {
+      "fundName": { "type": "String" },
+      "current": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "localCatalog": "Local Catalog",
+  "localCatalogDesc": "Harmonized funds from the local catalog.",
+  "morningstarSource": "Morningstar",
+  "morningstarSourceDesc": "Foreign funds resolved via Morningstar LT.",
+  "yahooSource": "Yahoo Finance",
+  "yahooSourceDesc": "Global search and quotes on Yahoo Finance."
 }

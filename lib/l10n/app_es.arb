@@ -271,10 +271,10 @@
   "perfFeesSuffix": "% Éxito",
   "twrTotalLabel": "TWR (Total)",
   "twrAnnualizedLabel": "TWR Anualizada",
-  "mwrHistoricalLabel": "MWR Histórico",
+  "mwrHistoricalLabel": "MWR Acumulado",
   "mwrAnnualizedLabel": "MWR Anualizada",
   "twrInfoTitle": "TWR (Total / Anualizada)",
-  "mwrInfoTitle": "MWR (Histórico / Anualizada)",
+  "mwrInfoTitle": "MWR (Acumulado / Anualizada)",
   "daysCount": "{count, plural, =1{1 día} other{{count} días}}",
   "monthsCount": "{count, plural, =1{1 mes} other{{count} meses}}",
   "yearsCount": "{count, plural, =1{1 año} other{{count} años}}",
@@ -293,5 +293,29 @@
   "nasdaq100Desc": "El Nasdaq 100 incluye a las 100 mayores empresas no financieras que cotizan en el mercado Nasdaq, con gran peso tecnológico.",
   "dax40Desc": "El DAX 40 es el índice de referencia de la bolsa alemana, compuesto por las 40 principales empresas de este mercado.",
   "cac40Desc": "El CAC 40 es el principal índice bursátil francés, que agrupa a las 40 empresas más significativas de la Bolsa de París.",
-  "nikkei225Desc": "El Nikkei 225 es el índice más importante de la bolsa japonesa, compuesto por las 225 empresas más líquidas de Tokio."
+  "nikkei225Desc": "El Nikkei 225 es el índice más importante de la bolsa japonesa, compuesto por las 225 empresas más líquidas de Tokio.",
+  "portfolioAlertsTitle": "¡Alertas de Fondos!",
+  "portfolioAlertsDesc": "Se han alcanzado los siguientes límites configurados en tus fondos:",
+  "alertMinReached": "El fondo {fundName} ha caído por debajo del límite de {limit}: Valor actual {current}",
+  "@alertMinReached": {
+    "placeholders": {
+      "fundName": { "type": "String" },
+      "current": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "alertMaxReached": "El fondo {fundName} ha superado el límite de {limit}: Valor actual {current}",
+  "@alertMaxReached": {
+    "placeholders": {
+      "fundName": { "type": "String" },
+      "current": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "localCatalog": "Catálogo Local",
+  "localCatalogDesc": "Fondos armonizados del catálogo local.",
+  "morningstarSource": "Morningstar",
+  "morningstarSourceDesc": "Fondos extranjeros resueltos mediante Morningstar LT.",
+  "yahooSource": "Yahoo Finance",
+  "yahooSourceDesc": "Búsqueda y cotizaciones globales en Yahoo Finance."
 }

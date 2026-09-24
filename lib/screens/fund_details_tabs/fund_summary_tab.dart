@@ -104,6 +104,13 @@ class FundSummaryTab extends StatelessWidget {
                           color: Colors.white,
                           shape: BoxShape.rectangle,
                           borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: FittedBox(
                           fit: BoxFit.fill,
@@ -113,8 +120,8 @@ class FundSummaryTab extends StatelessWidget {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+                                  horizontal: 10,
+                                  vertical: 5,
                                 ),
                                 decoration: const BoxDecoration(
                                   color: Colors.red,
@@ -124,16 +131,34 @@ class FundSummaryTab extends StatelessWidget {
                                   ),
                                 ),
                                 child: Text(
-                                  //DateFormat.MMMy(locale).format(fund.date),
-                                  DateFormat.yMMM(locale).format(fund.date),
+                                  () {
+                                    final full = DateFormat.yMMM(locale).format(fund.date);
+                                    final yearStr = fund.date.year.toString();
+                                    final shortYear = yearStr.length >= 2
+                                        ? yearStr.substring(yearStr.length - 2)
+                                        : yearStr;
+                                    return full.replaceAll(yearStr, shortYear);
+                                  }(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               ),
-                              Text(
-                                DateFormat.d(locale).format(fund.date),
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                child: Text(
+                                  DateFormat.d(locale).format(fund.date),
+                                  style: const TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],

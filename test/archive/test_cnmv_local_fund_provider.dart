@@ -1,3 +1,4 @@
+/*
 import 'package:flutter_test/flutter_test.dart';
 
 import '../lib/services/cnmv_local_fund_provider.dart';
@@ -129,3 +130,4 @@ const _sampleJson = r'''
   }
 }
 ''';
+*/
