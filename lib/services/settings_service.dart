@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
 
@@ -11,6 +12,7 @@ class SettingsService {
   static const String _keyLastGlobalRefresh = 'last_global_refresh';
   static const String _keyLocale = 'app_locale';
   static final LocalAuthentication _auth = LocalAuthentication();
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   static Future<bool> isAuthRequired() async {
     final prefs = await SharedPreferences.getInstance();
@@ -23,13 +25,25 @@ class SettingsService {
   }
 
   static Future<String?> getAppPassword() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyAppPassword);
+    try {
+      return await _secureStorage.read(key: _keyAppPassword);
+    } catch (_) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        return prefs.getString(_keyAppPassword);
+      } catch (_) {
+        return null;
+      }
+    }
   }
 
   static Future<void> setAppPassword(String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyAppPassword, password);
+    try {
+      await _secureStorage.write(key: _keyAppPassword, value: password);
+    } catch (_) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyAppPassword, password);
+    }
   }
 
   static Future<bool> isAutoRefreshEnabled() async {
