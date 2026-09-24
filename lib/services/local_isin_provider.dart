@@ -17,14 +17,12 @@ class MorningstarIds {
 
 /// Entrada de la base local de ISIN.
 class LocalIsinEntry {
-  //final String? morningstarId;
   final String isin;
   final String name;
   final String? ticker;
   final MorningstarIds? morningstar;
 
   const LocalIsinEntry({
-    //this.morningstarId,
     required this.isin,
     required this.name,
     this.ticker,
@@ -33,7 +31,6 @@ class LocalIsinEntry {
 
   factory LocalIsinEntry.fromJson(Map<String, dynamic> json) {
     return LocalIsinEntry(
-      //morningstarId: json['morningstarId']?.toString(),
       isin: json['isin'].toString().toUpperCase(),
       name: json['name']?.toString() ?? '',
       ticker: json['ticker']?.toString(),
@@ -256,36 +253,6 @@ class LocalIsinProvider implements ForeignIsinProvider {
 
     return result.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
-
-  /* bool _isValidIsin(String isin) {
-    if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(isin)) {
-      return false;
-    }
-
-    final expanded = StringBuffer();
-
-    for (final char in isin.split('')) {
-      if (RegExp(r'[A-Z]').hasMatch(char)) {
-        expanded.write(char.codeUnitAt(0) - 55);
-      } else {
-        expanded.write(char);
-      }
-    }
-
-    final digits = expanded.toString().split('').map(int.parse).toList();
-
-    var sum = 0;
-    for (var i = digits.length - 1, pos = 0; i >= 0; i--, pos++) {
-      var digit = digits[i];
-      if (pos.isOdd) {
-        digit *= 2;
-        if (digit > 9) digit = digit ~/ 10 + digit % 10;
-      }
-      sum += digit;
-    }
-
-    return sum % 10 == 0;
-  } */
 }
 
 void _log(String message) {

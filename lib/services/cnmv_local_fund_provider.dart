@@ -180,10 +180,6 @@ class CnmvLocalFundProvider {
               rawClass['DenominacionClase']?.toString().trim() ?? '';
           final isin = rawClass['ISIN']?.toString().trim().toUpperCase() ?? '';
 
-          // if (classNumber == null || className.isEmpty || !_isValidIsin(isin)) {
-          //   continue;
-          // }
-
           if (classNumber == null ||
               className.isEmpty ||
               !IsinValidator.isValid(isin)) {
@@ -276,31 +272,4 @@ class CnmvLocalFundProvider {
 
   int? _toInt(dynamic value) =>
       value is int ? value : int.tryParse(value?.toString() ?? '');
-
-  /* bool _isValidIsin(String isin) {
-    if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(isin)) return false;
-
-    final digits = <int>[];
-    for (final char in isin.split('')) {
-      if (RegExp(r'[A-Z]').hasMatch(char)) {
-        final n = char.codeUnitAt(0) - 55;
-        digits.add(n ~/ 10);
-        digits.add(n % 10);
-      } else {
-        digits.add(int.parse(char));
-      }
-    }
-
-    var sum = 0;
-    final parity = digits.length % 2;
-    for (var i = 0; i < digits.length; i++) {
-      var digit = digits[i];
-      if (i % 2 == parity) {
-        digit *= 2;
-        if (digit > 9) digit = digit ~/ 10 + digit % 10;
-      }
-      sum += digit;
-    }
-    return sum % 10 == 0;
-  } */
 }

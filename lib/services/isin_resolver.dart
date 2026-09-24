@@ -70,6 +70,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/foreign_isin_provider.dart';
+import '../utils/http_config.dart';
 import '../utils/isin_validator.dart';
 import 'local_isin_provider.dart';
 import 'cnmv_local_fund_provider.dart';
@@ -159,7 +160,8 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
                   'Chrome/140.0.0.0 Safari/537.36',
             },
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(HttpConfig.timeout);
+      //.timeout(const Duration(seconds: 15));
 
       _log('  Morningstar LT GET: HTTP ${response.statusCode}');
 
@@ -215,43 +217,11 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
       if (match == null) continue;
 
       final isin = match.group(1)!.toUpperCase();
-      //if (_isValidIsin(isin)) return isin;
       if (IsinValidator.isValid(isin)) return isin;
     }
 
     return null;
   }
-
-  /* bool _isValidIsin(String isin) {
-    if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(isin)) {
-      return false;
-    }
-
-    final digits = <int>[];
-    for (final char in isin.split('')) {
-      if (RegExp(r'[A-Z]').hasMatch(char)) {
-        final n = char.codeUnitAt(0) - 55;
-        digits.add(n ~/ 10);
-        digits.add(n % 10);
-      } else {
-        digits.add(int.parse(char));
-      }
-    }
-
-    var sum = 0;
-    final parity = digits.length % 2;
-
-    for (var i = 0; i < digits.length; i++) {
-      var digit = digits[i];
-      if (i % 2 == parity) {
-        digit *= 2;
-        if (digit > 9) digit = digit ~/ 10 + digit % 10;
-      }
-      sum += digit;
-    }
-
-    return sum % 10 == 0;
-  } */
 }
 
 /// Alias de compatibilidad para código que utilizase el nombre anterior.
@@ -283,9 +253,6 @@ class IsinResolver {
   }) : _client = client ?? http.Client(),
        _cnmvLocalFundProvider =
            cnmvLocalFundProvider ?? CnmvLocalFundProvider() {
-    /* _foreignIsinProviders =
-        foreignIsinProviders ??
-        [MorningstarForeignIsinProvider(client: _client)]; */
     _foreignIsinProviders =
         foreignIsinProviders ??
         [
@@ -432,13 +399,15 @@ class IsinResolver {
           },
         );
 
-        final response = await _client.get(
-          uri,
-          headers: const {
-            'Accept': 'application/json',
-            'User-Agent': 'OpenInvest/1.0',
-          },
-        );
+        final response = await _client
+            .get(
+              uri,
+              headers: const {
+                'Accept': 'application/json',
+                'User-Agent': 'OpenInvest/1.0',
+              },
+            )
+            .timeout(HttpConfig.timeout);
 
         if (response.statusCode != 200) continue;
 
@@ -594,13 +563,15 @@ class IsinResolver {
     // cambiar y no forma parte de los datos de las entidades.
     for (var page = 0; page < 20; page++) {
       try {
-        final response = await _client.get(
-          Uri.parse('$_cnmvListBaseUrl$page'),
-          headers: const {
-            'Accept': 'text/html',
-            'User-Agent': 'OpenInvest/1.0',
-          },
-        );
+        final response = await _client
+            .get(
+              Uri.parse('$_cnmvListBaseUrl$page'),
+              headers: const {
+                'Accept': 'text/html',
+                'User-Agent': 'OpenInvest/1.0',
+              },
+            )
+            .timeout(HttpConfig.timeout);
 
         if (response.statusCode != 200) {
           _log('CNMV SIL: página $page -> HTTP ${response.statusCode}');
@@ -751,46 +722,9 @@ class IsinResolver {
     return null;
   }
 
-  /* bool _isIsin(String value) {
-    final normalized = value.trim().toUpperCase();
-    if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(normalized)) {
-      return false;
-    }
-    return _isValidIsinChecksum(normalized);
-  } */
-
   bool _isIsin(String value) {
     return IsinValidator.isValid(value);
   }
-
-  /* bool _isValidIsinChecksum(String isin) {
-    final value = isin.toUpperCase();
-    final digits = <int>[];
-
-    for (final char in value.split('')) {
-      if (RegExp(r'[A-Z]').hasMatch(char)) {
-        final n = char.codeUnitAt(0) - 55;
-        digits.add(n ~/ 10);
-        digits.add(n % 10);
-      } else {
-        digits.add(int.parse(char));
-      }
-    }
-
-    var sum = 0;
-    final parity = digits.length % 2;
-
-    for (var i = 0; i < digits.length; i++) {
-      var digit = digits[i];
-      if (i % 2 == parity) {
-        digit *= 2;
-        if (digit > 9) digit = digit ~/ 10 + digit % 10;
-      }
-      sum += digit;
-    }
-
-    return sum % 10 == 0;
-  } */
 
   double _nameSimilarity(String a, String b) {
     final aa = _normalizeName(a);
