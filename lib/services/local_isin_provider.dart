@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../models/foreign_isin_provider.dart';
+import '../utils/isin_validator.dart';
 
 class MorningstarIds {
   final String? performanceId;
@@ -132,7 +133,8 @@ class LocalIsinProvider implements ForeignIsinProvider {
       try {
         final entry = LocalIsinEntry.fromJson(Map<String, dynamic>.from(item));
 
-        if (_isValidIsin(entry.isin)) {
+        //if (_isValidIsin(entry.isin)) {
+        if (IsinValidator.isValid(entry.isin)) {
           entries.add(entry);
         }
       } catch (_) {
@@ -255,7 +257,7 @@ class LocalIsinProvider implements ForeignIsinProvider {
     return result.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
-  bool _isValidIsin(String isin) {
+  /* bool _isValidIsin(String isin) {
     if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(isin)) {
       return false;
     }
@@ -283,7 +285,7 @@ class LocalIsinProvider implements ForeignIsinProvider {
     }
 
     return sum % 10 == 0;
-  }
+  } */
 }
 
 void _log(String message) {

@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../utils/isin_validator.dart';
+
 class CnmvFundClass {
   final int number;
   final String name;
@@ -49,15 +51,13 @@ class CnmvFundResult {
 /// Conserva la jerarquía Entidad -> Compartimento -> Clase -> ISIN.
 /// No selecciona arbitrariamente una clase cuando existen varias.
 class CnmvLocalFundProvider {
-  static const String assetPath =
-      'assets/files/fondos_no_armonizados.json';
+  static const String assetPath = 'assets/files/fondos_no_armonizados.json';
 
   final Future<String> Function(String path) _loadAsset;
   List<CnmvFundResult>? _results;
 
-  CnmvLocalFundProvider({
-    Future<String> Function(String path)? loadAsset,
-  }) : _loadAsset = loadAsset ?? rootBundle.loadString;
+  CnmvLocalFundProvider({Future<String> Function(String path)? loadAsset})
+    : _loadAsset = loadAsset ?? rootBundle.loadString;
 
   Future<CnmvFundResult?> resolve({required String fundName}) async {
     await _ensureLoaded();
@@ -75,9 +75,7 @@ class CnmvLocalFundProvider {
     }
 
     final exact = candidates.where((entry) {
-      final full = _normalizeName(
-        '${entry.fundName} ${entry.fundClass.name}',
-      );
+      final full = _normalizeName('${entry.fundName} ${entry.fundClass.name}');
       return full == query;
     }).toList();
 
@@ -150,8 +148,9 @@ class CnmvLocalFundProvider {
 
       final manager = rawEntity['Gestora'];
       final depositary = rawEntity['Depositario'];
-      final managerName =
-          manager is Map ? manager['DenominacionGestora']?.toString() : null;
+      final managerName = manager is Map
+          ? manager['DenominacionGestora']?.toString()
+          : null;
       final depositaryName = depositary is Map
           ? depositary['DenominacionDepositario']?.toString()
           : null;
@@ -165,15 +164,13 @@ class CnmvLocalFundProvider {
       for (final rawCompartment in compartments) {
         if (rawCompartment is! Map) continue;
 
-        final compartmentNumber =
-            _toInt(rawCompartment['NumeroCompartimento']);
-        final compartmentName =
-            rawCompartment['DenominacionCompartimento']?.toString();
+        final compartmentNumber = _toInt(rawCompartment['NumeroCompartimento']);
+        final compartmentName = rawCompartment['DenominacionCompartimento']
+            ?.toString();
 
         final rawClasses = rawCompartment['Clase'];
         if (rawClasses == null) continue;
-        final classes =
-            rawClasses is List ? rawClasses : <dynamic>[rawClasses];
+        final classes = rawClasses is List ? rawClasses : <dynamic>[rawClasses];
 
         for (final rawClass in classes) {
           if (rawClass is! Map) continue;
@@ -181,12 +178,15 @@ class CnmvLocalFundProvider {
           final classNumber = _toInt(rawClass['NumeroClase']);
           final className =
               rawClass['DenominacionClase']?.toString().trim() ?? '';
-          final isin =
-              rawClass['ISIN']?.toString().trim().toUpperCase() ?? '';
+          final isin = rawClass['ISIN']?.toString().trim().toUpperCase() ?? '';
+
+          // if (classNumber == null || className.isEmpty || !_isValidIsin(isin)) {
+          //   continue;
+          // }
 
           if (classNumber == null ||
               className.isEmpty ||
-              !_isValidIsin(isin)) {
+              !IsinValidator.isValid(isin)) {
             continue;
           }
 
@@ -227,13 +227,37 @@ class CnmvLocalFundProvider {
   String _normalizeName(String value) {
     var result = value.toUpperCase();
     const replacements = <String, String>{
-      'Á': 'A', 'À': 'A', 'Ä': 'A', 'Â': 'A',
-      'É': 'E', 'È': 'E', 'Ë': 'E', 'Ê': 'E',
-      'Í': 'I', 'Ì': 'I', 'Ï': 'I', 'Î': 'I',
-      'Ó': 'O', 'Ò': 'O', 'Ö': 'O', 'Ô': 'O',
-      'Ú': 'U', 'Ù': 'U', 'Ü': 'U', 'Û': 'U',
-      'Ñ': 'N', '&': ' ', '-': ' ', '_': ' ', '/': ' ',
-      ',': ' ', '.': ' ', ':': ' ', ';': ' ', '(': ' ', ')': ' ',
+      'Á': 'A',
+      'À': 'A',
+      'Ä': 'A',
+      'Â': 'A',
+      'É': 'E',
+      'È': 'E',
+      'Ë': 'E',
+      'Ê': 'E',
+      'Í': 'I',
+      'Ì': 'I',
+      'Ï': 'I',
+      'Î': 'I',
+      'Ó': 'O',
+      'Ò': 'O',
+      'Ö': 'O',
+      'Ô': 'O',
+      'Ú': 'U',
+      'Ù': 'U',
+      'Ü': 'U',
+      'Û': 'U',
+      'Ñ': 'N',
+      '&': ' ',
+      '-': ' ',
+      '_': ' ',
+      '/': ' ',
+      ',': ' ',
+      '.': ' ',
+      ':': ' ',
+      ';': ' ',
+      '(': ' ',
+      ')': ' ',
     };
     replacements.forEach((from, to) => result = result.replaceAll(from, to));
     return result.replaceAll(RegExp(r'\s+'), ' ').trim();
@@ -253,7 +277,7 @@ class CnmvLocalFundProvider {
   int? _toInt(dynamic value) =>
       value is int ? value : int.tryParse(value?.toString() ?? '');
 
-  bool _isValidIsin(String isin) {
+  /* bool _isValidIsin(String isin) {
     if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(isin)) return false;
 
     final digits = <int>[];
@@ -278,5 +302,5 @@ class CnmvLocalFundProvider {
       sum += digit;
     }
     return sum % 10 == 0;
-  }
+  } */
 }
