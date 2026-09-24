@@ -561,7 +561,10 @@ class IsinResolver {
     // La CNMV pagina desde page=0 y actualmente este listado tiene 20 páginas.
     // No dependemos de textos como "siguiente", porque la navegación puede
     // cambiar y no forma parte de los datos de las entidades.
-    for (var page = 0; page < 20; page++) {
+
+    var page = 0;
+
+    while (true) {
       try {
         final response = await _client
             .get(
@@ -586,6 +589,8 @@ class IsinResolver {
         for (final entity in pageEntities) {
           entities[entity.registrationNumber] = entity;
         }
+
+        page++;
       } catch (e) {
         _log('Error CNMV SIL página $page: $e');
         break;
@@ -674,10 +679,15 @@ class IsinResolver {
     if (nif.isEmpty) return null;
 
     try {
-      final response = await _client.get(
-        Uri.parse('$_cnmvSocietyUrl$nif'),
-        headers: const {'Accept': 'text/html', 'User-Agent': 'OpenInvest/1.0'},
-      );
+      final response = await _client
+          .get(
+            Uri.parse('$_cnmvSocietyUrl$nif'),
+            headers: const {
+              'Accept': 'text/html',
+              'User-Agent': 'OpenInvest/1.0',
+            },
+          )
+          .timeout(HttpConfig.timeout);
 
       return response.statusCode == 200 ? response.body : null;
     } catch (e) {
