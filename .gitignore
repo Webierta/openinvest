@@ -1,122 +1,316 @@
-# Built application files
+# ==============================================================================
+# OpenInvest - .gitignore
+# Flutter / Dart / Android / Linux
+# Security-oriented configuration
+# ==============================================================================
+
+
+# ==============================================================================
+# BUILD / GENERATED FILES
+# ==============================================================================
+
 *.apk
 *.aar
 *.ap_
 *.aab
-
-# Miscellaneous
 *.class
-*.lock
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+*.dart.js
+*.js_
+*.js.deps
+*.js.map
+*.info.json
 
-# Flutter repo-specific
-/bin/cache/
-/bin/internal/bootstrap.bat
-/bin/internal/bootstrap.sh
-/bin/mingit/
-/dev/benchmarks/mega_gallery/
-/dev/bots/.recipe_deps
-/dev/bots/android_tools/
-/dev/devicelab/ABresults*.json
-/dev/docs/doc/
-/dev/docs/flutter.docs.zip
-/dev/docs/lib/
-/dev/docs/pubspec.yaml
-/dev/integration_tests/**/xcuserdata
-/dev/integration_tests/**/Pods
-/packages/flutter/coverage/
-version
-analysis_benchmark.json
+/bin/
+/build/
+/out/
+/gen/
+coverage/
 
-# Generated files
-bin/
-gen/
-out/
-# packages file containing multi-root paths
-.packages.generated
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
 .dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-**/generated_plugin_registrant.dart
 .packages
+.packages.generated
+.pub/
 .pub-cache/
 .pub-preload-cache/
-.pub/
-build/
-/build/
-flutter_*.png
-linked_*.ds
-unlinked.ds
-unlinked_spec.ds
 
-# Local configuration file (sdk path, etc)
+.flutter-plugins
+.flutter-plugins-dependencies
+
+**/doc/api/
+**/generated_plugin_registrant.dart
+
+# Flutter generated files
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/ephemeral/
+
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+**/windows/flutter/generated_plugins.cmake
+
+**/linux/flutter/generated_plugin_registrant.cc
+**/linux/flutter/generated_plugin_registrant.h
+**/linux/flutter/generated_plugins.cmake
+
+
+# ==============================================================================
+# DART / FLUTTER LOCAL DEVELOPMENT
+# ==============================================================================
+
+*.lock
+
+# Local Dart / Flutter caches
+.dart_tool/
+.pub-cache/
+.pub-preload-cache/
+
+# Flutter tooling
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Local SDK configuration
 local.properties
+**/android/local.properties
 
-# Android Studio generated files and folders
-.navigation/
-captures/
-.externalNativeBuild
-.externalNativeBuild/
-.cxx/
-output.json
+# Flutter temporary files
+.flutter-plugins-dependencies
+migrate_working_dir/
 
-# Android Studio will place build artifacts here
+
+# ==============================================================================
+# ANDROID / GRADLE
+# ==============================================================================
+
+.gradle/
+
+**/android/**/gradle-wrapper.jar
+**/android/gradlew
+**/android/gradlew.bat
+
+**/android/captures/
+**/android/**/GeneratedPluginRegistrant.java
+
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-# Visual Studio Code related
+.externalNativeBuild/
+.cxx/
+
+*.hprof
+
+
+# ==============================================================================
+# ANDROID SIGNING / CREDENTIALS
+# ==============================================================================
+
+# Android signing keys
+*.jks
+*.keystore
+*.p12
+*.pfx
+
+# Android signing configuration
+**/key.properties
+
+# Generic signing / certificate material
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+
+
+# ==============================================================================
+# GOOGLE / FIREBASE CREDENTIALS
+# ==============================================================================
+
+google-services.json
+GoogleService-Info.plist
+
+
+# ==============================================================================
+# ENVIRONMENT / SECRETS
+# ==============================================================================
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Keep example templates
+!.env.example
+!.env.template
+!.env.sample
+
+# Generated environment files
+env.g.dart
+env*.g.dart
+
+# Local configuration
+config.local.*
+configuration.local.*
+settings.local.*
+
+# Common secret/configuration extensions
+*.secret
+*.secrets
+*.credentials
+*.credential
+
+# Local machine configuration
+local.*
+*.local
+
+
+# ==============================================================================
+# DATABASES / LOCAL DATA
+# ==============================================================================
+
+# SQLite and local databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Database dumps / exports
+*.dump
+*.sql.bak
+*.sqlite.bak
+
+# Local application data
+data/local/
+data/private/
+local_data/
+private_data/
+
+
+# ==============================================================================
+# OPENINVEST LOCAL / GENERATED DATA
+# ==============================================================================
+
+# Scraper / resolver temporary results
+fondos_resultados_progreso.json
+fondos_estado.json
+
+# Local/generated CNMV datasets
+fondos_sin_isin.json
+fondos_armonizados.csv
+
+# Probe/debug outputs
+*_probe_*.txt
+*_probe_*.json
+probe_*.txt
+probe_*.json
+
+# Debug HTML downloaded from external providers
+cnmv_debug_*.html
+debug_*.html
+
+# Local scraper state
+*_estado.json
+*_progreso.json
+
+
+# ==============================================================================
+# SECURITY TOOL OUTPUT
+# ==============================================================================
+
+# Gitleaks reports
+gitleaks-report.json
+gitleaks-report.csv
+gitleaks-report.sarif
+gitleaks-report.txt
+.gitleaks-report/
+
+# TruffleHog reports
+trufflehog-report.json
+trufflehog-report.txt
+trufflehog-report.sarif
+.trufflehog/
+
+# Generic security scan output
+security-report.json
+security-report.txt
+security-report.sarif
+security-results/
+secret-scan-results/
+secrets-report.*
+
+
+# ==============================================================================
+# GIT / VERSION CONTROL
+# ==============================================================================
+
+.svn/
+.git/
+*.orig
+*.rej
+
+
+# ==============================================================================
+# LOGS / TEMPORARY FILES
+# ==============================================================================
+
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+.history
+.atom/
+.build/
+.buildlog/
+
+.DS_Store
+
+
+# ==============================================================================
+# IDE - VISUAL STUDIO CODE
+# ==============================================================================
+
+.vscode/
+
 .classpath
 .project
 .settings/
-.vscode/
 
-# IntelliJ related
+
+# ==============================================================================
+# IDE - INTELLIJ / ANDROID STUDIO
+# ==============================================================================
+
+.idea/
 *.iml
 *.ipr
 *.iws
-.idea/
+
 misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
+.navigation/
+captures/
+output.json
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
 
-# Symbolication related
-app.*.symbols
+# ==============================================================================
+# iOS / XCODE
+# ==============================================================================
 
-# Obfuscation related
-app.*.map.json
-
-# Android related
-**/android/**/gradle-wrapper.jar
-.gradle/
-**/android/captures/
-**/android/gradlew
-**/android/gradlew.bat
-**/android/local.properties
-**/android/**/GeneratedPluginRegistrant.java
-**/android/key.properties
-*.jks
-
-# iOS/XCode related
 **/ios/**/*.mode1v3
 **/ios/**/*.mode2v3
 **/ios/**/*.moved-aside
@@ -133,44 +327,73 @@ app.*.map.json
 **/ios/**/profile
 **/ios/**/xcuserdata
 **/ios/.generated/
-**/ios/Flutter/.last_build_id
-**/ios/Flutter/App.framework
-**/ios/Flutter/Flutter.framework
-**/ios/Flutter/Flutter.podspec
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/ephemeral
-**/ios/Flutter/app.flx
-**/ios/Flutter/app.zip
-**/ios/Flutter/flutter_assets/
-**/ios/Flutter/flutter_export_environment.sh
+
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
 
-# macOS
+
+# ==============================================================================
+# MACOS
+# ==============================================================================
+
 **/Flutter/ephemeral/
 **/Pods/
-**/macos/Flutter/GeneratedPluginRegistrant.swift
-**/macos/Flutter/ephemeral
 **/xcuserdata/
 
-# Windows
-**/windows/flutter/generated_plugin_registrant.cc
-**/windows/flutter/generated_plugin_registrant.h
-**/windows/flutter/generated_plugins.cmake
 
-# Linux
-**/linux/flutter/generated_plugin_registrant.cc
-**/linux/flutter/generated_plugin_registrant.h
-**/linux/flutter/generated_plugins.cmake
+# ==============================================================================
+# FLUTTER REPOSITORY DEVELOPMENT ARTIFACTS
+# ==============================================================================
 
-# Coverage
-coverage/
-/coverage/
+/bin/cache/
+/bin/internal/bootstrap.bat
+/bin/internal/bootstrap.sh
+/bin/mingit/
 
-# Symbols
+/dev/benchmarks/mega_gallery/
+/dev/bots/.recipe_deps
+/dev/bots/android_tools/
+/dev/devicelab/ABresults*.json
+/dev/docs/doc/
+/dev/docs/flutter.docs.zip
+/dev/docs/lib/
+/dev/docs/pubspec.yaml
+
+/packages/flutter/coverage/
+
+version
+analysis_benchmark.json
+
+
+# ==============================================================================
+# SYMBOLICATION / OBFUSCATION
+# ==============================================================================
+
 app.*.symbols
+app.*.map.json
 
-# Exceptions to above rules.
+
+# ==============================================================================
+# MISCELLANEOUS FLUTTER FILES
+# ==============================================================================
+
+flutter_*.png
+linked_*.ds
+unlinked.ds
+unlinked_spec.ds
+
+
+# ==============================================================================
+# IDE / AGENT ARTIFACTS
+# ==============================================================================
+
+.artifacts/
+
+
+# ==============================================================================
+# EXCEPTIONS
+# ==============================================================================
+
 !**/ios/**/default.mode1v3
 !**/ios/**/default.mode2v3
 !**/ios/**/default.pbxuser
@@ -178,27 +401,15 @@ app.*.symbols
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
 
-# Avoid committing generated Javascript files:
+
+# ==============================================================================
+# JAVASCRIPT
+# ==============================================================================
+
+# Generated JavaScript only.
+# Do NOT ignore all *.js files because OpenInvest may eventually contain
+# legitimate JavaScript source files.
 *.dart.js
-*.info.json      # Produced by the --dump-info flag.
-*.js             # When generated by dart2js. Don't specify *.js if your
-                 # project includes source files written in JavaScript.
 *.js_
 *.js.deps
 *.js.map
-
-# Keystore files
-*.keystore
-*.env
-# Environment related files
-.env
-env.g.dart
-
-# Google Services (e.g. APIs or Firebase)
-google-services.json
-
-# Android Profiling
-*.hprof
-
-# IDE/Agent artifacts
-.artifacts/
