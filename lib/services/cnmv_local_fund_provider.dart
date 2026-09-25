@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../utils/isin_validator.dart';
@@ -52,6 +54,7 @@ class CnmvFundResult {
 /// No selecciona arbitrariamente una clase cuando existen varias.
 class CnmvLocalFundProvider {
   static const String assetPath = 'assets/files/fondos_no_armonizados.json';
+  static List<CnmvFundResult>? _globalResults;
 
   final Future<String> Function(String path) _loadAsset;
   List<CnmvFundResult>? _results;
@@ -70,7 +73,7 @@ class CnmvLocalFundProvider {
         .toList();
 
     if (candidates.isEmpty) {
-      print('CnmvLocalFundProvider: no encontrado: $fundName');
+      _log('CnmvLocalFundProvider: no encontrado: $fundName');
       return null;
     }
 
@@ -91,7 +94,7 @@ class CnmvLocalFundProvider {
     final uniqueIsins = candidates.map((e) => e.isin).toSet();
     if (uniqueIsins.length == 1) return candidates.first;
 
-    print(
+    _log(
       'CnmvLocalFundProvider: ambiguo "$fundName" '
       '(${candidates.length} clases).',
     );
@@ -110,6 +113,10 @@ class CnmvLocalFundProvider {
 
   Future<void> _ensureLoaded() async {
     if (_results != null) return;
+    if (_loadAsset == rootBundle.loadString && _globalResults != null) {
+      _results = _globalResults;
+      return;
+    }
 
     final raw = await _loadAsset(assetPath);
     final decoded = jsonDecode(raw);
@@ -206,7 +213,10 @@ class CnmvLocalFundProvider {
     }
 
     _results = List.unmodifiable(results);
-    print(
+    if (_loadAsset == rootBundle.loadString) {
+      _globalResults = _results;
+    }
+    _log(
       'CnmvLocalFundProvider: ${results.length} clases cargadas '
       '(${registro['FechaDatos'] ?? 'sin fecha'}).',
     );
@@ -272,4 +282,10 @@ class CnmvLocalFundProvider {
 
   int? _toInt(dynamic value) =>
       value is int ? value : int.tryParse(value?.toString() ?? '');
+}
+
+void _log(String message) {
+  if (kDebugMode) {
+    developer.log(message, name: 'CnmvLocalFundProvider');
+  }
 }
