@@ -32,6 +32,24 @@ class _MockCnmvProvider extends CnmvLocalFundProvider {
   }
 }
 
+class _TrackingForeignProvider implements ForeignIsinProvider {
+  final String? resolvedIsin;
+  final void Function()? onResolve;
+
+  _TrackingForeignProvider({required this.resolvedIsin, this.onResolve});
+
+  @override
+  Future<String?> resolve({
+    required String ticker,
+    required String fundName,
+    required String yahooSymbol,
+    required String yahooName,
+  }) async {
+    onResolve?.call();
+    return resolvedIsin;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -241,6 +259,604 @@ void main() {
       );
 
       expect(result, isNull);
+    });
+  });
+
+  group('A. INPUT / detección de ISIN - casos críticos', () {
+    test('A1. ISIN válido exacto', () async {
+      final resolver = IsinResolver(
+        client: MockClient((_) async => http.Response('', 404)),
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'LU0297942194',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'LU0297942194');
+      expect(result.source, 'INPUT');
+    });
+
+    test('A2. ISIN en minúsculas', () async {
+      final resolver = IsinResolver(
+        client: MockClient((_) async => http.Response('', 404)),
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'lu0297942194',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'LU0297942194');
+      expect(result.source, 'INPUT');
+    });
+
+    test('A3. ISIN con checksum incorrecto debe rechazarse', () async {
+      // LU0297942194 es válido.
+      // Modificamos el último dígito para provocar un checksum incorrecto.
+      const invalidIsin = 'LU0297942195';
+
+      final resolver = IsinResolver(
+        client: MockClient((_) async => http.Response('', 404)),
+      );
+
+      final result = await resolver.resolve(
+        ticker: invalidIsin,
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('A4. ISIN embebido dentro de una cadena', () async {
+      final resolver = IsinResolver(
+        client: MockClient((_) async => http.Response('', 404)),
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'ABC-LU0297942194-USD.LU',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'LU0297942194');
+      expect(result.source, 'INPUT');
+    });
+
+    test('A5. Dos ISIN válidos: debe devolver el primero', () async {
+      final resolver = IsinResolver(
+        client: MockClient((_) async => http.Response('', 404)),
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'LU0297942194 / IE00B8K7V925',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'LU0297942194');
+      expect(result.source, 'INPUT');
+    });
+  });
+
+  group('B. Prioridad y cadena de providers - casos críticos', () {
+    test('B1. INPUT tiene prioridad sobre CNMV/FI y Yahoo', () async {
+      final mockCnmv = _MockCnmvProvider(
+        const CnmvFundResult(
+          registrationNumber: 999,
+          fundName: 'CNMV Fund',
+          compartmentName: null,
+          compartmentNumber: null,
+          fundClass: CnmvFundClass(
+            number: 0,
+            name: 'BASE',
+            isin: 'ES0138841038',
+          ),
+          managerName: 'Test Gestora',
+          depositaryName: 'Test Depositario',
+        ),
+      );
+
+      final resolver = IsinResolver(
+        client: MockClient((_) async {
+          return http.Response(
+            '{"quotes": [{"symbol": "TEST", "longname": "Yahoo Fund", '
+            '"quoteType": "MUTUALFUND", "isin": "FR0000993172"}]}',
+            200,
+          );
+        }),
+        cnmvLocalFundProvider: mockCnmv,
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'LU0297942194',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'LU0297942194');
+      expect(result.source, 'INPUT');
+    });
+
+    test('B2. Si INPUT falla, continúa con CNMV/FI', () async {
+      final mockCnmv = _MockCnmvProvider(
+        const CnmvFundResult(
+          registrationNumber: 123,
+          fundName: 'TEST FUND FI',
+          compartmentName: null,
+          compartmentNumber: null,
+          fundClass: CnmvFundClass(
+            number: 0,
+            name: 'BASE',
+            isin: 'ES0138841038',
+          ),
+          managerName: 'Test Gestora',
+          depositaryName: 'Test Depositario',
+        ),
+      );
+
+      final resolver = IsinResolver(
+        client: MockClient((_) async => http.Response('', 404)),
+        cnmvLocalFundProvider: mockCnmv,
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'ES0138841038');
+      expect(result.source, 'CNMV/FI local');
+    });
+
+    test('B3. Si SIL no resuelve, la cadena continúa', () async {
+      final mockClient = MockClient((request) async {
+        // Las consultas de SIL no encuentran ningún fondo.
+        if (request.url.toString().contains('mostrarlistados')) {
+          return http.Response('', 404);
+        }
+
+        // Yahoo tampoco encuentra nada.
+        return http.Response('{"quotes": []}', 200);
+      });
+
+      final mockCnmv = _MockCnmvProvider(null);
+
+      final resolver = IsinResolver(
+        client: mockClient,
+        cnmvLocalFundProvider: mockCnmv,
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'UNKNOWN',
+        fundName: 'Unknown Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('B4. Si FI no resuelve, continúa hasta Yahoo', () async {
+      final mockCnmv = _MockCnmvProvider(null);
+
+      final resolver = IsinResolver(
+        client: MockClient((_) async {
+          return http.Response(
+            '{"quotes": [{"symbol": "TEST", '
+            '"longname": "Test Fund", '
+            '"quoteType": "MUTUALFUND", '
+            '"isin": "FR0000993172"}]}',
+            200,
+          );
+        }),
+        cnmvLocalFundProvider: mockCnmv,
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0000993172');
+      expect(result.source, 'Yahoo');
+    });
+
+    test('B5. Un provider que devuelve null no bloquea la cadena', () async {
+      final nullProvider = _MockForeignProvider(null);
+      final validProvider = _MockForeignProvider('FR0010135103');
+
+      final resolver = IsinResolver(
+        client: MockClient((_) async {
+          return http.Response(
+            '{"quotes": [{"symbol": "TEST", '
+            '"longname": "Test Fund", '
+            '"quoteType": "MUTUALFUND"}]}',
+            200,
+          );
+        }),
+        foreignIsinProviders: [nullProvider, validProvider],
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0010135103');
+      expect(result.source, 'Yahoo/Foreign');
+    });
+
+    test('B6. El primer provider válido detiene la cadena', () async {
+      var secondProviderCalled = false;
+
+      final firstProvider = _TrackingForeignProvider(
+        resolvedIsin: 'FR0010135103',
+      );
+
+      final secondProvider = _TrackingForeignProvider(
+        resolvedIsin: 'LU0261948904',
+        onResolve: () {
+          secondProviderCalled = true;
+        },
+      );
+
+      final resolver = IsinResolver(
+        client: MockClient((_) async {
+          return http.Response(
+            '{"quotes": [{"symbol": "TEST", '
+            '"longname": "Test Fund", '
+            '"quoteType": "MUTUALFUND"}]}',
+            200,
+          );
+        }),
+        foreignIsinProviders: [firstProvider, secondProvider],
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0010135103');
+      expect(result.source, 'Yahoo/Foreign');
+
+      expect(secondProviderCalled, isFalse);
+    });
+
+    test(
+      'B7. Un resultado válido no es reemplazado por otro posterior',
+      () async {
+        final resolver = IsinResolver(
+          client: MockClient((_) async {
+            return http.Response(
+              '{"quotes": [{"symbol": "TEST", '
+              '"longname": "Test Fund", '
+              '"quoteType": "MUTUALFUND", '
+              '"isin": "FR0000993172"}]}',
+              200,
+            );
+          }),
+          foreignIsinProviders: [_MockForeignProvider('LU0261948904')],
+        );
+
+        final result = await resolver.resolve(
+          ticker: 'TEST',
+          fundName: 'Test Fund',
+        );
+
+        expect(result, isNotNull);
+
+        // Yahoo ya ha proporcionado un ISIN válido.
+        // El Foreign provider no debe sustituirlo.
+        expect(result!.isin, 'FR0000993172');
+        expect(result.source, 'Yahoo');
+      },
+    );
+
+    test('B8. Si todos los providers fallan, devuelve null', () async {
+      final resolver = IsinResolver(
+        client: MockClient((_) async {
+          return http.Response('{"quotes": []}', 200);
+        }),
+        cnmvLocalFundProvider: _MockCnmvProvider(null),
+        foreignIsinProviders: [
+          _MockForeignProvider(null),
+          _MockForeignProvider(null),
+        ],
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'UNKNOWN',
+        fundName: 'Unknown Fund',
+      );
+
+      expect(result, isNull);
+    });
+  });
+
+  group('C. YAHOO / resolución y casos límite', () {
+    test('C1. Yahoo devuelve un ISIN válido directamente', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "YHOO", '
+          '"longname": "Yahoo Fund", '
+          '"quoteType": "MUTUALFUND", '
+          '"isin": "FR0000993172"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'YHOO',
+        fundName: 'Yahoo Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0000993172');
+      expect(result.source, 'Yahoo');
+    });
+
+    test(
+      'C2. Yahoo devuelve ISIN con checksum incorrecto y debe rechazarse',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            '{"quotes": ['
+            '{"symbol": "TEST", '
+            '"longname": "Test Fund", '
+            '"quoteType": "MUTUALFUND", '
+            '"isin": "FR0000993173"}'
+            ']}',
+            200,
+          );
+        });
+
+        final resolver = IsinResolver(
+          client: mockClient,
+          foreignIsinProviders: [_MockForeignProvider(null)],
+        );
+
+        final result = await resolver.resolve(
+          ticker: 'TEST',
+          fundName: 'Test Fund',
+        );
+
+        expect(result, isNull);
+      },
+    );
+
+    test('C3. Yahoo devuelve ISIN en minúsculas y debe normalizarse', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "TEST", '
+          '"longname": "Test Fund", '
+          '"quoteType": "MUTUALFUND", '
+          '"isin": "fr0000993172"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0000993172');
+      expect(result.source, 'Yahoo');
+    });
+
+    test('C4. Yahoo sin ISIN utiliza ForeignIsinProvider', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "TEST", '
+          '"longname": "Test Fund", '
+          '"quoteType": "MUTUALFUND"'
+          '}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(
+        client: mockClient,
+        foreignIsinProviders: [_MockForeignProvider('FR0010135103')],
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0010135103');
+      expect(result.source, 'Yahoo/Foreign');
+    });
+
+    test('C5. Yahoo sin ISIN y Foreign devuelve null', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "TEST", '
+          '"longname": "Test Fund", '
+          '"quoteType": "MUTUALFUND"'
+          '}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(
+        client: mockClient,
+        foreignIsinProviders: [_MockForeignProvider(null)],
+      );
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test(
+      'C6. Yahoo devuelve JSON inválido y no debe lanzar excepción',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('{"quotes": [INVALID JSON', 200);
+        });
+
+        final resolver = IsinResolver(client: mockClient);
+
+        final result = await resolver.resolve(
+          ticker: 'TEST',
+          fundName: 'Test Fund',
+        );
+
+        expect(result, isNull);
+      },
+    );
+
+    test('C7. Yahoo devuelve HTTP 404 y no debe lanzar excepción', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('Not Found', 404);
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('C8. Yahoo devuelve HTTP 500 y no debe lanzar excepción', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('Internal Server Error', 500);
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('C9. Yahoo ignora elementos malformed dentro de quotes', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          'null,'
+          '"texto",'
+          '{"symbol": "TEST", '
+          '"longname": "Test Fund", '
+          '"quoteType": "MUTUALFUND", '
+          '"isin": "FR0000993172"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0000993172');
+      expect(result.source, 'Yahoo');
+    });
+
+    test('C10. Yahoo EQUITY no debe tratarse como fondo válido', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "TEST", '
+          '"longname": "Test Fund", '
+          '"quoteType": "EQUITY", '
+          '"isin": "FR0000993172"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('C11. Yahoo ETF no debe tratarse como fondo válido', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "TEST", '
+          '"longname": "Test Fund", '
+          '"quoteType": "ETF", '
+          '"isin": "FR0000993172"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('C12. Yahoo MUTUALFUND sí puede devolver el ISIN', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "TEST", '
+          '"longname": "Test Fund", '
+          '"quoteType": "MUTUALFUND", '
+          '"isin": "FR0000993172"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0000993172');
+      expect(result.source, 'Yahoo');
     });
   });
 }
