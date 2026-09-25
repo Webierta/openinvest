@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:investing/services/isin_resolver.dart';
 import 'package:http/http.dart' as http;
 
@@ -14,6 +15,7 @@ class _TestCase {
 }
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   const tests = <_TestCase>[
     _TestCase(
       ticker: '0P0000X83M',
