@@ -104,12 +104,13 @@ class YahooProvider implements IsinSourceProvider {
 
         for (final item in quotes) {
           if (item is! Map) continue;
+
           final symbol = item['symbol']?.toString();
           if (symbol == null || symbol.isEmpty) continue;
 
           final yahooIsin = item['isin']?.toString().trim().toUpperCase();
 
-          results[symbol] = _YahooResult(
+          final incoming = _YahooResult(
             symbol: symbol,
             name:
                 item['longname']?.toString() ??
@@ -121,11 +122,95 @@ class YahooProvider implements IsinSourceProvider {
                 ? yahooIsin
                 : null,
           );
+
+          final existing = results[symbol];
+
+          if (existing == null) {
+            results[symbol] = incoming;
+          } else {
+            results[symbol] = _mergeYahooResult(existing, incoming, fundName);
+          }
         }
       } catch (_) {}
     }
 
     return results.values.toList();
+  }
+
+  _YahooResult _mergeYahooResult(
+    _YahooResult existing,
+    _YahooResult incoming,
+    String fundName,
+  ) {
+    final name = _chooseBestName(existing.name, incoming.name, fundName);
+
+    final exchange = existing.exchange.trim().isNotEmpty
+        ? existing.exchange
+        : incoming.exchange;
+
+    final type = _chooseBestType(existing.type, incoming.type);
+
+    final existingIsin = existing.isin;
+    final incomingIsin = incoming.isin;
+
+    String? isin;
+
+    if (existingIsin == null) {
+      isin = incomingIsin;
+    } else if (incomingIsin == null) {
+      isin = existingIsin;
+    } else if (existingIsin == incomingIsin) {
+      isin = existingIsin;
+    } else {
+      // Hay dos ISIN distintos para el mismo symbol.
+      // No elegimos arbitrariamente ninguno.
+      isin = null;
+    }
+
+    return _YahooResult(
+      symbol: existing.symbol,
+      name: name,
+      exchange: exchange,
+      type: type,
+      isin: isin,
+    );
+  }
+
+  String _chooseBestName(String existing, String incoming, String fundName) {
+    if (existing.trim().isEmpty) return incoming;
+    if (incoming.trim().isEmpty) return existing;
+
+    final existingSimilarity = _nameSimilarity(fundName, existing);
+
+    final incomingSimilarity = _nameSimilarity(fundName, incoming);
+
+    if (incomingSimilarity > existingSimilarity) {
+      return incoming;
+    }
+
+    return existing;
+  }
+
+  String _chooseBestType(String existing, String incoming) {
+    final existingType = existing.trim().toUpperCase();
+    final incomingType = incoming.trim().toUpperCase();
+
+    if (existingType.isEmpty) return incoming;
+    if (incomingType.isEmpty) return existing;
+
+    if (existingType == incomingType) {
+      return existing;
+    }
+
+    if (existingType == 'MUTUALFUND') {
+      return existing;
+    }
+
+    if (incomingType == 'MUTUALFUND') {
+      return incoming;
+    }
+
+    return existing;
   }
 
   List<_YahooResult> _rankYahooResults(
