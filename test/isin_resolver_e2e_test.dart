@@ -37,12 +37,72 @@ void main() {
 
   group('IsinResolver E2E Integration Tests', () {
     test('1. INPUT (ISIN embebido)', () async {
-      final resolver = IsinResolver(client: MockClient((_) async => http.Response('', 404)));
-      final result = await resolver.resolve(ticker: 'LU0297942194-USD.LU', fundName: 'Test');
+      final resolver = IsinResolver(
+        client: MockClient((_) async => http.Response('', 404)),
+      );
+      final result = await resolver.resolve(
+        ticker: 'LU0297942194-USD.LU',
+        fundName: 'Test',
+      );
 
       expect(result, isNotNull);
       expect(result!.isin, 'LU0297942194');
       expect(result.source, 'INPUT');
+    });
+
+    group('1b. INPUT (8 casos reales: ticker = ISIN)', () {
+      final cases = <Map<String, String>>[
+        {
+          'name': 'JPM Europe Strategic Value A Acc EUR',
+          'ticker': 'LU0210531983',
+        },
+        {
+          'name': 'JPM Europe Strategic Value A Dist EUR',
+          'ticker': 'LU0107398884',
+        },
+        {
+          'name': 'Fidelity European Growth A Acc EUR',
+          'ticker': 'LU0296857971',
+        },
+        {
+          'name': 'Fidelity European Growth A Dist EUR',
+          'ticker': 'LU0048578792',
+        },
+        {
+          'name': 'Fidelity European Growth E Acc EUR',
+          'ticker': 'LU0115764192',
+        },
+        {
+          'name': 'BlackRock Next Generation Technology A2 SEK',
+          'ticker': 'LU1861216940',
+        },
+        {
+          'name': 'BlackRock Next Generation Technology A2 EUR',
+          'ticker': 'LU2400291972',
+        },
+        {
+          'name': 'BlackRock Next Generation Technology A2 USD',
+          'ticker': 'LU1861215975',
+        },
+      ];
+
+      for (final testCase in cases) {
+        test(testCase['name']!, () async {
+          final ticker = testCase['ticker']!;
+          final resolver = IsinResolver(
+            client: MockClient((_) async => http.Response('', 404)),
+          );
+
+          final result = await resolver.resolve(
+            ticker: ticker,
+            fundName: testCase['name']!,
+          );
+
+          expect(result, isNotNull);
+          expect(result!.isin, ticker);
+          expect(result.source, 'INPUT');
+        });
+      }
     });
 
     test('2. CNMV (FI local)', () async {
@@ -52,7 +112,11 @@ void main() {
           fundName: 'TEST FUND FI',
           compartmentName: null,
           compartmentNumber: null,
-          fundClass: CnmvFundClass(number: 0, name: 'BASE', isin: 'ES0138841038'),
+          fundClass: CnmvFundClass(
+            number: 0,
+            name: 'BASE',
+            isin: 'ES0138841038',
+          ),
           managerName: 'Test Gestora',
           depositaryName: 'Test Depositario',
         ),
@@ -63,7 +127,10 @@ void main() {
         cnmvLocalFundProvider: mockCnmv,
       );
 
-      final result = await resolver.resolve(ticker: 'TEST', fundName: 'Test Fund');
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
 
       expect(result, isNotNull);
       expect(result!.isin, 'ES0138841038');
@@ -82,13 +149,19 @@ void main() {
             return http.Response('', 404);
           }
         } else if (request.url.toString().contains('sociedadiic')) {
-          return http.Response('<html><body lang="es">ISIN: LU0261948904</body></html>', 200);
+          return http.Response(
+            '<html><body lang="es">ISIN: LU0261948904</body></html>',
+            200,
+          );
         }
         return http.Response('Not Found', 404);
       });
 
       final resolver = IsinResolver(client: mockClient);
-      final result = await resolver.resolve(ticker: 'SL050.MC', fundName: 'SIL Fund');
+      final result = await resolver.resolve(
+        ticker: 'SL050.MC',
+        fundName: 'SIL Fund',
+      );
 
       expect(result, isNotNull);
       expect(result!.isin, 'LU0261948904');
@@ -97,11 +170,19 @@ void main() {
 
     test('4. LOCAL (Catálogo local / Foreign provider)', () async {
       final resolver = IsinResolver(
-        client: MockClient((_) async => http.Response('{"quotes": [{"symbol": "TEST", "longname": "Test", "quoteType": "MUTUALFUND"}]}', 200)),
+        client: MockClient(
+          (_) async => http.Response(
+            '{"quotes": [{"symbol": "TEST", "longname": "Test", "quoteType": "MUTUALFUND"}]}',
+            200,
+          ),
+        ),
         foreignIsinProviders: [_MockForeignProvider('FR0010135103')],
       );
 
-      final result = await resolver.resolve(ticker: 'TEST', fundName: 'Test Fund');
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'Test Fund',
+      );
 
       expect(result, isNotNull);
       expect(result!.isin, 'FR0010135103');
@@ -117,7 +198,10 @@ void main() {
       });
 
       final resolver = IsinResolver(client: mockClient);
-      final result = await resolver.resolve(ticker: 'YHOO', fundName: 'Yahoo Fund');
+      final result = await resolver.resolve(
+        ticker: 'YHOO',
+        fundName: 'Yahoo Fund',
+      );
 
       expect(result, isNotNull);
       expect(result!.isin, 'FR0000993172');
@@ -126,11 +210,19 @@ void main() {
 
     test('6. MORNINGSTAR (Vía Morningstar LT provider)', () async {
       final resolver = IsinResolver(
-        client: MockClient((_) async => http.Response('{"quotes": [{"symbol": "0P00000FB4", "longname": "Morningstar Fund", "quoteType": "MUTUALFUND"}]}', 200)),
+        client: MockClient(
+          (_) async => http.Response(
+            '{"quotes": [{"symbol": "0P00000FB4", "longname": "Morningstar Fund", "quoteType": "MUTUALFUND"}]}',
+            200,
+          ),
+        ),
         foreignIsinProviders: [_MockForeignProvider('FR0010135103')],
       );
 
-      final result = await resolver.resolve(ticker: '0P00000FB4', fundName: 'Morningstar Fund');
+      final result = await resolver.resolve(
+        ticker: '0P00000FB4',
+        fundName: 'Morningstar Fund',
+      );
 
       expect(result, isNotNull);
       expect(result!.isin, 'FR0010135103');
@@ -143,7 +235,10 @@ void main() {
         foreignIsinProviders: [_MockForeignProvider(null)],
       );
 
-      final result = await resolver.resolve(ticker: 'UNKNOWN', fundName: 'Unknown Fund');
+      final result = await resolver.resolve(
+        ticker: 'UNKNOWN',
+        fundName: 'Unknown Fund',
+      );
 
       expect(result, isNull);
     });

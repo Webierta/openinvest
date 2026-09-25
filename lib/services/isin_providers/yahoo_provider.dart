@@ -1,5 +1,8 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+import 'package:investing/utils/isin_validator.dart';
+
 import '../../models/foreign_isin_provider.dart';
 import '../isin_resolver.dart';
 import '../../utils/http_config.dart';
@@ -18,10 +21,12 @@ class YahooProvider implements IsinSourceProvider {
     http.Client? client,
     List<ForeignIsinProvider>? foreignIsinProviders,
   }) : _client = client ?? http.Client(),
-       _foreignIsinProviders = foreignIsinProviders ?? [
-         LocalIsinProvider(),
-         MorningstarLtForeignIsinProvider(client: client ?? http.Client()),
-       ];
+       _foreignIsinProviders =
+           foreignIsinProviders ??
+           [
+             LocalIsinProvider(),
+             MorningstarLtForeignIsinProvider(client: client ?? http.Client()),
+           ];
 
   @override
   Future<IsinResult?> resolve({
@@ -35,7 +40,8 @@ class YahooProvider implements IsinSourceProvider {
 
     for (final yahooMatch in rankedResults) {
       final yahooIsin = yahooMatch.isin;
-      if (yahooIsin != null && _isIsin(yahooIsin)) {
+      //if (yahooIsin != null && _isIsin(yahooIsin)) {
+      if (yahooIsin != null && IsinValidator.isValid(yahooIsin)) {
         return IsinResult(
           isin: yahooIsin,
           source: 'Yahoo',
@@ -111,7 +117,9 @@ class YahooProvider implements IsinSourceProvider {
                 '',
             exchange: item['exchange']?.toString() ?? '',
             type: item['quoteType']?.toString() ?? '',
-            isin: yahooIsin != null && _isIsin(yahooIsin) ? yahooIsin : null,
+            isin: yahooIsin != null && IsinValidator.isValid(yahooIsin)
+                ? yahooIsin
+                : null,
           );
         }
       } catch (_) {}
@@ -184,22 +192,22 @@ class YahooProvider implements IsinSourceProvider {
 
         if (isin == null) continue;
         final normalized = isin.trim().toUpperCase();
-        if (_isIsin(normalized)) return normalized;
+        if (IsinValidator.isValid(normalized)) return normalized;
       } catch (_) {}
     }
 
     return null;
   }
 
-  bool _isIsin(String value) {
+  /* bool _isIsin(String value) {
     final normalized = value.trim().toUpperCase();
     if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(normalized)) {
       return false;
     }
     return _isValidIsinChecksum(normalized);
-  }
+  } */
 
-  bool _isValidIsinChecksum(String isin) {
+  /* bool _isValidIsinChecksum(String isin) {
     final value = isin.toUpperCase();
     final digits = <int>[];
 
@@ -226,7 +234,7 @@ class YahooProvider implements IsinSourceProvider {
     }
 
     return sum % 10 == 0;
-  }
+  } */
 
   double _nameSimilarity(String a, String b) {
     final aa = _normalizeName(a);
@@ -244,14 +252,37 @@ class YahooProvider implements IsinSourceProvider {
   String _normalizeName(String value) {
     var result = value.toUpperCase();
     const replacements = <String, String>{
-      'Á': 'A', 'À': 'A', 'Ä': 'A', 'Â': 'A',
-      'É': 'E', 'È': 'E', 'Ë': 'E', 'Ê': 'E',
-      'Í': 'I', 'Ì': 'I', 'Ï': 'I', 'Î': 'I',
-      'Ó': 'O', 'Ò': 'O', 'Ö': 'O', 'Ô': 'O',
-      'Ú': 'U', 'Ù': 'U', 'Ü': 'U', 'Û': 'U',
-      'Ñ': 'N', '&': ' ', '-': ' ', '_': ' ',
-      '/': ' ', ',': ' ', '.': ' ', ':': ' ',
-      ';': ' ', '(': ' ', ')': ' ',
+      'Á': 'A',
+      'À': 'A',
+      'Ä': 'A',
+      'Â': 'A',
+      'É': 'E',
+      'È': 'E',
+      'Ë': 'E',
+      'Ê': 'E',
+      'Í': 'I',
+      'Ì': 'I',
+      'Ï': 'I',
+      'Î': 'I',
+      'Ó': 'O',
+      'Ò': 'O',
+      'Ö': 'O',
+      'Ô': 'O',
+      'Ú': 'U',
+      'Ù': 'U',
+      'Ü': 'U',
+      'Û': 'U',
+      'Ñ': 'N',
+      '&': ' ',
+      '-': ' ',
+      '_': ' ',
+      '/': ' ',
+      ',': ' ',
+      '.': ' ',
+      ':': ' ',
+      ';': ' ',
+      '(': ' ',
+      ')': ' ',
     };
     replacements.forEach((from, to) => result = result.replaceAll(from, to));
     return result.replaceAll(RegExp(r'\s+'), ' ').trim();
