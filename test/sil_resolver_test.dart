@@ -6,6 +6,8 @@ import 'package:http/testing.dart';
 import 'package:investing/services/isin_resolver.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('SIL Resolver Tests', () {
     test('SL020.MC resuelve correctamente', () async {
       final mockClient = MockClient((request) async {
