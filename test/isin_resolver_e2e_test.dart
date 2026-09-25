@@ -859,4 +859,536 @@ void main() {
       expect(result.source, 'Yahoo');
     });
   });
+
+  group('D. YAHOO / ranking de resultados', () {
+    test(
+      'D1. Coincidencia exacta de nombre + MUTUALFUND supera el umbral',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            '{"quotes": ['
+            '{"symbol": "TEST", '
+            '"longname": "Test Fund", '
+            '"quoteType": "MUTUALFUND", '
+            '"isin": "FR0000993172"}'
+            ']}',
+            200,
+          );
+        });
+
+        final resolver = IsinResolver(client: mockClient);
+
+        final result = await resolver.resolve(
+          ticker: 'TEST',
+          fundName: 'Test Fund',
+        );
+
+        expect(result, isNotNull);
+        expect(result!.isin, 'FR0000993172');
+        expect(result.source, 'Yahoo');
+      },
+    );
+
+    test('D2. Mismo ticker + nombre incompatible: debe quedar fuera', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "TEST", '
+          '"longname": "Completely Different Company", '
+          '"quoteType": "MUTUALFUND", '
+          '"isin": "FR0000993172"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'TEST',
+        fundName: 'My Investment Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test(
+      'D3. Nombre exacto + ticker diferente puede superar el umbral',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            '{"quotes": ['
+            '{"symbol": "OTHER", '
+            '"longname": "Test Fund", '
+            '"quoteType": "MUTUALFUND", '
+            '"isin": "FR0000993172"}'
+            ']}',
+            200,
+          );
+        });
+
+        final resolver = IsinResolver(client: mockClient);
+
+        final result = await resolver.resolve(
+          ticker: 'TEST',
+          fundName: 'Test Fund',
+        );
+
+        expect(result, isNotNull);
+        expect(result!.isin, 'FR0000993172');
+        expect(result.source, 'Yahoo');
+      },
+    );
+
+    test('D4. Mismo Morningstar ID con sufijo debe reconocerse', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "0P00000FB4.F", '
+          '"longname": "PIMCO Test Fund", '
+          '"quoteType": "MUTUALFUND", '
+          '"isin": "FR0010135103"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: '0P00000FB4',
+        fundName: 'PIMCO Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0010135103');
+      expect(result.source, 'Yahoo');
+    });
+
+    test(
+      'D5. Dos candidatos: el de mayor similitud de nombre debe quedar primero',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            '{"quotes": ['
+            '{"symbol": "OTHER1", '
+            '"longname": "Test Fund Global", '
+            '"quoteType": "MUTUALFUND", '
+            '"isin": "FR0000993172"},'
+            '{"symbol": "OTHER2", '
+            '"longname": "Test Fund", '
+            '"quoteType": "MUTUALFUND", '
+            '"isin": "LU0261948904"}'
+            ']}',
+            200,
+          );
+        });
+
+        final resolver = IsinResolver(client: mockClient);
+
+        final result = await resolver.resolve(
+          ticker: 'UNKNOWN',
+          fundName: 'Test Fund',
+        );
+
+        expect(result, isNotNull);
+        expect(result!.isin, 'LU0261948904');
+      },
+    );
+
+    test('D6. MUTUALFUND supera a un candidato EQUITY equivalente', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "TEST-EQ", '
+          '"longname": "Test Fund", '
+          '"quoteType": "EQUITY", '
+          '"isin": "FR0000993172"},'
+          '{"symbol": "TEST-FUND", '
+          '"longname": "Test Fund", '
+          '"quoteType": "MUTUALFUND", '
+          '"isin": "LU0261948904"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'UNKNOWN',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'LU0261948904');
+    });
+
+    test('D7. ETF recibe penalización frente a MUTUALFUND', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "TEST-ETF", '
+          '"longname": "Test Fund", '
+          '"quoteType": "ETF", '
+          '"isin": "FR0000993172"},'
+          '{"symbol": "TEST-FUND", '
+          '"longname": "Test Fund", '
+          '"quoteType": "MUTUALFUND", '
+          '"isin": "LU0261948904"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'UNKNOWN',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'LU0261948904');
+    });
+
+    test(
+      'D8. EQUITY con nombre incompatible queda por debajo del umbral',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            '{"quotes": ['
+            '{"symbol": "TEST", '
+            '"longname": "Completely Unrelated Equity", '
+            '"quoteType": "EQUITY", '
+            '"isin": "FR0000993172"}'
+            ']}',
+            200,
+          );
+        });
+
+        final resolver = IsinResolver(client: mockClient);
+
+        final result = await resolver.resolve(
+          ticker: 'TEST',
+          fundName: 'Test Investment Fund',
+        );
+
+        expect(result, isNull);
+      },
+    );
+
+    test('D9. ISIN válido aporta puntuación adicional al ranking', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          '{"quotes": ['
+          '{"symbol": "OTHER", '
+          '"longname": "Test Fund", '
+          '"quoteType": "MUTUALFUND"},'
+          '{"symbol": "OTHER2", '
+          '"longname": "Test Fund", '
+          '"quoteType": "MUTUALFUND", '
+          '"isin": "FR0000993172"}'
+          ']}',
+          200,
+        );
+      });
+
+      final resolver = IsinResolver(client: mockClient);
+
+      final result = await resolver.resolve(
+        ticker: 'UNKNOWN',
+        fundName: 'Test Fund',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'FR0000993172');
+    });
+
+    test(
+      'D10. La comparación de nombres ignora mayúsculas y acentos',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            '{"quotes": ['
+            '{"symbol": "TEST", '
+            '"longname": "Fidelity Européen Growth", '
+            '"quoteType": "MUTUALFUND", '
+            '"isin": "FR0000993172"}'
+            ']}',
+            200,
+          );
+        });
+
+        final resolver = IsinResolver(client: mockClient);
+
+        final result = await resolver.resolve(
+          ticker: 'TEST',
+          fundName: 'FIDELITY EUROPEEN GROWTH',
+        );
+
+        expect(result, isNotNull);
+        expect(result!.isin, 'FR0000993172');
+      },
+    );
+  });
+
+  // ===========================================================================
+  // GRUPO E — MORNINGSTAR FOREIGN ISIN PROVIDER
+  // ===========================================================================
+
+  group('Grupo E - Morningstar', () {
+    test('E1. Morningstar ID válido sin sufijo', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.url.toString(), contains('snapshot.aspx'));
+
+        return http.Response('''
+          <html>
+            <script>
+              var HoldingIsin = 'IE00B8K7V925';
+            </script>
+          </html>
+          ''', 200);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0P0000X83M',
+        fundName: 'PIMCO GIS Income Fund E Class USD Income',
+        yahooSymbol: '0P0000X83M',
+        yahooName: 'PIMCO GIS Income Fund E Class USD Income',
+      );
+
+      expect(result, 'IE00B8K7V925');
+    });
+
+    test('E2. Morningstar ID con sufijo .F', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('''
+          <script>
+            HoldingIsin = 'FR0010135103';
+          </script>
+          ''', 200);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0P00000FB4.F',
+        fundName: 'Carmignac Patrimoine A EUR Acc',
+        yahooSymbol: '0P00000FB4.F',
+        yahooName: 'Carmignac Patrimoine A EUR Acc',
+      );
+
+      expect(result, 'FR0010135103');
+    });
+
+    test('E3. Morningstar ID en minúsculas se normaliza', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('''
+          <script>
+            HoldingIsin = 'LU0261948904';
+          </script>
+          ''', 200);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0p00006dab.f',
+        fundName: 'Fidelity Iberia A-Acc-EUR',
+        yahooSymbol: '0p00006dab.f',
+        yahooName: 'Fidelity Iberia A-Acc-EUR',
+      );
+
+      expect(result, 'LU0261948904');
+    });
+
+    test('E4. Símbolo que no es Morningstar ID devuelve null', () async {
+      var called = false;
+
+      final mockClient = MockClient((request) async {
+        called = true;
+        return http.Response('', 200);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: 'ABC.MC',
+        fundName: 'Test Fund',
+        yahooSymbol: 'ABC.MC',
+        yahooName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+      expect(called, isFalse);
+    });
+
+    test('E5. HoldingIsin con sintaxis de asignación funciona', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('''
+          <script>
+            HoldingIsin = 'LU0129445192';
+          </script>
+          ''', 200);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0P00000Z1Y.F',
+        fundName: 'JPM Europe Strategic Value C acc EUR',
+        yahooSymbol: '0P00000Z1Y.F',
+        yahooName: 'JPM Europe Strategic Value C acc EUR',
+      );
+
+      expect(result, 'LU0129445192');
+    });
+
+    test('E6. HoldingIsin con sintaxis de dos puntos funciona', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('''
+          <script>
+            var data = {
+              HoldingIsin: 'IE00B8K7V925'
+            };
+          </script>
+          ''', 200);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0P0000X83M',
+        fundName: 'PIMCO GIS Income Fund E Class USD Income',
+        yahooSymbol: '0P0000X83M',
+        yahooName: 'PIMCO GIS Income Fund E Class USD Income',
+      );
+
+      expect(result, 'IE00B8K7V925');
+    });
+
+    test('E7. HoldingIsin ausente devuelve null', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('''
+          <html>
+            <body>Morningstar page without ISIN</body>
+          </html>
+          ''', 200);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0P0000X83M',
+        fundName: 'Test Fund',
+        yahooSymbol: '0P0000X83M',
+        yahooName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('E8. HoldingIsin inválido devuelve null', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('''
+          <script>
+            HoldingIsin = 'INVALIDISIN';
+          </script>
+          ''', 200);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0P0000X83M',
+        fundName: 'Test Fund',
+        yahooSymbol: '0P0000X83M',
+        yahooName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('E9. HTTP 404 devuelve null', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('Not Found', 404);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0P0000X83M',
+        fundName: 'Test Fund',
+        yahooSymbol: '0P0000X83M',
+        yahooName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('E10. Error de red devuelve null', () async {
+      final mockClient = MockClient((request) async {
+        throw Exception('Network error');
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0P0000X83M',
+        fundName: 'Test Fund',
+        yahooSymbol: '0P0000X83M',
+        yahooName: 'Test Fund',
+      );
+
+      expect(result, isNull);
+    });
+
+    test('E11. ISIN en minúsculas se devuelve normalizado', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('''
+          <script>
+            HoldingIsin = 'ie00b8k7v925';
+          </script>
+          ''', 200);
+      });
+
+      final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+      final result = await provider.resolve(
+        ticker: '0P0000X83M',
+        fundName: 'PIMCO GIS Income Fund E Class USD Income',
+        yahooSymbol: '0P0000X83M',
+        yahooName: 'PIMCO GIS Income Fund E Class USD Income',
+      );
+
+      expect(result, 'IE00B8K7V925');
+    });
+
+    test(
+      'E12. ID Morningstar con sufijo distinto también se normaliza',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('''
+          <script>
+            HoldingIsin = 'LU0261948904';
+          </script>
+          ''', 200);
+        });
+
+        final provider = MorningstarLtForeignIsinProvider(client: mockClient);
+
+        final result = await provider.resolve(
+          ticker: '0P00006DAB.XY',
+          fundName: 'Fidelity Iberia A-Acc-EUR',
+          yahooSymbol: '0P00006DAB.XY',
+          yahooName: 'Fidelity Iberia A-Acc-EUR',
+        );
+
+        expect(result, 'LU0261948904');
+      },
+    );
+  });
 }
