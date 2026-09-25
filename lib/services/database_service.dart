@@ -131,7 +131,9 @@ class DatabaseService {
         if (oldVersion < 7) {
           try {
             await db.execute('ALTER TABLE funds ADD COLUMN performance_fee REAL');
-          } catch (e) {}
+          } catch (e) {
+            // Ignored
+          }
         }
       },
     );

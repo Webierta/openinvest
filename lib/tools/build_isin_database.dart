@@ -531,5 +531,6 @@ Never _fatal(String message) {
 
 void _log(String message) {
   developer.log(message, name: 'BuildIsinDatabase');
+  // ignore: avoid_print
   print(message);
 }

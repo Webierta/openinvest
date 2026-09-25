@@ -4,8 +4,7 @@ import 'isin_source_provider.dart';
 class InputIsinProvider implements IsinSourceProvider {
   final String? Function(String) _extractEmbeddedIsin;
 
-  InputIsinProvider({required String? Function(String) extractEmbeddedIsin})
-    : _extractEmbeddedIsin = extractEmbeddedIsin;
+  InputIsinProvider({required this._extractEmbeddedIsin});
 
   @override
   Future<IsinResult?> resolve({
