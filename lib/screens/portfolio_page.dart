@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/fund_provider.dart';
+import '../services/report_generator.dart';
 import '../widgets/gradient_background.dart';
 import '../services/export_service.dart';
 //import '../services/database_service.dart';
@@ -74,6 +78,78 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         ],
       ),
     );
+  }
+
+  Future<void> _handleExport(
+    BuildContext context,
+    FundProvider provider,
+  ) async {
+    // Mostrar indicador de carga
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Ejecutar la generación
+    final filePath = await ReportGenerator.exportOperationsToCsv(
+      provider.portfolio,
+    );
+
+    // Ocultar indicador de carga
+    if (context.mounted) Navigator.of(context).pop();
+
+    // Mostrar resultado
+    if (context.mounted) {
+      if (filePath != null) {
+        // ✅ Mostrar SnackBar con opción de ABRIR el archivo (funciona en Linux, Android, iOS)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            //content: Text('✓ Informe guardado en: $filePath'),
+            content: Text('✓ Informe guardado: ${filePath.split('/').last}'),
+            action: SnackBarAction(
+              label: 'Abrir',
+              //onPressed: () => Share.shareXFiles([XFile(filePath)]),
+              onPressed: () => _openFile(filePath),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Exportación cancelada o fallida.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Abre el archivo con la aplicación asociada por defecto
+  /// Funciona en Linux (xdg-open), Android (Intent), iOS (UIDocumentInteractionController)
+  Future<void> _openFile(String filePath) async {
+    try {
+      // Verificar que el archivo existe
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('El archivo no existe');
+      }
+
+      // Crear un URI de archivo
+      final uri = Uri.file(filePath, windows: Platform.isWindows);
+
+      // Abrir con la aplicación asociada
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        throw Exception('No se pudo abrir el archivo');
+      }
+    } catch (e) {
+      debugPrint('Error al abrir el archivo: $e');
+      // Mostrar mensaje de error al usuario
+      // (Opcional: mostrar un SnackBar de error)
+    }
   }
 
   @override
@@ -218,15 +294,16 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                       }
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(l10n.fundImportedSuccess),
-                          ),
+                          SnackBar(content: Text(l10n.fundImportedSuccess)),
                         );
                       }
                     } catch (_) {
                       // El proveedor expone el error en la interfaz principal.
                     }
                   }
+                  break;
+                case 'Informe':
+                  await _handleExport(context, provider);
                   break;
                 case 'clear':
                   showDialog(
@@ -270,6 +347,21 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                   ],
                 ),
               ),
+              if (provider.portfolio.isNotEmpty)
+                PopupMenuItem(
+                  value: 'Informe',
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.file_download_outlined,
+                        size: 20,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 12),
+                      Text('Informe'),
+                    ],
+                  ),
+                ),
               if (provider.portfolio.isNotEmpty)
                 PopupMenuItem(
                   value: 'clear',
@@ -665,7 +757,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                     const SizedBox(width: 6),
                                                   ],
                                                   Text(
-                                                    DateFormat.yMd(locale).format(item.date),
+                                                    DateFormat.yMd(locale)
+                                                        .format(item.date),
                                                     //SmartDateFormat.format(),
                                                     style: Theme.of(context)
                                                         .textTheme

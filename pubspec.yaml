@@ -51,6 +51,9 @@ dependencies:
   url_launcher: ^6.3.2
   local_auth: ^3.0.2
   flutter_secure_storage: ^11.2.0
+  csv: ^8.0.0
+  pdf: ^3.13.1
+  printing: ^5.15.1
   # yahoo_finance: ^0.4.1
 dev_dependencies:
   flutter_test:
