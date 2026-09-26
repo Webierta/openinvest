@@ -92,7 +92,11 @@ class FinancialCalculator {
     int days = 0;
 
     if (totalInvested > 0 && firstOpDate != null) {
-      days = DateTime.now().difference(firstOpDate).inDays;
+      // days = DateTime.now().difference(firstOpDate).inDays;
+
+      // 1. Calcula los días basándote en la fecha del fondo, no en la fecha del sistema
+      days = fund.date.difference(firstOpDate).inDays;
+
       if (days > 0) {
         final double years = days / 365.25;
 
@@ -196,7 +200,27 @@ class FinancialCalculator {
             : 0.0;
 
         // 3. MWR (Money-Weighted Return / IRR)
+
         final flows = fund.operations
+            .map(
+              (op) => <String, Object>{
+                'amount': op.type == OperationType.buy ? -op.amount : op.amount,
+                'date': op.date,
+              },
+            )
+            .toList();
+
+        // ✅ CAMBIO CRÍTICO: Usar fund.date en lugar de DateTime.now()
+        flows.add(<String, Object>{'amount': currentValue, 'date': fund.date});
+
+        final double irr = _calculateIRR(flows);
+
+        if (!irr.isNaN) {
+          mwrAnnualized = irr;
+          mwrTotal = (pow(1 + irr, years) - 1);
+        }
+
+        /* final flows = fund.operations
             .map(
               (op) => <String, Object>{
                 'amount': op.type == OperationType.buy ? -op.amount : op.amount,
@@ -213,7 +237,7 @@ class FinancialCalculator {
         if (!irr.isNaN) {
           mwrAnnualized = irr;
           mwrTotal = (pow(1 + irr, years) - 1);
-        }
+        } */
       } else {
         tae = profitRel;
       }
