@@ -24,6 +24,25 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     //required this.onClearPortfolio,
   });
 
+  void _showSnackBar(
+    BuildContext context,
+    String message, {
+    bool error = false,
+    Duration duration = const Duration(seconds: 4),
+    SnackBarAction? action,
+  }) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: error ? Colors.red : null,
+        duration: duration,
+        action: action,
+      ),
+    );
+  }
+
   Future<bool?> _confirmOverwrite(BuildContext context, String fundName) {
     final l10n = AppLocalizations.of(context)!;
     return showDialog<bool>(
@@ -69,8 +88,8 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
           await provider.addToPortfolio(fund);
         }
         if (context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(l10n.fundImportedSuccess)));
+          //ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.fundImportedSuccess)));
+          _showSnackBar(context, l10n.fundImportedSuccess);
         }
       } catch (_) {}
     }
@@ -95,7 +114,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
 
     if (context.mounted) {
       if (filePath != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        /* ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✓ Informe guardado: ${filePath.split('/').last}'),
             action: SnackBarAction(
@@ -104,15 +123,24 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
             ),
             //duration: const Duration(seconds: 4),
           ),
+        ); */
+        _showSnackBar(
+          context,
+          '✓ Informe guardado: ${filePath.split('/').last}',
+          action: SnackBarAction(
+            label: 'Abrir',
+            onPressed: () => _openFile(filePath),
+          ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        /* ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Exportación cancelada o fallida.'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 4),
           ),
-        );
+        ); */
+        _showSnackBar(context, 'Exportación cancelada o fallida.', error: true);
       }
     }
   }
@@ -220,12 +248,13 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
+        /* ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al generar el PDF: $e'),
             backgroundColor: Colors.red,
           ),
-        );
+        ); */
+        _showSnackBar(context, 'Error al generar el PDF: $e', error: true);
       }
     }
   }
@@ -275,13 +304,21 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
 
     if (context.mounted) {
       if (filePath != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        /* ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✓ PDF guardado: ${filePath.split('/').last}'),
             action: SnackBarAction(
               label: 'Abrir',
               onPressed: () => _openFile2(filePath),
             ),
+          ),
+        ); */
+        _showSnackBar(
+          context,
+          '✓ PDF guardado: ${filePath.split('/').last}',
+          action: SnackBarAction(
+            label: 'Abrir',
+            onPressed: () => _openFile2(filePath),
           ),
         );
       }
@@ -310,7 +347,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     }
   }
 
-  _onClearPortfolio(BuildContext context) {
+  void _onClearPortfolio(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
