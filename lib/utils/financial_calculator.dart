@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import '../services/fund_scraper.dart';
 
 class FundMetrics {
@@ -74,8 +75,12 @@ class FinancialCalculator {
 
     final double currentValue = totalUnits * fund.lastValue;
     final double profitAbs = currentValue - totalInvested;
-    final double profitRel = totalInvested > 0 ? (profitAbs / totalInvested) * 100 : 0.0;
-    final double avgPurchasePrice = totalUnits > 0 ? totalInvested / totalUnits : 0.0;
+    final double profitRel = totalInvested > 0
+        ? (profitAbs / totalInvested) * 100
+        : 0.0;
+    final double avgPurchasePrice = totalUnits > 0
+        ? totalInvested / totalUnits
+        : 0.0;
     final double moic = totalInvested > 0 ? currentValue / totalInvested : 0.0;
 
     double tae = 0.0;
@@ -90,13 +95,13 @@ class FinancialCalculator {
       days = DateTime.now().difference(firstOpDate).inDays;
       if (days > 0) {
         final double years = days / 365.25;
-        
+
         // 1. Rentabilidad Simple Anualizada
         tae = (pow(currentValue / totalInvested, 1 / years) - 1) * 100;
         isAnnualized = days >= 30;
 
         // 2. TWR (Time-Weighted Return)
-        final firstOpPricePoint = fund.history.cast<PricePoint?>().lastWhere(
+        /* final firstOpPricePoint = fund.history.cast<PricePoint?>().lastWhere(
           (p) => p!.date.isBefore(firstOpDate!.add(const Duration(days: 1))),
           orElse: () => fund.history.isNotEmpty ? fund.history.first : null,
         );
@@ -104,14 +109,105 @@ class FinancialCalculator {
           final double calculatedTwr = (fund.lastValue / firstOpPricePoint.price) - 1;
           twrTotal = calculatedTwr;
           twrAnnualized = (pow(1 + calculatedTwr, 1 / years) - 1);
+        } */
+
+        //El algoritmo anterior calcula (Precio Final / Precio Inicial) - 1,
+        //lo cual mide la rentabilidad del activo, pero no es el TWR financiero real si hubo depósitos o reembolsos intermedios
+        //(el TWR real debe segmentar la rentabilidad en subperiodos cada vez que hay un flujo de caja)
+
+        // TWR vinculado (Linked IRR), que calcula la rentabilidad de cada subperiodo entre flujos de caja y las multiplica
+
+        // 2. TWR (Time-Weighted Return) Real con segmentación por flujos de caja
+        double calculatedTwrMultiplier = 1.0;
+        DateTime lastPeriodDate = firstOpDate;
+        double lastPeriodValue = totalInvested; // Valor inicial de la cartera
+
+        // Ordenar operaciones por fecha para procesarlas cronológicamente
+        final sortedOps = List<FundOperation>.from(fund.operations)
+          ..sort((a, b) => a.date.compareTo(b.date));
+
+        for (var op in sortedOps) {
+          // 1. Calcular rentabilidad del subperiodo ANTES de este nuevo flujo de caja
+          // Buscamos el precio del fondo en la fecha de la operación
+          final priceAtOp =
+              fund.history
+                  .cast<PricePoint?>()
+                  .lastWhere(
+                    (p) => p != null && !p.date.isAfter(op.date),
+                    orElse: () =>
+                        fund.history.isNotEmpty ? fund.history.first : null,
+                  )
+                  ?.price ??
+              op.price; // Fallback al precio de la operación si no hay historial
+
+          if (priceAtOp > 0 && lastPeriodValue > 0) {
+            // Valor de la cartera justo antes del flujo = (unidades anteriores) * precio actual
+            // Pero como no guardamos unidades por periodo, usamos una aproximación:
+            // El valor antes del flujo es el valor anterior revalorizado al precio actual
+            final double valueBeforeFlow =
+                lastPeriodValue *
+                (priceAtOp /
+                    (fund.history
+                        .firstWhere(
+                          (p) => p.date == lastPeriodDate,
+                          orElse: () => PricePoint(lastPeriodDate, priceAtOp),
+                        )
+                        .price));
+
+            final double periodReturn =
+                (valueBeforeFlow / lastPeriodValue) - 1.0;
+            calculatedTwrMultiplier *= (1.0 + periodReturn);
+          }
+
+          // 2. Actualizar el valor base para el siguiente periodo sumando/restando el flujo
+          if (op.type == OperationType.buy) {
+            lastPeriodValue += op.amount;
+          } else {
+            lastPeriodValue -= op.amount;
+          }
+          lastPeriodDate = op.date;
         }
 
+        // Subperiodo final: desde la última operación hasta hoy
+        final finalPrice = fund.history.isNotEmpty
+            ? fund.history.last.price
+            : fund.lastValue;
+        final initialPriceForFinalPeriod =
+            fund.history
+                .cast<PricePoint?>()
+                .lastWhere(
+                  (p) => p != null && !p.date.isAfter(lastPeriodDate),
+                  orElse: () => PricePoint(lastPeriodDate, finalPrice),
+                )
+                ?.price ??
+            finalPrice;
+
+        if (initialPriceForFinalPeriod > 0 && lastPeriodValue > 0) {
+          final double valueAtEnd =
+              lastPeriodValue * (finalPrice / initialPriceForFinalPeriod);
+          final double finalPeriodReturn = (valueAtEnd / lastPeriodValue) - 1.0;
+          calculatedTwrMultiplier *= (1.0 + finalPeriodReturn);
+        }
+
+        final double calculatedTwr = calculatedTwrMultiplier - 1.0;
+        twrTotal = calculatedTwr;
+        twrAnnualized = days > 0
+            ? (pow(1 + calculatedTwr, 1 / (days / 365.25)) - 1)
+            : 0.0;
+
         // 3. MWR (Money-Weighted Return / IRR)
-        final flows = fund.operations.map((op) => <String, Object>{
-          'amount': op.type == OperationType.buy ? -op.amount : op.amount,
-          'date': op.date,
-        }).toList();
-        flows.add(<String, Object>{'amount': currentValue, 'date': DateTime.now()});
+        final flows = fund.operations
+            .map(
+              (op) => <String, Object>{
+                'amount': op.type == OperationType.buy ? -op.amount : op.amount,
+                'date': op.date,
+              },
+            )
+            .toList();
+        flows.add(<String, Object>{
+          'amount': currentValue,
+          'date': DateTime.now(),
+        });
 
         final double irr = _calculateIRR(flows);
         if (!irr.isNaN) {
@@ -142,7 +238,10 @@ class FinancialCalculator {
     );
   }
 
-  static GlobalMetrics calculateGlobalMetrics(List<FundData> portfolio, Map<String, double> exchangeRates) {
+  static GlobalMetrics calculateGlobalMetrics(
+    List<FundData> portfolio,
+    Map<String, double> exchangeRates,
+  ) {
     double totalValue = 0;
     double totalInvested = 0;
     double profitAbs = 0;
@@ -172,7 +271,7 @@ class FinancialCalculator {
     }
 
     double profitRel = totalValue > 0 ? weightedTaeSum / totalValue : 0.0;
-    
+
     if (profitRel == 0 && profitAbs != 0 && totalInvested > 0) {
       profitRel = (profitAbs / totalInvested) * 100;
     }
@@ -193,7 +292,7 @@ class FinancialCalculator {
 
   static double _calculateIRR(List<Map<String, Object>> flows) {
     if (flows.isEmpty) return double.nan;
-    
+
     double npv(double rate) {
       double total = 0;
       final start = flows.first['date'] as DateTime;
