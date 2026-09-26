@@ -14,14 +14,12 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
   final FundProvider provider;
   final VoidCallback onRefresh;
   final ValueChanged<SortCriteria> onSortSelected;
-  //final VoidCallback onClearPortfolio;
 
   const PortfolioAppbar({
     super.key,
     required this.provider,
     required this.onRefresh,
     required this.onSortSelected,
-    //required this.onClearPortfolio,
   });
 
   void _showSnackBar(
@@ -32,13 +30,14 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     SnackBarAction? action,
   }) {
     final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
+    messenger.removeCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: error ? Colors.red : null,
         duration: duration,
         action: action,
+        persist: false,
       ),
     );
   }
@@ -88,7 +87,6 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
           await provider.addToPortfolio(fund);
         }
         if (context.mounted) {
-          //ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.fundImportedSuccess)));
           _showSnackBar(context, l10n.fundImportedSuccess);
         }
       } catch (_) {}
@@ -114,16 +112,6 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
 
     if (context.mounted) {
       if (filePath != null) {
-        /* ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✓ Informe guardado: ${filePath.split('/').last}'),
-            action: SnackBarAction(
-              label: 'Abrir',
-              onPressed: () => _openFile(filePath),
-            ),
-            //duration: const Duration(seconds: 4),
-          ),
-        ); */
         _showSnackBar(
           context,
           '✓ Informe guardado: ${filePath.split('/').last}',
@@ -133,13 +121,6 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
           ),
         );
       } else {
-        /* ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Exportación cancelada o fallida.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
-          ),
-        ); */
         _showSnackBar(context, 'Exportación cancelada o fallida.', error: true);
       }
     }
@@ -193,35 +174,6 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  /* void _showYearPicker(BuildContext context, FundProvider provider) {
-    final currentYear = DateTime.now().year;
-    final years = List.generate(10, (i) => currentYear - i);
-
-    showDialog(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Selecciona el año del informe'),
-        children: years
-            .map(
-              (year) => SimpleDialogOption(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _generateReport(context, year, provider);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    year.toString(),
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  } */
-
   Future<void> _generateReport(
     BuildContext context,
     int year,
@@ -248,12 +200,6 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop();
-        /* ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al generar el PDF: $e'),
-            backgroundColor: Colors.red,
-          ),
-        ); */
         _showSnackBar(context, 'Error al generar el PDF: $e', error: true);
       }
     }
@@ -262,26 +208,26 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
   void _showActionsDialog(BuildContext context, Uint8List pdfBytes, int year) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Informe generado'),
         content: Text(
           'El informe anual de $year está listo. ¿Qué deseas hacer?',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               await _saveFile(context, pdfBytes, year);
             },
             child: const Text('Guardar'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               await _previewAndPrint(context, pdfBytes, year);
             },
             child: const Text('Previsualizar / Imprimir'),
@@ -304,15 +250,6 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
 
     if (context.mounted) {
       if (filePath != null) {
-        /* ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✓ PDF guardado: ${filePath.split('/').last}'),
-            action: SnackBarAction(
-              label: 'Abrir',
-              onPressed: () => _openFile2(filePath),
-            ),
-          ),
-        ); */
         _showSnackBar(
           context,
           '✓ PDF guardado: ${filePath.split('/').last}',
