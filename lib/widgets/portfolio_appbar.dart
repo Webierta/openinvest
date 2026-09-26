@@ -48,21 +48,17 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-
-
-  Future<void> _handleImport(BuildContext context, FundProvider provider) async {
+  Future<void> _handleImport(
+    BuildContext context,
+    FundProvider provider,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
     final fund = await ExportService.importFund(context);
     if (fund != null && context.mounted) {
-      final existing = provider.portfolio.any(
-        (item) => item.isin == fund.isin,
-      );
+      final existing = provider.portfolio.any((item) => item.isin == fund.isin);
       var overwrite = false;
       if (existing) {
-        final decision = await _confirmOverwrite(
-          context,
-          fund.name,
-        );
+        final decision = await _confirmOverwrite(context, fund.name);
         if (decision != true || !context.mounted) return;
         overwrite = true;
       }
@@ -73,9 +69,8 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
           await provider.addToPortfolio(fund);
         }
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.fundImportedSuccess)),
-          );
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(l10n.fundImportedSuccess)));
         }
       } catch (_) {}
     }
@@ -115,9 +110,8 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
           const SnackBar(
             content: Text('Exportación cancelada o fallida.'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
+            duration: Duration(seconds: 4),
           ),
-
         );
       }
     }
@@ -148,23 +142,63 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
 
     showDialog(
       context: context,
-      builder: (context) => SimpleDialog(
+      builder: (dialogContext) => SimpleDialog(
         title: const Text('Selecciona el año del informe'),
-        children: years.map((year) => SimpleDialogOption(
-          onPressed: () {
-            Navigator.pop(context);
-            _generateReport(context, year, provider);
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(year.toString(), style: const TextStyle(fontSize: 16)),
-          ),
-        )).toList(),
+        children: years
+            .map(
+              (year) => SimpleDialogOption(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  _generateReport(context, year, provider);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    year.toString(),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
       ),
     );
   }
 
-  Future<void> _generateReport(BuildContext context, int year, FundProvider provider) async {
+  /* void _showYearPicker(BuildContext context, FundProvider provider) {
+    final currentYear = DateTime.now().year;
+    final years = List.generate(10, (i) => currentYear - i);
+
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Selecciona el año del informe'),
+        children: years
+            .map(
+              (year) => SimpleDialogOption(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _generateReport(context, year, provider);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    year.toString(),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  } */
+
+  Future<void> _generateReport(
+    BuildContext context,
+    int year,
+    FundProvider provider,
+  ) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -187,7 +221,10 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
       if (context.mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al generar el PDF: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error al generar el PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -198,7 +235,9 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Informe generado'),
-        content: Text('El informe anual de $year está listo. ¿Qué deseas hacer?'),
+        content: Text(
+          'El informe anual de $year está listo. ¿Qué deseas hacer?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -223,7 +262,11 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Future<void> _saveFile(BuildContext context, Uint8List pdfBytes, int year) async {
+  Future<void> _saveFile(
+    BuildContext context,
+    Uint8List pdfBytes,
+    int year,
+  ) async {
     final filePath = await PdfReportGenerator.savePdfToDevice(
       context,
       pdfBytes,
@@ -245,8 +288,15 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     }
   }
 
-  Future<void> _previewAndPrint(BuildContext context, Uint8List pdfBytes, int year) async {
-    await PdfReportGenerator.previewAndPrint(pdfBytes, 'OpenInvest_InformeAnual_$year.pdf');
+  Future<void> _previewAndPrint(
+    BuildContext context,
+    Uint8List pdfBytes,
+    int year,
+  ) async {
+    await PdfReportGenerator.previewAndPrint(
+      pdfBytes,
+      'OpenInvest_InformeAnual_$year.pdf',
+    );
   }
 
   Future<void> _openFile2(String filePath) async {
@@ -260,7 +310,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     }
   }
 
-  _onClearPortfolio (BuildContext context){
+  _onClearPortfolio(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
@@ -277,10 +327,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
               provider.clearPortfolio();
               Navigator.pop(context);
             },
-            child: Text(
-              l10n.delete,
-              style: const TextStyle(color: Colors.red),
-            ),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),

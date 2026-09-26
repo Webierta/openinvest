@@ -62,7 +62,9 @@ class ReportGenerator {
           op['isin'],
           op['nombre_fondo'],
           op['tipo'],
-          op['unidades'].toStringAsFixed(6), // 6 decimales para precisión en fondos
+          op['unidades'].toStringAsFixed(
+            6,
+          ), // 6 decimales para precisión en fondos
           op['precio_unitario'].toStringAsFixed(4),
           op['importe_total'].toStringAsFixed(2),
           op['divisa'],
@@ -83,13 +85,21 @@ class ReportGenerator {
   }
 
   static String _convertToCsv(List<List<dynamic>> rows) {
-    return rows.map((row) => row.map((cell) {
-      final val = cell.toString();
-      if (val.contains(',') || val.contains('"') || val.contains('\n')) {
-        return '"${val.replaceAll('"', '""')}"';
-      }
-      return val;
-    }).join(',')).join('\n');
+    return rows
+        .map(
+          (row) => row
+              .map((cell) {
+                final val = cell.toString();
+                if (val.contains(',') ||
+                    val.contains('"') ||
+                    val.contains('\n')) {
+                  return '"${val.replaceAll('"', '""')}"';
+                }
+                return val;
+              })
+              .join(','),
+        )
+        .join('\n');
   }
 
   /// Método auxiliar para guardar el archivo usando FilePicker
