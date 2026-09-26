@@ -1729,6 +1729,120 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Búsqueda y cotizaciones globales en Yahoo Finance.'**
   String get yahooSourceDesc;
+
+  /// No description provided for @csvHeaderDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha'**
+  String get csvHeaderDate;
+
+  /// No description provided for @csvHeaderIsin.
+  ///
+  /// In es, this message translates to:
+  /// **'ISIN'**
+  String get csvHeaderIsin;
+
+  /// No description provided for @csvHeaderFundName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre del Fondo'**
+  String get csvHeaderFundName;
+
+  /// No description provided for @csvHeaderOperationType.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo de Operación'**
+  String get csvHeaderOperationType;
+
+  /// No description provided for @csvHeaderUnits.
+  ///
+  /// In es, this message translates to:
+  /// **'Unidades'**
+  String get csvHeaderUnits;
+
+  /// No description provided for @csvHeaderUnitPrice.
+  ///
+  /// In es, this message translates to:
+  /// **'Precio Unitario'**
+  String get csvHeaderUnitPrice;
+
+  /// No description provided for @csvHeaderTotalAmount.
+  ///
+  /// In es, this message translates to:
+  /// **'Importe Total'**
+  String get csvHeaderTotalAmount;
+
+  /// No description provided for @csvHeaderCurrency.
+  ///
+  /// In es, this message translates to:
+  /// **'Divisa'**
+  String get csvHeaderCurrency;
+
+  /// No description provided for @saveOperationsReportTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar informe de operaciones'**
+  String get saveOperationsReportTitle;
+
+  /// No description provided for @annualPortfolioReport.
+  ///
+  /// In es, this message translates to:
+  /// **'Informe Anual de Cartera'**
+  String get annualPortfolioReport;
+
+  /// No description provided for @executiveSummary.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen Ejecutivo'**
+  String get executiveSummary;
+
+  /// No description provided for @fundDetail.
+  ///
+  /// In es, this message translates to:
+  /// **'Detalle por Fondo'**
+  String get fundDetail;
+
+  /// No description provided for @returnPercentLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Rent. %'**
+  String get returnPercentLabel;
+
+  /// No description provided for @legalNotice.
+  ///
+  /// In es, this message translates to:
+  /// **'Aviso Legal'**
+  String get legalNotice;
+
+  /// No description provided for @legalNoticeText.
+  ///
+  /// In es, this message translates to:
+  /// **'Este informe ha sido generado automáticamente por OpenInvest el {date}. Los datos se han obtenido de fuentes públicas y pueden contener imprecisiones. Este documento no constituye asesoramiento financiero. Verifique siempre los datos con su entidad financiera antes de tomar decisiones.'**
+  String legalNoticeText(String date);
+
+  /// No description provided for @pdfFooter.
+  ///
+  /// In es, this message translates to:
+  /// **'OpenInvest - Informe Anual {year} - Página {page} de {total}'**
+  String pdfFooter(String year, String page, String total);
+
+  /// No description provided for @saveAnnualReportTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar informe anual'**
+  String get saveAnnualReportTitle;
+
+  /// No description provided for @operationsCsv.
+  ///
+  /// In es, this message translates to:
+  /// **'Operaciones CSV'**
+  String get operationsCsv;
+
+  /// No description provided for @pdfReportLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Informe PDF'**
+  String get pdfReportLabel;
 }
 
 class _AppLocalizationsDelegate

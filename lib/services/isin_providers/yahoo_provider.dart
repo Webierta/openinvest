@@ -40,8 +40,9 @@ class YahooProvider implements IsinSourceProvider {
 
     for (final yahooMatch in rankedResults) {
       final yahooIsin = yahooMatch.isin;
-      //if (yahooIsin != null && _isIsin(yahooIsin)) {
-      if (yahooIsin != null && IsinValidator.isValid(yahooIsin)) {
+      if (yahooIsin != null &&
+          IsinValidator.isValid(yahooIsin) &&
+          yahooMatch.type.toUpperCase() == 'MUTUALFUND') {
         return IsinResult(
           isin: yahooIsin,
           source: 'Yahoo',
@@ -108,6 +109,7 @@ class YahooProvider implements IsinSourceProvider {
           final symbol = item['symbol']?.toString();
           if (symbol == null || symbol.isEmpty) continue;
 
+          final type = item['quoteType']?.toString() ?? '';
           final yahooIsin = item['isin']?.toString().trim().toUpperCase();
 
           final incoming = _YahooResult(
@@ -117,8 +119,10 @@ class YahooProvider implements IsinSourceProvider {
                 item['shortname']?.toString() ??
                 '',
             exchange: item['exchange']?.toString() ?? '',
-            type: item['quoteType']?.toString() ?? '',
-            isin: yahooIsin != null && IsinValidator.isValid(yahooIsin)
+            type: type,
+            isin: (type.toUpperCase() == 'MUTUALFUND' &&
+                    yahooIsin != null &&
+                    IsinValidator.isValid(yahooIsin))
                 ? yahooIsin
                 : null,
           );
@@ -242,9 +246,9 @@ class YahooProvider implements IsinSourceProvider {
               if (_sameMorningstarId(symbol, normalizedTicker)) score += 0.10;
               if (result.isin != null) score += 0.10;
 
-              return (result: result, score: score);
+              return (result: result, score: score, similarity: nameSimilarity);
             })
-            .where((item) => item.score >= 0.50)
+            .where((item) => item.score >= 0.50 && item.similarity > 0.0)
             .toList()
           ..sort((a, b) => b.score.compareTo(a.score));
 

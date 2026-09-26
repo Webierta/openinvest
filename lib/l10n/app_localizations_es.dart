@@ -918,4 +918,65 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get yahooSourceDesc =>
       'Búsqueda y cotizaciones globales en Yahoo Finance.';
+
+  @override
+  String get csvHeaderDate => 'Fecha';
+
+  @override
+  String get csvHeaderIsin => 'ISIN';
+
+  @override
+  String get csvHeaderFundName => 'Nombre del Fondo';
+
+  @override
+  String get csvHeaderOperationType => 'Tipo de Operación';
+
+  @override
+  String get csvHeaderUnits => 'Unidades';
+
+  @override
+  String get csvHeaderUnitPrice => 'Precio Unitario';
+
+  @override
+  String get csvHeaderTotalAmount => 'Importe Total';
+
+  @override
+  String get csvHeaderCurrency => 'Divisa';
+
+  @override
+  String get saveOperationsReportTitle => 'Guardar informe de operaciones';
+
+  @override
+  String get annualPortfolioReport => 'Informe Anual de Cartera';
+
+  @override
+  String get executiveSummary => 'Resumen Ejecutivo';
+
+  @override
+  String get fundDetail => 'Detalle por Fondo';
+
+  @override
+  String get returnPercentLabel => 'Rent. %';
+
+  @override
+  String get legalNotice => 'Aviso Legal';
+
+  @override
+  String legalNoticeText(String date) {
+    return 'Este informe ha sido generado automáticamente por OpenInvest el $date. Los datos se han obtenido de fuentes públicas y pueden contener imprecisiones. Este documento no constituye asesoramiento financiero. Verifique siempre los datos con su entidad financiera antes de tomar decisiones.';
+  }
+
+  @override
+  String pdfFooter(String year, String page, String total) {
+    return 'OpenInvest - Informe Anual $year - Página $page de $total';
+  }
+
+  @override
+  String get saveAnnualReportTitle => 'Guardar informe anual';
+
+  @override
+  String get operationsCsv => 'Operaciones CSV';
+
+  @override
+  String get pdfReportLabel => 'Informe PDF';
 }

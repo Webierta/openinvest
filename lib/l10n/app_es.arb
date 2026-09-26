@@ -317,5 +317,36 @@
   "morningstarSource": "Morningstar",
   "morningstarSourceDesc": "Fondos extranjeros resueltos mediante Morningstar LT.",
   "yahooSource": "Yahoo Finance",
-  "yahooSourceDesc": "Búsqueda y cotizaciones globales en Yahoo Finance."
+  "yahooSourceDesc": "Búsqueda y cotizaciones globales en Yahoo Finance.",
+  "csvHeaderDate": "Fecha",
+  "csvHeaderIsin": "ISIN",
+  "csvHeaderFundName": "Nombre del Fondo",
+  "csvHeaderOperationType": "Tipo de Operación",
+  "csvHeaderUnits": "Unidades",
+  "csvHeaderUnitPrice": "Precio Unitario",
+  "csvHeaderTotalAmount": "Importe Total",
+  "csvHeaderCurrency": "Divisa",
+  "saveOperationsReportTitle": "Guardar informe de operaciones",
+  "annualPortfolioReport": "Informe Anual de Cartera",
+  "executiveSummary": "Resumen Ejecutivo",
+  "fundDetail": "Detalle por Fondo",
+  "returnPercentLabel": "Rent. %",
+  "legalNotice": "Aviso Legal",
+  "legalNoticeText": "Este informe ha sido generado automáticamente por OpenInvest el {date}. Los datos se han obtenido de fuentes públicas y pueden contener imprecisiones. Este documento no constituye asesoramiento financiero. Verifique siempre los datos con su entidad financiera antes de tomar decisiones.",
+  "@legalNoticeText": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "pdfFooter": "OpenInvest - Informe Anual {year} - Página {page} de {total}",
+  "@pdfFooter": {
+    "placeholders": {
+      "year": { "type": "String" },
+      "page": { "type": "String" },
+      "total": { "type": "String" }
+    }
+  },
+  "saveAnnualReportTitle": "Guardar informe anual",
+  "operationsCsv": "Operaciones CSV",
+  "pdfReportLabel": "Informe PDF"
 }
