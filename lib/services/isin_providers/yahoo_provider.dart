@@ -120,7 +120,8 @@ class YahooProvider implements IsinSourceProvider {
                 '',
             exchange: item['exchange']?.toString() ?? '',
             type: type,
-            isin: (type.toUpperCase() == 'MUTUALFUND' &&
+            isin:
+                (type.toUpperCase() == 'MUTUALFUND' &&
                     yahooIsin != null &&
                     IsinValidator.isValid(yahooIsin))
                 ? yahooIsin
