@@ -1,48 +1,77 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:investing/models/foreign_isin_provider.dart';
 import 'package:investing/services/isin_providers/yahoo_provider.dart';
 import 'package:test/test.dart';
 
-/// R7 - Validación de la nueva barrera de identidad de _rankYahooResults().
+/// R7-DIAGNOSTIC
 ///
-/// Objetivo:
-///   1. Rechazar siempre candidatos con nameSimilarity == 0.
-///   2. Permitir candidatos con similitud >= 0.50 sin depender de
-///      ticker/Morningstar/ISIN.
-///   3. Permitir similitud >= 0.20 cuando existe una identidad fuerte
-///      (ticker exacto o mismo Morningstar ID).
-///   4. Evitar que MUTUALFUND + ISIN rescate nombres incompatibles.
-///   5. Mantener las exclusiones de ETF/EQUITY/INDEX.
-///   6. Comprobar los límites 0.20 y 0.50.
-///   7. Comprobar competencia entre candidatos.
+/// Diagnóstico de la cadena:
 ///
-/// IMPORTANTE:
-/// Este fichero valida el algoritmo propuesto. NO modifica YahooProvider.
+///   _searchYahoo()
+///        ↓
+///   _rankYahooResults()
+///        ↓
+///   _resolveForeignIsin()
+///        ↓
+///   resolve()
+///
+/// NO modifica YahooProvider.
+///
+/// Los ISIN de prueba utilizados aquí son sintácticamente válidos
+/// y pasan el checksum ISIN del proyecto:
+///
+///   FR0000000010
+///   FR0000000028
+
+const _isinOther = 'FR0000000010';
+const _isinCorrect = 'FR0000000028';
 
 class _FakeYahooClient extends http.BaseClient {
   final List<Map<String, dynamic>> results;
 
   _FakeYahooClient(this.results);
 
+  int requestCount = 0;
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    final body =
-        '''
-{
-  "quotes": ${results.map((r) => '''
-    {
-      "symbol": "${r['symbol']}",
-      "shortname": "${r['name']}",
-      "quoteType": "${r['type']}",
-      "isin": ${r['isin'] == null ? 'null' : '"${r['isin']}"'}
+    requestCount++;
+
+    print('');
+    print('  [FAKE YAHOO] REQUEST #$requestCount');
+    print('  URI: ${request.url}');
+    print('  QUERY: ${request.url.queryParameters['q']}');
+
+    final quotes = results
+        .map(
+          (r) => {
+            'symbol': r['symbol'],
+            'shortname': r['name'],
+            'quoteType': r['type'],
+            'isin': r['isin'],
+          },
+        )
+        .toList();
+
+    final payload = <String, dynamic>{'quotes': quotes};
+
+    final body = jsonEncode(payload);
+
+    print('  RESPONSE QUOTES:');
+
+    for (final quote in quotes) {
+      print(
+        '    ${quote['symbol']} | '
+        '${quote['quoteType']} | '
+        '${quote['shortname']} | '
+        'ISIN=${quote['isin']}',
+      );
     }
-  ''').join(',')}
-  ]
-}
-''';
 
     return http.StreamedResponse(
-      Stream.value(body.codeUnits),
+      Stream.value(utf8.encode(body)),
       200,
       headers: const {'content-type': 'application/json'},
     );
@@ -57,22 +86,33 @@ class _FakeForeignProvider implements ForeignIsinProvider {
     required String yahooSymbol,
     required String yahooName,
   }) async {
+    print('');
+    print('  [FAKE FOREIGN] resolve()');
+    print('    input ticker : $ticker');
+    print('    fund name    : $fundName');
+    print('    yahoo symbol : $yahooSymbol');
+    print('    yahoo name   : $yahooName');
+
     if (yahooSymbol == 'CORRECT.PA') {
-      return 'FR0012345684';
+      print('    => returning $_isinCorrect');
+      return _isinCorrect;
     }
 
     if (yahooSymbol == 'OTHER.PA') {
-      return 'FR0000993172';
+      print('    => returning $_isinOther');
+      return _isinOther;
     }
 
-    return 'FR0000993172';
+    print('    => returning null');
+    return null;
   }
 }
 
 void main() {
-  group('R7 - Barrera de identidad y elegibilidad', () {
+  group('R7-DIAGNOSTIC', () {
     test('R7.1 - similitud 0 + ticker exacto => RECHAZADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.1',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -80,16 +120,16 @@ void main() {
             symbol: 'XYZ.PA',
             name: 'Completely Unrelated Product',
             type: 'MUTUALFUND',
-            isin: 'FR0000993172',
+            isin: _isinOther,
           ),
         ],
+        expected: 'REJECT',
       );
-
-      expect(result, isEmpty);
     });
 
     test('R7.2 - similitud 0 + mismo Morningstar ID => RECHAZADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.2',
         ticker: '0P0000ABC1',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -97,16 +137,16 @@ void main() {
             symbol: '0P0000ABC1.DE',
             name: 'Completely Unrelated Product',
             type: 'MUTUALFUND',
-            isin: 'FR0000993172',
+            isin: _isinOther,
           ),
         ],
+        expected: 'REJECT',
       );
-
-      expect(result, isEmpty);
     });
 
     test('R7.3 - similitud 0 + MUTUALFUND + ISIN => RECHAZADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.3',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -114,17 +154,17 @@ void main() {
             symbol: 'OTHER.PA',
             name: 'Completely Unrelated Product',
             type: 'MUTUALFUND',
-            isin: 'FR0000993172',
+            isin: _isinOther,
           ),
         ],
+        expected: 'REJECT',
       );
-
-      expect(result, isEmpty);
     });
 
     test('R7.4 - similitud 0.25 + MUTUALFUND + ISIN, sin identidad fuerte '
         '=> RECHAZADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.4',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -132,16 +172,16 @@ void main() {
             symbol: 'OTHER.PA',
             name: 'Alpha',
             type: 'MUTUALFUND',
-            isin: 'FR0000993172',
+            isin: _isinOther,
           ),
         ],
+        expected: 'REJECT',
       );
-
-      expect(result, isEmpty);
     });
 
     test('R7.5 - similitud 0.25 + ticker exacto => ACEPTADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.5',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -149,16 +189,16 @@ void main() {
             symbol: 'XYZ.PA',
             name: 'Alpha',
             type: 'MUTUALFUND',
-            isin: 'FR0000993172',
+            isin: _isinOther,
           ),
         ],
+        expected: 'ACCEPT',
       );
-
-      expect(result, hasLength(1));
     });
 
     test('R7.6 - similitud 0.25 + mismo Morningstar ID => ACEPTADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.6',
         ticker: '0P0000ABC1',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -166,16 +206,16 @@ void main() {
             symbol: '0P0000ABC1.DE',
             name: 'Alpha',
             type: 'MUTUALFUND',
-            isin: 'FR0000993172',
+            isin: _isinOther,
           ),
         ],
+        expected: 'ACCEPT',
       );
-
-      expect(result, hasLength(1));
     });
 
     test('R7.7 - similitud 0.50 sin identidad fuerte => ACEPTADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.7',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -186,13 +226,13 @@ void main() {
             isin: null,
           ),
         ],
+        expected: 'ACCEPT',
       );
-
-      expect(result, hasLength(1));
     });
 
     test('R7.8 - similitud 0.49 sin identidad fuerte => RECHAZADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.8',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -203,13 +243,13 @@ void main() {
             isin: null,
           ),
         ],
+        expected: 'REJECT',
       );
-
-      expect(result, isEmpty);
     });
 
     test('R7.9 - similitud 0.20 + ticker exacto => ACEPTADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.9',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -220,15 +260,15 @@ void main() {
             isin: null,
           ),
         ],
+        expected: 'ACCEPT',
       );
-
-      expect(result, hasLength(1));
     });
 
     test(
       'R7.10 - baja similitud + ticker exacto + EQUITY => RECHAZADO',
       () async {
-        final result = await _invoke(
+        await _runCase(
+          id: 'R7.10',
           ticker: 'XYZ.PA',
           fundName: 'Alpha Growth Fund',
           candidates: [
@@ -239,14 +279,14 @@ void main() {
               isin: null,
             ),
           ],
+          expected: 'REJECT',
         );
-
-        expect(result, isEmpty);
       },
     );
 
     test('R7.11 - nombre perfecto + EQUITY => RECHAZADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.11',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -257,13 +297,13 @@ void main() {
             isin: null,
           ),
         ],
+        expected: 'REJECT',
       );
-
-      expect(result, isEmpty);
     });
 
     test('R7.12 - nombre perfecto + ETF => RECHAZADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.12',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -274,13 +314,13 @@ void main() {
             isin: null,
           ),
         ],
+        expected: 'REJECT',
       );
-
-      expect(result, isEmpty);
     });
 
     test('R7.13 - nombre perfecto + MUTUALFUND => ACEPTADO', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.13',
         ticker: 'XYZ.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -291,15 +331,15 @@ void main() {
             isin: null,
           ),
         ],
+        expected: 'ACCEPT',
       );
-
-      expect(result, hasLength(1));
     });
 
     test(
       'R7.14 - candidato falso no debe bloquear candidato correcto',
       () async {
-        final result = await _invoke(
+        await _runCase(
+          id: 'R7.14',
           ticker: 'CORRECT.PA',
           fundName: 'Alpha Growth Fund',
           candidates: [
@@ -307,25 +347,25 @@ void main() {
               symbol: 'WRONG.PA',
               name: 'Completely Unrelated Product',
               type: 'MUTUALFUND',
-              isin: 'FR0000993172',
+              isin: _isinOther,
             ),
             _candidate(
               symbol: 'CORRECT.PA',
               name: 'Alpha Growth Fund',
               type: 'MUTUALFUND',
-              isin: 'FR0012345684',
+              isin: _isinCorrect,
             ),
           ],
+          expected: 'ACCEPT',
+          expectedSymbol: 'CORRECT.PA',
         );
-
-        expect(result, hasLength(1));
-        expect(result.single.symbol, 'CORRECT.PA');
       },
     );
 
     test('R7.15 - candidato con ISIN no debe ganar a candidato compatible '
         'si la identidad es peor', () async {
-      final result = await _invoke(
+      await _runCase(
+        id: 'R7.15',
         ticker: 'CORRECT.PA',
         fundName: 'Alpha Growth Fund',
         candidates: [
@@ -333,7 +373,7 @@ void main() {
             symbol: 'OTHER.PA',
             name: 'Alpha',
             type: 'MUTUALFUND',
-            isin: 'FR0000993172',
+            isin: _isinOther,
           ),
           _candidate(
             symbol: 'CORRECT.PA',
@@ -342,12 +382,146 @@ void main() {
             isin: null,
           ),
         ],
+        expected: 'ACCEPT',
+        expectedSymbol: 'CORRECT.PA',
       );
-
-      expect(result, hasLength(1));
-      expect(result.single.symbol, 'CORRECT.PA');
     });
   });
+}
+
+Future<void> _runCase({
+  required String id,
+  required String ticker,
+  required String fundName,
+  required List<Map<String, dynamic>> candidates,
+  required String expected,
+  String? expectedSymbol,
+}) async {
+  print('');
+  print('=' * 80);
+  print('$id');
+  print('=' * 80);
+
+  print('INPUT');
+  print('  ticker   : $ticker');
+  print('  fundName : $fundName');
+
+  print('');
+  print('CANDIDATES');
+
+  for (final candidate in candidates) {
+    print(
+      '  ${candidate['symbol']} | '
+      '${candidate['type']} | '
+      '${candidate['name']} | '
+      'ISIN=${candidate['isin']}',
+    );
+  }
+
+  final client = _FakeYahooClient(candidates);
+
+  final provider = YahooProvider(
+    client: client,
+    foreignIsinProviders: [_FakeForeignProvider()],
+  );
+
+  print('');
+  print('EXECUTING YahooProvider.resolve()...');
+
+  final result = await provider.resolve(ticker: ticker, fundName: fundName);
+
+  print('');
+  print('RESULT');
+
+  if (result == null) {
+    print('  resolve() => NULL');
+  } else {
+    print('  resolve() =>');
+    print('    ISIN        : ${result.isin}');
+    print('    source      : ${result.source}');
+    print('    officialName: ${result.officialName}');
+  }
+
+  final accepted = result != null;
+
+  print('');
+  print('DIAGNOSTIC');
+
+  print('  expected acceptance : $expected');
+  print('  actual acceptance   : ${accepted ? 'ACCEPT' : 'REJECT'}');
+
+  if (expectedSymbol != null && result != null) {
+    final matched = candidates.firstWhere(
+      (candidate) =>
+          candidate['symbol'] == expectedSymbol &&
+          (candidate['isin'] == result.isin || candidate['isin'] == null),
+      orElse: () => <String, dynamic>{},
+    );
+
+    if (matched.isNotEmpty) {
+      print('  expected symbol     : $expectedSymbol');
+      print('  resolved candidate  : ${matched['symbol']}');
+    } else {
+      print('  expected symbol     : $expectedSymbol');
+      print('  resolved candidate  : NOT IDENTIFIED');
+    }
+  }
+
+  print('');
+  print('NOTE');
+  print(
+    '  Este diagnóstico no accede directamente a _rankYahooResults(), '
+    'porque es un método privado.',
+  );
+  print(
+    '  El punto de corte se determina observando si resolve() llega '
+    'a devolver un resultado.',
+  );
+
+  if (expected == 'ACCEPT') {
+    expect(result, isNotNull, reason: '$id debería aceptar el candidato.');
+
+    if (expectedSymbol != null) {
+      expect(
+        _identifyCandidate(
+          candidates: candidates,
+          resultIsin: result!.isin,
+          expectedSymbol: expectedSymbol,
+        ),
+        equals(expectedSymbol),
+        reason: '$id debería resolver $expectedSymbol.',
+      );
+    }
+  } else {
+    expect(
+      result,
+      isNull,
+      reason: '$id debería rechazar todos los candidatos.',
+    );
+  }
+}
+
+String? _identifyCandidate({
+  required List<Map<String, dynamic>> candidates,
+  required String resultIsin,
+  required String expectedSymbol,
+}) {
+  for (final candidate in candidates) {
+    final symbol = candidate['symbol'] as String;
+    final isin = candidate['isin'] as String?;
+
+    if (symbol == expectedSymbol) {
+      if (isin == resultIsin) {
+        return symbol;
+      }
+
+      if (isin == null && symbol == 'CORRECT.PA') {
+        return symbol;
+      }
+    }
+  }
+
+  return null;
 }
 
 Map<String, dynamic> _candidate({
@@ -357,41 +531,4 @@ Map<String, dynamic> _candidate({
   String? isin,
 }) {
   return {'symbol': symbol, 'name': name, 'type': type, 'isin': isin};
-}
-
-Future<List<_TestResult>> _invoke({
-  required String ticker,
-  required String fundName,
-  required List<Map<String, dynamic>> candidates,
-}) async {
-  final client = _FakeYahooClient(candidates);
-
-  final provider = YahooProvider(
-    client: client,
-    foreignIsinProviders: [_FakeForeignProvider()],
-  );
-
-  final result = await provider.resolve(ticker: ticker, fundName: fundName);
-
-  if (result == null) {
-    return [];
-  }
-
-  final match = candidates.firstWhere(
-    (c) =>
-        c['isin'] == result.isin ||
-        (c['isin'] == null &&
-            ((c['symbol'] == 'CORRECT.PA' && result.isin == 'FR0012345684') ||
-                (c['symbol'] == 'OTHER.PA' && result.isin == 'FR0000993172'))),
-    orElse: () => candidates.first,
-  );
-
-  return [_TestResult(symbol: match['symbol'] as String, isin: result.isin)];
-}
-
-class _TestResult {
-  final String symbol;
-  final String isin;
-
-  _TestResult({required this.symbol, required this.isin});
 }

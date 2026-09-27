@@ -218,7 +218,7 @@ class YahooProvider implements IsinSourceProvider {
     return existing;
   }
 
-  List<_YahooResult> _rankYahooResults(
+  /* List<_YahooResult> _rankYahooResults(
     List<_YahooResult> results,
     String ticker,
     String fundName,
@@ -252,6 +252,113 @@ class YahooProvider implements IsinSourceProvider {
             .where((item) => item.score >= 0.50 && item.similarity > 0.0)
             .toList()
           ..sort((a, b) => b.score.compareTo(a.score));
+
+    return scored.map((item) => item.result).toList();
+  } */
+
+  List<_YahooResult> _rankYahooResults(
+    List<_YahooResult> results,
+    String ticker,
+    String fundName,
+  ) {
+    final normalizedTicker = ticker.toUpperCase();
+
+    final scored = <({_YahooResult result, double score, double similarity})>[];
+
+    for (final result in results) {
+      final symbol = result.symbol.toUpperCase();
+      final type = result.type.toUpperCase();
+
+      final nameSimilarity = _nameSimilarity(fundName, result.name);
+
+      // ------------------------------------------------------------------
+      // 1. BARRERA DE TIPO
+      //
+      // ETF, EQUITY e INDEX no son candidatos válidos para resolver
+      // un fondo de inversión mediante este flujo.
+      // ------------------------------------------------------------------
+      if (type == 'ETF' || type == 'EQUITY' || type == 'INDEX') {
+        continue;
+      }
+
+      // ------------------------------------------------------------------
+      // 2. IDENTIDAD FUERTE
+      //
+      // Hay identidad fuerte cuando:
+      //   - el symbol coincide exactamente con el ticker solicitado, o
+      //   - ambos symbols corresponden al mismo Morningstar ID.
+      // ------------------------------------------------------------------
+      final exactTicker = symbol == normalizedTicker;
+      final sameMorningstar = _sameMorningstarId(symbol, normalizedTicker);
+
+      final strongIdentity = exactTicker || sameMorningstar;
+
+      // ------------------------------------------------------------------
+      // 3. BARRERA DE IDENTIDAD
+      //
+      // Sin similitud de nombre no aceptamos el candidato, aunque tenga
+      // MUTUALFUND o ISIN.
+      //
+      // Con identidad fuerte permitimos una similitud mínima de 0.20.
+      //
+      // Sin identidad fuerte exigimos al menos 0.50.
+      // ------------------------------------------------------------------
+      if (nameSimilarity <= 0.0) {
+        continue;
+      }
+
+      if (strongIdentity) {
+        if (nameSimilarity < 0.20) {
+          continue;
+        }
+      } else {
+        if (nameSimilarity < 0.50) {
+          continue;
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // 4. RANKING
+      //
+      // A partir de aquí conservamos el sistema de puntuación existente.
+      // La barrera anterior decide QUIÉN puede competir.
+      // El score decide QUIÉN gana entre los candidatos elegibles.
+      // ------------------------------------------------------------------
+      var score = nameSimilarity * 0.55;
+
+      if (symbol == normalizedTicker) {
+        score += 0.20;
+      }
+
+      if (symbol.startsWith(normalizedTicker)) {
+        score += 0.05;
+      }
+
+      if (type == 'MUTUALFUND') {
+        score += 0.30;
+      }
+
+      if (sameMorningstar) {
+        score += 0.10;
+      }
+
+      if (result.isin != null) {
+        score += 0.10;
+      }
+
+      // ------------------------------------------------------------------
+      // 5. UMBRAL FINAL DE SCORE
+      //
+      // Se mantiene el umbral existente de 0.50.
+      // ------------------------------------------------------------------
+      if (score < 0.50) {
+        continue;
+      }
+
+      scored.add((result: result, score: score, similarity: nameSimilarity));
+    }
+
+    scored.sort((a, b) => b.score.compareTo(a.score));
 
     return scored.map((item) => item.result).toList();
   }
