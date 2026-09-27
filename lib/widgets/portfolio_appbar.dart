@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/fund_provider.dart';
 import '../services/export_service.dart';
+import '../services/fund_scraper.dart';
 import '../services/pdf_report_generator.dart';
 import '../services/report_generator.dart';
 
@@ -93,6 +94,90 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
         }
       } catch (_) {}
     }
+  }
+
+  Future<void> _handleExportPortfolio(
+    BuildContext context,
+    FundProvider provider,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final success = await ExportService.exportPortfolio(
+      context,
+      provider.portfolio,
+    );
+
+    if (context.mounted) Navigator.of(context).pop();
+
+    if (success && context.mounted) {
+      _showSnackBar(context, l10n.portfolioExportedSuccess);
+    }
+  }
+
+  Future<void> _handleImportPortfolio(
+    BuildContext context,
+    FundProvider provider,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final importedFunds = await ExportService.importPortfolio(context);
+    if (importedFunds != null && importedFunds.isNotEmpty) {
+      try {
+        for (final importedFund in importedFunds) {
+          final existingIndex = provider.portfolio.indexWhere(
+            (item) => item.isin == importedFund.isin,
+          );
+          if (existingIndex == -1) {
+            await provider.addToPortfolio(importedFund);
+          } else {
+            // Fusión inteligente: combinar operaciones sin duplicados
+            final existing = provider.portfolio[existingIndex];
+            final merged = _mergeFunds(existing, importedFund);
+            await provider.replaceFund(merged);
+          }
+        }
+        if (context.mounted) {
+          _showSnackBar(context, l10n.portfolioImportedSuccess);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          _showSnackBar(context, 'Error al fusionar la cartera: $e', error: true);
+        }
+      }
+    }
+  }
+
+  FundData _mergeFunds(FundData existing, FundData incoming) {
+    final Map<String, FundOperation> uniqueOps = {};
+    for (final op in existing.operations) {
+      final key = '${op.date.toIso8601String()}_${op.type}_${op.units}_${op.price}';
+      uniqueOps[key] = op;
+    }
+    for (final op in incoming.operations) {
+      final key = '${op.date.toIso8601String()}_${op.type}_${op.units}_${op.price}';
+      uniqueOps[key] = op;
+    }
+    final mergedOps = uniqueOps.values.toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    return FundData(
+      isin: existing.isin,
+      symbol: incoming.symbol.isNotEmpty ? incoming.symbol : existing.symbol,
+      name: incoming.name.isNotEmpty ? incoming.name : existing.name,
+      currency: incoming.currency.isNotEmpty ? incoming.currency : existing.currency,
+      lastValue: incoming.lastValue != 0.0 ? incoming.lastValue : existing.lastValue,
+      date: incoming.date.isAfter(existing.date) ? incoming.date : existing.date,
+      history: incoming.history.isNotEmpty ? incoming.history : existing.history,
+      operations: mergedOps,
+      alertMin: incoming.alertMin ?? existing.alertMin,
+      alertMax: incoming.alertMax ?? existing.alertMax,
+      ter: incoming.ter ?? existing.ter,
+      performanceFee: incoming.performanceFee ?? existing.performanceFee,
+    );
   }
 
   Future<void> _handleExport(
@@ -416,6 +501,12 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
               case 'import':
                 _handleImport(context, provider);
                 break;
+              case 'import_portfolio':
+                _handleImportPortfolio(context, provider);
+                break;
+              case 'export_portfolio':
+                _handleExportPortfolio(context, provider);
+                break;
               case 'operaciones':
                 _handleExport(context, provider);
                 break;
@@ -433,7 +524,8 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
               child: Row(
                 children: [
                   const Icon(
-                    Icons.file_download_outlined,
+                    //Icons.file_download_outlined,
+                    Icons.add_chart,
                     size: 20,
                     color: Colors.white70,
                   ),
@@ -442,6 +534,35 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
             ),
+            PopupMenuItem(
+              value: 'import_portfolio',
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.wallet_travel,
+                    size: 20,
+                    color: Colors.white70,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(l10n.importPortfolioMenu),
+                ],
+              ),
+            ),
+            if (provider.portfolio.isNotEmpty)
+              PopupMenuItem(
+                value: 'export_portfolio',
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.save,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(l10n.exportPortfolioMenu),
+                  ],
+                ),
+              ),
             if (provider.portfolio.isNotEmpty)
               ...[
                 const PopupMenuDivider(color: Colors.white24),

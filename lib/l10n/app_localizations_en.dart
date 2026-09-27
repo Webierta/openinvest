@@ -393,7 +393,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moreOptionsTooltip => 'More options';
 
   @override
-  String get importFundJson => 'Import fund (JSON)';
+  String get importFundJson => 'Import fund';
 
   @override
   String get fundImportedSuccess => 'Fund imported successfully';
@@ -1013,4 +1013,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generateFilesLabel => 'Generate files';
+
+  @override
+  String get exportPortfolioMenu => 'Export portfolio';
+
+  @override
+  String get importPortfolioMenu => 'Import portfolio';
+
+  @override
+  String get portfolioExportedSuccess => 'Portfolio exported successfully';
+
+  @override
+  String get portfolioImportedSuccess => 'Portfolio imported with smart merge';
 }

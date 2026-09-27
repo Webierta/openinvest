@@ -124,7 +124,7 @@
   "sortByValue": "Value",
   "sortByPerformance": "TAE",
   "moreOptionsTooltip": "More options",
-  "importFundJson": "Import fund (JSON)",
+  "importFundJson": "Import fund",
   "fundImportedSuccess": "Fund imported successfully",
   "clearPortfolioTitle": "Clear Portfolio",
   "clearPortfolioConfirm": "Are you sure you want to delete all funds from your portfolio?",
@@ -374,5 +374,9 @@
   "previewAndPrint": "Preview / Print",
   "creditsTitle": "Credits",
   "creditsDesc": "With the collaboration of AI models Copilot, Gemini and ChatGPT.",
-  "generateFilesLabel": "Generate files"
+  "generateFilesLabel": "Generate files",
+  "exportPortfolioMenu": "Export portfolio",
+  "importPortfolioMenu": "Import portfolio",
+  "portfolioExportedSuccess": "Portfolio exported successfully",
+  "portfolioImportedSuccess": "Portfolio imported with smart merge"
 }

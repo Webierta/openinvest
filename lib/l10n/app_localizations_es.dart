@@ -395,7 +395,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get moreOptionsTooltip => 'Más opciones';
 
   @override
-  String get importFundJson => 'Importar fondo (JSON)';
+  String get importFundJson => 'Importar fondo';
 
   @override
   String get fundImportedSuccess => 'Fondo importado correctamente';
@@ -1019,4 +1019,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get generateFilesLabel => 'Generar archivos';
+
+  @override
+  String get exportPortfolioMenu => 'Exportar cartera';
+
+  @override
+  String get importPortfolioMenu => 'Importar cartera';
+
+  @override
+  String get portfolioExportedSuccess => 'Cartera exportada correctamente';
+
+  @override
+  String get portfolioImportedSuccess =>
+      'Cartera importada con fusión inteligente';
 }

@@ -803,7 +803,7 @@ abstract class AppLocalizations {
   /// No description provided for @importFundJson.
   ///
   /// In es, this message translates to:
-  /// **'Importar fondo (JSON)'**
+  /// **'Importar fondo'**
   String get importFundJson;
 
   /// No description provided for @fundImportedSuccess.
@@ -1909,6 +1909,30 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Generar archivos'**
   String get generateFilesLabel;
+
+  /// No description provided for @exportPortfolioMenu.
+  ///
+  /// In es, this message translates to:
+  /// **'Exportar cartera'**
+  String get exportPortfolioMenu;
+
+  /// No description provided for @importPortfolioMenu.
+  ///
+  /// In es, this message translates to:
+  /// **'Importar cartera'**
+  String get importPortfolioMenu;
+
+  /// No description provided for @portfolioExportedSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Cartera exportada correctamente'**
+  String get portfolioExportedSuccess;
+
+  /// No description provided for @portfolioImportedSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Cartera importada con fusión inteligente'**
+  String get portfolioImportedSuccess;
 }
 
 class _AppLocalizationsDelegate

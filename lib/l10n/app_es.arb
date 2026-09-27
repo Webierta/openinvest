@@ -124,7 +124,7 @@
   "sortByValue": "Valor",
   "sortByPerformance": "TAE",
   "moreOptionsTooltip": "Más opciones",
-  "importFundJson": "Importar fondo (JSON)",
+  "importFundJson": "Importar fondo",
   "fundImportedSuccess": "Fondo importado correctamente",
   "clearPortfolioTitle": "Vaciar Cartera",
   "clearPortfolioConfirm": "¿Estás seguro de que quieres eliminar todos los fondos de tu cartera?",
@@ -374,5 +374,9 @@
   "previewAndPrint": "Previsualizar / Imprimir",
   "creditsTitle": "Créditos",
   "creditsDesc": "Con la colaboración de los modelos de IA Copilot, Gemini y ChatGPT.",
-  "generateFilesLabel": "Generar archivos"
+  "generateFilesLabel": "Generar archivos",
+  "exportPortfolioMenu": "Exportar cartera",
+  "importPortfolioMenu": "Importar cartera",
+  "portfolioExportedSuccess": "Cartera exportada correctamente",
+  "portfolioImportedSuccess": "Cartera importada con fusión inteligente"
 }

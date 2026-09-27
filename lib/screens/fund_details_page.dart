@@ -145,7 +145,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                   child: Row(
                     children: [
                       const Icon(
-                        Icons.file_upload_outlined,
+                        Icons.save,
                         size: 20,
                         color: Colors.white70,
                       ),
