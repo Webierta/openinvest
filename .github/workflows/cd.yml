@@ -23,7 +23,7 @@ jobs:
           java-version: '17'
 
       - name: Configurar Flutter y Android SDK
-        uses: subosito/flutter-action@v3
+        uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
@@ -45,7 +45,7 @@ jobs:
       - name: Compilar APKs Android (Release por arquitectura)
         run: flutter build apk --release --split-per-abi
 
-      # --- COMPILACIÓN LINUX ---
+      # --- COMPILACIÓN LINX ---
       - name: Compilar Linux (Release)
         run: flutter build linux --release
 
