@@ -16,13 +16,14 @@ jobs:
       - name: Clonar repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Flutter y Java
+      - name: Configurar Flutter, Java y Android SDK
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.2'
           channel: 'stable'
           cache: true
           java-version: '17'
+          android-sdk: true
 
       # --- DEPENDENCIAS PARA LINUX ---
       - name: Instalar dependencias de Linux Desktop
