@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build-release:
     name: Compilar y Publicar (Android & Linux)
@@ -14,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configurar Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -47,12 +50,10 @@ jobs:
         run: flutter build linux --release
 
       - name: Empaquetar binario de Linux
-        run: |
-          cd build/linux/x64/release/bundle
-          tar -czvf ../../../../../openinvest-linux-x86_64.tar.gz *
+        run: tar -czvf openinvest-linux-x86_64.tar.gz -C build/linux/x64/release/bundle .
 
-        # --- PUBLICACIÓN EN GITHUB RELEASES ---
-      - name: Adjuntar APKs al Release de GitHub
+      # --- PUBLICACIÓN EN GITHUB RELEASES ---
+      - name: Adjuntar archivos al Release de GitHub
         uses: softprops/action-gh-release@v1
         with:
           files: |
