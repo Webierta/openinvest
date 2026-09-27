@@ -16,18 +16,13 @@ jobs:
       - name: Clonar repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Configurar Flutter
+      - name: Configurar Flutter y Java
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.2'
           channel: 'stable'
           cache: true
+          java-version: '17'
 
       # --- DEPENDENCIAS PARA LINUX ---
       - name: Instalar dependencias de Linux Desktop
@@ -54,7 +49,7 @@ jobs:
 
       # --- PUBLICACIÓN EN GITHUB RELEASES ---
       - name: Adjuntar archivos al Release de GitHub
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             build/app/outputs/flutter-apk/*.apk
