@@ -1,0 +1,62 @@
+name: CD (Build & Release)
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-release:
+    name: Compilar y Publicar (Android & Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+          cache: true
+
+      # --- DEPENDENCIAS PARA LINUX ---
+      - name: Instalar dependencias de Linux Desktop
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+
+      - name: Habilitar soporte de Linux Desktop
+        run: flutter config --enable-linux-desktop
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      # --- COMPILACIÓN ANDROID ---
+      - name: Compilar APKs Android (Release por arquitectura)
+        run: flutter build apk --release --split-per-abi
+
+      # --- COMPILACIÓN LINUX ---
+      - name: Compilar Linux (Release)
+        run: flutter build linux --release
+
+      - name: Empaquetar binario de Linux
+        run: |
+          cd build/linux/x64/release/bundle
+          tar -czvf ../../../../../openinvest-linux-x86_64.tar.gz *
+
+        # --- PUBLICACIÓN EN GITHUB RELEASES ---
+      - name: Adjuntar APKs al Release de GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/app/outputs/flutter-apk/*.apk
+            openinvest-linux-x86_64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
