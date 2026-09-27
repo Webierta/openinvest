@@ -1,4 +1,4 @@
-name: CD (Day & Release)
+name: CD (Build & Release)
 
 on:
   release:
@@ -26,6 +26,7 @@ jobs:
         run: |
           git clone https://github.com/flutter/flutter.git -b 3.47.2 --depth 1 _flutter
           echo "$GITHUB_WORKSPACE/_flutter/bin" >> $GITHUB_PATH
+          export PATH="$GITHUB_WORKSPACE/_flutter/bin:$PATH"
           flutter precache --android --linux
           flutter doctor -v
 
