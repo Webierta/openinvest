@@ -1843,6 +1843,72 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Informe PDF'**
   String get pdfReportLabel;
+
+  /// No description provided for @selectReportYear.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona el año del informe'**
+  String get selectReportYear;
+
+  /// No description provided for @reportSavedSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'✓ Informe guardado: {fileName}'**
+  String reportSavedSuccess(String fileName);
+
+  /// No description provided for @exportCancelledOrFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'Exportación cancelada o fallida.'**
+  String get exportCancelledOrFailed;
+
+  /// No description provided for @pdfGenerationError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al generar el PDF: {error}'**
+  String pdfGenerationError(String error);
+
+  /// No description provided for @openAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Abrir'**
+  String get openAction;
+
+  /// No description provided for @reportGeneratedTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Informe generado'**
+  String get reportGeneratedTitle;
+
+  /// No description provided for @annualReportReadyMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'El informe anual de {year} está listo. ¿Qué deseas hacer?'**
+  String annualReportReadyMessage(String year);
+
+  /// No description provided for @previewAndPrint.
+  ///
+  /// In es, this message translates to:
+  /// **'Previsualizar / Imprimir'**
+  String get previewAndPrint;
+
+  /// No description provided for @creditsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Créditos'**
+  String get creditsTitle;
+
+  /// No description provided for @creditsDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Con la colaboración de los modelos de IA Copilot, Gemini y ChatGPT.'**
+  String get creditsDesc;
+
+  /// No description provided for @generateFilesLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Generar archivos'**
+  String get generateFilesLabel;
 }
 
 class _AppLocalizationsDelegate

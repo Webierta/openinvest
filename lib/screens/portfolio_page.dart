@@ -82,36 +82,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         onSortSelected: (criteria) {
           context.read<FundProvider>().setSortCriteria(criteria);
         },
-        /*onImport: () async {
-          final fund = await ExportService.importFund(context);
-          if (fund != null && context.mounted) {
-            final existing = provider.portfolio.any(
-              (item) => item.isin == fund.isin,
-            );
-            var overwrite = false;
-            if (existing) {
-              final decision = await _confirmOverwrite(
-                context,
-                fund.name,
-              );
-              if (decision != true || !context.mounted) return;
-              overwrite = true;
-            }
-            try {
-              if (overwrite) {
-                await provider.replaceFund(fund);
-              } else {
-                await provider.addToPortfolio(fund);
-              }
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.fundImportedSuccess)),
-                );
-              }
-            } catch (_) {}
-          }
-        },*/
-        /*onClearPortfolio: () {
+        onClearPortfolio: () {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -135,7 +106,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
               ],
             ),
           );
-        },*/
+        },
       ),
       drawer: const AppDrawer(),
       body: GradientBackground(

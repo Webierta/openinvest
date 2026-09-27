@@ -348,5 +348,31 @@
   },
   "saveAnnualReportTitle": "Guardar informe anual",
   "operationsCsv": "Operaciones CSV",
-  "pdfReportLabel": "Informe PDF"
+  "pdfReportLabel": "Informe PDF",
+  "selectReportYear": "Selecciona el año del informe",
+  "reportSavedSuccess": "✓ Informe guardado: {fileName}",
+  "@reportSavedSuccess": {
+    "placeholders": {
+      "fileName": { "type": "String" }
+    }
+  },
+  "exportCancelledOrFailed": "Exportación cancelada o fallida.",
+  "pdfGenerationError": "Error al generar el PDF: {error}",
+  "@pdfGenerationError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "openAction": "Abrir",
+  "reportGeneratedTitle": "Informe generado",
+  "annualReportReadyMessage": "El informe anual de {year} está listo. ¿Qué deseas hacer?",
+  "@annualReportReadyMessage": {
+    "placeholders": {
+      "year": { "type": "String" }
+    }
+  },
+  "previewAndPrint": "Previsualizar / Imprimir",
+  "creditsTitle": "Créditos",
+  "creditsDesc": "Con la colaboración de los modelos de IA Copilot, Gemini y ChatGPT.",
+  "generateFilesLabel": "Generar archivos"
 }

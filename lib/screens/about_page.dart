@@ -47,6 +47,10 @@ class AboutPage extends StatelessWidget {
                 title: l10n.privacyTitle,
                 content: l10n.privacyDesc,
               ),
+              _AboutItem(
+                title: l10n.creditsTitle,
+                content: l10n.creditsDesc,
+              ),
               const SizedBox(height: 20),
               FutureBuilder<PackageInfo>(
                 future: PackageInfo.fromPlatform(),

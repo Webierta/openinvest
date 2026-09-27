@@ -348,5 +348,31 @@
   },
   "saveAnnualReportTitle": "Save annual report",
   "operationsCsv": "CSV Operations",
-  "pdfReportLabel": "PDF Report"
+  "pdfReportLabel": "PDF Report",
+  "selectReportYear": "Select report year",
+  "reportSavedSuccess": "✓ Report saved: {fileName}",
+  "@reportSavedSuccess": {
+    "placeholders": {
+      "fileName": { "type": "String" }
+    }
+  },
+  "exportCancelledOrFailed": "Export cancelled or failed.",
+  "pdfGenerationError": "Error generating PDF: {error}",
+  "@pdfGenerationError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "openAction": "Open",
+  "reportGeneratedTitle": "Report generated",
+  "annualReportReadyMessage": "The annual report for {year} is ready. What would you like to do?",
+  "@annualReportReadyMessage": {
+    "placeholders": {
+      "year": { "type": "String" }
+    }
+  },
+  "previewAndPrint": "Preview / Print",
+  "creditsTitle": "Credits",
+  "creditsDesc": "With the collaboration of AI models Copilot, Gemini and ChatGPT.",
+  "generateFilesLabel": "Generate files"
 }

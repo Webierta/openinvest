@@ -973,4 +973,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pdfReportLabel => 'PDF Report';
+
+  @override
+  String get selectReportYear => 'Select report year';
+
+  @override
+  String reportSavedSuccess(String fileName) {
+    return '✓ Report saved: $fileName';
+  }
+
+  @override
+  String get exportCancelledOrFailed => 'Export cancelled or failed.';
+
+  @override
+  String pdfGenerationError(String error) {
+    return 'Error generating PDF: $error';
+  }
+
+  @override
+  String get openAction => 'Open';
+
+  @override
+  String get reportGeneratedTitle => 'Report generated';
+
+  @override
+  String annualReportReadyMessage(String year) {
+    return 'The annual report for $year is ready. What would you like to do?';
+  }
+
+  @override
+  String get previewAndPrint => 'Preview / Print';
+
+  @override
+  String get creditsTitle => 'Credits';
+
+  @override
+  String get creditsDesc =>
+      'With the collaboration of AI models Copilot, Gemini and ChatGPT.';
+
+  @override
+  String get generateFilesLabel => 'Generate files';
 }

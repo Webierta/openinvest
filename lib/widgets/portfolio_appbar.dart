@@ -14,12 +14,14 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
   final FundProvider provider;
   final VoidCallback onRefresh;
   final ValueChanged<SortCriteria> onSortSelected;
+  final VoidCallback onClearPortfolio;
 
   const PortfolioAppbar({
     super.key,
     required this.provider,
     required this.onRefresh,
     required this.onSortSelected,
+    required this.onClearPortfolio,
   });
 
   void _showSnackBar(
@@ -97,6 +99,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     BuildContext context,
     FundProvider provider,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -114,14 +117,14 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
       if (filePath != null) {
         _showSnackBar(
           context,
-          '✓ Informe guardado: ${filePath.split('/').last}',
+          l10n.reportSavedSuccess(filePath.split('/').last),
           action: SnackBarAction(
-            label: 'Abrir',
+            label: l10n.openAction,
             onPressed: () => _openFile(filePath),
           ),
         );
       } else {
-        _showSnackBar(context, 'Exportación cancelada o fallida.', error: true);
+        _showSnackBar(context, l10n.exportCancelledOrFailed, error: true);
       }
     }
   }
@@ -146,13 +149,14 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   void _showYearPicker(BuildContext context, FundProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     final currentYear = DateTime.now().year;
     final years = List.generate(10, (i) => currentYear - i);
 
     showDialog(
       context: context,
       builder: (dialogContext) => SimpleDialog(
-        title: const Text('Selecciona el año del informe'),
+        title: Text(l10n.selectReportYear),
         children: years
             .map(
               (year) => SimpleDialogOption(
@@ -179,6 +183,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     int year,
     FundProvider provider,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -200,37 +205,38 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop();
-        _showSnackBar(context, 'Error al generar el PDF: $e', error: true);
+        _showSnackBar(context, l10n.pdfGenerationError(e.toString()), error: true);
       }
     }
   }
 
   void _showActionsDialog(BuildContext context, Uint8List pdfBytes, int year) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Informe generado'),
+        title: Text(l10n.reportGeneratedTitle),
         content: Text(
-          'El informe anual de $year está listo. ¿Qué deseas hacer?',
+          l10n.annualReportReadyMessage(year.toString()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
               await _saveFile(context, pdfBytes, year);
             },
-            child: const Text('Guardar'),
+            child: Text(l10n.save),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
               await _previewAndPrint(context, pdfBytes, year);
             },
-            child: const Text('Previsualizar / Imprimir'),
+            child: Text(l10n.previewAndPrint),
           ),
         ],
       ),
@@ -242,6 +248,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     Uint8List pdfBytes,
     int year,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final filePath = await PdfReportGenerator.savePdfToDevice(
       context,
       pdfBytes,
@@ -252,9 +259,9 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
       if (filePath != null) {
         _showSnackBar(
           context,
-          '✓ PDF guardado: ${filePath.split('/').last}',
+          l10n.reportSavedSuccess(filePath.split('/').last),
           action: SnackBarAction(
-            label: 'Abrir',
+            label: l10n.openAction,
             onPressed: () => _openFile2(filePath),
           ),
         );
@@ -436,37 +443,41 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
             if (provider.portfolio.isNotEmpty)
-              PopupMenuItem(
-                value: 'operaciones',
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.file_download_outlined,
-                      size: 20,
-                      color: Colors.white70,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(l10n.operationsCsv),
-                  ],
+              ...[
+                const PopupMenuDivider(color: Colors.white24),
+                PopupMenuItem(
+                    enabled: false,
+                    child: Text(l10n.generateFilesLabel)),
+                PopupMenuItem(
+                  value: 'operaciones',
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.table_chart_outlined,
+                        size: 20,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(l10n.operationsCsv),
+                    ],
+                  ),
                 ),
-              ),
-            if (provider.portfolio.isNotEmpty)
-              PopupMenuItem(
-                value: 'informe',
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.picture_as_pdf_outlined,
-                      size: 20,
-                      color: Colors.white70,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(l10n.pdfReportLabel),
-                  ],
+                PopupMenuItem(
+                  value: 'informe',
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.picture_as_pdf_outlined,
+                        size: 20,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(l10n.pdfReportLabel),
+                    ],
+                  ),
                 ),
-              ),
-            if (provider.portfolio.isNotEmpty)
-              PopupMenuItem(
+                const PopupMenuDivider(color: Colors.white24),
+                PopupMenuItem(
                 value: 'clear',
                 child: Row(
                   children: [
@@ -482,7 +493,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ],
                 ),
-              ),
+              ),]
           ],
         ),
       ],

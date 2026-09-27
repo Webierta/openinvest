@@ -168,7 +168,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                     ],
                   ),
                 ),
-                const PopupMenuDivider(),
+                const PopupMenuDivider(color: Colors.white24),
                 PopupMenuItem(
                   value: 'delete',
                   child: Row(
