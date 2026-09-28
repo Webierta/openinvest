@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -53,16 +54,16 @@ class _FakeYahooClient extends http.BaseClient {
 class _Quote {
   final String symbol;
   final String longname;
-  final String? shortname;
-  final String exchange;
+  //final String? shortname;
+  //final String exchange;
   final String quoteType;
   final String? isin;
 
   const _Quote({
     required this.symbol,
     this.longname = '',
-    this.shortname,
-    this.exchange = 'XPAR',
+    //this.shortname,
+    //this.exchange = 'XPAR',
     required this.quoteType,
     this.isin,
   });
@@ -70,14 +71,14 @@ class _Quote {
   Map<String, dynamic> toJson() => {
     'symbol': symbol,
     'longname': longname,
-    if (shortname != null) 'shortname': shortname,
-    'exchange': exchange,
+    //if (shortname != null) 'shortname': shortname,
+    //'exchange': exchange,
     'quoteType': quoteType,
     if (isin != null) 'isin': isin,
   };
 }
 
-class _FailFirstYahooClient extends http.BaseClient {
+/* class _FailFirstYahooClient extends http.BaseClient {
   final String failingQuery;
   final Map<String, List<_Quote>> responses;
   final Map<String, int> queryCount = {};
@@ -106,7 +107,7 @@ class _FailFirstYahooClient extends http.BaseClient {
       headers: const {'content-type': 'application/json'},
     );
   }
-}
+} */
 
 class _FakeForeignProvider implements ForeignIsinProvider {
   final Map<String, String> bySymbol;
@@ -2693,7 +2694,7 @@ void main() {
 
       expect(client.queryCount.length, 2);
 
-      print('[T1] ticker=1, nombre=1 -> OK');
+      debugPrint('[T1] ticker=1, nombre=1 -> OK');
     });
 
     test('T8 - PIMCO ejecuta ticker y nombre y resuelve ISIN', () async {
@@ -2741,7 +2742,7 @@ void main() {
 
       expect(foreign.calls, isNotEmpty);
 
-      print('[T8] PIMCO ticker + nombre + Morningstar -> OK');
+      debugPrint('[T8] PIMCO ticker + nombre + Morningstar -> OK');
     });
 
     test('T9 - ticker sin resultados y nombre con resultado', () async {
@@ -2773,7 +2774,7 @@ void main() {
 
       expect(client.queryCount.length, 2);
 
-      print('[T9] ticker vacío + nombre válido -> OK');
+      debugPrint('[T9] ticker vacío + nombre válido -> OK');
     });
 
     test('T10 - ticker con resultado y nombre sin resultados', () async {
@@ -2805,7 +2806,7 @@ void main() {
 
       expect(client.queryCount.length, 2);
 
-      print('[T10] ticker válido + nombre vacío -> OK');
+      debugPrint('[T10] ticker válido + nombre vacío -> OK');
     });
 
     test('T11 - ticker y nombre devuelven mismo fondo y se fusionan', () async {
@@ -2846,7 +2847,7 @@ void main() {
 
       expect(client.queryCount.length, 2);
 
-      print('[T11] mismo symbol + datos complementarios -> fusión OK');
+      debugPrint('[T11] mismo symbol + datos complementarios -> fusión OK');
     });
 
     test('T12 - error en ticker no impide consultar el nombre', () async {
@@ -2905,7 +2906,7 @@ void main() {
 
       expect(client.queryCount.length, 2);
 
-      print('[T12] error ticker + continuación con nombre -> OK');
+      debugPrint('[T12] error ticker + continuación con nombre -> OK');
     });
   });
 }
