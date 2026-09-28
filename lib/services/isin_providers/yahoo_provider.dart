@@ -112,7 +112,25 @@ class YahooProvider implements IsinSourceProvider {
           final type = item['quoteType']?.toString() ?? '';
           final yahooIsin = item['isin']?.toString().trim().toUpperCase();
 
+          final validIsin =
+              type.toUpperCase() == 'MUTUALFUND' &&
+                  yahooIsin != null &&
+                  IsinValidator.isValid(yahooIsin)
+              ? yahooIsin
+              : null;
+
           final incoming = _YahooResult(
+            symbol: symbol,
+            name:
+                item['longname']?.toString() ??
+                item['shortname']?.toString() ??
+                '',
+            exchange: item['exchange']?.toString() ?? '',
+            type: type,
+            isins: validIsin != null ? {validIsin} : const <String>{},
+          );
+
+          /* final incoming = _YahooResult(
             symbol: symbol,
             name:
                 item['longname']?.toString() ??
@@ -126,7 +144,7 @@ class YahooProvider implements IsinSourceProvider {
                     IsinValidator.isValid(yahooIsin))
                 ? yahooIsin
                 : null,
-          );
+          ); */
 
           final existing = results[symbol];
 
@@ -142,7 +160,7 @@ class YahooProvider implements IsinSourceProvider {
     return results.values.toList();
   }
 
-  _YahooResult _mergeYahooResult(
+  /* _YahooResult _mergeYahooResult(
     _YahooResult existing,
     _YahooResult incoming,
     String fundName,
@@ -178,6 +196,30 @@ class YahooProvider implements IsinSourceProvider {
       exchange: exchange,
       type: type,
       isin: isin,
+    );
+  } */
+
+  _YahooResult _mergeYahooResult(
+    _YahooResult existing,
+    _YahooResult incoming,
+    String fundName,
+  ) {
+    final name = _chooseBestName(existing.name, incoming.name, fundName);
+
+    final exchange = existing.exchange.trim().isNotEmpty
+        ? existing.exchange
+        : incoming.exchange;
+
+    final type = _chooseBestType(existing.type, incoming.type);
+
+    final isins = <String>{...existing.isins, ...incoming.isins};
+
+    return _YahooResult(
+      symbol: existing.symbol,
+      name: name,
+      exchange: exchange,
+      type: type,
+      isins: isins,
     );
   }
 
@@ -486,7 +528,7 @@ class YahooProvider implements IsinSourceProvider {
   }
 }
 
-class _YahooResult {
+/* class _YahooResult {
   final String symbol;
   final String name;
   final String exchange;
@@ -500,4 +542,23 @@ class _YahooResult {
     required this.type,
     this.isin,
   });
+} */
+
+class _YahooResult {
+  final String symbol;
+  final String name;
+  final String exchange;
+  final String type;
+  final Set<String> isins;
+
+  _YahooResult({
+    required this.symbol,
+    required this.name,
+    required this.exchange,
+    required this.type,
+    Set<String>? isins,
+  }) : isins = Set.unmodifiable(isins ?? const <String>{});
+
+  /// ISIN usable únicamente cuando existe uno solo y no hay conflicto.
+  String? get isin => isins.length == 1 ? isins.first : null;
 }
