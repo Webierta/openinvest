@@ -79,6 +79,19 @@ class YahooProvider implements IsinSourceProvider {
     return null;
   }
 
+  String _normalizeYahooSymbol(String symbol) {
+    var normalized = symbol.trim().toUpperCase();
+
+    final morningstarMatch = RegExp(r'^(0P[0-9A-Z]+)(?:\.[A-Z]+)?$')
+        .firstMatch(normalized);
+
+    if (morningstarMatch != null) {
+      return morningstarMatch.group(1)!;
+    }
+
+    return normalized;
+  }
+
   Future<List<_YahooResult>> _searchYahoo({
     required String ticker,
     required String fundName,
@@ -117,10 +130,18 @@ class YahooProvider implements IsinSourceProvider {
         for (final item in quotes) {
           if (item is! Map) continue;
 
+          // final symbol = item['symbol']?.toString();
+          // if (symbol == null || symbol.isEmpty) continue;
+
+          // final type = item['quoteType']?.toString() ?? '';
+
           final symbol = item['symbol']?.toString();
-          if (symbol == null || symbol.isEmpty) continue;
+          if (symbol == null || symbol.trim().isEmpty) continue;
+
+          final mergeKey = _normalizeYahooSymbol(symbol);
 
           final type = item['quoteType']?.toString() ?? '';
+
           final yahooIsin = item['isin']?.toString().trim().toUpperCase();
 
           final validIsin =
@@ -141,12 +162,26 @@ class YahooProvider implements IsinSourceProvider {
             isins: validIsin != null ? {validIsin} : const <String>{},
           );
 
-          final existing = results[symbol];
+          /* final existing = results[symbol];
 
           if (existing == null) {
             results[symbol] = incoming;
           } else {
             results[symbol] = _mergeYahooResult(existing, incoming, fundName);
+          } */
+
+          final existing = results[mergeKey];
+
+          if (existing == null) {
+            results[mergeKey] = incoming;
+          } else {
+            //results[mergeKey] = _mergeYahooResult(existing, incoming, fundName);
+            results[mergeKey] = _mergeYahooResult(
+              existing,
+              incoming,
+              ticker,
+              fundName,
+            );
           }
         }
       } catch (_) {}
@@ -155,9 +190,30 @@ class YahooProvider implements IsinSourceProvider {
     return results.values.toList();
   }
 
+  String _chooseBestSymbol(String existing, String incoming, String ticker) {
+    final normalizedTicker = ticker.trim();
+
+    final existingTrimmed = existing.trim();
+    final incomingTrimmed = incoming.trim();
+
+    // 1. Coincidencia textual exacta con el ticker.
+    if (existingTrimmed == normalizedTicker) {
+      return existing;
+    }
+
+    if (incomingTrimmed == normalizedTicker) {
+      return incoming;
+    }
+
+    // 2. Si no hay coincidencia textual exacta, respetamos el orden
+    //    original incluso si coinciden ignorando mayúsculas/minúsculas.
+    return existing;
+  }
+
   _YahooResult _mergeYahooResult(
     _YahooResult existing,
     _YahooResult incoming,
+    String ticker,
     String fundName,
   ) {
     final name = _chooseBestName(existing.name, incoming.name, fundName);
@@ -171,7 +227,8 @@ class YahooProvider implements IsinSourceProvider {
     final isins = <String>{...existing.isins, ...incoming.isins};
 
     return _YahooResult(
-      symbol: existing.symbol,
+      //symbol: existing.symbol,
+      symbol: _chooseBestSymbol(existing.symbol, incoming.symbol, ticker),
       name: name,
       exchange: exchange,
       type: type,
