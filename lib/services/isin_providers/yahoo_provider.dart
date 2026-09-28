@@ -16,7 +16,7 @@ class YahooProvider implements IsinSourceProvider {
   static const String _yahooSearchUrl =
       'https://query1.finance.yahoo.com/v1/finance/search?q=';
 
-  YahooProvider({
+  /* YahooProvider({
     http.Client? client,
     List<ForeignIsinProvider>? foreignIsinProviders,
   }) : _client = client ?? http.Client(),
@@ -25,6 +25,29 @@ class YahooProvider implements IsinSourceProvider {
            [
              LocalIsinProvider(),
              MorningstarLtForeignIsinProvider(client: client ?? http.Client()),
+           ]; */
+
+  factory YahooProvider({
+    http.Client? client,
+    List<ForeignIsinProvider>? foreignIsinProviders,
+  }) {
+    final sharedClient = client ?? http.Client();
+
+    return YahooProvider._(
+      client: sharedClient,
+      foreignIsinProviders: foreignIsinProviders,
+    );
+  }
+
+  YahooProvider._({
+    required http.Client client,
+    List<ForeignIsinProvider>? foreignIsinProviders,
+  }) : _client = client,
+       _foreignIsinProviders =
+           foreignIsinProviders ??
+           [
+             LocalIsinProvider(),
+             MorningstarLtForeignIsinProvider(client: client),
            ];
 
   @override

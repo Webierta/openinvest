@@ -1,4 +1,5 @@
 import 'package:http/http.dart' as http;
+
 import '../isin_resolver.dart';
 import '../../utils/http_config.dart';
 import 'isin_source_provider.dart';
@@ -14,7 +15,15 @@ class CnmvSilProvider implements IsinSourceProvider {
   static const String _cnmvSocietyUrl =
       'https://www.cnmv.es/portal/consultas/iic/sociedadiic?nif=';
 
-  CnmvSilProvider({http.Client? client}) : _client = client ?? http.Client();
+  //CnmvSilProvider({http.Client? client}) : _client = client ?? http.Client();
+
+  factory CnmvSilProvider({http.Client? client}) {
+    final sharedClient = client ?? http.Client();
+
+    return CnmvSilProvider._(client: sharedClient);
+  }
+
+  CnmvSilProvider._({required this._client});
 
   @override
   Future<IsinResult?> resolve({
@@ -31,7 +40,10 @@ class CnmvSilProvider implements IsinSourceProvider {
     final registrationNumber = int.tryParse(silMatch.group(1)!);
     if (registrationNumber == null) return null;
 
-    return _resolveSil(registrationNumber: registrationNumber, fundName: fundName);
+    return _resolveSil(
+      registrationNumber: registrationNumber,
+      fundName: fundName,
+    );
   }
 
   Future<IsinResult?> _resolveSil({
@@ -171,7 +183,10 @@ class CnmvSilProvider implements IsinSourceProvider {
       final response = await _client
           .get(
             Uri.parse('$_cnmvSocietyUrl$nif'),
-            headers: const {'Accept': 'text/html', 'User-Agent': 'OpenInvest/1.0'},
+            headers: const {
+              'Accept': 'text/html',
+              'User-Agent': 'OpenInvest/1.0',
+            },
           )
           .timeout(HttpConfig.timeout);
 
