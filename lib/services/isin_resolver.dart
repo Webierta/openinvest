@@ -52,9 +52,6 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
   static const String _snapshotBaseUrl =
       'https://lt.morningstar.com/2nhcdckzon/snapshot/snapshot.aspx';
 
-  // MorningstarLtForeignIsinProvider({http.Client? client})
-  //   : client = client ?? http.Client();
-
   factory MorningstarLtForeignIsinProvider({http.Client? client}) {
     final sharedClient = client ?? http.Client();
 
@@ -158,10 +155,6 @@ class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
   }
 }
 
-// class MorningstarForeignIsinProvider extends MorningstarLtForeignIsinProvider {
-//   MorningstarForeignIsinProvider({super.client});
-// }
-
 class MorningstarForeignIsinProvider extends MorningstarLtForeignIsinProvider {
   MorningstarForeignIsinProvider({http.Client? client})
     : super._(client: client ?? http.Client());
@@ -171,22 +164,6 @@ class IsinResolver {
   final http.Client _client;
   final List<IsinSourceProvider> _providers;
   final bool _ownsClient;
-
-  /* IsinResolver({
-    http.Client? client,
-    List<ForeignIsinProvider>? foreignIsinProviders,
-    CnmvLocalFundProvider? cnmvLocalFundProvider,
-    List<IsinSourceProvider>? providers,
-  }) : _client = client ?? http.Client(),
-       _providers = providers ?? [
-         InputIsinProvider(extractEmbeddedIsin: _extractEmbeddedIsin),
-         CnmvSilProvider(client: client ?? http.Client()),
-         CnmvFiProvider(cnmvLocalFundProvider: cnmvLocalFundProvider),
-         YahooProvider(
-           client: client ?? http.Client(),
-           foreignIsinProviders: foreignIsinProviders,
-         ),
-       ]; */
 
   factory IsinResolver({
     http.Client? client,
@@ -264,7 +241,6 @@ class IsinResolver {
     return null;
   }
 
-  //void dispose() => _client.close();
   void dispose() {
     if (_ownsClient) {
       _client.close();

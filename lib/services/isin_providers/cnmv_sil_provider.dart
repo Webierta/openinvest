@@ -15,8 +15,6 @@ class CnmvSilProvider implements IsinSourceProvider {
   static const String _cnmvSocietyUrl =
       'https://www.cnmv.es/portal/consultas/iic/sociedadiic?nif=';
 
-  //CnmvSilProvider({http.Client? client}) : _client = client ?? http.Client();
-
   factory CnmvSilProvider({http.Client? client}) {
     final sharedClient = client ?? http.Client();
 
