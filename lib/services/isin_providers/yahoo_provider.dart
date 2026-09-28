@@ -6,7 +6,6 @@ import 'package:investing/utils/isin_validator.dart';
 import '../../models/foreign_isin_provider.dart';
 import '../isin_resolver.dart';
 import '../../utils/http_config.dart';
-//import '../../models/foreign_isin_provider.dart';
 import '../local_isin_provider.dart';
 import 'isin_source_provider.dart';
 
@@ -130,22 +129,6 @@ class YahooProvider implements IsinSourceProvider {
             isins: validIsin != null ? {validIsin} : const <String>{},
           );
 
-          /* final incoming = _YahooResult(
-            symbol: symbol,
-            name:
-                item['longname']?.toString() ??
-                item['shortname']?.toString() ??
-                '',
-            exchange: item['exchange']?.toString() ?? '',
-            type: type,
-            isin:
-                (type.toUpperCase() == 'MUTUALFUND' &&
-                    yahooIsin != null &&
-                    IsinValidator.isValid(yahooIsin))
-                ? yahooIsin
-                : null,
-          ); */
-
           final existing = results[symbol];
 
           if (existing == null) {
@@ -159,45 +142,6 @@ class YahooProvider implements IsinSourceProvider {
 
     return results.values.toList();
   }
-
-  /* _YahooResult _mergeYahooResult(
-    _YahooResult existing,
-    _YahooResult incoming,
-    String fundName,
-  ) {
-    final name = _chooseBestName(existing.name, incoming.name, fundName);
-
-    final exchange = existing.exchange.trim().isNotEmpty
-        ? existing.exchange
-        : incoming.exchange;
-
-    final type = _chooseBestType(existing.type, incoming.type);
-
-    final existingIsin = existing.isin;
-    final incomingIsin = incoming.isin;
-
-    String? isin;
-
-    if (existingIsin == null) {
-      isin = incomingIsin;
-    } else if (incomingIsin == null) {
-      isin = existingIsin;
-    } else if (existingIsin == incomingIsin) {
-      isin = existingIsin;
-    } else {
-      // Hay dos ISIN distintos para el mismo symbol.
-      // No elegimos arbitrariamente ninguno.
-      isin = null;
-    }
-
-    return _YahooResult(
-      symbol: existing.symbol,
-      name: name,
-      exchange: exchange,
-      type: type,
-      isin: isin,
-    );
-  } */
 
   _YahooResult _mergeYahooResult(
     _YahooResult existing,
@@ -259,44 +203,6 @@ class YahooProvider implements IsinSourceProvider {
 
     return existing;
   }
-
-  /* List<_YahooResult> _rankYahooResults(
-    List<_YahooResult> results,
-    String ticker,
-    String fundName,
-  ) {
-    final normalizedTicker = ticker.toUpperCase();
-
-    final scored =
-        results
-            .map((result) {
-              final symbol = result.symbol.toUpperCase();
-              final type = result.type.toUpperCase();
-              final nameSimilarity = _nameSimilarity(fundName, result.name);
-              var score = nameSimilarity * 0.55;
-
-              if (symbol == normalizedTicker) score += 0.20;
-              if (symbol.startsWith(normalizedTicker)) score += 0.05;
-
-              if (type == 'MUTUALFUND') {
-                score += 0.30;
-              } else if (type == 'ETF') {
-                score -= 0.20;
-              } else if (type == 'EQUITY' || type == 'INDEX') {
-                score -= 0.30;
-              }
-
-              if (_sameMorningstarId(symbol, normalizedTicker)) score += 0.10;
-              if (result.isin != null) score += 0.10;
-
-              return (result: result, score: score, similarity: nameSimilarity);
-            })
-            .where((item) => item.score >= 0.50 && item.similarity > 0.0)
-            .toList()
-          ..sort((a, b) => b.score.compareTo(a.score));
-
-    return scored.map((item) => item.result).toList();
-  } */
 
   List<_YahooResult> _rankYahooResults(
     List<_YahooResult> results,
@@ -438,43 +344,6 @@ class YahooProvider implements IsinSourceProvider {
     return null;
   }
 
-  /* bool _isIsin(String value) {
-    final normalized = value.trim().toUpperCase();
-    if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(normalized)) {
-      return false;
-    }
-    return _isValidIsinChecksum(normalized);
-  } */
-
-  /* bool _isValidIsinChecksum(String isin) {
-    final value = isin.toUpperCase();
-    final digits = <int>[];
-
-    for (final char in value.split('')) {
-      if (RegExp(r'[A-Z]').hasMatch(char)) {
-        final n = char.codeUnitAt(0) - 55;
-        digits.add(n ~/ 10);
-        digits.add(n % 10);
-      } else {
-        digits.add(int.parse(char));
-      }
-    }
-
-    var sum = 0;
-    final parity = digits.length % 2;
-
-    for (var i = 0; i < digits.length; i++) {
-      var digit = digits[i];
-      if (i % 2 == parity) {
-        digit *= 2;
-        if (digit > 9) digit = digit ~/ 10 + digit % 10;
-      }
-      sum += digit;
-    }
-
-    return sum % 10 == 0;
-  } */
-
   double _nameSimilarity(String a, String b) {
     final aa = _normalizeName(a);
     final bb = _normalizeName(b);
@@ -527,22 +396,6 @@ class YahooProvider implements IsinSourceProvider {
     return result.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 }
-
-/* class _YahooResult {
-  final String symbol;
-  final String name;
-  final String exchange;
-  final String type;
-  final String? isin;
-
-  const _YahooResult({
-    required this.symbol,
-    required this.name,
-    required this.exchange,
-    required this.type,
-    this.isin,
-  });
-} */
 
 class _YahooResult {
   final String symbol;
