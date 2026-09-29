@@ -130,11 +130,6 @@ class YahooProvider implements IsinSourceProvider {
         for (final item in quotes) {
           if (item is! Map) continue;
 
-          // final symbol = item['symbol']?.toString();
-          // if (symbol == null || symbol.isEmpty) continue;
-
-          // final type = item['quoteType']?.toString() ?? '';
-
           final symbol = item['symbol']?.toString();
           if (symbol == null || symbol.trim().isEmpty) continue;
 
