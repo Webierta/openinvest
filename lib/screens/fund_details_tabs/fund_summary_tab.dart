@@ -8,6 +8,7 @@ import 'package:investing/l10n/app_localizations.dart';
 
 import '../../services/export_service.dart';
 import '../../services/fund_scraper.dart';
+import '../../services/morningstar_rating.dart';
 
 class FundSummaryTab extends StatelessWidget {
   final FundData fund;
@@ -54,7 +55,9 @@ class FundSummaryTab extends StatelessWidget {
       }
     }
 
-    final double meanVal = fund.history.isNotEmpty ? sum / fund.history.length : 0;
+    final double meanVal = fund.history.isNotEmpty
+        ? sum / fund.history.length
+        : 0;
     final double distToMaxAbs = maxVal > 0 ? fund.lastValue - maxVal : 0;
     final double distToMaxRel = maxVal > 0 ? (distToMaxAbs / maxVal) * 100 : 0;
 
@@ -132,7 +135,8 @@ class FundSummaryTab extends StatelessWidget {
                                 ),
                                 child: Text(
                                   () {
-                                    final full = DateFormat.yMMM(locale).format(fund.date);
+                                    final full = DateFormat.yMMM(locale)
+                                        .format(fund.date);
                                     final yearStr = fund.date.year.toString();
                                     final shortYear = yearStr.length >= 2
                                         ? yearStr.substring(yearStr.length - 2)
@@ -205,7 +209,11 @@ class FundSummaryTab extends StatelessWidget {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.keyboard_double_arrow_up, size: 12, color: Colors.white.withValues(alpha: 0.3)),
+                              Icon(
+                                Icons.keyboard_double_arrow_up,
+                                size: 12,
+                                color: Colors.white.withValues(alpha: 0.3),
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 '${l10n.toHighsLabel}: ${priceFormat.format(distToMaxAbs)} (${percentFormat.format(distToMaxRel)}%)',
@@ -271,6 +279,59 @@ class FundSummaryTab extends StatelessWidget {
               ],
               const SizedBox(height: 24),
               _buildStatsGrid(context, meanVal, maxPoint, minPoint),
+              const SizedBox(height: 16),
+              FutureBuilder<int>(
+                future: MorningstarRating(fund.isin).getRating(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox.shrink();
+                  }
+                  final rating = snapshot.data ?? 0;
+                  if (rating <= 0) return const SizedBox.shrink();
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Morningstar Rating',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Row(
+                          children: List.generate(5, (index) {
+                            /*return Icon(
+                              index < rating ? Icons.star : Icons.star_border,
+                              color: Colors.amber,
+                              size: 18,
+                            );*/
+                            return Icon(
+                              Icons.star,
+                              color: index < rating
+                                  ? Colors.amber
+                                  : Colors.grey.shade700,
+                              size: 18,
+                            );
+                          }),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ],
             if (fund.alertMin != null || fund.alertMax != null) ...[
               const Divider(height: 32, color: Colors.white10),
@@ -404,7 +465,11 @@ class FundSummaryTab extends StatelessWidget {
                             ? lastExport == null
                                   ? l10n.noBackupLabel
                                   : l10n.oldBackupLabel
-                            : l10n.lastBackupLabel(DateFormat.yMd(locale).add_Hm().format(lastExport)),
+                            : l10n.lastBackupLabel(
+                                DateFormat.yMd(locale)
+                                    .add_Hm()
+                                    .format(lastExport),
+                              ),
                         style: TextStyle(
                           color: backupPending
                               ? Colors.amberAccent
@@ -423,7 +488,12 @@ class FundSummaryTab extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsGrid(BuildContext context, double meanVal, PricePoint? maxPoint, PricePoint? minPoint) {
+  Widget _buildStatsGrid(
+    BuildContext context,
+    double meanVal,
+    PricePoint? maxPoint,
+    PricePoint? minPoint,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
     if (fund.history.isEmpty) return const SizedBox.shrink();
@@ -481,11 +551,14 @@ class FundSummaryTab extends StatelessWidget {
 
       if (recoveryDate != null) {
         //recoveryText = l10n.daysLabel(recoveryDate.difference(troughDate).inDays);
-        recoveryText = l10n.daysCount(recoveryDate.difference(troughDate).inDays);
+        recoveryText = l10n.daysCount(
+          recoveryDate.difference(troughDate).inDays,
+        );
       } else {
         final daysElapsed = DateTime.now().difference(troughDate).inDays;
         //recoveryText = '${l10n.daysLabel(daysElapsed)} (${l10n.inProgressLabel})';
-        recoveryText = '${l10n.daysCount(daysElapsed)} (${l10n.inProgressLabel})';
+        recoveryText =
+            '${l10n.daysCount(daysElapsed)} (${l10n.inProgressLabel})';
       }
     }
 

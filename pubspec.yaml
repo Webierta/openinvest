@@ -54,6 +54,8 @@ dependencies:
   csv: ^8.0.0
   pdf: ^3.13.1
   printing: ^5.15.1
+  # web: ^1.1.1
+  html: ^0.15.5
   # yahoo_finance: ^0.4.1
 dev_dependencies:
   flutter_test:
