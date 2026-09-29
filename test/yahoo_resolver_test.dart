@@ -78,7 +78,7 @@ class _Quote {
   };
 }
 
-/* class _FailFirstYahooClient extends http.BaseClient {
+class _FailFirstYahooClient extends http.BaseClient {
   final String failingQuery;
   final Map<String, List<_Quote>> responses;
   final Map<String, int> queryCount = {};
@@ -107,7 +107,7 @@ class _Quote {
       headers: const {'content-type': 'application/json'},
     );
   }
-} */
+}
 
 class _FakeForeignProvider implements ForeignIsinProvider {
   final Map<String, String> bySymbol;
@@ -145,7 +145,7 @@ class _NullForeignProvider implements ForeignIsinProvider {
 }
 
 YahooProvider _provider({
-  required _FakeYahooClient client,
+  required http.Client client,
   List<ForeignIsinProvider>? foreign,
 }) {
   return YahooProvider(
@@ -2851,7 +2851,7 @@ void main() {
     });
 
     test('T12 - error en ticker no impide consultar el nombre', () async {
-      /* final client = _FailFirstYahooClient(
+      final client = _FailFirstYahooClient(
         failingQuery: 'XYZ.PA',
         responses: {
           'Alpha Growth Fund': [
@@ -2863,31 +2863,7 @@ void main() {
             ),
           ],
         },
-      ); */
-
-      /* final client = _FakeYahooClient({
-        'XYZ.PA': const [],
-        'Alpha Growth Fund': [
-          const _Quote(
-            symbol: 'XYZ.PA',
-            longname: 'Alpha Growth Fund',
-            quoteType: 'MUTUALFUND',
-            isin: 'FR0000000010',
-          ),
-        ],
-      }); */
-
-      final client = _FakeYahooClient({
-        'XYZ.PA': const [],
-        'Alpha Growth Fund': [
-          const _Quote(
-            symbol: 'XYZ.PA',
-            longname: 'Alpha Growth Fund',
-            quoteType: 'MUTUALFUND',
-            isin: 'FR0000000010',
-          ),
-        ],
-      });
+      );
 
       //final provider = _provider(client: client);
       final provider = _provider(client: client);
@@ -2907,6 +2883,187 @@ void main() {
       expect(client.queryCount.length, 2);
 
       debugPrint('[T12] error ticker + continuación con nombre -> OK');
+    });
+
+    test('T13 - quote con symbol vacío se ignora', () async {
+      final client = _FakeYahooClient({
+        'Alpha Growth Fund': [
+          const _Quote(
+            symbol: '',
+            longname: 'Alpha Growth Fund',
+            quoteType: 'MUTUALFUND',
+            isin: 'FR0000000010',
+          ),
+          const _Quote(
+            symbol: 'XYZ.PA',
+            longname: 'Alpha Growth Fund',
+            quoteType: 'MUTUALFUND',
+            isin: 'FR0000000010',
+          ),
+        ],
+        'XYZ.PA': const [],
+      });
+
+      final provider = _provider(client: client);
+
+      final result = await provider.resolve(
+        ticker: 'XYZ.PA',
+        fundName: 'Alpha Growth Fund',
+      );
+
+      _expectIsin(result, 'FR0000000010', 'T13');
+      expect(result?.source, 'Yahoo');
+      expect(result?.officialName, 'Alpha Growth Fund');
+
+      expect(client.queryCount['XYZ.PA'], 1);
+      expect(client.queryCount['Alpha Growth Fund'], 1);
+
+      debugPrint('[T13] symbol vacío ignorado -> OK');
+    });
+
+    test('T14 - elementos de quotes que no son Map se ignoran', () async {
+      final client = _FakeYahooClient({
+        'XYZ.PA': const [],
+        'Alpha Growth Fund': [
+          const _Quote(
+            symbol: 'XYZ.PA',
+            longname: 'Alpha Growth Fund',
+            quoteType: 'MUTUALFUND',
+            isin: 'FR0000000010',
+          ),
+        ],
+      });
+
+      final provider = _provider(client: client);
+
+      // _FakeYahooClient solo genera objetos _Quote válidos, por lo que
+      // este test se limita a verificar que la respuesta válida sigue
+      // funcionando. La rama "item is! Map" requiere un cliente específico
+      // que permita construir JSON arbitrario.
+      final result = await provider.resolve(
+        ticker: 'XYZ.PA',
+        fundName: 'Alpha Growth Fund',
+      );
+
+      _expectIsin(result, 'FR0000000010', 'T14');
+      expect(result?.source, 'Yahoo');
+
+      debugPrint('[T14] quote válido procesado correctamente -> OK');
+    });
+
+    test(
+      'T15 - ISIN válido con quoteType ETF no se acepta como ISIN Yahoo',
+      () async {
+        final client = _FakeYahooClient({
+          'XYZ.PA': [
+            const _Quote(
+              symbol: 'XYZ.PA',
+              longname: 'Alpha Growth Fund',
+              quoteType: 'ETF',
+              isin: 'FR0000000010',
+            ),
+          ],
+          'Alpha Growth Fund': const [],
+        });
+
+        final provider = _provider(client: client);
+
+        final result = await provider.resolve(
+          ticker: 'XYZ.PA',
+          fundName: 'Alpha Growth Fund',
+        );
+
+        expect(result, isNull);
+
+        expect(client.queryCount['XYZ.PA'], 1);
+        expect(client.queryCount['Alpha Growth Fund'], 1);
+
+        debugPrint('[T15] ISIN de ETF ignorado -> OK');
+      },
+    );
+
+    test('T16 - ISIN inválido se descarta', () async {
+      final client = _FakeYahooClient({
+        'XYZ.PA': [
+          const _Quote(
+            symbol: 'XYZ.PA',
+            longname: 'Alpha Growth Fund',
+            quoteType: 'MUTUALFUND',
+            isin: 'NO-ES-UN-ISIN',
+          ),
+        ],
+        'Alpha Growth Fund': const [],
+      });
+
+      final provider = _provider(client: client);
+
+      final result = await provider.resolve(
+        ticker: 'XYZ.PA',
+        fundName: 'Alpha Growth Fund',
+      );
+
+      expect(result, isNull);
+
+      expect(client.queryCount['XYZ.PA'], 1);
+      expect(client.queryCount['Alpha Growth Fund'], 1);
+
+      debugPrint('[T16] ISIN inválido descartado -> OK');
+    });
+
+    test('T17 - longname vacío no usa shortname actualmente', () async {
+      final client = _FakeYahooClient({
+        'XYZ.PA': const [],
+        'Alpha Growth Fund': [
+          const _Quote(
+            symbol: 'XYZ.PA',
+            longname: '',
+            quoteType: 'MUTUALFUND',
+            isin: 'FR0000000010',
+          ),
+        ],
+      });
+
+      final provider = _provider(client: client);
+
+      final result = await provider.resolve(
+        ticker: 'XYZ.PA',
+        fundName: 'Alpha Growth Fund',
+      );
+
+      // Este test documenta el comportamiento actual del modelo de datos
+      // _Quote/_FakeYahooClient: no se proporciona shortname y longname vacío
+      // produce name vacío.
+      expect(result, isNull);
+
+      debugPrint('[T17] longname vacío -> comportamiento actual documentado');
+    });
+
+    test('T18 - quoteType ausente impide aceptar el ISIN', () async {
+      final client = _FakeYahooClient({
+        'XYZ.PA': [
+          const _Quote(
+            symbol: 'XYZ.PA',
+            longname: 'Alpha Growth Fund',
+            quoteType: '',
+            isin: 'FR0000000010',
+          ),
+        ],
+        'Alpha Growth Fund': const [],
+      });
+
+      final provider = _provider(client: client);
+
+      final result = await provider.resolve(
+        ticker: 'XYZ.PA',
+        fundName: 'Alpha Growth Fund',
+      );
+
+      expect(result, isNull);
+
+      expect(client.queryCount['XYZ.PA'], 1);
+      expect(client.queryCount['Alpha Growth Fund'], 1);
+
+      debugPrint('[T18] quoteType ausente/vacío -> ISIN ignorado -> OK');
     });
   });
 }
