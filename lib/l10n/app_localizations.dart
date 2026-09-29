@@ -467,8 +467,20 @@ abstract class AppLocalizations {
   /// No description provided for @exportImportDesc.
   ///
   /// In es, this message translates to:
-  /// **'Lleva tus datos contigo. Exporta e importa tus fondos y operaciones en formato JSON para moverlos entre dispositivos o hacer copias de seguridad.'**
+  /// **'Lleva tus datos contigo. Exporta e importa tu cartera completa con fusión inteligente o fondos individuales en JSON para moverlos entre dispositivos.'**
   String get exportImportDesc;
+
+  /// No description provided for @reportsInfoTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Informes y Generación de Archivos'**
+  String get reportsInfoTitle;
+
+  /// No description provided for @reportsInfoDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Genera informes anuales profesionales en PDF con resumen ejecutivo y desglose por fondo, exporta un registro completo de tus operaciones en CSV, y protege tus datos con copias de seguridad.'**
+  String get reportsInfoDesc;
 
   /// No description provided for @multicurrencySupportTitle.
   ///
@@ -551,7 +563,7 @@ abstract class AppLocalizations {
   /// No description provided for @dataSourceDesc.
   ///
   /// In es, this message translates to:
-  /// **'Los datos financieros y cotizaciones se obtienen de Yahoo Finance. OpenInvest no se responsabiliza de la exactitud de los datos proporcionados por terceros.'**
+  /// **'Los datos financieros, registros oficiales y cotizaciones se obtienen de fuentes públicas como la CNMV, Morningstar y Yahoo Finance. OpenInvest no se responsabiliza de la exactitud de los datos proporcionados por terceros.'**
   String get dataSourceDesc;
 
   /// No description provided for @permissionsTitle.

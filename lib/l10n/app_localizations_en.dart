@@ -207,11 +207,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Professional-grade metrics to assess safety:\n• Max Drawdown: The largest historical drop from a peak.\n• Recovery: Time the fund takes to heal its losses.';
 
   @override
-  String get exportImportTitle => 'Export and Import';
+  String get exportImportTitle => 'Export & Import';
 
   @override
   String get exportImportDesc =>
-      'Take your data with you. Export and import your funds and operations in JSON format to move them between devices or make backups.';
+      'Take your data with you. Export and import your complete portfolio with smart merge or individual funds in JSON to move them between devices.';
+
+  @override
+  String get reportsInfoTitle => 'Reports & File Generation';
+
+  @override
+  String get reportsInfoDesc =>
+      'Generate professional annual PDF reports with executive summary and fund breakdown, export a complete record of your operations in CSV, and protect your data with backups.';
 
   @override
   String get multicurrencySupportTitle => 'Multicurrency Support';
@@ -258,7 +265,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataSourceDesc =>
-      'Financial data and quotes are obtained from Yahoo Finance. OpenInvest is not responsible for the accuracy of data provided by third parties.';
+      'Financial data, official registries, and quotes are obtained from public sources such as CNMV, Morningstar, and Yahoo Finance. OpenInvest is not responsible for the accuracy of data provided by third parties.';
 
   @override
   String get permissionsTitle => 'Permissions';

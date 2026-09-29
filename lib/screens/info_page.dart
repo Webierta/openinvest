@@ -72,6 +72,11 @@ class InfoPage extends StatelessWidget {
                 description: l10n.exportImportDesc,
               ),
               _InfoSection(
+                icon: Icons.picture_as_pdf_outlined,
+                title: l10n.reportsInfoTitle,
+                description: l10n.reportsInfoDesc,
+              ),
+              _InfoSection(
                 icon: Icons.attach_money,
                 title: l10n.multicurrencySupportTitle,
                 description: l10n.multicurrencySupportDesc,

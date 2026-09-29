@@ -213,7 +213,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get exportImportDesc =>
-      'Lleva tus datos contigo. Exporta e importa tus fondos y operaciones en formato JSON para moverlos entre dispositivos o hacer copias de seguridad.';
+      'Lleva tus datos contigo. Exporta e importa tu cartera completa con fusión inteligente o fondos individuales en JSON para moverlos entre dispositivos.';
+
+  @override
+  String get reportsInfoTitle => 'Informes y Generación de Archivos';
+
+  @override
+  String get reportsInfoDesc =>
+      'Genera informes anuales profesionales en PDF con resumen ejecutivo y desglose por fondo, exporta un registro completo de tus operaciones en CSV, y protege tus datos con copias de seguridad.';
 
   @override
   String get multicurrencySupportTitle => 'Soporte Multidivisa';
@@ -260,7 +267,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get dataSourceDesc =>
-      'Los datos financieros y cotizaciones se obtienen de Yahoo Finance. OpenInvest no se responsabiliza de la exactitud de los datos proporcionados por terceros.';
+      'Los datos financieros, registros oficiales y cotizaciones se obtienen de fuentes públicas como la CNMV, Morningstar y Yahoo Finance. OpenInvest no se responsabiliza de la exactitud de los datos proporcionados por terceros.';
 
   @override
   String get permissionsTitle => 'Permisos';
