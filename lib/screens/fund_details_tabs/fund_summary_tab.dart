@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:investing/l10n/app_localizations.dart';
@@ -15,6 +16,7 @@ class FundSummaryTab extends StatelessWidget {
   final NumberFormat priceFormat;
   final NumberFormat percentFormat;
   final DateFormat dateFormat;
+  final http.Client httpClient;
 
   const FundSummaryTab({
     super.key,
@@ -22,6 +24,7 @@ class FundSummaryTab extends StatelessWidget {
     required this.priceFormat,
     required this.percentFormat,
     required this.dateFormat,
+    required this.httpClient,
   });
 
   @override
@@ -281,7 +284,10 @@ class FundSummaryTab extends StatelessWidget {
               _buildStatsGrid(context, meanVal, maxPoint, minPoint),
               const SizedBox(height: 16),
               FutureBuilder<int>(
-                future: MorningstarRating(fund.isin).getRating(),
+                future: MorningstarRating(
+                  fund.isin,
+                  client: httpClient,
+                ).getRating(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox.shrink();

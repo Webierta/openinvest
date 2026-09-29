@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -24,6 +25,14 @@ class FundDetailsPage extends StatefulWidget {
 }
 
 class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
+  late final http.Client _httpClient;
+
+  @override
+  void initState() {
+    super.initState();
+    _httpClient = http.Client();
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -34,6 +43,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
   @override
   void dispose() {
     routeObserver.unsubscribe(this);
+    _httpClient.close();
     super.dispose();
   }
 
@@ -144,11 +154,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                   value: 'export',
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.save,
-                        size: 20,
-                        color: Colors.white70,
-                      ),
+                      const Icon(Icons.save, size: 20, color: Colors.white70),
                       const SizedBox(width: 12),
                       Text(l10n.exportFundAction),
                     ],
@@ -202,9 +208,15 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                 text: l10n.balanceTab,
               ),
               Tab(icon: const Icon(Icons.show_chart), text: l10n.chartTab),
-              Tab(icon: const Icon(Icons.calendar_month_outlined), text: l10n.monthsTab),
+              Tab(
+                icon: const Icon(Icons.calendar_month_outlined),
+                text: l10n.monthsTab,
+              ),
               Tab(icon: const Icon(Icons.table_rows), text: l10n.tableTab),
-              Tab(icon: const Icon(Icons.account_balance), text: l10n.marketTab),
+              Tab(
+                icon: const Icon(Icons.account_balance),
+                text: l10n.marketTab,
+              ),
             ],
           ),
         ),
@@ -234,6 +246,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                             priceFormat: priceFormat,
                             percentFormat: percentFormat,
                             dateFormat: dateFormat,
+                            httpClient: _httpClient,
                           ),
                         ),
                       ),
@@ -246,7 +259,9 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                               ? Center(
                                   child: Text(
                                     l10n.noOperationsRegistered,
-                                    style: const TextStyle(color: Colors.white38),
+                                    style: const TextStyle(
+                                      color: Colors.white38,
+                                    ),
                                   ),
                                 )
                               : FundBalanceTab(
@@ -259,9 +274,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                       RefreshIndicator(
                         onRefresh: () => provider.searchFund(fund.isin),
                         child: fund.lastValue == 0 && fund.history.isEmpty
-                            ? Center(
-                                child: Text(l10n.noDataAvailable),
-                              )
+                            ? Center(child: Text(l10n.noDataAvailable))
                             : SingleChildScrollView(
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 padding: const EdgeInsets.all(16),
@@ -274,9 +287,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                       RefreshIndicator(
                         onRefresh: () => provider.searchFund(fund.isin),
                         child: fund.lastValue == 0 && fund.history.isEmpty
-                            ? Center(
-                                child: Text(l10n.noDataAvailable),
-                              )
+                            ? Center(child: Text(l10n.noDataAvailable))
                             : SingleChildScrollView(
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 padding: const EdgeInsets.all(16),
@@ -289,9 +300,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                       RefreshIndicator(
                         onRefresh: () => provider.searchFund(fund.isin),
                         child: fund.lastValue == 0 && fund.history.isEmpty
-                            ? Center(
-                                child: Text(l10n.noDataAvailable),
-                              )
+                            ? Center(child: Text(l10n.noDataAvailable))
                             : Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -395,7 +404,9 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
               provider.clearCurrentFundData();
               Navigator.pop(dialogContext);
             },
-            child: Text(l10n.clearDataAction.split(' ').last), // Use "Limpiar" / "Clear"
+            child: Text(
+              l10n.clearDataAction.split(' ').last,
+            ), // Use "Limpiar" / "Clear"
           ),
         ],
       ),
