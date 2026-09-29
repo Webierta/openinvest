@@ -410,6 +410,53 @@ void runYahooSearchTests() {
       debugPrint('[T18] quoteType ausente/vacío -> ISIN ignorado -> OK');
     });
 
+    test(
+      'T20 - error HTTP en ticker no impide resolver mediante nombre',
+      () async {
+        final client = MockClient((request) async {
+          final query = request.url.queryParameters['q'];
+
+          if (query == 'XYZ.PA') {
+            return http.Response('', 500);
+          }
+
+          if (query == 'Alpha Growth Fund') {
+            return http.Response(
+              jsonEncode({
+                'quotes': [
+                  {
+                    'symbol': 'XYZ.PA',
+                    'longname': 'Alpha Growth Fund',
+                    'quoteType': 'MUTUALFUND',
+                    'isin': 'FR0000000010',
+                  },
+                ],
+              }),
+              200,
+            );
+          }
+
+          return http.Response(jsonEncode({'quotes': []}), 200);
+        });
+
+        final resolver = IsinResolver(
+          client: client,
+          foreignIsinProviders: const [],
+        );
+
+        final result = await resolver.resolve(
+          ticker: 'XYZ.PA',
+          fundName: 'Alpha Growth Fund',
+        );
+
+        expectIsin(result, 'FR0000000010', 'T20');
+        expect(result?.source, 'Yahoo');
+        expect(result?.officialName, 'Alpha Growth Fund');
+
+        debugPrint('[T20] HTTP 500 en ticker + continuación con nombre -> OK');
+      },
+    );
+
     // ===========================================================================
     // S1-S10 — SELECCIÓN DEL SÍMBOLO REPRESENTATIVO DESPUÉS DE LA FUSIÓN
     // ===========================================================================
@@ -867,6 +914,78 @@ void runYahooSearchTests() {
 
       expect(seenSymbols, isNotEmpty);
       expect(seenSymbols.first, 'XYZ');
+    });
+
+    test('S11. Incoming coincide con ticker ignorando mayúsculas', () async {
+      final client = FakeYahooClient({
+        'TEST.PA': [
+          const Quote(
+            symbol: 'test.pa',
+            longname: 'Test Fund',
+            quoteType: 'MUTUALFUND',
+            isin: null,
+          ),
+        ],
+        'Test Fund': [
+          const Quote(
+            symbol: 'TEST.PA',
+            longname: 'Test Fund',
+            quoteType: 'MUTUALFUND',
+            isin: null,
+          ),
+        ],
+      });
+
+      final seenSymbols = <String>[];
+
+      final provider = createYahooProvider(
+        client: client,
+        foreign: [TrackingForeignProvider(seenSymbols: seenSymbols)],
+      );
+
+      await provider.resolve(ticker: 'TEST.PA', fundName: 'Test Fund');
+
+      expect(seenSymbols, ['TEST.PA']);
+
+      debugPrint(
+        '[S11] incoming coincide con ticker ignorando mayúsculas -> OK',
+      );
+    });
+
+    test('S12. Existing coincide con ticker ignorando mayúsculas', () async {
+      final client = FakeYahooClient({
+        'TEST.PA': [
+          const Quote(
+            symbol: 'TEST.PA',
+            longname: 'Test Fund',
+            quoteType: 'MUTUALFUND',
+            isin: null,
+          ),
+        ],
+        'Test Fund': [
+          const Quote(
+            symbol: 'test.pa',
+            longname: 'Test Fund',
+            quoteType: 'MUTUALFUND',
+            isin: null,
+          ),
+        ],
+      });
+
+      final seenSymbols = <String>[];
+
+      final provider = createYahooProvider(
+        client: client,
+        foreign: [TrackingForeignProvider(seenSymbols: seenSymbols)],
+      );
+
+      await provider.resolve(ticker: 'TEST.PA', fundName: 'Test Fund');
+
+      expect(seenSymbols, ['TEST.PA']);
+
+      debugPrint(
+        '[S12] existing coincide con ticker ignorando mayúsculas -> OK',
+      );
     });
   });
 }
