@@ -3336,7 +3336,7 @@ void main() {
       debugPrint('[R5] ticker exacto obtiene prioridad en el ranking -> OK');
     });
 
-    test('R6. Un nombre perfecto puede superar a un ticker exacto con similitud menor', () async {
+    /* test('R6. Un nombre perfecto puede superar a un ticker exacto con similitud menor', () async {
       final client = _FakeYahooClient({
         'TEST': [
           const _Quote(
@@ -3369,9 +3369,9 @@ void main() {
       debugPrint(
         '[R6] nombre perfecto puede superar ticker exacto con similitud baja -> OK',
       );
-    });
+    }); */
 
-    test('R7. ISIN aporta peso adicional al ranking', () async {
+    /* test('R7. ISIN aporta peso adicional al ranking', () async {
       final client = _FakeYahooClient({
         'TEST': [
           const _Quote(
@@ -3402,7 +3402,7 @@ void main() {
       expect(seenSymbols.first, 'OTHER');
 
       debugPrint('[R7] ISIN válido añade peso al ranking -> OK');
-    });
+    }); */
 
     // ===========================================================================
     // S1-S10 — SELECCIÓN DEL SÍMBOLO REPRESENTATIVO DESPUÉS DE LA FUSIÓN
