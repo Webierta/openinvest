@@ -381,13 +381,22 @@ class YahooProvider implements IsinSourceProvider {
   }
 
   bool _sameMorningstarId(String a, String b) {
-    String normalize(String value) {
-      final match = RegExp(r'^(0P[0-9A-Z]+)(?:\.[A-Z]+)?$')
-          .firstMatch(value.trim().toUpperCase());
-      return match?.group(1) ?? value.trim().toUpperCase();
+    String? extractMorningstarId(String value) {
+      final match = RegExp(
+        r'^(0P[0-9A-Z]+)(?:\.[A-Z]+)?$',
+        caseSensitive: false,
+      ).firstMatch(value.trim());
+      return match?.group(1)?.toUpperCase();
     }
 
-    return normalize(a) == normalize(b);
+    final idA = extractMorningstarId(a);
+    final idB = extractMorningstarId(b);
+    // Si alguno de los dos símbolos no es un ID Morningstar,
+    // no existe coincidencia Morningstar.
+    if (idA == null || idB == null) {
+      return false;
+    }
+    return idA == idB;
   }
 
   Future<String?> _resolveForeignIsin({
