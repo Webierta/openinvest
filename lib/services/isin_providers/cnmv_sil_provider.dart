@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../isin_resolver.dart';
@@ -38,10 +42,28 @@ class CnmvSilProvider implements IsinSourceProvider {
     final registrationNumber = int.tryParse(silMatch.group(1)!);
     if (registrationNumber == null) return null;
 
-    return _resolveSil(
+    _log(
+      'resolve_start',
+      fields: {'ticker': ticker, 'registration': registrationNumber},
+    );
+
+    final result = await _resolveSil(
       registrationNumber: registrationNumber,
       fundName: fundName,
     );
+
+    if (result != null) {
+      _log(
+        'resolve_success',
+        fields: {
+          'ticker': ticker,
+          'registration': registrationNumber,
+          'isin': result.isin,
+        },
+      );
+    }
+
+    return result;
   }
 
   Future<IsinResult?> _resolveSil({
@@ -49,14 +71,25 @@ class CnmvSilProvider implements IsinSourceProvider {
     required String fundName,
   }) async {
     final entities = await _loadCnmvSilIndex();
+
     final entity = entities[registrationNumber];
+
     if (entity == null) return null;
 
     final html = await _getCnmvSociety(entity.nif);
+
     if (html == null) return null;
 
     final isin = _extractIsin(html);
-    if (isin == null) return null;
+
+    if (isin == null) {
+      _log(
+        'isin_not_found',
+        fields: {'registration': registrationNumber, 'nif': entity.nif},
+      );
+
+      return null;
+    }
 
     return IsinResult(
       isin: isin,
@@ -68,7 +101,11 @@ class CnmvSilProvider implements IsinSourceProvider {
   }
 
   Future<Map<int, _CnmvEntity>> _loadCnmvSilIndex() async {
-    if (_cnmvEntities != null) return _cnmvEntities!;
+    if (_cnmvEntities != null) {
+      _log('index_cache_hit', fields: {'entities': _cnmvEntities!.length});
+
+      return _cnmvEntities!;
+    }
 
     final entities = <int, _CnmvEntity>{};
     var page = 0;
@@ -85,27 +122,58 @@ class CnmvSilProvider implements IsinSourceProvider {
             )
             .timeout(HttpConfig.timeout);
 
-        if (response.statusCode != 200) break;
+        if (response.statusCode != 200) {
+          _log(
+            'index_http_error',
+            fields: {'page': page, 'status': response.statusCode},
+          );
+
+          return {};
+        }
 
         final pageEntities = _parseCnmvListPage(response.body);
-        if (pageEntities.isEmpty) break;
+
+        if (pageEntities.isEmpty) {
+          _cnmvEntities = entities;
+
+          _log(
+            'index_complete',
+            fields: {'pages': page, 'entities': entities.length},
+          );
+
+          return entities;
+        }
 
         for (final entity in pageEntities) {
           entities[entity.registrationNumber] = entity;
         }
 
+        _log(
+          'index_page',
+          fields: {
+            'page': page,
+            'found': pageEntities.length,
+            'total': entities.length,
+          },
+        );
+
         page++;
-      } catch (_) {
-        break;
+      } catch (e, stackTrace) {
+        _log(
+          'index_exception',
+          fields: {'page': page},
+          error: e,
+          stackTrace: stackTrace,
+        );
+
+        return {};
       }
     }
-
-    _cnmvEntities = entities;
-    return entities;
   }
 
   List<_CnmvEntity> _parseCnmvListPage(String html) {
     final entities = <_CnmvEntity>[];
+
     final anchorPattern = RegExp(
       r"""<a\b[^>]*href\s*=\s*["']([^"']*sociedadiic[^"']*)["'][^>]*>([\s\S]*?)</a>""",
       caseSensitive: false,
@@ -123,12 +191,15 @@ class CnmvSilProvider implements IsinSourceProvider {
       final nextStart = i + 1 < matches.length
           ? matches[i + 1].start
           : html.length;
+
       final tailEnd = (match.end + 800 < nextStart)
           ? match.end + 800
           : nextStart;
+
       final tail = html.substring(match.end, tailEnd);
 
       final registrationNumber = _extractRegistrationNumber(tail);
+
       if (registrationNumber == null) continue;
 
       final nif = _extractNifFromUrl(href);
@@ -153,11 +224,13 @@ class CnmvSilProvider implements IsinSourceProvider {
     ).firstMatch(url);
 
     if (match == null) return '';
+
     return Uri.decodeComponent(match.group(1)!).trim().toUpperCase();
   }
 
   int? _extractRegistrationNumber(String html) {
     final text = _cleanHtmlText(html);
+
     final patterns = <RegExp>[
       RegExp(
         r'(?:N[ºo°]?\s*Registro|Registro\s+oficial)\s*[:\-]?\s*(\d+)',
@@ -168,7 +241,10 @@ class CnmvSilProvider implements IsinSourceProvider {
 
     for (final pattern in patterns) {
       final match = pattern.firstMatch(text);
-      if (match != null) return int.tryParse(match.group(1)!);
+
+      if (match != null) {
+        return int.tryParse(match.group(1)!);
+      }
     }
 
     return null;
@@ -188,14 +264,31 @@ class CnmvSilProvider implements IsinSourceProvider {
           )
           .timeout(HttpConfig.timeout);
 
-      return response.statusCode == 200 ? response.body : null;
-    } catch (_) {
+      if (response.statusCode != 200) {
+        _log(
+          'society_http_error',
+          fields: {'nif': nif, 'status': response.statusCode},
+        );
+
+        return null;
+      }
+
+      return response.body;
+    } catch (e, stackTrace) {
+      _log(
+        'society_exception',
+        fields: {'nif': nif},
+        error: e,
+        stackTrace: stackTrace,
+      );
+
       return null;
     }
   }
 
   String? _extractIsin(String html) {
     final text = _cleanHtmlText(html);
+
     final matches = RegExp(
       r'\b([A-Z]{2}[A-Z0-9]{9}\d)\b',
       caseSensitive: false,
@@ -203,6 +296,7 @@ class CnmvSilProvider implements IsinSourceProvider {
 
     for (final match in matches) {
       final isin = match.group(1)!.toUpperCase();
+
       if (_isIsin(isin)) return isin;
     }
 
@@ -211,9 +305,11 @@ class CnmvSilProvider implements IsinSourceProvider {
 
   bool _isIsin(String value) {
     final normalized = value.trim().toUpperCase();
+
     if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(normalized)) {
       return false;
     }
+
     return _isValidIsinChecksum(normalized);
   }
 
@@ -224,6 +320,7 @@ class CnmvSilProvider implements IsinSourceProvider {
     for (final char in value.split('')) {
       if (RegExp(r'[A-Z]').hasMatch(char)) {
         final n = char.codeUnitAt(0) - 55;
+
         digits.add(n ~/ 10);
         digits.add(n % 10);
       } else {
@@ -236,10 +333,15 @@ class CnmvSilProvider implements IsinSourceProvider {
 
     for (var i = 0; i < digits.length; i++) {
       var digit = digits[i];
+
       if (i % 2 == parity) {
         digit *= 2;
-        if (digit > 9) digit = digit ~/ 10 + digit % 10;
+
+        if (digit > 9) {
+          digit = digit ~/ 10 + digit % 10;
+        }
       }
+
       sum += digit;
     }
 
@@ -248,8 +350,11 @@ class CnmvSilProvider implements IsinSourceProvider {
 
   String _cleanHtmlText(String html) {
     var text = html;
+
     text = text.replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), ' ');
+
     text = text.replaceAll(RegExp(r'<[^>]+>', caseSensitive: false), ' ');
+
     text = text
         .replaceAll('&nbsp;', ' ')
         .replaceAll('&amp;', '&')
@@ -257,13 +362,36 @@ class CnmvSilProvider implements IsinSourceProvider {
         .replaceAll('&#39;', "'")
         .replaceAll('&lt;', '<')
         .replaceAll('&gt;', '>');
+
     return text.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
   String _absoluteCnmvUrl(String url) {
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('/')) return 'https://www.cnmv.es$url';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+
+    if (url.startsWith('/')) {
+      return 'https://www.cnmv.es$url';
+    }
+
     return 'https://www.cnmv.es/$url';
+  }
+
+  void _log(
+    String event, {
+    Map<String, Object?> fields = const {},
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    if (!kDebugMode) return;
+
+    developer.log(
+      jsonEncode({'event': event, ...fields}),
+      name: 'CnmvSilProvider',
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 }
 

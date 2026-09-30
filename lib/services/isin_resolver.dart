@@ -216,11 +216,15 @@ class IsinResolver {
     _log('------------------------------------------------------------');
 
     for (final provider in _providers) {
-      final result = await provider.resolve(
-        ticker: normalizedTicker,
-        fundName: fundName,
-      );
-      if (result != null) return result;
+      try {
+        final result = await provider.resolve(
+          ticker: normalizedTicker,
+          fundName: fundName,
+        );
+        if (result != null) return result;
+      } catch (e, stackTrace) {
+        _log('Provider ${provider.runtimeType} error: $e\n$stackTrace');
+      }
     }
 
     return null;

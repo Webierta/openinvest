@@ -248,7 +248,7 @@ void main() {
     );
 
     test(
-      'O8 - una excepción de un provider se propaga y detiene la cadena',
+      'O8 - una excepción de un provider permite continuar con el siguiente',
       () async {
         final calls = <String>[];
 
@@ -256,7 +256,7 @@ void main() {
           name: 'P1',
           result: null,
           calls: calls,
-          error: StateError('Provider failure'),
+          error: StateError('P1 failure'),
         );
 
         final provider2 = _FakeProvider(
@@ -268,12 +268,16 @@ void main() {
         final resolver = IsinResolver(providers: [provider1, provider2]);
         addTearDown(resolver.dispose);
 
-        await expectLater(
-          resolver.resolve(ticker: 'TEST.MC', fundName: 'Test Fund'),
-          throwsA(isA<StateError>()),
+        final result = await resolver.resolve(
+          ticker: 'TEST.MC',
+          fundName: 'Test Fund',
         );
 
-        expect(calls, ['P1']);
+        expect(result, isNotNull);
+        expect(result!.isin, 'ES0000000002');
+        expect(result.source, 'P2');
+
+        expect(calls, ['P1', 'P2']);
       },
     );
 
@@ -372,7 +376,7 @@ void main() {
       expect(result.cnmvNif, expected.cnmvNif);
     });
 
-    test('O13 - una excepción de un provider intermedio impide ejecutar los siguientes', () async {
+    test('O13 - una excepción de un provider intermedio permite ejecutar los siguientes', () async {
       final calls = <String>[];
 
       final provider1 = _FakeProvider(name: 'P1', result: null, calls: calls);
@@ -395,22 +399,20 @@ void main() {
       );
       addTearDown(resolver.dispose);
 
-      await expectLater(
-        resolver.resolve(ticker: 'TEST.MC', fundName: 'Test Fund'),
-        throwsA(
-          isA<StateError>().having(
-            (error) => error.message,
-            'message',
-            'CnmvFiProvider failure',
-          ),
-        ),
+      final result = await resolver.resolve(
+        ticker: 'TEST.MC',
+        fundName: 'Test Fund',
       );
 
-      expect(calls, ['P1', 'P2']);
+      expect(result, isNotNull);
+      expect(result!.isin, 'ES0000000013');
+      expect(result.source, 'P3');
+
+      expect(calls, ['P1', 'P2', 'P3']);
     });
 
     test(
-      'O14 - una excepción de CNMV/FI impide actualmente llegar a Yahoo',
+      'O14 - una excepción de CNMV/FI permite continuar hasta Yahoo',
       () async {
         final calls = <String>[];
 
@@ -432,24 +434,22 @@ void main() {
         );
         addTearDown(resolver.dispose);
 
-        await expectLater(
-          resolver.resolve(ticker: 'TEST.MC', fundName: 'Test Fund'),
-          throwsA(
-            isA<StateError>().having(
-              (error) => error.message,
-              'message',
-              'CNMV local data failure',
-            ),
-          ),
+        final result = await resolver.resolve(
+          ticker: 'TEST.MC',
+          fundName: 'Test Fund',
         );
 
-        expect(calls, ['CnmvFiProvider']);
+        expect(result, isNotNull);
+        expect(result!.isin, 'IE00TEST0014');
+        expect(result.source, 'Yahoo');
+
+        expect(calls, ['CnmvFiProvider', 'YahooProvider']);
       },
     );
 
     /// O15 - una excepción de un provider permite continuar con el siguiente
 
-    /* test(
+    test(
       'O15 - una excepción de un provider permite continuar con el siguiente',
       () async {
         final calls = <String>[];
@@ -490,6 +490,6 @@ void main() {
 
         expect(calls, ['P1', 'P2', 'P3']);
       },
-    ); */
+    );
   });
 }
