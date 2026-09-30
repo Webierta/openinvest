@@ -170,5 +170,52 @@ void runInputIsinProviderTests() {
         resolver.dispose();
       },
     );
+
+    test(
+      'E6 - dos ISIN válidos solapados -> devuelve el primero por posición',
+      () async {
+        final resolver = IsinResolver();
+
+        final result = await resolver.resolve(
+          ticker: 'LU0297942194IE00B8K7V925',
+          fundName: 'Fondo de prueba',
+        );
+
+        expect(result, isNotNull);
+        expect(result!.isin, 'LU0297942194');
+        expect(result.source, 'INPUT');
+
+        resolver.dispose();
+      },
+    );
+    test('E7 - candidato inválido solapado antes de ISIN válido -> encuentra el válido', () async {
+      final resolver = IsinResolver();
+
+      final result = await resolver.resolve(
+        ticker: 'XXXLU0297942194YYY',
+        fundName: 'Fondo de prueba',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'LU0297942194');
+      expect(result.source, 'INPUT');
+
+      resolver.dispose();
+    });
+
+    test('E8 - varios candidatos inválidos y uno válido al final -> devuelve el válido', () async {
+      final resolver = IsinResolver();
+
+      final result = await resolver.resolve(
+        ticker: 'XXXLU0297942195YYYIE00B8K7V925ZZZ',
+        fundName: 'Fondo de prueba',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.isin, 'IE00B8K7V925');
+      expect(result.source, 'INPUT');
+
+      resolver.dispose();
+    });
   });
 }

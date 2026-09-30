@@ -230,7 +230,7 @@ class IsinResolver {
     return null;
   }
 
-  static String? _extractEmbeddedIsin(String value) {
+  /* static String? _extractEmbeddedIsin(String value) {
     final upper = value.toUpperCase();
     final regex = RegExp(r'[A-Z]{2}[A-Z0-9]{9}[0-9]');
 
@@ -238,6 +238,25 @@ class IsinResolver {
       final candidate = match.group(0);
 
       if (candidate != null && IsinValidator.isValid(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  } */
+
+  static String? _extractEmbeddedIsin(String value) {
+    final upper = value.toUpperCase();
+    const length = 12;
+
+    if (upper.length < length) {
+      return null;
+    }
+
+    for (var i = 0; i <= upper.length - length; i++) {
+      final candidate = upper.substring(i, i + length);
+
+      if (IsinValidator.isValid(candidate)) {
         return candidate;
       }
     }
