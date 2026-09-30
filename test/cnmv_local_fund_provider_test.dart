@@ -1,13 +1,30 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:investing/services/cnmv_local_fund_provider.dart';
 
+import 'isin_resolver/cnmv_local_fund_provider_lf1.dart';
+import 'isin_resolver/cnmv_local_fund_provider_lf2.dart';
+import 'isin_resolver/cnmv_local_fund_provider_lf3.dart';
+import 'isin_resolver/cnmv_local_fund_provider_lf4.dart';
+import 'isin_resolver/cnmv_local_fund_provider_lf5.dart';
+import 'isin_resolver/cnmv_local_fund_provider_lf6.dart';
+import 'isin_resolver/cnmv_local_fund_provider_lf7.dart';
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  runCnmvLocalFundProviderLf1Tests();
+  runCnmvLocalFundProviderLf2Tests();
+  runCnmvLocalFundProviderLf3Tests();
+  runCnmvLocalFundProviderLf4Tests();
+  runCnmvLocalFundProviderLf5Tests();
+  runCnmvLocalFundProviderLf6Tests();
+  runCnmvLocalFundProviderLf7Tests();
+
+  // Tests históricos/smoke del provider.
   late CnmvLocalFundProvider provider;
 
   setUp(() {
-    provider = CnmvLocalFundProvider(
-      loadAsset: (_) async => _sampleJson,
-    );
+    provider = CnmvLocalFundProvider(loadAsset: (_) async => _sampleJson);
   });
 
   test('FI una clase', () async {
@@ -54,7 +71,9 @@ void main() {
     final invalidProvider = CnmvLocalFundProvider(
       loadAsset: (_) async => _invalidIsinJson,
     );
-    final result = await invalidProvider.resolve(fundName: 'FONDO ISIN INVALIDO, FI');
+    final result = await invalidProvider.resolve(
+      fundName: 'FONDO ISIN INVALIDO, FI',
+    );
     expect(result, isNull);
   });
 }
