@@ -1016,7 +1016,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creditsDesc =>
-      'With the collaboration of AI models Copilot, Gemini and ChatGPT.';
+      'OpenInvest — Open-source project developed by Webierta.\n\nDevelopment assistance — ChatGPT · OpenAI — Assistance with software architecture, technical research, implementation, testing, debugging, code review, security, and CI/CD automation. Some technical decisions, final implementation, and code validation remain the responsibility of the project author.\n\nAI tools — GitHub Copilot and Google Gemini — Used as complementary tools during development for programming assistance, code generation and review, research, and technical problem solving.';
 
   @override
   String get generateFilesLabel => 'Generate files';
