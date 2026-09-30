@@ -164,7 +164,7 @@ void main() {
               SL-50
             ''', 200);
           } else {
-            return http.Response('', 404);
+            return http.Response('', 200);
           }
         } else if (request.url.toString().contains('sociedadiic')) {
           return http.Response(
@@ -172,7 +172,7 @@ void main() {
             200,
           );
         }
-        return http.Response('Not Found', 404);
+        return http.Response('', 200);
       });
 
       final resolver = IsinResolver(client: mockClient);
