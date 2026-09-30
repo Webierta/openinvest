@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:investing/utils/isin_validator.dart';
 
 import '../../models/foreign_isin_provider.dart';
+import '../../utils/fund_name_matcher.dart';
 import '../isin_resolver.dart';
 import '../../utils/http_config.dart';
 import '../local_isin_provider.dart';
@@ -157,20 +158,11 @@ class YahooProvider implements IsinSourceProvider {
             isins: validIsin != null ? {validIsin} : const <String>{},
           );
 
-          /* final existing = results[symbol];
-
-          if (existing == null) {
-            results[symbol] = incoming;
-          } else {
-            results[symbol] = _mergeYahooResult(existing, incoming, fundName);
-          } */
-
           final existing = results[mergeKey];
 
           if (existing == null) {
             results[mergeKey] = incoming;
           } else {
-            //results[mergeKey] = _mergeYahooResult(existing, incoming, fundName);
             results[mergeKey] = _mergeYahooResult(
               existing,
               incoming,
@@ -235,9 +227,14 @@ class YahooProvider implements IsinSourceProvider {
     if (existing.trim().isEmpty) return incoming;
     if (incoming.trim().isEmpty) return existing;
 
-    final existingSimilarity = _nameSimilarity(fundName, existing);
-
-    final incomingSimilarity = _nameSimilarity(fundName, incoming);
+    final existingSimilarity = FundNameMatcher.nameSimilarity(
+      fundName,
+      existing,
+    );
+    final incomingSimilarity = FundNameMatcher.nameSimilarity(
+      fundName,
+      incoming,
+    );
 
     if (incomingSimilarity > existingSimilarity) {
       return incoming;
@@ -281,7 +278,10 @@ class YahooProvider implements IsinSourceProvider {
       final symbol = result.symbol.toUpperCase();
       final type = result.type.toUpperCase();
 
-      final nameSimilarity = _nameSimilarity(fundName, result.name);
+      final nameSimilarity = FundNameMatcher.nameSimilarity(
+        fundName,
+        result.name,
+      );
 
       // ------------------------------------------------------------------
       // 1. BARRERA DE TIPO
@@ -415,58 +415,6 @@ class YahooProvider implements IsinSourceProvider {
     }
 
     return null;
-  }
-
-  double _nameSimilarity(String a, String b) {
-    final aa = _normalizeName(a);
-    final bb = _normalizeName(b);
-    if (aa.isEmpty || bb.isEmpty) return 0.0;
-    if (aa == bb) return 1.0;
-
-    final ta = aa.split(' ').where((x) => x.isNotEmpty).toSet();
-    final tb = bb.split(' ').where((x) => x.isNotEmpty).toSet();
-    if (ta.isEmpty || tb.isEmpty) return 0.0;
-
-    return ta.intersection(tb).length / ta.union(tb).length;
-  }
-
-  String _normalizeName(String value) {
-    var result = value.toUpperCase();
-    const replacements = <String, String>{
-      'Á': 'A',
-      'À': 'A',
-      'Ä': 'A',
-      'Â': 'A',
-      'É': 'E',
-      'È': 'E',
-      'Ë': 'E',
-      'Ê': 'E',
-      'Í': 'I',
-      'Ì': 'I',
-      'Ï': 'I',
-      'Î': 'I',
-      'Ó': 'O',
-      'Ò': 'O',
-      'Ö': 'O',
-      'Ô': 'O',
-      'Ú': 'U',
-      'Ù': 'U',
-      'Ü': 'U',
-      'Û': 'U',
-      'Ñ': 'N',
-      '&': ' ',
-      '-': ' ',
-      '_': ' ',
-      '/': ' ',
-      ',': ' ',
-      '.': ' ',
-      ':': ' ',
-      ';': ' ',
-      '(': ' ',
-      ')': ' ',
-    };
-    replacements.forEach((from, to) => result = result.replaceAll(from, to));
-    return result.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 }
 

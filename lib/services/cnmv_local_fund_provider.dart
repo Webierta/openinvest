@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../utils/fund_name_matcher.dart';
 import '../utils/isin_validator.dart';
 
 class CnmvFundClass {
@@ -65,7 +66,7 @@ class CnmvLocalFundProvider {
   Future<CnmvFundResult?> resolve({required String fundName}) async {
     await _ensureLoaded();
 
-    final query = _normalizeName(fundName);
+    final query = FundNameMatcher.normalizeName(fundName);
     if (query.isEmpty) return null;
 
     final candidates = _results!
@@ -78,14 +79,16 @@ class CnmvLocalFundProvider {
     }
 
     final exact = candidates.where((entry) {
-      final full = _normalizeName('${entry.fundName} ${entry.fundClass.name}');
+      final full = FundNameMatcher.normalizeName(
+        '${entry.fundName} ${entry.fundClass.name}',
+      );
       return full == query;
     }).toList();
 
     if (exact.length == 1) return exact.single;
 
     final classMatches = candidates.where((entry) {
-      final className = _normalizeName(entry.fundClass.name);
+      final className = FundNameMatcher.normalizeName(entry.fundClass.name);
       return className.isNotEmpty && query.contains(className);
     }).toList();
 
@@ -103,7 +106,7 @@ class CnmvLocalFundProvider {
 
   Future<List<CnmvFundResult>> findAll({required String fundName}) async {
     await _ensureLoaded();
-    final query = _normalizeName(fundName);
+    final query = FundNameMatcher.normalizeName(fundName);
     if (query.isEmpty) return const [];
 
     return List.unmodifiable(
@@ -223,61 +226,11 @@ class CnmvLocalFundProvider {
   }
 
   bool _nameMatchesFund(String query, CnmvFundResult entry) {
-    final fund = _normalizeName(entry.fundName);
+    final fund = FundNameMatcher.normalizeName(entry.fundName);
     if (query == fund) return true;
     if (query.startsWith('$fund ')) return true;
     if (fund.startsWith('$query ')) return true;
-    return _nameSimilarity(query, fund) >= 0.82;
-  }
-
-  String _normalizeName(String value) {
-    var result = value.toUpperCase();
-    const replacements = <String, String>{
-      'Á': 'A',
-      'À': 'A',
-      'Ä': 'A',
-      'Â': 'A',
-      'É': 'E',
-      'È': 'E',
-      'Ë': 'E',
-      'Ê': 'E',
-      'Í': 'I',
-      'Ì': 'I',
-      'Ï': 'I',
-      'Î': 'I',
-      'Ó': 'O',
-      'Ò': 'O',
-      'Ö': 'O',
-      'Ô': 'O',
-      'Ú': 'U',
-      'Ù': 'U',
-      'Ü': 'U',
-      'Û': 'U',
-      'Ñ': 'N',
-      '&': ' ',
-      '-': ' ',
-      '_': ' ',
-      '/': ' ',
-      ',': ' ',
-      '.': ' ',
-      ':': ' ',
-      ';': ' ',
-      '(': ' ',
-      ')': ' ',
-    };
-    replacements.forEach((from, to) => result = result.replaceAll(from, to));
-    return result.replaceAll(RegExp(r'\s+'), ' ').trim();
-  }
-
-  double _nameSimilarity(String a, String b) {
-    final aa = _normalizeName(a);
-    final bb = _normalizeName(b);
-    if (aa.isEmpty || bb.isEmpty) return 0.0;
-    if (aa == bb) return 1.0;
-    final ta = aa.split(' ').where((x) => x.length > 2).toSet();
-    final tb = bb.split(' ').where((x) => x.length > 2).toSet();
-    if (ta.isEmpty || tb.isEmpty) return 0.0;
-    return ta.intersection(tb).length / ta.union(tb).length;
+    return FundNameMatcher.nameSimilarity(query, fund) >= 0.82;
   }
 
   int? _toInt(dynamic value) =>

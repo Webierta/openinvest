@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../../utils/isin_validator.dart';
 import '../isin_resolver.dart';
 import '../../utils/http_config.dart';
 import 'isin_source_provider.dart';
@@ -296,56 +297,10 @@ class CnmvSilProvider implements IsinSourceProvider {
 
     for (final match in matches) {
       final isin = match.group(1)!.toUpperCase();
-
-      if (_isIsin(isin)) return isin;
+      if (IsinValidator.isValid(isin)) return isin;
     }
 
     return null;
-  }
-
-  bool _isIsin(String value) {
-    final normalized = value.trim().toUpperCase();
-
-    if (!RegExp(r'^[A-Z]{2}[A-Z0-9]{9}\d$').hasMatch(normalized)) {
-      return false;
-    }
-
-    return _isValidIsinChecksum(normalized);
-  }
-
-  bool _isValidIsinChecksum(String isin) {
-    final value = isin.toUpperCase();
-    final digits = <int>[];
-
-    for (final char in value.split('')) {
-      if (RegExp(r'[A-Z]').hasMatch(char)) {
-        final n = char.codeUnitAt(0) - 55;
-
-        digits.add(n ~/ 10);
-        digits.add(n % 10);
-      } else {
-        digits.add(int.parse(char));
-      }
-    }
-
-    var sum = 0;
-    final parity = digits.length % 2;
-
-    for (var i = 0; i < digits.length; i++) {
-      var digit = digits[i];
-
-      if (i % 2 == parity) {
-        digit *= 2;
-
-        if (digit > 9) {
-          digit = digit ~/ 10 + digit % 10;
-        }
-      }
-
-      sum += digit;
-    }
-
-    return sum % 10 == 0;
   }
 
   String _cleanHtmlText(String html) {
