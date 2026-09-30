@@ -73,7 +73,7 @@ class AboutPage extends StatelessWidget {
 class _AboutItem extends StatelessWidget {
   final String title;
   final String content;
-  final bool? isCredits;
+  final bool isCredits;
 
   const _AboutItem({
     required this.title,
@@ -87,6 +87,56 @@ class _AboutItem extends StatelessWidget {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $url');
     }
+  }
+
+  List<InlineSpan> _buildRichContent(String text, BuildContext context) {
+    final pattern = RegExp(r'(ChatGPT · OpenAI|GitHub Copilot|Google Gemini)');
+    final matches = pattern.allMatches(text);
+
+    if (matches.isEmpty) {
+      return [TextSpan(text: text)];
+    }
+
+    final spans = <InlineSpan>[];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: text.substring(lastEnd, match.start)));
+      }
+
+      final matchedText = match.group(0)!;
+      String url = '';
+      if (matchedText.contains('ChatGPT')) {
+        url = 'https://chatgpt.com';
+      } else if (matchedText.contains('Copilot')) {
+        url = 'https://github.com/features/copilot';
+      } else if (matchedText.contains('Gemini')) {
+        url = 'https://gemini.google.com';
+      }
+
+      spans.add(
+        TextSpan(
+          text: matchedText,
+          style: const TextStyle(
+            color: Colors.blueAccent,
+            decoration: TextDecoration.underline,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () {
+              if (url.isNotEmpty) _openUrl(url);
+            },
+        ),
+      );
+
+      lastEnd = match.end;
+    }
+
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastEnd)));
+    }
+
+    return spans;
   }
 
   @override
@@ -129,54 +179,9 @@ class _AboutItem extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.white70,
+                        height: 1.4,
                       ),
-                      children: [
-                        TextSpan(
-                          text: 'OpenInvest — Proyecto de código abierto desarrollado por Webierta.\n\n',
-                        ),
-                        const TextSpan(text: 'Asistencia de desarrollo — '),
-                        TextSpan(
-                          text: 'ChatGPT · OpenAI',
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                          ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              _openUrl('https://chatgpt.com');
-                            },
-                        ),
-                        const TextSpan(
-                          text: ' — Asistencia en arquitectura de software, investigación técnica, implementación, pruebas, depuración, revisión de código, seguridad y automatización CI/CD. Parte de las decisiones técnicas, implementación final y validación del código corresponden al autor del proyecto.\n\n',
-                        ),
-                        const TextSpan(text: 'Herramientas de IA — '),
-                        TextSpan(
-                          text: 'GitHub Copilot',
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                          ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              _openUrl('https://github.com/features/copilot');
-                            },
-                        ),
-                        const TextSpan(text: ' y '),
-                        TextSpan(
-                          text: 'Google Gemini',
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                          ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              _openUrl('https://gemini.google.com');
-                            },
-                        ),
-                        const TextSpan(
-                          text: ' — Utilizadas como herramientas complementarias durante el desarrollo del proyecto para asistencia en programación, generación y revisión de código, investigación y resolución de problemas técnicos.',
-                        ),
-                      ],
+                      children: _buildRichContent(content, context),
                     ),
                   ),
           ],
