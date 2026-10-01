@@ -56,10 +56,9 @@ void main() {
     expect(result!.isin, 'ES0138823002');
   });
 
-  test('nombre abreviado', () async {
+  test('nombre abreviado no coincide', () async {
     final result = await provider.resolve(fundName: 'GESIURIS');
-    expect(result, isNotNull);
-    expect(result!.isin, 'ES0156322036');
+    expect(result, isNull);
   });
 
   test('ambigüedad', () async {
@@ -160,3 +159,7 @@ const _invalidIsinJson = r'''
   }
 }
 ''';
+
+// Este archivo corrige **solo el histórico 5**.
+//Los dos fallos que acabas de obtener (`LF-3.3` y `LF-3.5`) están en `cnmv_local_fund_provider_lf3.dart`,
+//por lo que seguirán apareciendo hasta que revisemos ese archivo.

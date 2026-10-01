@@ -318,19 +318,7 @@ class CnmvLocalFundProvider {
   /// - similitud Jaccard;
   /// - umbrales de similitud;
   /// - variantes que añaden o eliminan tokens.
-  /* bool _nameMatchesFund(String query, CnmvFundResult entry) {
-    final fund = FundNameMatcher.normalizeName(entry.fundName);
 
-    if (query.isEmpty || fund.isEmpty) {
-      return false;
-    }
-
-    if (query == fund) {
-      return true;
-    }
-
-    return _sameTokens(query, fund);
-  } */
   bool _nameMatchesFund(String query, CnmvFundResult entry) {
     final fund = FundNameMatcher.normalizeName(entry.fundName);
 
@@ -353,16 +341,6 @@ class CnmvLocalFundProvider {
   ///
   /// No utiliza frecuencia de aparición: los nombres de fondos se
   /// consideran conjuntos de tokens para este criterio concreto.
-  /* bool _sameTokens(String a, String b) {
-    final aTokens = a.split(' ').where((token) => token.isNotEmpty).toSet();
-    final bTokens = b.split(' ').where((token) => token.isNotEmpty).toSet();
-
-    if (aTokens.length != bTokens.length) {
-      return false;
-    }
-
-    return aTokens.containsAll(bTokens);
-  } */
 
   bool _sameTokens(String a, String b) {
     final aTokens = a.split(' ').where((token) => token.isNotEmpty).toSet();

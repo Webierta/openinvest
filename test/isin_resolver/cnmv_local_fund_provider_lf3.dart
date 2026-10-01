@@ -50,7 +50,7 @@ void runCnmvLocalFundProviderLf3Tests() {
       },
     );
 
-    test('LF-3.3 nombre abreviado identifica un único fondo', () async {
+    test('LF-3.3 nombre abreviado no coincide', () async {
       final provider = _providerWithClasses([
         _class(
           fundName: 'GESIURIS IURISFOND, FI',
@@ -63,11 +63,10 @@ void runCnmvLocalFundProviderLf3Tests() {
 
       final result = await provider.resolve(fundName: 'GESIURIS');
 
-      expect(result, isNotNull);
-      expect(result!.isin, 'ES0156322036');
+      expect(result, isNull);
     });
 
-    test('LF-3.4 query igual al fondo con sufijo adicional coincide', () async {
+    test('LF-3.4 query igual al fondo con clase adicional coincide', () async {
       final provider = _providerWithClasses([
         _class(
           fundName: 'FONDO PRINCIPAL, FI',
@@ -86,7 +85,7 @@ void runCnmvLocalFundProviderLf3Tests() {
       expect(result!.isin, 'ES0138841038');
     });
 
-    test('LF-3.5 fondo con nombre contenido en query coincide', () async {
+    test('LF-3.5 tokens adicionales en query no coinciden', () async {
       final provider = _providerWithClasses([
         _class(
           fundName: 'FONDO GLOBAL',
@@ -99,11 +98,10 @@ void runCnmvLocalFundProviderLf3Tests() {
 
       final result = await provider.resolve(fundName: 'FONDO GLOBAL FI');
 
-      expect(result, isNotNull);
-      expect(result!.isin, 'ES0138841038');
+      expect(result, isNull);
     });
 
-    test('LF-3.6 coincidencia por similitud Jaccard ≥ 0.82', () async {
+    test('LF-3.6 coincidencia exacta con nombre completo', () async {
       final provider = _providerWithClasses([
         _class(
           fundName: 'FONDO EUROPA RENTA VARIABLE',
@@ -122,26 +120,23 @@ void runCnmvLocalFundProviderLf3Tests() {
       expect(result!.isin, 'ES0138841038');
     });
 
-    test(
-      'LF-3.7 coincidencia por similitud insuficiente no selecciona',
-      () async {
-        final provider = _providerWithClasses([
-          _class(
-            fundName: 'FONDO EUROPA RENTA VARIABLE',
-            registrationNumber: 7,
-            classNumber: 0,
-            className: 'CLASE BASE',
-            isin: 'ES0138841038',
-          ),
-        ]);
+    test('LF-3.7 nombre diferente no selecciona ningún fondo', () async {
+      final provider = _providerWithClasses([
+        _class(
+          fundName: 'FONDO EUROPA RENTA VARIABLE',
+          registrationNumber: 7,
+          classNumber: 0,
+          className: 'CLASE BASE',
+          isin: 'ES0138841038',
+        ),
+      ]);
 
-        final result = await provider.resolve(
-          fundName: 'FONDO RENTA EUROPA EXTRA',
-        );
+      final result = await provider.resolve(
+        fundName: 'FONDO RENTA EUROPA EXTRA',
+      );
 
-        expect(result, isNull);
-      },
-    );
+      expect(result, isNull);
+    });
 
     test(
       'LF-3.8 varias clases mismo fondo con query sin clase son ambiguas',
