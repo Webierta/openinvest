@@ -1592,6 +1592,202 @@ void runCnmvLocalFundProviderLf7Tests() {
       expect(results[1].fundClass.number, 3);
     });
   });
+
+  group('LF-7.7: catálogo válido sin clases válidas', () {
+    test('LF-7.7.1 Entidad vacía produce cero resultados', () async {
+      final provider = _provider(
+        onLoad: () => jsonEncode({
+          'FondRegistro': {'Entidad': []},
+        }),
+      );
+
+      final results = await provider.findAll(fundName: 'FONDO VALIDO, FI');
+
+      expect(results, isEmpty);
+    });
+
+    test(
+      'LF-7.7.2 entidad sin Compartimento produce cero resultados',
+      () async {
+        final entity = _validEntity();
+        entity.remove('Compartimento');
+
+        final provider = _provider(
+          onLoad: () => jsonEncode({
+            'FondRegistro': {
+              'Entidad': [entity],
+            },
+          }),
+        );
+
+        final results = await provider.findAll(fundName: 'FONDO VALIDO, FI');
+
+        expect(results, isEmpty);
+      },
+    );
+
+    test('LF-7.7.3 compartimento sin Clase produce cero resultados', () async {
+      final entity = _validEntity();
+
+      entity['Compartimento'] = <String, dynamic>{
+        'NumeroCompartimento': 0,
+        'DenominacionCompartimento': 'SIN CLASE',
+      };
+
+      final provider = _provider(
+        onLoad: () => jsonEncode({
+          'FondRegistro': {
+            'Entidad': [entity],
+          },
+        }),
+      );
+
+      final results = await provider.findAll(fundName: 'FONDO VALIDO, FI');
+
+      expect(results, isEmpty);
+    });
+
+    test(
+      'LF-7.7.4 todas las clases inválidas producen cero resultados',
+      () async {
+        final entity = _validEntity();
+
+        final compartment = <String, dynamic>{
+          'NumeroCompartimento': 0,
+          'DenominacionCompartimento': 'SIN CLASE VALIDA',
+          'Clase': [
+            {
+              'NumeroClase': 'abc',
+              'DenominacionClase': 'CLASE INVALIDA 1',
+              'ISIN': 'ES0138841038',
+            },
+            {'NumeroClase': 1, 'DenominacionClase': '', 'ISIN': 'ES0138841038'},
+            {
+              'NumeroClase': 2,
+              'DenominacionClase': 'CLASE INVALIDA 3',
+              'ISIN': 'ES0000000001',
+            },
+          ],
+        };
+
+        entity['Compartimento'] = compartment;
+
+        final provider = _provider(
+          onLoad: () => jsonEncode({
+            'FondRegistro': {
+              'Entidad': [entity],
+            },
+          }),
+        );
+
+        final results = await provider.findAll(fundName: 'FONDO VALIDO, FI');
+
+        expect(results, isEmpty);
+      },
+    );
+
+    test('LF-7.7.5 mezcla de elementos defectuosos sin clase válida produce cero resultados', () async {
+      final validEntityWithoutValidClasses = _validEntity();
+
+      validEntityWithoutValidClasses['Compartimento'] = [
+        'compartimento inválido',
+        {'NumeroCompartimento': 1, 'DenominacionCompartimento': 'SIN CLASE'},
+        {
+          'NumeroCompartimento': 2,
+          'DenominacionCompartimento': 'CLASES INVALIDAS',
+          'Clase': [
+            'clase inválida',
+            {
+              'NumeroClase': 'abc',
+              'DenominacionClase': 'CLASE INVALIDA',
+              'ISIN': 'ES0138841038',
+            },
+          ],
+        },
+      ];
+
+      final invalidEntity = <String, dynamic>{
+        'Tipo': 'FI',
+        'NumeroRegistro': 'abc',
+        'Denominacion': 'ENTIDAD INVALIDA, FI',
+      };
+
+      final provider = _provider(
+        onLoad: () => jsonEncode({
+          'FondRegistro': {
+            'Entidad': [
+              'entidad inválida',
+              invalidEntity,
+              validEntityWithoutValidClasses,
+            ],
+          },
+        }),
+      );
+
+      final results = await provider.findAll(fundName: 'FONDO VALIDO, FI');
+
+      expect(results, isEmpty);
+    });
+
+    test(
+      'LF-7.7.6 findAll devuelve lista vacía cuando no hay clases válidas',
+      () async {
+        final entity = _validEntity();
+
+        entity['Compartimento'] = <String, dynamic>{
+          'NumeroCompartimento': 0,
+          'DenominacionCompartimento': 'SIN CLASE VALIDA',
+          'Clase': {
+            'NumeroClase': 'abc',
+            'DenominacionClase': 'CLASE INVALIDA',
+            'ISIN': 'ES0138841038',
+          },
+        };
+
+        final provider = _provider(
+          onLoad: () => jsonEncode({
+            'FondRegistro': {
+              'Entidad': [entity],
+            },
+          }),
+        );
+
+        final results = await provider.findAll(fundName: 'FONDO VALIDO, FI');
+
+        expect(results, isEmpty);
+        expect(results, isA<List<CnmvFundResult>>());
+      },
+    );
+
+    test(
+      'LF-7.7.7 resolve devuelve null cuando no hay clases válidas',
+      () async {
+        final entity = _validEntity();
+
+        entity['Compartimento'] = <String, dynamic>{
+          'NumeroCompartimento': 0,
+          'DenominacionCompartimento': 'SIN CLASE VALIDA',
+          'Clase': {
+            'NumeroClase': 'abc',
+            'DenominacionClase': 'CLASE INVALIDA',
+            'ISIN': 'ES0138841038',
+          },
+        };
+
+        final provider = _provider(
+          onLoad: () => jsonEncode({
+            'FondRegistro': {
+              'Entidad': [entity],
+            },
+          }),
+        );
+
+        final result = await provider.resolve(fundName: 'FONDO VALIDO, FI');
+
+        expect(result, isNull);
+      },
+    );
+  });
 }
 
 CnmvLocalFundProvider _provider({required String Function() onLoad}) {

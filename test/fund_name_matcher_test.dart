@@ -336,5 +336,929 @@ void main() {
       expect(similarity, greaterThan(0.5));
       expect(similarity, lessThan(1.0));
     });
+
+    test(
+      'LF-8.1.1 - espacios y separadores equivalentes producen identidad',
+      () {
+        expect(
+          FundNameMatcher.nameSimilarity(
+            'PIMCO   GIS - Income / E USD Inc',
+            'PIMCO GIS Income E USD Inc',
+          ),
+          1.0,
+        );
+      },
+    );
+
+    test('LF-8.1.2 - puntuación distinta no altera los tokens', () {
+      expect(
+        FundNameMatcher.nameSimilarity(
+          'JPMorgan Funds, Global Equity - A',
+          'JPMorgan Funds Global Equity A',
+        ),
+        1.0,
+      );
+    });
+
+    test('LF-8.1.3 - reordenación múltiple de tokens mantiene identidad', () {
+      expect(
+        FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND A',
+          'A FUND GLOBAL EQUITY',
+        ),
+        1.0,
+      );
+    });
+
+    test('LF-8.1.4 - añadir un único token reduce pero no anula similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'GLOBAL EQUITY FUND',
+        'GLOBAL EQUITY FUND INCOME',
+      );
+
+      expect(similarity, closeTo(0.75, 0.000001));
+      expect(similarity, lessThan(1.0));
+    });
+
+    test(
+      'LF-8.1.5 - eliminar un único token reduce pero conserva similitud',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND INCOME',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.000001));
+        expect(similarity, lessThan(1.0));
+      },
+    );
+
+    test('LF-8.1.6 - conjuntos de tokens completamente distintos dan cero', () {
+      expect(
+        FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME USD',
+          'JPMORGAN EUROPEAN BOND EUR',
+        ),
+        0.0,
+      );
+    });
+    test('LF-8.2.1 - misma gestora pero producto diferente', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund',
+        'PIMCO GIS Global Bond Fund',
+      );
+
+      expect(similarity, closeTo(0.5, 0.000001));
+    });
+
+    test('LF-8.2.2 - mismo producto pero clase diferente', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund E Class USD Income',
+        'PIMCO GIS Income Fund E Class EUR Income',
+      );
+
+      expect(similarity, greaterThan(0.7));
+      expect(similarity, lessThan(1.0));
+    });
+
+    test('LF-8.2.3 - diferencia de divisa reduce la similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund USD',
+        'Global Equity Fund EUR',
+      );
+
+      expect(similarity, closeTo(0.6, 0.000001));
+      expect(similarity, lessThan(1.0));
+    });
+
+    test('LF-8.2.4 - diferencia geográfica evita identidad', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'European Equity Fund',
+        'US Equity Fund',
+      );
+
+      expect(similarity, closeTo(0.5, 0.000001));
+    });
+
+    test('LF-8.2.5 - diferencia de estrategia evita similitud alta', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund Conservative',
+        'Global Equity Fund Aggressive',
+      );
+
+      expect(similarity, closeTo(0.6, 0.000001));
+      expect(similarity, lessThan(1.0));
+    });
+
+    test('LF-8.2.6 - nombres muy parecidos pero con producto diferente', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Sustainable Equity Fund',
+        'Global Sustainable Bond Fund',
+      );
+
+      expect(similarity, closeTo(0.6, 0.000001));
+      expect(similarity, lessThan(1.0));
+    });
+    test('LF-8.3.1 - añadir token de clase mantiene similitud alta pero no identidad', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund',
+        'PIMCO GIS Income Fund Institutional',
+      );
+
+      expect(similarity, closeTo(0.8, 0.000001));
+      expect(similarity, lessThan(1.0));
+    });
+
+    test('LF-8.3.2 - repetir un token no modifica la similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund USD',
+        'PIMCO GIS Income Fund USD Income',
+      );
+
+      expect(similarity, 1.0);
+    });
+
+    test(
+      'LF-8.3.3 - diferencia entre acumulación y distribución es detectable',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity Fund USD Acc',
+          'Global Equity Fund USD Inc',
+        );
+
+        expect(similarity, closeTo(0.666667, 0.000001));
+        expect(similarity, lessThan(1.0));
+      },
+    );
+
+    test('LF-8.3.4 - una variante numérica no produce identidad', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund I',
+        'Global Equity Fund II',
+      );
+
+      expect(similarity, closeTo(0.6, 0.000001));
+      expect(similarity, lessThan(1.0));
+    });
+
+    test(
+      'LF-8.3.5 - diferencia de serie mantiene similitud pero evita identidad',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'European Equity Fund A',
+          'European Equity Fund B',
+        );
+
+        expect(similarity, closeTo(0.6, 0.000001));
+        expect(similarity, lessThan(1.0));
+      },
+    );
+
+    test('LF-8.3.6 - producto con token distintivo no alcanza identidad', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Equity Select Fund',
+      );
+
+      expect(similarity, closeTo(0.75, 0.000001));
+      expect(similarity, lessThan(1.0));
+    });
+
+    test('LF-8.4.1 - apóstrofe no debe alterar la identidad del nombre', () {
+      expect(
+        FundNameMatcher.nameSimilarity(
+          "Schroder's Global Equity Fund",
+          'Schroders Global Equity Fund',
+        ),
+        1.0,
+      );
+    });
+
+    test(
+      'LF-8.4.2 - signo más como separador no debe alterar la identidad',
+      () {
+        expect(
+          FundNameMatcher.nameSimilarity(
+            'Global Equity + Income Fund',
+            'Global Equity Income Fund',
+          ),
+          1.0,
+        );
+      },
+    );
+
+    test('LF-8.4.3 - corchetes no deben alterar la identidad', () {
+      expect(
+        FundNameMatcher.nameSimilarity(
+          'Global Equity Fund [Class A]',
+          'Global Equity Fund Class A',
+        ),
+        1.0,
+      );
+    });
+
+    test('LF-8.4.4 - llaves no deben alterar la identidad', () {
+      expect(
+        FundNameMatcher.nameSimilarity(
+          'Global Equity Fund {Class A}',
+          'Global Equity Fund Class A',
+        ),
+        1.0,
+      );
+    });
+
+    test(
+      'LF-8.4.5 - signo igual como separador no debe alterar la identidad',
+      () {
+        expect(
+          FundNameMatcher.nameSimilarity(
+            'Global Equity Fund = Class A',
+            'Global Equity Fund Class A',
+          ),
+          1.0,
+        );
+      },
+    );
+
+    test(
+      'LF-8.4.6 - combinación de símbolos no cubiertos no debe crear tokens',
+      () {
+        expect(
+          FundNameMatcher.nameSimilarity(
+            "PIMCO's Global Equity + Income [Class A]",
+            'PIMCOs Global Equity Income Class A',
+          ),
+          1.0,
+        );
+      },
+    );
+
+    test('LF-8.5.1 - apóstrofe ASCII: documentar comportamiento posesivo', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        "Schroder's Global Equity Fund",
+        'Schroders Global Equity Fund',
+      );
+      expect(similarity, 1.0);
+    });
+
+    test(
+      'LF-8.5.2 - apóstrofe tipográfico: documentar comportamiento posesivo',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Schroder’s Global Equity Fund',
+          'Schroders Global Equity Fund',
+        );
+        expect(similarity, 1.0);
+      },
+    );
+
+    test('LF-8.5.3 - signo más: actualmente actúa como separador', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity + Income Fund',
+        'Global Equity Income Fund',
+      );
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.5.4 - corchetes: actualmente actúan como separadores', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund [Class A]',
+        'Global Equity Fund Class A',
+      );
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.5.5 - símbolo igual: actualmente actúa como separador', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund = Class A',
+        'Global Equity Fund Class A',
+      );
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.5.6 - símbolos dentro de palabras: no deben confundirse con separadores', () {
+      final similarity = FundNameMatcher.nameSimilarity('CLASS-A', 'CLASS A');
+
+      expect(similarity, 1.0);
+    });
+    test(
+      'LF-8.6.1 - apóstrofe ASCII: debería eliminarse y preservar el token',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          "Schroder's Global Equity Fund",
+          'Schroders Global Equity Fund',
+        );
+
+        expect(similarity, 1.0);
+      },
+    );
+
+    test('LF-8.6.2 - apóstrofe tipográfico: debería eliminarse y preservar el token', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Schroder’s Global Equity Fund',
+        'Schroders Global Equity Fund',
+      );
+
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.6.3 - signo más: debería actuar como separador', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity + Income Fund',
+        'Global Equity Income Fund',
+      );
+
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.6.4 - corchetes: deberían actuar como separadores', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund [Class A]',
+        'Global Equity Fund Class A',
+      );
+
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.6.5 - llaves: deberían actuar como separadores', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund {Class A}',
+        'Global Equity Fund Class A',
+      );
+
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.6.6 - signo igual: debería actuar como separador', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund = Class A',
+        'Global Equity Fund Class A',
+      );
+
+      expect(similarity, 1.0);
+    });
+    test('LF-8.7.1 - signo más entre palabras debe equivaler a un espacio', () {
+      final similarity = FundNameMatcher.nameSimilarity('A+B', 'A B');
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.7.2 - signo más sin espacio no debe fusionar las palabras', () {
+      final similarity = FundNameMatcher.nameSimilarity('A+B', 'AB');
+      expect(similarity, lessThan(1.0));
+    });
+
+    test(
+      'LF-8.7.3 - apóstrofe posesivo no debe convertirse en un token separado',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          "Schroder's",
+          'Schroders',
+        );
+        expect(similarity, 1.0);
+      },
+    );
+
+    test(
+      'LF-8.7.4 - apóstrofe posesivo debe diferenciarse de una S separada',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity("PIMCO's", 'PIMCO S');
+        expect(similarity, lessThan(1.0));
+      },
+    );
+
+    test('LF-8.7.5 - corchetes deben actuar como separadores', () {
+      final similarity = FundNameMatcher.nameSimilarity('[Class A]', 'Class A');
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.7.6 - llaves deben actuar como separadores', () {
+      final similarity = FundNameMatcher.nameSimilarity('{Class A}', 'Class A');
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.8.1 - separar con + no debe fusionar palabras distintas', () {
+      final similarity = FundNameMatcher.nameSimilarity('A+B', 'AB');
+      expect(similarity, lessThan(1.0));
+    });
+
+    test(
+      'LF-8.8.2 - eliminar apóstrofe no debe equivaler a separar una palabra',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity("PIMCO's", 'PIMCO S');
+        expect(similarity, lessThan(1.0));
+      },
+    );
+
+    test('LF-8.8.3 - corchetes no deben cambiar los tokens internos', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity [Class A]',
+        'Global Equity Class A',
+      );
+      expect(similarity, 1.0);
+    });
+
+    test('LF-8.8.4 - llaves no deben cambiar los tokens internos', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity {Class A}',
+        'Global Equity Class A',
+      );
+      expect(similarity, 1.0);
+    });
+
+    test(
+      'LF-8.8.5 - combinación de separadores debe preservar todos los tokens',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity + Income [Class A]',
+          'Global Equity Income Class A',
+        );
+        expect(similarity, 1.0);
+      },
+    );
+
+    test('LF-8.8.6 - combinación de apóstrofe y separadores debe preservar la identidad', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        "PIMCO's Global Equity + Income [Class A]",
+        'PIMCOs Global Equity Income Class A',
+      );
+      expect(similarity, 1.0);
+    });
+
+    test('LF-9.1.1 - tres tokens comunes frente a un token específico', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Equity Fund Europe',
+      );
+      expect(similarity, closeTo(0.75, 0.000001));
+    });
+
+    test('LF-9.1.2 - tres tokens comunes frente a dos tokens específicos', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Equity Fund Europe Growth',
+      );
+      expect(similarity, closeTo(0.6, 0.000001));
+    });
+
+    test('LF-9.1.3 - un token específico compartido no debe producir similitud alta', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Bond Fund',
+      );
+      expect(similarity, closeTo(0.5, 0.000001));
+    });
+
+    test('LF-9.1.4 - dos tokens genéricos compartidos deben quedar por debajo de 0.5', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Bond Strategy',
+      );
+      expect(similarity, closeTo(0.2, 0.000001));
+    });
+
+    test('LF-9.1.5 - nombres largos con un único token compartido deben tener baja similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO Global Investment Grade Credit Fund',
+        'European Investment Strategy Fund',
+      );
+      expect(similarity, closeTo(2 / 8, 0.000001));
+    });
+
+    test('LF-9.1.6 - añadir tokens específicos reduce la similitud', () {
+      final base = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Equity Fund',
+      );
+
+      final extended = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Equity Fund Europe Growth',
+      );
+
+      expect(base, 1.0);
+      expect(extended, lessThan(base));
+    });
+
+    test('LF-9.2.1 - añadir un token específico reduce la similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund',
+        'PIMCO GIS Income Fund Europe',
+      );
+      expect(similarity, closeTo(0.8, 0.000001));
+    });
+
+    test(
+      'LF-9.2.2 - añadir dos tokens específicos reduce más la similitud',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund',
+          'PIMCO GIS Income Fund Europe Institutional',
+        );
+        expect(similarity, closeTo(2 / 3, 0.000001));
+      },
+    );
+
+    test(
+      'LF-9.2.3 - eliminar un token específico produce la misma similitud',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund Europe',
+          'PIMCO GIS Income Fund',
+        );
+        expect(similarity, closeTo(0.8, 0.000001));
+      },
+    );
+
+    test(
+      'LF-9.2.4 - eliminar dos tokens específicos produce la misma similitud',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund Europe Institutional',
+          'PIMCO GIS Income Fund',
+        );
+        expect(similarity, closeTo(2 / 3, 0.000001));
+      },
+    );
+
+    test('LF-9.2.5 - añadir un token repetido no modifica la similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund',
+        'PIMCO GIS Income Fund Income',
+      );
+      expect(similarity, 1.0);
+    });
+
+    test(
+      'LF-9.2.6 - añadir un token nuevo y repetir otro solo cuenta una vez',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund',
+          'PIMCO GIS Income Fund Income Europe',
+        );
+        expect(similarity, closeTo(0.8, 0.000001));
+      },
+    );
+
+    test('LF-9.3.1 - mismo gestor pero productos claramente distintos', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO Global Bond Fund',
+        'PIMCO Global Equity Fund',
+      );
+      expect(similarity, closeTo(3 / 5, 0.000001));
+    });
+
+    test('LF-9.3.2 - gestor y estrategia comunes pero activo diferente', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO Global Bond Fund',
+        'PIMCO Global Bond Equity Fund',
+      );
+      expect(similarity, closeTo(4 / 5, 0.000001));
+    });
+
+    test('LF-9.3.3 - términos genéricos comunes con productos diferentes', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Equity Strategy',
+      );
+      expect(similarity, closeTo(0.5, 0.000001));
+    });
+
+    test('LF-9.3.4 - mismo nombre base pero clase diferente', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund Class A',
+        'PIMCO GIS Income Fund Class I',
+      );
+      expect(similarity, closeTo(5 / 7, 0.000001));
+    });
+
+    test('LF-9.3.5 - mismo nombre base pero divisa diferente', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund USD',
+        'PIMCO GIS Income Fund EUR',
+      );
+      expect(similarity, closeTo(4 / 6, 0.000001));
+    });
+
+    test('LF-9.3.6 - mismo gestor pero estrategia y producto diferentes', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund',
+        'PIMCO GIS Global Real Return Fund',
+      );
+      expect(similarity, closeTo(3 / 7, 0.000001));
+    });
+    test('LF-9.4.1 - acumulación frente a distribución', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund Acc',
+        'PIMCO GIS Income Fund Inc',
+      );
+      expect(similarity, closeTo(4 / 6, 0.000001));
+    });
+
+    test('LF-9.4.2 - acumulación frente a distribución con divisa', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund EUR Acc',
+        'PIMCO GIS Income Fund EUR Inc',
+      );
+      expect(similarity, closeTo(5 / 7, 0.000001));
+    });
+
+    test('LF-9.4.3 - clases A e I con misma divisa', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund USD A',
+        'PIMCO GIS Income Fund USD I',
+      );
+      expect(similarity, closeTo(5 / 7, 0.000001));
+    });
+
+    test('LF-9.4.4 - clases A e I con acumulación', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund USD Acc A',
+        'PIMCO GIS Income Fund USD Acc I',
+      );
+      expect(similarity, closeTo(6 / 8, 0.000001));
+    });
+
+    test('LF-9.4.5 - cambio simultáneo de divisa y distribución', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund USD Inc',
+        'PIMCO GIS Income Fund EUR Acc',
+      );
+      expect(similarity, closeTo(4 / 8, 0.000001));
+    });
+
+    test('LF-9.4.6 - variante de clase y divisa simultáneamente', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund USD A',
+        'PIMCO GIS Income Fund EUR I',
+      );
+      expect(similarity, closeTo(4 / 8, 0.000001));
+    });
+
+    test('LF-9.5.1 - la similitud es simétrica en un caso básico', () {
+      final ab = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Equity Fund Europe',
+      );
+      final ba = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund Europe',
+        'Global Equity Fund',
+      );
+
+      expect(ab, closeTo(0.75, 0.000001));
+      expect(ba, closeTo(0.75, 0.000001));
+      expect(ab, closeTo(ba, 0.000001));
+    });
+
+    test('LF-9.5.2 - cambiar el orden de tokens no modifica la similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Income PIMCO GIS Fund',
+        'PIMCO GIS Income Fund',
+      );
+
+      expect(similarity, 1.0);
+    });
+
+    test(
+      'LF-9.5.3 - el orden diferente de ambos nombres conserva la similitud',
+      () {
+        final ab = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund Europe',
+          'Europe PIMCO Fund GIS Income',
+        );
+        final ba = FundNameMatcher.nameSimilarity(
+          'Europe PIMCO Fund GIS Income',
+          'PIMCO GIS Income Fund Europe',
+        );
+
+        expect(ab, 1.0);
+        expect(ba, 1.0);
+      },
+    );
+
+    test('LF-9.5.4 - simetría con tokens parcialmente compartidos', () {
+      final ab = FundNameMatcher.nameSimilarity(
+        'PIMCO Global Bond Fund',
+        'PIMCO Global Equity Fund',
+      );
+      final ba = FundNameMatcher.nameSimilarity(
+        'PIMCO Global Equity Fund',
+        'PIMCO Global Bond Fund',
+      );
+
+      expect(ab, closeTo(3 / 5, 0.000001));
+      expect(ba, closeTo(3 / 5, 0.000001));
+      expect(ab, closeTo(ba, 0.000001));
+    });
+
+    test('LF-9.5.5 - repetir tokens no rompe la simetría', () {
+      final ab = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund Income',
+        'Fund PIMCO GIS Income',
+      );
+      final ba = FundNameMatcher.nameSimilarity(
+        'Fund PIMCO GIS Income',
+        'PIMCO GIS Income Fund Income',
+      );
+
+      expect(ab, 1.0);
+      expect(ba, 1.0);
+    });
+
+    test('LF-9.5.6 - nombres reales con orden y puntuación diferentes', () {
+      final ab = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund, Class A',
+        'Class A PIMCO GIS Income Fund',
+      );
+      final ba = FundNameMatcher.nameSimilarity(
+        'Class A PIMCO GIS Income Fund',
+        'PIMCO GIS Income Fund, Class A',
+      );
+
+      expect(ab, 1.0);
+      expect(ba, 1.0);
+    });
+
+    test('LF-9.6.1 - dos nombres vacíos tienen similitud cero', () {
+      final similarity = FundNameMatcher.nameSimilarity('', '');
+
+      expect(similarity, 0.0);
+    });
+
+    test(
+      'LF-9.6.2 - un nombre vacío frente a uno no vacío tiene similitud cero',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          '',
+          'PIMCO GIS Income Fund',
+        );
+
+        expect(similarity, 0.0);
+      },
+    );
+
+    test('LF-9.6.3 - un único token idéntico produce similitud uno', () {
+      final similarity = FundNameMatcher.nameSimilarity('PIMCO', 'PIMCO');
+
+      expect(similarity, 1.0);
+    });
+
+    test('LF-9.6.4 - dos tokens únicos diferentes producen similitud cero', () {
+      final similarity = FundNameMatcher.nameSimilarity('PIMCO', 'BlackRock');
+
+      expect(similarity, 0.0);
+    });
+
+    test('LF-9.6.5 - un único token compartido entre dos nombres produce la similitud esperada', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO',
+        'PIMCO Income Fund',
+      );
+
+      expect(similarity, closeTo(1 / 3, 0.000001));
+    });
+
+    test('LF-9.6.6 - un único token compartido entre nombres largos produce una similitud baja', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO Global Investment Grade Credit Fund',
+        'European Equity Investment Strategy Bond Fund',
+      );
+
+      expect(similarity, closeTo(2 / 10, 0.000001));
+    });
+
+    test('LF-10.1.1 - cambio de Equity a Bond reduce la similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'Global Equity Fund',
+        'Global Bond Fund',
+      );
+
+      expect(similarity, closeTo(2 / 4, 0.000001));
+    });
+
+    test('LF-10.1.2 - cambio de Income a Growth reduce la similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund',
+        'PIMCO GIS Growth Fund',
+      );
+
+      expect(similarity, closeTo(3 / 5, 0.000001));
+    });
+
+    test('LF-10.1.3 - cambio de una sola clase mantiene alta similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund Class A',
+        'PIMCO GIS Income Fund Class I',
+      );
+
+      expect(similarity, closeTo(5 / 7, 0.000001));
+    });
+
+    test(
+      'LF-10.1.4 - una variante de divisa mantiene la identidad textual base',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund USD',
+          'PIMCO GIS Income Fund EUR',
+        );
+
+        expect(similarity, closeTo(4 / 6, 0.000001));
+      },
+    );
+
+    test(
+      'LF-10.1.5 - diferencia de estrategia y clase reduce más la similitud',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund Class A',
+          'PIMCO GIS Global Bond Fund Class I',
+        );
+        expect(similarity, closeTo(4 / 9, 0.000001));
+      },
+    );
+
+    test(
+      'LF-10.1.6 - formato diferente sin cambio de identidad produce uno',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund, Class A',
+          'class-a pimco gis income fund',
+        );
+
+        expect(similarity, 1.0);
+      },
+    );
+
+    test(
+      'LF-10.2.1 - mayúsculas, acentos y puntuación no alteran la identidad',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund',
+          'pímco gis income fund.',
+        );
+
+        expect(similarity, 1.0);
+      },
+    );
+
+    test('LF-10.2.2 - reordenar tokens y cambiar separadores no altera la identidad', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund Class A',
+        'Class-A / PIMCO / GIS / Income / Fund',
+      );
+
+      expect(similarity, 1.0);
+    });
+
+    test(
+      'LF-10.2.3 - añadir un token realmente nuevo sí reduce la similitud',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund',
+          'PIMCO GIS Income Fund Europe',
+        );
+
+        // A = {PIMCO, GIS, INCOME, FUND} → 4
+        // B = {PIMCO, GIS, INCOME, FUND, EUROPE} → 5
+        // Intersección = 4, unión = 5 → 4/5.
+        expect(similarity, closeTo(4 / 5, 0.000001));
+      },
+    );
+
+    test(
+      'LF-10.2.4 - dos tokens realmente nuevos reducen más la similitud',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund',
+          'PIMCO GIS Income Fund Europe Institutional',
+        );
+
+        // A → 4 tokens
+        // B → 6 tokens
+        // Intersección = 4, unión = 6 → 4/6 = 2/3.
+        expect(similarity, closeTo(4 / 6, 0.000001));
+      },
+    );
+
+    test('LF-10.2.5 - repetir un token existente no cambia la identidad', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund',
+        'PIMCO GIS Income Income Fund Fund',
+      );
+
+      // Ambos conjuntos son {PIMCO, GIS, INCOME, FUND}.
+      expect(similarity, 1.0);
+    });
+
+    test('LF-10.2.6 - formato diferente más un token nuevo solo penaliza el token nuevo', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS Income Fund',
+        'Fund, Income / PIMCO GIS Europe',
+      );
+
+      // A → {PIMCO, GIS, INCOME, FUND} → 4
+      // B → {FUND, INCOME, PIMCO, GIS, EUROPE} → 5
+      // Intersección = 4, unión = 5 → 4/5.
+      expect(similarity, closeTo(4 / 5, 0.000001));
+    });
   });
 }

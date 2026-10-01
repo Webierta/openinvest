@@ -39,17 +39,30 @@ class FundNameMatcher {
       'Ü': 'U',
       'Û': 'U',
       'Ñ': 'N',
+
+      // Apóstrofes: se eliminan para preservar el token.
+      "'": '',
+      '’': '',
+
+      // Separadores adicionales.
       '&': ' ',
+      '+': ' ',
       '-': ' ',
       '_': ' ',
       '/': ' ',
+      '=': ' ',
       ',': ' ',
       '.': ' ',
       ':': ' ',
       ';': ' ',
       '(': ' ',
       ')': ' ',
+      '[': ' ',
+      ']': ' ',
+      '{': ' ',
+      '}': ' ',
     };
+
     replacements.forEach((from, to) => result = result.replaceAll(from, to));
     return result.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
