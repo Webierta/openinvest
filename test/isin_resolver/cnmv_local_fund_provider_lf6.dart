@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -159,6 +160,77 @@ void runCnmvLocalFundProviderLf6Tests() {
         expect(loadCount, 1);
       },
     );
+
+    test('LF-6.9: llamadas concurrentes comparten una única carga', () async {
+      final loadStarted = Completer<void>();
+      final releaseLoad = Completer<void>();
+      var loadCount = 0;
+
+      final rawJson = jsonEncode({
+        'FondRegistro': {
+          'FechaDatos': '202605',
+          'Entidad': [
+            {
+              'Tipo': 'FI',
+              'NumeroRegistro': 1234,
+              'Denominacion': 'FONDO TEST FI',
+              'Compartimento': {
+                'NumeroCompartimento': 1,
+                'DenominacionCompartimento': 'Compartimento 1',
+                'Clase': {
+                  'NumeroClase': 1,
+                  'DenominacionClase': 'CLASE A',
+                  'ISIN': 'ES0000000010',
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      final provider = CnmvLocalFundProvider(
+        loadAsset: (_) async {
+          loadCount++;
+          loadStarted.complete();
+          await releaseLoad.future;
+          return rawJson;
+        },
+      );
+
+      // Primera llamada: inicia la carga y queda bloqueada.
+      final first = provider.resolve(fundName: 'FONDO TEST FI');
+      await loadStarted.future;
+
+      // Segunda llamada mientras la primera carga sigue en curso.
+      final second = provider.resolve(fundName: 'FONDO TEST FI');
+
+      // Ambas llamadas deben estar esperando la misma carga.
+      expect(loadCount, 1);
+
+      // Liberamos la carga.
+      releaseLoad.complete();
+
+      final firstResult = await first;
+      final secondResult = await second;
+
+      // El loader solamente se ejecutó una vez.
+      expect(loadCount, 1);
+
+      // Ambas llamadas reciben el resultado.
+      expect(firstResult, isNotNull);
+      expect(secondResult, isNotNull);
+
+      expect(firstResult!.isin, 'ES0000000010');
+      expect(secondResult!.isin, 'ES0000000010');
+
+      // Una llamada posterior utiliza la caché y tampoco vuelve
+      // a ejecutar el loader.
+      final thirdResult = await provider.resolve(fundName: 'FONDO TEST FI');
+
+      expect(thirdResult, isNotNull);
+      expect(thirdResult!.isin, 'ES0000000010');
+      expect(loadCount, 1);
+    });
   });
 }
 

@@ -205,8 +205,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                         '${l10n.invested}: ${smartFormat.format(globalMetrics.totalInvested)} €',
                                         style: Theme.of(context)
                                             .textTheme
-                                            .bodySmall
-                                            ?.copyWith(color: Colors.white38),
+                                            .bodyMedium
+                                            ?.copyWith(color: Colors.white70),
                                       ),
                                       const SizedBox(height: 16),
                                       Row(

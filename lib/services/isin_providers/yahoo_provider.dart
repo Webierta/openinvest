@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:investing/utils/isin_validator.dart';
+
+import '../../utils/isin_validator.dart';
 
 import '../../models/foreign_isin_provider.dart';
 import '../../utils/fund_name_matcher.dart';

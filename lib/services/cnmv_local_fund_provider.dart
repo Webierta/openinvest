@@ -70,6 +70,12 @@ class CnmvLocalFundProvider {
   final Future<String> Function(String path) _loadAsset;
   List<CnmvFundResult>? _results;
 
+  // Future de la carga actualmente en curso.
+  //
+  // Permite que varias llamadas concurrentes a _ensureLoaded() compartan
+  // una única operación de lectura y parseo.
+  Future<void>? _loading;
+
   CnmvLocalFundProvider({Future<String> Function(String path)? loadAsset})
     : _loadAsset = loadAsset ?? rootBundle.loadString;
 
@@ -177,9 +183,45 @@ class CnmvLocalFundProvider {
     );
   }
 
-  Future<void> _ensureLoaded() async {
-    if (_results != null) return;
+  /// Garantiza que el catálogo esté cargado.
+  ///
+  /// Si ya está cargado, retorna inmediatamente.
+  ///
+  /// Si existe una carga en curso, comparte su Future en lugar de iniciar
+  /// otra lectura y otro parseo del asset.
+  ///
+  /// Si no existe ninguna carga, inicia una nueva.
+  Future<void> _ensureLoaded() {
+    if (_results != null) {
+      return Future.value();
+    }
 
+    final current = _loading;
+    if (current != null) {
+      return current;
+    }
+
+    late Future<void> future;
+
+    future = _loadAndCache().whenComplete(() {
+      // Solamente limpiamos _loading si sigue siendo la misma operación.
+      //
+      // Esto evita que una operación antigua pueda limpiar accidentalmente
+      // el Future de una carga posterior.
+      if (identical(_loading, future)) {
+        _loading = null;
+      }
+    });
+
+    _loading = future;
+    return future;
+  }
+
+  /// Carga, valida y transforma el catálogo CNMV.
+  ///
+  /// Esta función representa la operación de carga compartida por
+  /// _ensureLoaded().
+  Future<void> _loadAndCache() async {
     if (_loadAsset == rootBundle.loadString && _globalResults != null) {
       _results = _globalResults;
       return;
@@ -318,7 +360,6 @@ class CnmvLocalFundProvider {
   /// - similitud Jaccard;
   /// - umbrales de similitud;
   /// - variantes que añaden o eliminan tokens.
-
   bool _nameMatchesFund(String query, CnmvFundResult entry) {
     final fund = FundNameMatcher.normalizeName(entry.fundName);
 
@@ -341,7 +382,6 @@ class CnmvLocalFundProvider {
   ///
   /// No utiliza frecuencia de aparición: los nombres de fondos se
   /// consideran conjuntos de tokens para este criterio concreto.
-
   bool _sameTokens(String a, String b) {
     final aTokens = a.split(' ').where((token) => token.isNotEmpty).toSet();
     final bTokens = b.split(' ').where((token) => token.isNotEmpty).toSet();
