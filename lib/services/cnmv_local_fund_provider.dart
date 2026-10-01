@@ -53,8 +53,18 @@ class CnmvFundResult {
 ///
 /// Conserva la jerarquía Entidad -> Compartimento -> Clase -> ISIN.
 /// No selecciona arbitrariamente una clase cuando existen varias.
+///
+/// La resolución por nombre es deliberadamente conservadora:
+/// - coincidencia exacta tras normalización;
+/// - coincidencia con exactamente los mismos tokens, independientemente
+///   de su orden.
+///
+/// No utiliza coincidencias por prefijo ni similitud aproximada, ya que
+/// pueden confundir fondos distintos que solamente comparten gran parte
+/// de la denominación.
 class CnmvLocalFundProvider {
   static const String assetPath = 'assets/files/fondos_no_armonizados.json';
+
   static List<CnmvFundResult>? _globalResults;
 
   final Future<String> Function(String path) _loadAsset;
@@ -78,34 +88,87 @@ class CnmvLocalFundProvider {
       return null;
     }
 
-    final exact = candidates.where((entry) {
-      final full = FundNameMatcher.normalizeName(
+    // 1. Coincidencia exacta de fondo + clase.
+    //
+    // Ejemplo:
+    //   FONMARCH FI CLASE C
+    //
+    // Esto tiene prioridad porque identifica explícitamente una clase.
+    final exactClass = candidates.where((entry) {
+      final fullName = FundNameMatcher.normalizeName(
         '${entry.fundName} ${entry.fundClass.name}',
       );
-      return full == query;
+      return fullName == query;
     }).toList();
 
-    if (exact.length == 1) return exact.single;
+    if (exactClass.length == 1) {
+      return exactClass.single;
+    }
 
-    final classMatches = candidates.where((entry) {
-      final className = FundNameMatcher.normalizeName(entry.fundClass.name);
-      return className.isNotEmpty && query.contains(className);
+    // Si hubiera más de un registro exactamente igual, solamente podemos
+    // resolverlo si todos conducen al mismo ISIN.
+    if (exactClass.length > 1) {
+      final isins = exactClass.map((entry) => entry.isin).toSet();
+
+      if (isins.length == 1) {
+        return exactClass.first;
+      }
+
+      _log(
+        'CnmvLocalFundProvider: ambiguo "$fundName" '
+        '(${exactClass.length} clases exactas).',
+      );
+      return null;
+    }
+
+    // 2. Coincidencia exacta de la denominación del fondo.
+    //
+    // Puede haber varias clases para la misma denominación. En ese caso
+    // no elegimos una clase arbitrariamente.
+    final exactFund = candidates.where((entry) {
+      final fund = FundNameMatcher.normalizeName(entry.fundName);
+      return fund == query;
     }).toList();
 
-    if (classMatches.length == 1) return classMatches.single;
+    if (exactFund.isNotEmpty) {
+      final isins = exactFund.map((entry) => entry.isin).toSet();
 
-    final uniqueIsins = candidates.map((e) => e.isin).toSet();
-    if (uniqueIsins.length == 1) return candidates.first;
+      // Varias clases que apuntan al mismo ISIN son equivalentes para
+      // resolver el ISIN.
+      if (isins.length == 1) {
+        return exactFund.first;
+      }
+
+      _log(
+        'CnmvLocalFundProvider: ambiguo "$fundName" '
+        '(${exactFund.length} clases, ${isins.length} ISIN).',
+      );
+      return null;
+    }
+
+    // 3. Coincidencia por conjunto exacto de tokens.
+    //
+    // _nameMatchesFund() ya ha garantizado que los tokens coinciden
+    // exactamente. Llegar aquí significa que la diferencia es solamente
+    // el orden de los tokens.
+    //
+    // Si hay varios registros, seguimos sin escoger arbitrariamente.
+    final isins = candidates.map((entry) => entry.isin).toSet();
+
+    if (isins.length == 1) {
+      return candidates.first;
+    }
 
     _log(
       'CnmvLocalFundProvider: ambiguo "$fundName" '
-      '(${candidates.length} clases).',
+      '(${candidates.length} candidatos, ${isins.length} ISIN).',
     );
     return null;
   }
 
   Future<List<CnmvFundResult>> findAll({required String fundName}) async {
     await _ensureLoaded();
+
     final query = FundNameMatcher.normalizeName(fundName);
     if (query.isEmpty) return const [];
 
@@ -116,6 +179,7 @@ class CnmvLocalFundProvider {
 
   Future<void> _ensureLoaded() async {
     if (_results != null) return;
+
     if (_loadAsset == rootBundle.loadString && _globalResults != null) {
       _results = _globalResults;
       return;
@@ -148,25 +212,32 @@ class CnmvLocalFundProvider {
 
     for (final rawEntity in entidades) {
       if (rawEntity is! Map) continue;
+
       if (rawEntity['Tipo']?.toString().trim().toUpperCase() != 'FI') {
         continue;
       }
 
       final registrationNumber = _toInt(rawEntity['NumeroRegistro']);
       final fundName = rawEntity['Denominacion']?.toString().trim() ?? '';
-      if (registrationNumber == null || fundName.isEmpty) continue;
+
+      if (registrationNumber == null || fundName.isEmpty) {
+        continue;
+      }
 
       final manager = rawEntity['Gestora'];
       final depositary = rawEntity['Depositario'];
+
       final managerName = manager is Map
           ? manager['DenominacionGestora']?.toString()
           : null;
+
       final depositaryName = depositary is Map
           ? depositary['DenominacionDepositario']?.toString()
           : null;
 
       final rawCompartments = rawEntity['Compartimento'];
       if (rawCompartments == null) continue;
+
       final compartments = rawCompartments is List
           ? rawCompartments
           : <dynamic>[rawCompartments];
@@ -175,19 +246,23 @@ class CnmvLocalFundProvider {
         if (rawCompartment is! Map) continue;
 
         final compartmentNumber = _toInt(rawCompartment['NumeroCompartimento']);
+
         final compartmentName = rawCompartment['DenominacionCompartimento']
             ?.toString();
 
         final rawClasses = rawCompartment['Clase'];
         if (rawClasses == null) continue;
+
         final classes = rawClasses is List ? rawClasses : <dynamic>[rawClasses];
 
         for (final rawClass in classes) {
           if (rawClass is! Map) continue;
 
           final classNumber = _toInt(rawClass['NumeroClase']);
+
           final className =
               rawClass['DenominacionClase']?.toString().trim() ?? '';
+
           final isin = rawClass['ISIN']?.toString().trim().toUpperCase() ?? '';
 
           if (classNumber == null ||
@@ -216,21 +291,88 @@ class CnmvLocalFundProvider {
     }
 
     _results = List.unmodifiable(results);
+
     if (_loadAsset == rootBundle.loadString) {
       _globalResults = _results;
     }
+
     _log(
       'CnmvLocalFundProvider: ${results.length} clases cargadas '
       '(${registro['FechaDatos'] ?? 'sin fecha'}).',
     );
   }
 
+  /// Determina si [entry] puede considerarse una coincidencia nominal
+  /// segura para [query].
+  ///
+  /// Solamente se aceptan:
+  ///
+  /// 1. igualdad exacta después de normalización;
+  /// 2. igualdad exacta del conjunto de tokens, independientemente
+  ///    de su orden.
+  ///
+  /// No se aceptan:
+  ///
+  /// - prefijos;
+  /// - nombres contenidos en otros nombres;
+  /// - similitud Jaccard;
+  /// - umbrales de similitud;
+  /// - variantes que añaden o eliminan tokens.
+  /* bool _nameMatchesFund(String query, CnmvFundResult entry) {
+    final fund = FundNameMatcher.normalizeName(entry.fundName);
+
+    if (query.isEmpty || fund.isEmpty) {
+      return false;
+    }
+
+    if (query == fund) {
+      return true;
+    }
+
+    return _sameTokens(query, fund);
+  } */
   bool _nameMatchesFund(String query, CnmvFundResult entry) {
     final fund = FundNameMatcher.normalizeName(entry.fundName);
-    if (query == fund) return true;
-    if (query.startsWith('$fund ')) return true;
-    if (fund.startsWith('$query ')) return true;
-    return FundNameMatcher.nameSimilarity(query, fund) >= 0.82;
+
+    if (query.isEmpty || fund.isEmpty) {
+      return false;
+    }
+
+    if (query == fund || _sameTokens(query, fund)) {
+      return true;
+    }
+
+    final fullName = FundNameMatcher.normalizeName(
+      '${entry.fundName} ${entry.fundClass.name}',
+    );
+
+    return query == fullName || _sameTokens(query, fullName);
+  }
+
+  /// Comprueba igualdad exacta de tokens ignorando solamente su orden.
+  ///
+  /// No utiliza frecuencia de aparición: los nombres de fondos se
+  /// consideran conjuntos de tokens para este criterio concreto.
+  /* bool _sameTokens(String a, String b) {
+    final aTokens = a.split(' ').where((token) => token.isNotEmpty).toSet();
+    final bTokens = b.split(' ').where((token) => token.isNotEmpty).toSet();
+
+    if (aTokens.length != bTokens.length) {
+      return false;
+    }
+
+    return aTokens.containsAll(bTokens);
+  } */
+
+  bool _sameTokens(String a, String b) {
+    final aTokens = a.split(' ').where((token) => token.isNotEmpty).toSet();
+    final bTokens = b.split(' ').where((token) => token.isNotEmpty).toSet();
+
+    if (aTokens.length != bTokens.length) {
+      return false;
+    }
+
+    return aTokens.containsAll(bTokens);
   }
 
   int? _toInt(dynamic value) =>

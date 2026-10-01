@@ -6,9 +6,9 @@ import 'package:investing/services/cnmv_local_fund_provider.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('CnmvLocalFundProvider - falsos positivos por similitud', () {
+  group('CnmvLocalFundProvider - falsos positivos por variantes', () {
     test(
-      'FP01 - 2025 frente a 2025 II: con ambas variantes debe ser ambiguo',
+      'FP01 - 2025 frente a 2025 II: debe resolver el nombre exacto',
       () async {
         final provider = _provider([
           _fund(
@@ -32,7 +32,7 @@ void main() {
       },
     );
 
-    test('FP02 - 2025 frente a 2025 2: consulta inexistente no debe adoptar la variante', () async {
+    test('FP02 - 2025 frente a 2025 2: no debe adoptar la variante', () async {
       final provider = _provider([
         _fund(
           1,
@@ -48,7 +48,7 @@ void main() {
       expect(result, isNull);
     });
 
-    test('FP03 - 2025 frente a 2025 3: consulta inexistente no debe adoptar la variante', () async {
+    test('FP03 - 2025 frente a 2025 3: no debe adoptar la variante', () async {
       final provider = _provider([
         _fund(
           1,
@@ -64,38 +64,42 @@ void main() {
       expect(result, isNull);
     });
 
+    test('FP04 - PLUS frente a PLUS II: no debe adoptar II', () async {
+      final provider = _provider([
+        _fund(
+          1,
+          'BANKINTER EUROSTOXX 2024 PLUS II GARANTIZADO, FI',
+          'ES0156322036',
+        ),
+      ]);
+
+      final result = await provider.resolve(
+        fundName: 'BANKINTER EUROSTOXX 2024 PLUS GARANTIZADO, FI',
+      );
+
+      expect(result, isNull);
+    });
+
     test(
-      'FP04 - PLUS frente a PLUS II: consulta inexistente no debe adoptar II',
+      'FP05 - corto plazo frente a MASTER: no debe adoptar MASTER',
       () async {
         final provider = _provider([
           _fund(
             1,
-            'BANKINTER EUROSTOXX 2024 PLUS II GARANTIZADO, FI',
-            'ES0156322036',
+            'CAIXABANK MASTER RENTA FIJA CORTO PLAZO, FI',
+            'ES0138823036',
           ),
         ]);
 
         final result = await provider.resolve(
-          fundName: 'BANKINTER EUROSTOXX 2024 PLUS GARANTIZADO, FI',
+          fundName: 'CAIXABANK RENTA FIJA CORTO PLAZO, FI',
         );
 
         expect(result, isNull);
       },
     );
 
-    test('FP05 - corto plazo frente a MASTER: consulta inexistente no debe adoptar MASTER', () async {
-      final provider = _provider([
-        _fund(1, 'CAIXABANK MASTER RENTA FIJA CORTO PLAZO, FI', 'ES0138823036'),
-      ]);
-
-      final result = await provider.resolve(
-        fundName: 'CAIXABANK RENTA FIJA CORTO PLAZO, FI',
-      );
-
-      expect(result, isNull);
-    });
-
-    test('FP06 - corto plazo frente a SMART: consulta inexistente no debe adoptar SMART', () async {
+    test('FP06 - corto plazo frente a SMART: no debe adoptar SMART', () async {
       final provider = _provider([
         _fund(1, 'CAIXABANK SMART RENTA FIJA CORTO PLAZO, FI', 'ES0138823002'),
       ]);
@@ -107,53 +111,65 @@ void main() {
       expect(result, isNull);
     });
 
-    test('FP07 - BOLSA frente a ACUMULACION: consulta inexistente no debe adoptar ACUMULACION', () async {
-      final provider = _provider([
-        _fund(1, 'BBVA MI INVERSION BOLSA ACUMULACION, FI', 'ES0138841038'),
-      ]);
+    test(
+      'FP07 - BOLSA frente a ACUMULACION: no debe adoptar ACUMULACION',
+      () async {
+        final provider = _provider([
+          _fund(1, 'BBVA MI INVERSION BOLSA ACUMULACION, FI', 'ES0138841038'),
+        ]);
 
-      final result = await provider.resolve(
-        fundName: 'BBVA MI INVERSION BOLSA, FI',
-      );
+        final result = await provider.resolve(
+          fundName: 'BBVA MI INVERSION BOLSA, FI',
+        );
 
-      expect(result, isNull);
-    });
+        expect(result, isNull);
+      },
+    );
 
-    test('FP08 - GLOBAL LENDING frente a DOLAR: consulta inexistente no debe adoptar DOLAR', () async {
-      final provider = _provider([
-        _fund(1, 'MCH GLOBAL LENDING STRATEGIES DOLAR, FIL', 'ES0138841004'),
-      ]);
+    test(
+      'FP08 - GLOBAL LENDING frente a DOLAR: no debe adoptar DOLAR',
+      () async {
+        final provider = _provider([
+          _fund(1, 'MCH GLOBAL LENDING STRATEGIES DOLAR, FIL', 'ES0138841004'),
+        ]);
 
-      final result = await provider.resolve(
-        fundName: 'MCH GLOBAL LENDING STRATEGIES, FIL',
-      );
+        final result = await provider.resolve(
+          fundName: 'MCH GLOBAL LENDING STRATEGIES, FIL',
+        );
 
-      expect(result, isNull);
-    });
+        expect(result, isNull);
+      },
+    );
 
-    test('FP09 - ESPANA ITALIA frente a ABRIL: consulta inexistente no debe adoptar ABRIL', () async {
-      final provider = _provider([
-        _fund(1, 'IBERCAJA ESPANA ITALIA ABRIL 2024, FI', 'ES0156322036'),
-      ]);
+    test(
+      'FP09 - ESPANA ITALIA frente a ABRIL: no debe adoptar ABRIL',
+      () async {
+        final provider = _provider([
+          _fund(1, 'IBERCAJA ESPANA ITALIA ABRIL 2024, FI', 'ES0156322036'),
+        ]);
 
-      final result = await provider.resolve(
-        fundName: 'IBERCAJA ESPANA ITALIA 2024, FI',
-      );
+        final result = await provider.resolve(
+          fundName: 'IBERCAJA ESPANA ITALIA 2024, FI',
+        );
 
-      expect(result, isNull);
-    });
+        expect(result, isNull);
+      },
+    );
 
-    test('FP10 - RENTA FIJA frente a FLEXIBLE: consulta inexistente no debe adoptar FLEXIBLE', () async {
-      final provider = _provider([
-        _fund(1, 'GVC GAESCO RENTA FIJA FLEXIBLE, FI', 'ES0138823036'),
-      ]);
+    test(
+      'FP10 - RENTA FIJA frente a FLEXIBLE: no debe adoptar FLEXIBLE',
+      () async {
+        final provider = _provider([
+          _fund(1, 'GVC GAESCO RENTA FIJA FLEXIBLE, FI', 'ES0138823036'),
+        ]);
 
-      final result = await provider.resolve(
-        fundName: 'GVC GAESCO RENTA FIJA, FI',
-      );
+        final result = await provider.resolve(
+          fundName: 'GVC GAESCO RENTA FIJA, FI',
+        );
 
-      expect(result, isNull);
-    });
+        expect(result, isNull);
+      },
+    );
   });
 
   group('CnmvLocalFundProvider - ambigüedad entre variantes', () {
@@ -230,7 +246,7 @@ void main() {
     );
   });
 
-  group('CnmvLocalFundProvider - equivalencias que sí deben funcionar', () {
+  group('CnmvLocalFundProvider - equivalencias seguras', () {
     test('EQ01 - mismo nombre con diferencias de acentuación', () async {
       final provider = _provider([
         _fund(1, 'FONDO SELECCIÓN GLOBAL, FI', 'ES0138841038'),
@@ -244,12 +260,14 @@ void main() {
       expect(result!.isin, 'ES0138841038');
     });
 
-    test('EQ02 - nombre abreviado', () async {
+    test('EQ02 - mismo nombre con tokens en distinto orden', () async {
       final provider = _provider([
-        _fund(1, 'GESIURIS IURISFOND, FI', 'ES0138841004'),
+        _fund(1, 'RURAL 2027 GARANTIA BOLSA, FI', 'ES0138841004'),
       ]);
 
-      final result = await provider.resolve(fundName: 'GESIURIS');
+      final result = await provider.resolve(
+        fundName: 'RURAL BOLSA 2027 GARANTIA, FI',
+      );
 
       expect(result, isNotNull);
       expect(result!.isin, 'ES0138841004');
@@ -266,55 +284,18 @@ void main() {
       expect(result, isNotNull);
       expect(result!.isin, 'ES0138823036');
     });
+
+    test('EQ04 - abreviación no debe resolverse automáticamente', () async {
+      final provider = _provider([
+        _fund(1, 'GESIURIS IURISFOND, FI', 'ES0138841004'),
+      ]);
+
+      final result = await provider.resolve(fundName: 'GESIURIS');
+
+      expect(result, isNull);
+    });
   });
 }
-
-// ULTIMA PROPUESTA
-/* CnmvLocalFundProvider _provider(List<Map<String, dynamic>> funds) {
-  final json = jsonEncode({
-    'FondRegistro': {
-      'FechaDatos': 'TEST',
-      'Entidad': funds.map((fund) {
-        return {
-          'Tipo': 'FI',
-          'NumeroRegistro': fund['registrationNumber'] ?? 1,
-          'Denominacion': fund['fundName'],
-          'Compartimento': {
-            'NumeroCompartimento': fund['compartmentNumber'] ?? 1,
-            'DenominacionCompartimento': fund['compartmentName'],
-            'Clase': {
-              'NumeroClase': fund['classNumber'] ?? 1,
-              'DenominacionClase': fund['className'] ?? '',
-              'ISIN': fund['isin'],
-            },
-          },
-        };
-      }).toList(),
-    },
-  });
-
-  return CnmvLocalFundProvider(loadAsset: (_) async => json);
-}
-
-Map<String, dynamic> _fund({
-  required String fundName,
-  required String isin,
-  String className = '',
-  int registrationNumber = 1,
-  int compartmentNumber = 1,
-  int classNumber = 1,
-  String? compartmentName,
-}) {
-  return {
-    'fundName': fundName,
-    'className': className,
-    'isin': isin,
-    'registrationNumber': registrationNumber,
-    'compartmentNumber': compartmentNumber,
-    'classNumber': classNumber,
-    'compartmentName': compartmentName,
-  };
-} */
 
 CnmvLocalFundProvider _provider(List<Map<String, dynamic>> funds) {
   return CnmvLocalFundProvider(
@@ -328,7 +309,7 @@ Map<String, dynamic> _fund(
   int registrationNumber,
   String name,
   String isin, {
-  String className = 'BASE',
+  String className = 'CLASE 0',
 }) {
   return {
     'Tipo': 'FI',
