@@ -77,6 +77,9 @@ class FundData {
   final double? alertMax;
   final double? ter;
   final double? performanceFee;
+  final int? morningstarRating;
+  final DateTime? morningstarCheckedAt;
+  final DateTime? morningstarLastAttemptAt;
 
   FundData({
     required this.isin,
@@ -91,6 +94,9 @@ class FundData {
     this.alertMax,
     this.ter,
     this.performanceFee,
+    this.morningstarRating,
+    this.morningstarCheckedAt,
+    this.morningstarLastAttemptAt,
   }) : history = _syncHistory(history, lastValue, date);
 
   // Asegura que lastValue esté en history y sea el punto más reciente para esa fecha
@@ -139,10 +145,13 @@ class FundData {
     'alertMax': alertMax,
     'ter': ter,
     'performanceFee': performanceFee,
+    'morningstarRating': morningstarRating,
+    'morningstarCheckedAt': morningstarCheckedAt?.toIso8601String(),
+    'morningstarLastAttemptAt': morningstarLastAttemptAt?.toIso8601String(),
   };
 
-  bool get hasValidIsin => 
-    RegExp(r'^[A-Z]{2}[A-Z0-9]{9}[0-9]$').hasMatch(isin.toUpperCase());
+  bool get hasValidIsin =>
+      RegExp(r'^[A-Z]{2}[A-Z0-9]{9}[0-9]$').hasMatch(isin.toUpperCase());
 
   factory FundData.fromJson(Map<String, dynamic> json) => FundData(
     isin: json['isin'],
@@ -165,6 +174,13 @@ class FundData {
     alertMax: json['alertMax']?.toDouble(),
     ter: json['ter']?.toDouble(),
     performanceFee: json['performanceFee']?.toDouble(),
+    morningstarRating: (json['morningstarRating'] as num?)?.toInt(),
+    morningstarCheckedAt: DateTime.tryParse(
+      json['morningstarCheckedAt'] as String? ?? '',
+    ),
+    morningstarLastAttemptAt: DateTime.tryParse(
+      json['morningstarLastAttemptAt'] as String? ?? '',
+    ),
   );
 }
 
@@ -296,10 +312,9 @@ class FundScraper {
     final catalog = await _loadFundCatalog();
     return matches.expand((match) {
       if (match.isin != null) {
-        final source =
-            catalog.allIsins.contains(match.isin)
-                ? FundSource.local
-                : match.source;
+        final source = catalog.allIsins.contains(match.isin)
+            ? FundSource.local
+            : match.source;
         return [
           FundSearchMatch(
             isin: match.isin,
@@ -342,11 +357,9 @@ class FundScraper {
         .toList();
     if (queryTokens.isEmpty) return null;
 
-    final candidates =
-        catalog.entries.where((entry) {
-          return queryTokens.every((qt) => entry.key.contains(qt));
-        }).toList()
-          ..sort((a, b) => a.key.length.compareTo(b.key.length));
+    final candidates = catalog.entries.where((entry) {
+      return queryTokens.every((qt) => entry.key.contains(qt));
+    }).toList()..sort((a, b) => a.key.length.compareTo(b.key.length));
 
     return candidates.isEmpty ? null : candidates.first.value;
   }
@@ -366,14 +379,13 @@ class FundScraper {
         catalog.isinsByName.entries.where((entry) {
           // Cada token de la búsqueda debe estar presente en alguna parte del nombre
           return queryTokens.every((qt) => entry.key.contains(qt));
-        }).toList()
-          ..sort((a, b) {
-            // 1. Priorizar nombres más cortos (coincidencia más precisa)
-            int cmp = a.key.length.compareTo(b.key.length);
-            if (cmp != 0) return cmp;
-            // 2. Orden alfabético si miden lo mismo
-            return a.key.compareTo(b.key);
-          });
+        }).toList()..sort((a, b) {
+          // 1. Priorizar nombres más cortos (coincidencia más precisa)
+          int cmp = a.key.length.compareTo(b.key.length);
+          if (cmp != 0) return cmp;
+          // 2. Orden alfabético si miden lo mismo
+          return a.key.compareTo(b.key);
+        });
 
     return candidates.expand((entry) => entry.value).toList();
   }
@@ -393,11 +405,10 @@ class FundScraper {
         catalog.isinsByName.entries.where((entry) {
           // Búsqueda flexible: todos los trozos de la consulta deben estar en el nombre
           return queryTokens.every((qt) => entry.key.contains(qt));
-        }).toList()
-          ..sort((a, b) {
-            // Coincidencia más corta arriba (normalmente más relevante)
-            return a.key.length.compareTo(b.key.length);
-          });
+        }).toList()..sort((a, b) {
+          // Coincidencia más corta arriba (normalmente más relevante)
+          return a.key.length.compareTo(b.key.length);
+        });
 
     return matches
         .take(15)
@@ -607,20 +618,15 @@ class FundScraper {
       if (name is! String || name.isEmpty) continue;
       final isin =
           quote['isin'] is String && (quote['isin'] as String).isNotEmpty
-              ? quote['isin'] as String
-              : null;
+          ? quote['isin'] as String
+          : null;
       FundSource source = FundSource.yahoo;
       if (symbol.toUpperCase().contains('0P') ||
           symbol.toUpperCase().endsWith('.F')) {
         source = FundSource.morningstar;
       }
       matches.add(
-        FundSearchMatch(
-          isin: isin,
-          symbol: symbol,
-          name: name,
-          source: source,
-        ),
+        FundSearchMatch(isin: isin, symbol: symbol, name: name, source: source),
       );
     }
     return matches;
@@ -860,31 +866,36 @@ class FundScraper {
     // Realizamos una única búsqueda muy amplia
     try {
       final query = Uri.encodeQueryComponent('"$symbol" ISIN');
-      final response = await http.get(
-        Uri.parse('https://html.duckduckgo.com/html/?q=$query'),
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-        },
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(
+            Uri.parse('https://html.duckduckgo.com/html/?q=$query'),
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.5',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final body = response.body;
         // Regex robusto para ISIN (12 caracteres: 2 letras + 10 alfanuméricos)
         final isinRegex = RegExp(r'\b[A-Za-z]{2}[A-Za-z0-9]{9}[0-9]\b');
         final matches = isinRegex.allMatches(body);
-        
+
         if (matches.isNotEmpty) {
           // Extraemos todos los candidatos únicos
-          final candidates = matches.map((m) => m.group(0)!.toUpperCase()).toSet().toList();
-          
+          final candidates = matches
+              .map((m) => m.group(0)!.toUpperCase())
+              .toSet()
+              .toList();
+
           // Priorizamos prefijos de países conocidos para fondos/ETFs
           for (var prefix in ['LU', 'IE', 'ES', 'FR', 'DE', 'GB', 'US', 'CH']) {
             final best = candidates.where((c) => c.startsWith(prefix)).toList();
             if (best.isNotEmpty) return best.first;
           }
-          
+
           // Si no hay de países prioritarios, devolvemos el primero que parezca válido
           return candidates.first;
         }

@@ -42,7 +42,7 @@ class DatabaseService {
 
     return await openDatabase(
       newPath,
-      version: 7,
+      version: 8,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE funds (
@@ -55,7 +55,10 @@ class DatabaseService {
             alert_min REAL,
             alert_max REAL,
             ter REAL,
-            performance_fee REAL
+            performance_fee REAL,
+            morningstar_rating INTEGER,
+            morningstar_checked_at TEXT,
+            morningstar_last_attempt_at TEXT
           )
         ''');
         await db.execute('''
@@ -130,10 +133,23 @@ class DatabaseService {
         }
         if (oldVersion < 7) {
           try {
-            await db.execute('ALTER TABLE funds ADD COLUMN performance_fee REAL');
+            await db.execute(
+              'ALTER TABLE funds ADD COLUMN performance_fee REAL',
+            );
           } catch (e) {
             // Ignored
           }
+        }
+        if (oldVersion < 8) {
+          await db.execute(
+            'ALTER TABLE funds ADD COLUMN morningstar_rating INTEGER',
+          );
+          await db.execute(
+            'ALTER TABLE funds ADD COLUMN morningstar_checked_at TEXT',
+          );
+          await db.execute(
+            'ALTER TABLE funds ADD COLUMN morningstar_last_attempt_at TEXT',
+          );
         }
       },
     );
@@ -166,6 +182,10 @@ class DatabaseService {
         'alert_max': fund.alertMax,
         'ter': fund.ter,
         'performance_fee': fund.performanceFee,
+        'morningstar_rating': fund.morningstarRating,
+        'morningstar_checked_at': fund.morningstarCheckedAt?.toIso8601String(),
+        'morningstar_last_attempt_at': fund.morningstarLastAttemptAt
+            ?.toIso8601String(),
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 
       final batch = txn.batch();
@@ -257,6 +277,10 @@ class DatabaseService {
         'alert_max': fund.alertMax,
         'ter': fund.ter,
         'performance_fee': fund.performanceFee,
+        'morningstar_rating': fund.morningstarRating,
+        'morningstar_checked_at': fund.morningstarCheckedAt?.toIso8601String(),
+        'morningstar_last_attempt_at': fund.morningstarLastAttemptAt
+            ?.toIso8601String(),
       });
 
       final batch = txn.batch();
@@ -451,6 +475,13 @@ class DatabaseService {
           alertMax: m['alert_max'],
           ter: m['ter'],
           performanceFee: m['performance_fee'],
+          morningstarRating: m['morningstar_rating'] as int?,
+          morningstarCheckedAt: m['morningstar_checked_at'] == null
+              ? null
+              : DateTime.parse(m['morningstar_checked_at']),
+          morningstarLastAttemptAt: m['morningstar_last_attempt_at'] == null
+              ? null
+              : DateTime.parse(m['morningstar_last_attempt_at']),
         ),
       );
     }
@@ -520,7 +551,40 @@ class DatabaseService {
       alertMax: m['alert_max'],
       ter: m['ter'],
       performanceFee: m['performance_fee'],
+      morningstarRating: m['morningstar_rating'] as int?,
+      morningstarCheckedAt: m['morningstar_checked_at'] == null
+          ? null
+          : DateTime.parse(m['morningstar_checked_at']),
+      morningstarLastAttemptAt: m['morningstar_last_attempt_at'] == null
+          ? null
+          : DateTime.parse(m['morningstar_last_attempt_at']),
     );
+  }
+
+  static Future<void> updateMorningstarAttempt(
+    String isin,
+    DateTime attemptedAt,
+  ) async {
+    final db = await database;
+    await db.update(
+      'funds',
+      {'morningstar_last_attempt_at': attemptedAt.toIso8601String()},
+      where: 'isin = ?',
+      whereArgs: [isin],
+    );
+  }
+
+  static Future<void> updateMorningstarRating(
+    String isin, {
+    required int? rating,
+    required DateTime checkedAt,
+  }) async {
+    final db = await database;
+    final values = <String, Object?>{
+      'morningstar_checked_at': checkedAt.toIso8601String(),
+    };
+    if (rating != null) values['morningstar_rating'] = rating;
+    await db.update('funds', values, where: 'isin = ?', whereArgs: [isin]);
   }
 
   static Future<void> deleteFund(String isin) async {

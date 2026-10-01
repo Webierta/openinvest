@@ -82,6 +82,99 @@ void main() {
     expect(storedFund.operations.single.amount, 60);
   });
 
+  test('persiste el rating Morningstar y sus fechas', () async {
+    final date = DateTime(2026, 9, 2);
+    final checkedAt = DateTime(2026, 9, 10, 12);
+    final attemptedAt = DateTime(2026, 9, 10, 11);
+    await DatabaseService.saveFund(
+      FundData(
+        isin: 'TEST',
+        symbol: 'TST',
+        name: 'Test Fund',
+        lastValue: 20,
+        currency: 'EUR',
+        date: date,
+        history: [PricePoint(date, 20)],
+        morningstarRating: 4,
+        morningstarCheckedAt: checkedAt,
+        morningstarLastAttemptAt: attemptedAt,
+      ),
+    );
+
+    final storedFund = await DatabaseService.getFund('TEST');
+    expect(storedFund!.morningstarRating, 4);
+    expect(storedFund.morningstarCheckedAt, checkedAt);
+    expect(storedFund.morningstarLastAttemptAt, attemptedAt);
+  });
+
+  test('importa JSON antiguo sin campos Morningstar', () {
+    final date = DateTime(2026, 9, 2);
+    final legacyJson =
+        FundData(
+            isin: 'TEST',
+            symbol: 'TST',
+            name: 'Test Fund',
+            lastValue: 20,
+            currency: 'EUR',
+            date: date,
+            history: [PricePoint(date, 20)],
+          ).toJson()
+          ..remove('morningstarRating')
+          ..remove('morningstarCheckedAt')
+          ..remove('morningstarLastAttemptAt');
+
+    final importedFund = FundData.fromJson(legacyJson);
+
+    expect(importedFund.morningstarRating, isNull);
+    expect(importedFund.morningstarCheckedAt, isNull);
+    expect(importedFund.morningstarLastAttemptAt, isNull);
+  });
+
+  test('migra una base de datos v7 conservando sus fondos', () async {
+    final databasePath = path.join(temporaryDirectory.path, 'test.db');
+    final oldDatabase = await databaseFactory.openDatabase(
+      databasePath,
+      options: OpenDatabaseOptions(
+        version: 7,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE funds (
+              isin TEXT PRIMARY KEY, symbol TEXT, name TEXT, currency TEXT,
+              last_value REAL, last_update TEXT, alert_min REAL,
+              alert_max REAL, ter REAL, performance_fee REAL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE prices (
+              isin TEXT, date TEXT, price REAL, PRIMARY KEY (isin, date)
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE operations (
+              id INTEGER PRIMARY KEY AUTOINCREMENT, isin TEXT, date TEXT,
+              type TEXT, units REAL, price REAL, amount REAL
+            )
+          ''');
+          await db.insert('funds', {
+            'isin': 'TEST',
+            'symbol': 'TST',
+            'name': 'Test Fund',
+            'currency': 'EUR',
+            'last_value': 20.0,
+            'last_update': '2026-09-02T00:00:00.000',
+          });
+        },
+      ),
+    );
+    await oldDatabase.close();
+
+    final storedFund = await DatabaseService.getFund('TEST');
+    expect(storedFund, isNotNull);
+    expect(storedFund!.lastValue, 20);
+    expect(storedFund.morningstarRating, isNull);
+    expect(storedFund.morningstarCheckedAt, isNull);
+  });
+
   test('actualizar las alertas no duplica las operaciones', () async {
     final date = DateTime(2026, 9, 2);
     final operation = FundOperation(

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/fund_scraper.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/isin_resolver.dart';
+import '../services/morningstar_rating.dart';
 import '../utils/financial_calculator.dart';
 import '../utils/app_error.dart';
 
@@ -37,6 +40,7 @@ class FundProvider with ChangeNotifier {
   String? selectedBenchmarkSymbol;
   Locale? _locale;
   List<FundAlertInfo> triggeredAlerts = [];
+  final Set<String> _ratingRefreshesInProgress = {};
 
   Locale? get locale => _locale;
 
@@ -175,6 +179,61 @@ class FundProvider with ChangeNotifier {
     await _initializeLocale();
     await loadPortfolio();
     await refreshOnStartupIfNeeded();
+    unawaited(refreshMorningstarRatingsIfNeeded());
+  }
+
+  Future<void> refreshMorningstarRatingsIfNeeded() async {
+    for (final fund in List<FundData>.of(portfolio)) {
+      await _refreshMorningstarRatingIfNeeded(fund.isin);
+    }
+  }
+
+  bool _isMorningstarRatingDue(FundData fund, DateTime now) {
+    final lastAttempt = fund.morningstarLastAttemptAt;
+    if (lastAttempt != null &&
+        now.difference(lastAttempt) < const Duration(hours: 24)) {
+      return false;
+    }
+
+    final lastChecked = fund.morningstarCheckedAt;
+    if (lastChecked == null) return true;
+
+    final currentMonth = DateTime(now.year, now.month);
+    return now.day >= 5 && lastChecked.isBefore(currentMonth);
+  }
+
+  Future<void> _refreshMorningstarRatingIfNeeded(String isin) async {
+    if (!_ratingRefreshesInProgress.add(isin)) return;
+    try {
+      final fund = await DatabaseService.getFund(isin);
+      if (fund == null || !_isMorningstarRatingDue(fund, DateTime.now())) {
+        return;
+      }
+
+      final attemptedAt = DateTime.now();
+      await DatabaseService.updateMorningstarAttempt(isin, attemptedAt);
+
+      final service = MorningstarRating(isin);
+      late final MorningstarRatingResult result;
+      try {
+        result = await service.fetchRating();
+      } finally {
+        service.close();
+      }
+      if (!result.succeeded) return;
+
+      await DatabaseService.updateMorningstarRating(
+        isin,
+        rating: result.rating ?? fund.morningstarRating,
+        checkedAt: DateTime.now(),
+      );
+      await _syncFundState(isin);
+      notifyListeners();
+    } catch (_) {
+      // El rating es complementario y no debe afectar a la cartera.
+    } finally {
+      _ratingRefreshesInProgress.remove(isin);
+    }
   }
 
   Future<void> refreshOnStartupIfNeeded() async {
@@ -240,8 +299,12 @@ class FundProvider with ChangeNotifier {
         portfolio.sort((a, b) {
           final metricsA = FinancialCalculator.calculateFundMetrics(a);
           final metricsB = FinancialCalculator.calculateFundMetrics(b);
-          final perfA = metricsA.isAnnualized ? metricsA.tae : metricsA.profitRel;
-          final perfB = metricsB.isAnnualized ? metricsB.tae : metricsB.profitRel;
+          final perfA = metricsA.isAnnualized
+              ? metricsA.tae
+              : metricsA.profitRel;
+          final perfB = metricsB.isAnnualized
+              ? metricsB.tae
+              : metricsB.profitRel;
           return perfB.compareTo(
             perfA,
           ); // Descendente por defecto para rendimiento
@@ -350,6 +413,11 @@ class FundProvider with ChangeNotifier {
           alertMin: fund.alertMin,
           alertMax: fund.alertMax,
           operations: fund.operations,
+          ter: fund.ter,
+          performanceFee: fund.performanceFee,
+          morningstarRating: fund.morningstarRating,
+          morningstarCheckedAt: fund.morningstarCheckedAt,
+          morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
         );
         return ScrapeResult(data: resolvedFund, isResolved: true);
       }
@@ -366,6 +434,7 @@ class FundProvider with ChangeNotifier {
       currentFund = fund;
       await loadPortfolio();
     });
+    unawaited(_refreshMorningstarRatingIfNeeded(fund.isin));
   }
 
   Future<void> replaceFund(FundData fund) async {
@@ -374,6 +443,7 @@ class FundProvider with ChangeNotifier {
       currentFund = fund;
       await loadPortfolio();
     });
+    unawaited(_refreshMorningstarRatingIfNeeded(fund.isin));
   }
 
   Future<void> addOperation(FundOperation op) async {
@@ -426,8 +496,9 @@ class FundProvider with ChangeNotifier {
     try {
       final result = await FundScraper.getFundByIsin(isin.toUpperCase());
       if (result.data != null) {
-        final existingFund = await DatabaseService.getFund(result.data!.isin);
-        if (existingFund != null && !_hasNewData(existingFund, result.data!)) {
+        final fetchedFund = result.data!;
+        final existingFund = await DatabaseService.getFund(fetchedFund.isin);
+        if (existingFund != null && !_hasNewData(existingFund, fetchedFund)) {
           _setError(
             AppError.info(
               'Los datos ya están actualizados y no se han producido cambios.',
@@ -435,10 +506,29 @@ class FundProvider with ChangeNotifier {
           );
           return true;
         }
+        final fundToSave = existingFund == null
+            ? fetchedFund
+            : FundData(
+                isin: fetchedFund.isin,
+                symbol: fetchedFund.symbol,
+                name: fetchedFund.name,
+                lastValue: fetchedFund.lastValue,
+                currency: fetchedFund.currency,
+                date: fetchedFund.date,
+                history: fetchedFund.history,
+                operations: existingFund.operations,
+                alertMin: existingFund.alertMin,
+                alertMax: existingFund.alertMax,
+                ter: existingFund.ter,
+                performanceFee: existingFund.performanceFee,
+                morningstarRating: existingFund.morningstarRating,
+                morningstarCheckedAt: existingFund.morningstarCheckedAt,
+                morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
+              );
         await _runDatabaseOperation(() async {
-          await DatabaseService.saveFund(result.data!);
-          currentFund = result.data;
-          await _syncFundState(result.data!.isin);
+          await DatabaseService.saveFund(fundToSave);
+          currentFund = fundToSave;
+          await _syncFundState(fundToSave.isin);
           await loadPortfolio();
         });
         return true;
@@ -501,6 +591,11 @@ class FundProvider with ChangeNotifier {
                 operations: existingFund.operations,
                 alertMin: existingFund.alertMin,
                 alertMax: existingFund.alertMax,
+                ter: existingFund.ter,
+                performanceFee: existingFund.performanceFee,
+                morningstarRating: existingFund.morningstarRating,
+                morningstarCheckedAt: existingFund.morningstarCheckedAt,
+                morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
               );
         await _runDatabaseOperation(() async {
           await DatabaseService.saveFund(fundToSave);
@@ -591,10 +686,14 @@ class FundProvider with ChangeNotifier {
               currency: result.data!.currency,
               date: result.data!.date,
               history: result.data!.history,
+              operations: existing.operations,
               alertMin: existing.alertMin,
               alertMax: existing.alertMax,
               ter: existing.ter,
               performanceFee: existing.performanceFee,
+              morningstarRating: existing.morningstarRating,
+              morningstarCheckedAt: existing.morningstarCheckedAt,
+              morningstarLastAttemptAt: existing.morningstarLastAttemptAt,
             );
             await DatabaseService.saveFund(updatedFund);
             await _syncFundState(isin);
@@ -635,6 +734,9 @@ class FundProvider with ChangeNotifier {
         alertMax: max,
         ter: fund.ter,
         performanceFee: fund.performanceFee,
+        morningstarRating: fund.morningstarRating,
+        morningstarCheckedAt: fund.morningstarCheckedAt,
+        morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
       );
       await DatabaseService.saveFund(updated);
       await loadPortfolio();
@@ -658,6 +760,9 @@ class FundProvider with ChangeNotifier {
         alertMax: fund.alertMax,
         ter: ter,
         performanceFee: performanceFee,
+        morningstarRating: fund.morningstarRating,
+        morningstarCheckedAt: fund.morningstarCheckedAt,
+        morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
       );
       await DatabaseService.saveFund(updated);
       await loadPortfolio();

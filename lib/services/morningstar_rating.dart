@@ -3,15 +3,28 @@ import 'package:html/dom.dart';
 import 'package:html/parser.dart' as parser;
 import 'package:http/http.dart' as http;
 
-// TODO: Incluir rating en FundData y en DatabaseService (upgrade version)
-// TODO: Establecer lógica para actualizar rating cada 3 meses.
+class MorningstarRatingResult {
+  final int? rating;
+  final bool succeeded;
+
+  const MorningstarRatingResult({
+    required this.rating,
+    required this.succeeded,
+  });
+}
 
 class MorningstarRating {
   final String isin;
   final http.Client _client;
+  final bool _ownsClient;
 
   MorningstarRating(this.isin, {http.Client? client})
-    : _client = client ?? http.Client(); // o http.Client()
+    : _client = client ?? http.Client(),
+      _ownsClient = client == null;
+
+  void close() {
+    if (_ownsClient) _client.close();
+  }
 
   int _parseRating(Document document) {
     try {
@@ -58,14 +71,24 @@ class MorningstarRating {
     return null;
   }
 
-  Future<int> getRating() async {
-    if (isin.isEmpty) return 0;
+  Future<MorningstarRatingResult> fetchRating() async {
+    if (isin.isEmpty) {
+      return const MorningstarRatingResult(rating: null, succeeded: false);
+    }
 
     final url = 'https://markets.ft.com/data/funds/tearsheet/ratings?s=$isin';
     final document = await _getDoc(url);
 
-    if (document == null) return 0;
+    if (document == null) {
+      return const MorningstarRatingResult(rating: null, succeeded: false);
+    }
 
-    return _parseRating(document);
+    final rating = _parseRating(document);
+    return MorningstarRatingResult(
+      rating: rating == 0 ? null : rating,
+      succeeded: true,
+    );
   }
+
+  Future<int> getRating() async => (await fetchRating()).rating ?? 0;
 }

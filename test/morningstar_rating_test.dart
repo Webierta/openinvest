@@ -94,6 +94,25 @@ void main() {
       expect(await service.getRating(), 0);
     });
 
+    test('distingue un rating ausente de un error HTTP', () async {
+      final noRatingService = MorningstarRating(
+        'IE00B8K7V925',
+        client: _FakeHttpClient(statusCode: 200, body: '<html></html>'),
+      );
+      final failedService = MorningstarRating(
+        'IE00B8K7V925',
+        client: _FakeHttpClient(statusCode: 503, body: '<html></html>'),
+      );
+
+      final noRating = await noRatingService.fetchRating();
+      final failed = await failedService.fetchRating();
+
+      expect(noRating.succeeded, isTrue);
+      expect(noRating.rating, isNull);
+      expect(failed.succeeded, isFalse);
+      expect(failed.rating, isNull);
+    });
+
     test(
       'ignora un candidato inválido y encuentra el siguiente válido',
       () async {

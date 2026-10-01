@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -25,14 +24,6 @@ class FundDetailsPage extends StatefulWidget {
 }
 
 class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
-  late final http.Client _httpClient;
-
-  @override
-  void initState() {
-    super.initState();
-    _httpClient = http.Client();
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -43,7 +34,6 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
   @override
   void dispose() {
     routeObserver.unsubscribe(this);
-    _httpClient.close();
     super.dispose();
   }
 
@@ -246,7 +236,6 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                             priceFormat: priceFormat,
                             percentFormat: percentFormat,
                             dateFormat: dateFormat,
-                            httpClient: _httpClient,
                           ),
                         ),
                       ),

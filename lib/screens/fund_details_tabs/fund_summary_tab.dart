@@ -2,21 +2,18 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
 import '../../services/export_service.dart';
 import '../../services/fund_scraper.dart';
-import '../../services/morningstar_rating.dart';
 
 class FundSummaryTab extends StatelessWidget {
   final FundData fund;
   final NumberFormat priceFormat;
   final NumberFormat percentFormat;
   final DateFormat dateFormat;
-  final http.Client httpClient;
 
   const FundSummaryTab({
     super.key,
@@ -24,7 +21,6 @@ class FundSummaryTab extends StatelessWidget {
     required this.priceFormat,
     required this.percentFormat,
     required this.dateFormat,
-    required this.httpClient,
   });
 
   @override
@@ -283,61 +279,49 @@ class FundSummaryTab extends StatelessWidget {
               const SizedBox(height: 24),
               _buildStatsGrid(context, meanVal, maxPoint, minPoint),
               const SizedBox(height: 16),
-              FutureBuilder<int>(
-                future: MorningstarRating(
-                  fund.isin,
-                  client: httpClient,
-                ).getRating(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox.shrink();
-                  }
-                  final rating = snapshot.data ?? 0;
-                  if (rating <= 0) return const SizedBox.shrink();
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+              if (fund.morningstarRating != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Morningstar Rating',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Morningstar Rating',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
-                        Row(
-                          children: List.generate(5, (index) {
-                            /*return Icon(
+                      ),
+                      Row(
+                        children: List.generate(5, (index) {
+                          /*return Icon(
                               index < rating ? Icons.star : Icons.star_border,
                               color: Colors.amber,
                               size: 18,
                             );*/
-                            return Icon(
-                              Icons.star,
-                              color: index < rating
-                                  ? Colors.amber
-                                  : Colors.grey.shade700,
-                              size: 18,
-                            );
-                          }),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                          return Icon(
+                            Icons.star,
+                            color: index < fund.morningstarRating!
+                                ? Colors.amber
+                                : Colors.grey.shade700,
+                            size: 18,
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
             ],
             if (fund.alertMin != null || fund.alertMax != null) ...[
               const Divider(height: 32, color: Colors.white10),

@@ -145,7 +145,11 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
         }
       } catch (e) {
         if (context.mounted) {
-          _showSnackBar(context, 'Error al fusionar la cartera: $e', error: true);
+          _showSnackBar(
+            context,
+            'Error al fusionar la cartera: $e',
+            error: true,
+          );
         }
       }
     }
@@ -154,11 +158,13 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
   FundData _mergeFunds(FundData existing, FundData incoming) {
     final Map<String, FundOperation> uniqueOps = {};
     for (final op in existing.operations) {
-      final key = '${op.date.toIso8601String()}_${op.type}_${op.units}_${op.price}';
+      final key =
+          '${op.date.toIso8601String()}_${op.type}_${op.units}_${op.price}';
       uniqueOps[key] = op;
     }
     for (final op in incoming.operations) {
-      final key = '${op.date.toIso8601String()}_${op.type}_${op.units}_${op.price}';
+      final key =
+          '${op.date.toIso8601String()}_${op.type}_${op.units}_${op.price}';
       uniqueOps[key] = op;
     }
     final mergedOps = uniqueOps.values.toList()
@@ -168,15 +174,30 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
       isin: existing.isin,
       symbol: incoming.symbol.isNotEmpty ? incoming.symbol : existing.symbol,
       name: incoming.name.isNotEmpty ? incoming.name : existing.name,
-      currency: incoming.currency.isNotEmpty ? incoming.currency : existing.currency,
-      lastValue: incoming.lastValue != 0.0 ? incoming.lastValue : existing.lastValue,
-      date: incoming.date.isAfter(existing.date) ? incoming.date : existing.date,
-      history: incoming.history.isNotEmpty ? incoming.history : existing.history,
+      currency: incoming.currency.isNotEmpty
+          ? incoming.currency
+          : existing.currency,
+      lastValue: incoming.lastValue != 0.0
+          ? incoming.lastValue
+          : existing.lastValue,
+      date: incoming.date.isAfter(existing.date)
+          ? incoming.date
+          : existing.date,
+      history: incoming.history.isNotEmpty
+          ? incoming.history
+          : existing.history,
       operations: mergedOps,
       alertMin: incoming.alertMin ?? existing.alertMin,
       alertMax: incoming.alertMax ?? existing.alertMax,
       ter: incoming.ter ?? existing.ter,
       performanceFee: incoming.performanceFee ?? existing.performanceFee,
+      morningstarRating:
+          incoming.morningstarRating ?? existing.morningstarRating,
+      morningstarCheckedAt:
+          incoming.morningstarCheckedAt ?? existing.morningstarCheckedAt,
+      morningstarLastAttemptAt:
+          incoming.morningstarLastAttemptAt ??
+          existing.morningstarLastAttemptAt,
     );
   }
 
@@ -290,7 +311,11 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop();
-        _showSnackBar(context, l10n.pdfGenerationError(e.toString()), error: true);
+        _showSnackBar(
+          context,
+          l10n.pdfGenerationError(e.toString()),
+          error: true,
+        );
       }
     }
   }
@@ -301,9 +326,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.reportGeneratedTitle),
-        content: Text(
-          l10n.annualReportReadyMessage(year.toString()),
-        ),
+        content: Text(l10n.annualReportReadyMessage(year.toString())),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -553,52 +576,48 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
                 value: 'export_portfolio',
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.save,
-                      size: 20,
-                      color: Colors.white70,
-                    ),
+                    const Icon(Icons.save, size: 20, color: Colors.white70),
                     const SizedBox(width: 12),
                     Text(l10n.exportPortfolioMenu),
                   ],
                 ),
               ),
-            if (provider.portfolio.isNotEmpty)
-              ...[
-                const PopupMenuDivider(color: Colors.white24),
-                PopupMenuItem(
-                    enabled: false,
-                    child: Text(l10n.generateFilesLabel)),
-                PopupMenuItem(
-                  value: 'operaciones',
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.table_chart_outlined,
-                        size: 20,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(l10n.operationsCsv),
-                    ],
-                  ),
+            if (provider.portfolio.isNotEmpty) ...[
+              const PopupMenuDivider(color: Colors.white24),
+              PopupMenuItem(
+                enabled: false,
+                child: Text(l10n.generateFilesLabel),
+              ),
+              PopupMenuItem(
+                value: 'operaciones',
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.table_chart_outlined,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(l10n.operationsCsv),
+                  ],
                 ),
-                PopupMenuItem(
-                  value: 'informe',
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.picture_as_pdf_outlined,
-                        size: 20,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(l10n.pdfReportLabel),
-                    ],
-                  ),
+              ),
+              PopupMenuItem(
+                value: 'informe',
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.picture_as_pdf_outlined,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(l10n.pdfReportLabel),
+                  ],
                 ),
-                const PopupMenuDivider(color: Colors.white24),
-                PopupMenuItem(
+              ),
+              const PopupMenuDivider(color: Colors.white24),
+              PopupMenuItem(
                 value: 'clear',
                 child: Row(
                   children: [
@@ -614,7 +633,8 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ],
                 ),
-              ),]
+              ),
+            ],
           ],
         ),
       ],
