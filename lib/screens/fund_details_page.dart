@@ -10,7 +10,7 @@ import '../widgets/error_banner.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_tabs/fund_balance_tab.dart';
 import 'fund_details_tabs/fund_history_chart.dart';
-import 'fund_details_tabs/fund_operations_list.dart';
+import 'fund_details_tabs/fund_market_tab.dart';
 import 'fund_details_tabs/price_history_table.dart';
 import 'fund_details_tabs/fund_summary_tab.dart';
 import 'fund_details_tabs/monthly_returns_tab.dart';
@@ -302,7 +302,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                                 ),
                               ),
                       ),
-                      FundOperationsList(fund: fund, priceFormat: priceFormat),
+                      FundMarketTab(fund: fund, priceFormat: priceFormat),
                     ],
                   ),
                 ),

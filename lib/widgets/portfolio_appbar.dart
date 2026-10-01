@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:investing/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../models/fund_cost.dart';
 import '../providers/fund_provider.dart';
 import '../services/export_service.dart';
 import '../services/fund_scraper.dart';
@@ -170,6 +171,15 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     final mergedOps = uniqueOps.values.toList()
       ..sort((a, b) => a.date.compareTo(b.date));
 
+    final uniquePeriods = <String, FundCostPeriod>{};
+    for (final period in [...existing.costPeriods, ...incoming.costPeriods]) {
+      uniquePeriods[period.uid] = period;
+    }
+    final uniqueCharges = <String, FundCostCharge>{};
+    for (final charge in [...existing.costCharges, ...incoming.costCharges]) {
+      uniqueCharges[charge.uid] = charge;
+    }
+
     return FundData(
       isin: existing.isin,
       symbol: incoming.symbol.isNotEmpty ? incoming.symbol : existing.symbol,
@@ -187,6 +197,8 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
           ? incoming.history
           : existing.history,
       operations: mergedOps,
+      costPeriods: uniquePeriods.values.toList(),
+      costCharges: uniqueCharges.values.toList(),
       alertMin: incoming.alertMin ?? existing.alertMin,
       alertMax: incoming.alertMax ?? existing.alertMax,
       ter: incoming.ter ?? existing.ter,

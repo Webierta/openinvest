@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:investing/models/fund_cost.dart';
 import 'package:investing/services/fund_scraper.dart';
 import 'package:investing/utils/financial_calculator.dart';
 
@@ -74,6 +75,102 @@ void main() {
         expect(metrics.currentValue, 0.0);
         expect(metrics.totalUnits, 0.0);
         expect(metrics.mwrAnnualized, isNull);
+      });
+
+      test('la antigüedad empieza en la primera suscripción, no reembolso', () {
+        final firstBuy = DateTime(2023, 1, 5);
+        final earlierSell = DateTime(2023, 1, 2);
+        final fund = FundData(
+          isin: 'DATES',
+          symbol: 'DTS',
+          name: 'Date Test Fund',
+          lastValue: 10,
+          currency: 'EUR',
+          date: DateTime(2023, 2, 4),
+          history: [PricePoint(firstBuy, 10)],
+          operations: [
+            FundOperation(
+              isin: 'DATES',
+              date: earlierSell,
+              type: OperationType.sell,
+              units: 0.5,
+              price: 10,
+              amount: 5,
+            ),
+            FundOperation(
+              isin: 'DATES',
+              date: firstBuy,
+              type: OperationType.buy,
+              units: 2,
+              price: 10,
+              amount: 20,
+            ),
+          ],
+        );
+
+        final metrics = FinancialCalculator.calculateFundMetrics(fund);
+
+        expect(metrics.firstOpDate, firstBuy);
+      });
+
+      test('el neto resta cargos externos reales, no tarifas', () {
+        final date = DateTime(2023, 1, 1);
+        final fund = FundData(
+          isin: 'COSTS',
+          symbol: 'CST',
+          name: 'Cost Test Fund',
+          lastValue: 12,
+          currency: 'EUR',
+          date: date.add(const Duration(days: 365)),
+          history: [PricePoint(date, 10)],
+          operations: [
+            FundOperation(
+              isin: 'COSTS',
+              date: date,
+              type: OperationType.buy,
+              units: 10,
+              price: 10,
+              amount: 100,
+            ),
+          ],
+          costPeriods: [
+            FundCostPeriod(
+              concept: FundCostConcept.ter,
+              ratePercent: 1,
+              basis: FundCostRateBasis.annualBalance,
+              treatment: FundCostTreatment.includedInNav,
+              validFrom: date,
+            ),
+          ],
+          costCharges: [
+            FundCostCharge(
+              concept: FundCostConcept.subscription,
+              date: date,
+              amount: 3,
+            ),
+            FundCostCharge(
+              concept: FundCostConcept.other,
+              date: date.subtract(const Duration(days: 1)),
+              amount: 50,
+            ),
+            FundCostCharge(
+              concept: FundCostConcept.other,
+              date: DateTime.now().add(const Duration(days: 1)),
+              amount: 70,
+            ),
+            FundCostCharge(
+              concept: FundCostConcept.performance,
+              date: DateTime.now(),
+              amount: 6,
+            ),
+          ],
+        );
+
+        final metrics = FinancialCalculator.calculateFundMetrics(fund);
+
+        expect(metrics.profitAbs, 20);
+        expect(metrics.recordedExternalCosts, 9);
+        expect(metrics.netProfit, 11);
       });
     });
 
@@ -154,6 +251,142 @@ void main() {
           expect(metrics.tae, 0.0);
         },
       );
+    });
+  });
+
+  group('FinancialCalculator - Current Cost Estimates', () {
+    test(
+      'estima tarifas externas activas sin duplicar TER ni tocar el neto',
+      () {
+        final date = DateTime(2026, 1, 1);
+        final settledThrough = date.subtract(const Duration(days: 1));
+        final performancePeriod = FundCostPeriod(
+          concept: FundCostConcept.performance,
+          ratePercent: 10,
+          basis: FundCostRateBasis.positiveProfit,
+          treatment: FundCostTreatment.chargedSeparately,
+          validFrom: date.subtract(const Duration(days: 10)),
+        );
+        final fund = FundData(
+          isin: 'ESTIMATE',
+          symbol: 'EST',
+          name: 'Estimate Fund',
+          lastValue: 12,
+          currency: 'EUR',
+          date: date,
+          history: [PricePoint(settledThrough, 11), PricePoint(date, 12)],
+          operations: [
+            FundOperation(
+              isin: 'ESTIMATE',
+              date: date.subtract(const Duration(days: 30)),
+              type: OperationType.buy,
+              units: 10,
+              price: 10,
+              amount: 100,
+            ),
+          ],
+          costPeriods: [
+            FundCostPeriod(
+              concept: FundCostConcept.ter,
+              ratePercent: 1,
+              basis: FundCostRateBasis.annualBalance,
+              treatment: FundCostTreatment.chargedSeparately,
+              validFrom: date.subtract(const Duration(days: 10)),
+            ),
+            FundCostPeriod(
+              concept: FundCostConcept.management,
+              ratePercent: 0.25,
+              basis: FundCostRateBasis.annualBalance,
+              treatment: FundCostTreatment.chargedSeparately,
+              validFrom: date.subtract(const Duration(days: 10)),
+            ),
+            FundCostPeriod(
+              concept: FundCostConcept.operating,
+              ratePercent: 0.2,
+              basis: FundCostRateBasis.annualBalance,
+              treatment: FundCostTreatment.includedInNav,
+              validFrom: date.subtract(const Duration(days: 10)),
+            ),
+            FundCostPeriod(
+              concept: FundCostConcept.other,
+              ratePercent: 0.5,
+              basis: FundCostRateBasis.annualBalance,
+              treatment: FundCostTreatment.chargedSeparately,
+              validFrom: date.subtract(const Duration(days: 10)),
+            ),
+            performancePeriod,
+            FundCostPeriod(
+              concept: FundCostConcept.other,
+              ratePercent: 5,
+              basis: FundCostRateBasis.annualBalance,
+              treatment: FundCostTreatment.chargedSeparately,
+              validFrom: date.add(const Duration(days: 1)),
+            ),
+          ],
+          costCharges: [
+            FundCostCharge(
+              concept: FundCostConcept.performance,
+              date: date,
+              amount: 3,
+              performancePeriodUid: performancePeriod.uid,
+              settledThrough: settledThrough,
+            ),
+          ],
+        );
+
+        final estimate = FinancialCalculator.estimateCurrentFundCosts(
+          fund,
+          asOf: date,
+        );
+        final metrics = FinancialCalculator.calculateFundMetrics(fund);
+
+        expect(estimate.annualRecurringCost, closeTo(1.8, 1e-10));
+        expect(estimate.potentialPerformanceFee, closeTo(1, 1e-10));
+        expect(estimate.hasAnnualRates, isTrue);
+        expect(estimate.hasPerformanceRate, isTrue);
+        expect(metrics.profitAbs, 20);
+        expect(metrics.netProfit, 17);
+      },
+    );
+
+    test('oculta comisión potencial si no hay liquidación vinculada', () {
+      final date = DateTime(2026, 1, 1);
+      final fund = FundData(
+        isin: 'NOSETTLEMENT',
+        symbol: 'NS',
+        name: 'No Settlement Fund',
+        lastValue: 12,
+        currency: 'EUR',
+        date: date,
+        history: [PricePoint(date, 12)],
+        operations: [
+          FundOperation(
+            isin: 'NOSETTLEMENT',
+            date: date.subtract(const Duration(days: 30)),
+            type: OperationType.buy,
+            units: 10,
+            price: 10,
+            amount: 100,
+          ),
+        ],
+        costPeriods: [
+          FundCostPeriod(
+            concept: FundCostConcept.performance,
+            ratePercent: 10,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: date.subtract(const Duration(days: 10)),
+          ),
+        ],
+      );
+
+      final estimate = FinancialCalculator.estimateCurrentFundCosts(
+        fund,
+        asOf: date,
+      );
+
+      expect(estimate.hasPerformanceRate, isFalse);
+      expect(estimate.potentialPerformanceFee, 0);
     });
   });
 

@@ -1076,6 +1076,18 @@ abstract class AppLocalizations {
   /// **'Mercado'**
   String get marketTab;
 
+  /// No description provided for @marketOperations.
+  ///
+  /// In es, this message translates to:
+  /// **'Operaciones'**
+  String get marketOperations;
+
+  /// No description provided for @marketCosts.
+  ///
+  /// In es, this message translates to:
+  /// **'Costes'**
+  String get marketCosts;
+
   /// No description provided for @updateDataTooltip.
   ///
   /// In es, this message translates to:
@@ -1310,6 +1322,12 @@ abstract class AppLocalizations {
   /// **'No se pudo guardar la operación'**
   String get saveOperationFailed;
 
+  /// No description provided for @saveCostsFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron guardar los costes.'**
+  String get saveCostsFailed;
+
   /// No description provided for @buy.
   ///
   /// In es, this message translates to:
@@ -1405,6 +1423,372 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'(Plusvalía Neta est.)'**
   String get netProfitEstLabel;
+
+  /// No description provided for @netProfitRecordedLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'(Tras cargos externos registrados; VL ya neto)'**
+  String get netProfitRecordedLabel;
+
+  /// No description provided for @costPeriodsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarifas por periodo'**
+  String get costPeriodsTitle;
+
+  /// No description provided for @costChargesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Cargos externos registrados'**
+  String get costChargesTitle;
+
+  /// No description provided for @costPeriodsEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay tarifas históricas registradas.'**
+  String get costPeriodsEmpty;
+
+  /// No description provided for @costChargesEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay cargos externos registrados.'**
+  String get costChargesEmpty;
+
+  /// No description provided for @costHelpTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Ayuda sobre los costes'**
+  String get costHelpTooltip;
+
+  /// No description provided for @costHelpTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo se contabilizan los costes'**
+  String get costHelpTitle;
+
+  /// No description provided for @costHelpNav.
+  ///
+  /// In es, this message translates to:
+  /// **'El valor liquidativo (VL) normalmente ya descuenta los gastos propios del fondo. Los costes marcados como incluidos en el VL son informativos y no se restan otra vez.'**
+  String get costHelpNav;
+
+  /// No description provided for @costHelpTer.
+  ///
+  /// In es, this message translates to:
+  /// **'El TER puede incluir gestión, depositaría y gastos operativos. Si registras el TER total, no sumes además sus componentes.'**
+  String get costHelpTer;
+
+  /// No description provided for @costHelpRates.
+  ///
+  /// In es, this message translates to:
+  /// **'Las tarifas describen porcentajes y periodos, no importes pagados. Las tarifas externas recurrentes vigentes generan una estimación anual. La comisión de resultados potencial solo se muestra cuando está vinculada a una liquidación previa y hay valor liquidativo para comparar; si falta esa referencia, se oculta. Ninguna estimación modifica la plusvalía neta registrada.'**
+  String get costHelpRates;
+
+  /// No description provided for @costHelpExternal.
+  ///
+  /// In es, this message translates to:
+  /// **'Registra como cargo externo solo el importe cobrado aparte al inversor, por ejemplo una comisión de entrada, salida, comercialización o custodia. Se admite desde la primera suscripción hasta hoy, aunque el VL disponible sea anterior.'**
+  String get costHelpExternal;
+
+  /// No description provided for @costHelpNet.
+  ///
+  /// In es, this message translates to:
+  /// **'La plusvalía neta se calcula como plusvalía bruta menos los cargos externos registrados dentro del periodo de inversión. Los costes ya incluidos en el VL no vuelven a descontarse.'**
+  String get costHelpNet;
+
+  /// No description provided for @costEstimateTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Estimación con tarifas vigentes'**
+  String get costEstimateTitle;
+
+  /// No description provided for @costAnnualEstimate.
+  ///
+  /// In es, this message translates to:
+  /// **'Coste anual recurrente'**
+  String get costAnnualEstimate;
+
+  /// No description provided for @costAnnualEstimateNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Porcentaje anual sobre la posición, valorada al último VL disponible. No se resta del neto.'**
+  String get costAnnualEstimateNote;
+
+  /// No description provided for @costPerformancePotential.
+  ///
+  /// In es, this message translates to:
+  /// **'Comisión de resultados potencial'**
+  String get costPerformancePotential;
+
+  /// No description provided for @costPerformancePotentialNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Incremento estimado desde la última liquidación vinculada; no es anual ni se resta del neto.'**
+  String get costPerformancePotentialNote;
+
+  /// No description provided for @costPerformancePeriod.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarifa de resultados vinculada'**
+  String get costPerformancePeriod;
+
+  /// No description provided for @costSettlementUnlinked.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin tarifa vinculada'**
+  String get costSettlementUnlinked;
+
+  /// No description provided for @costSettlementPeriodUnavailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarifa ya no disponible'**
+  String get costSettlementPeriodUnavailable;
+
+  /// No description provided for @costSettledThrough.
+  ///
+  /// In es, this message translates to:
+  /// **'Liquidada hasta'**
+  String get costSettledThrough;
+
+  /// No description provided for @costSettlementUnspecified.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin fecha de liquidación'**
+  String get costSettlementUnspecified;
+
+  /// No description provided for @costSettlementDateInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'La fecha de liquidación no puede ser posterior al cargo.'**
+  String get costSettlementDateInvalid;
+
+  /// No description provided for @addCostPeriod.
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir tarifa'**
+  String get addCostPeriod;
+
+  /// No description provided for @editCostPeriod.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar tarifa'**
+  String get editCostPeriod;
+
+  /// No description provided for @addCostCharge.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar cargo'**
+  String get addCostCharge;
+
+  /// No description provided for @editCostCharge.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar cargo'**
+  String get editCostCharge;
+
+  /// No description provided for @costConcept.
+  ///
+  /// In es, this message translates to:
+  /// **'Concepto'**
+  String get costConcept;
+
+  /// No description provided for @costRate.
+  ///
+  /// In es, this message translates to:
+  /// **'Tasa (%)'**
+  String get costRate;
+
+  /// No description provided for @costBasis.
+  ///
+  /// In es, this message translates to:
+  /// **'Base'**
+  String get costBasis;
+
+  /// No description provided for @costTreatment.
+  ///
+  /// In es, this message translates to:
+  /// **'Tratamiento'**
+  String get costTreatment;
+
+  /// No description provided for @costStartDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Vigente desde'**
+  String get costStartDate;
+
+  /// No description provided for @costEndDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Vigente hasta (opcional)'**
+  String get costEndDate;
+
+  /// No description provided for @costNoEndDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin fecha de fin'**
+  String get costNoEndDate;
+
+  /// No description provided for @costAnnualBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'% anual sobre el saldo'**
+  String get costAnnualBalance;
+
+  /// No description provided for @costPositiveProfit.
+  ///
+  /// In es, this message translates to:
+  /// **'% sobre beneficio positivo'**
+  String get costPositiveProfit;
+
+  /// No description provided for @costIncludedInNav.
+  ///
+  /// In es, this message translates to:
+  /// **'Incluido en VL'**
+  String get costIncludedInNav;
+
+  /// No description provided for @costChargedSeparately.
+  ///
+  /// In es, this message translates to:
+  /// **'Cobrado aparte'**
+  String get costChargedSeparately;
+
+  /// No description provided for @costTreatmentUnknown.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendiente de clasificar'**
+  String get costTreatmentUnknown;
+
+  /// No description provided for @costLegacyDateUnknown.
+  ///
+  /// In es, this message translates to:
+  /// **'Periodo histórico sin fecha conocida'**
+  String get costLegacyDateUnknown;
+
+  /// No description provided for @costDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Descripción (opcional)'**
+  String get costDescription;
+
+  /// No description provided for @costAmount.
+  ///
+  /// In es, this message translates to:
+  /// **'Importe cobrado'**
+  String get costAmount;
+
+  /// No description provided for @costDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha del cargo'**
+  String get costDate;
+
+  /// No description provided for @costRateInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce una tasa válida igual o superior a cero.'**
+  String get costRateInvalid;
+
+  /// No description provided for @costPeriodInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'La fecha final debe ser igual o posterior a la inicial.'**
+  String get costPeriodInvalid;
+
+  /// No description provided for @costPeriodOverlap.
+  ///
+  /// In es, this message translates to:
+  /// **'Ya existe una tarifa del mismo concepto en ese periodo.'**
+  String get costPeriodOverlap;
+
+  /// No description provided for @costChargeInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce un importe cobrado mayor que cero.'**
+  String get costChargeInvalid;
+
+  /// No description provided for @deleteCostTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar coste'**
+  String get deleteCostTitle;
+
+  /// No description provided for @deleteCostConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quieres eliminar este registro?'**
+  String get deleteCostConfirm;
+
+  /// No description provided for @costConceptTer.
+  ///
+  /// In es, this message translates to:
+  /// **'TER total'**
+  String get costConceptTer;
+
+  /// No description provided for @costConceptManagement.
+  ///
+  /// In es, this message translates to:
+  /// **'Gestión'**
+  String get costConceptManagement;
+
+  /// No description provided for @costConceptDepositary.
+  ///
+  /// In es, this message translates to:
+  /// **'Depositario'**
+  String get costConceptDepositary;
+
+  /// No description provided for @costConceptOperating.
+  ///
+  /// In es, this message translates to:
+  /// **'Gastos operativos'**
+  String get costConceptOperating;
+
+  /// No description provided for @costConceptSubscription.
+  ///
+  /// In es, this message translates to:
+  /// **'Suscripción o entrada'**
+  String get costConceptSubscription;
+
+  /// No description provided for @costConceptRedemption.
+  ///
+  /// In es, this message translates to:
+  /// **'Reembolso o salida'**
+  String get costConceptRedemption;
+
+  /// No description provided for @costConceptTransfer.
+  ///
+  /// In es, this message translates to:
+  /// **'Traspaso o cambio'**
+  String get costConceptTransfer;
+
+  /// No description provided for @costConceptDistributor.
+  ///
+  /// In es, this message translates to:
+  /// **'Comercializador o intermediario'**
+  String get costConceptDistributor;
+
+  /// No description provided for @costConceptCustody.
+  ///
+  /// In es, this message translates to:
+  /// **'Custodia o mantenimiento'**
+  String get costConceptCustody;
+
+  /// No description provided for @costConceptPerformance.
+  ///
+  /// In es, this message translates to:
+  /// **'Comisión de resultados'**
+  String get costConceptPerformance;
+
+  /// No description provided for @costConceptTax.
+  ///
+  /// In es, this message translates to:
+  /// **'Impuestos asociados'**
+  String get costConceptTax;
+
+  /// No description provided for @costConceptOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Otro'**
+  String get costConceptOther;
 
   /// No description provided for @managementFeesTitle.
   ///
@@ -1517,7 +1901,7 @@ abstract class AppLocalizations {
   /// No description provided for @ageDesc.
   ///
   /// In es, this message translates to:
-  /// **'Tiempo transcurrido desde la primera operación.'**
+  /// **'Tiempo transcurrido desde la primera suscripción.'**
   String get ageDesc;
 
   /// No description provided for @breakEvenDesc.

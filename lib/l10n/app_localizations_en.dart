@@ -544,6 +544,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get marketTab => 'Market';
 
   @override
+  String get marketOperations => 'Operations';
+
+  @override
+  String get marketCosts => 'Costs';
+
+  @override
   String get updateDataTooltip => 'Update data';
 
   @override
@@ -670,6 +676,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveOperationFailed => 'Could not save the operation';
 
   @override
+  String get saveCostsFailed => 'Could not save costs.';
+
+  @override
   String get buy => 'Buy';
 
   @override
@@ -717,6 +726,200 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get netProfitEstLabel => '(Est. Net Profit)';
+
+  @override
+  String get netProfitRecordedLabel =>
+      '(After recorded external charges; NAV already net)';
+
+  @override
+  String get costPeriodsTitle => 'Rates by period';
+
+  @override
+  String get costChargesTitle => 'Recorded external charges';
+
+  @override
+  String get costPeriodsEmpty => 'No historical rates recorded.';
+
+  @override
+  String get costChargesEmpty => 'No external charges recorded.';
+
+  @override
+  String get costHelpTooltip => 'Cost help';
+
+  @override
+  String get costHelpTitle => 'How costs are accounted for';
+
+  @override
+  String get costHelpNav =>
+      'The net asset value (NAV) normally already reflects the fund\'s own expenses. Costs marked as included in NAV are informational and are not deducted again.';
+
+  @override
+  String get costHelpTer =>
+      'TER may include management, depositary and operating expenses. If you record total TER, do not add its components as well.';
+
+  @override
+  String get costHelpRates =>
+      'Rates describe percentages and periods, not amounts paid. Active external recurring rates produce an annual estimate. Potential performance fees appear only when linked to a previous settlement and a NAV is available for comparison; otherwise they are hidden. Estimates do not change recorded net profit.';
+
+  @override
+  String get costHelpExternal =>
+      'Record only amounts charged separately to the investor, such as entry, exit, distribution or custody fees. They can be dated from the first subscription through today, even if the latest NAV is older.';
+
+  @override
+  String get costHelpNet =>
+      'Net profit is calculated as gross profit minus external charges recorded within the investment period. Costs already included in NAV are not deducted again.';
+
+  @override
+  String get costEstimateTitle => 'Estimate using current rates';
+
+  @override
+  String get costAnnualEstimate => 'Annual recurring cost';
+
+  @override
+  String get costAnnualEstimateNote =>
+      'Annual rate applied to the position using the latest available NAV. Not deducted from net profit.';
+
+  @override
+  String get costPerformancePotential => 'Potential performance fee';
+
+  @override
+  String get costPerformancePotentialNote =>
+      'Estimated increase since the linked settlement; it is not annual and is not deducted from net profit.';
+
+  @override
+  String get costPerformancePeriod => 'Linked performance-fee rate';
+
+  @override
+  String get costSettlementUnlinked => 'No linked rate';
+
+  @override
+  String get costSettlementPeriodUnavailable => 'Rate no longer available';
+
+  @override
+  String get costSettledThrough => 'Settled through';
+
+  @override
+  String get costSettlementUnspecified => 'Settlement date not specified';
+
+  @override
+  String get costSettlementDateInvalid =>
+      'The settlement date cannot be later than the charge.';
+
+  @override
+  String get addCostPeriod => 'Add rate';
+
+  @override
+  String get editCostPeriod => 'Edit rate';
+
+  @override
+  String get addCostCharge => 'Record charge';
+
+  @override
+  String get editCostCharge => 'Edit charge';
+
+  @override
+  String get costConcept => 'Concept';
+
+  @override
+  String get costRate => 'Rate (%)';
+
+  @override
+  String get costBasis => 'Basis';
+
+  @override
+  String get costTreatment => 'Treatment';
+
+  @override
+  String get costStartDate => 'Effective from';
+
+  @override
+  String get costEndDate => 'Effective until (optional)';
+
+  @override
+  String get costNoEndDate => 'No end date';
+
+  @override
+  String get costAnnualBalance => '% annually on balance';
+
+  @override
+  String get costPositiveProfit => '% on positive profit';
+
+  @override
+  String get costIncludedInNav => 'Included in NAV';
+
+  @override
+  String get costChargedSeparately => 'Charged separately';
+
+  @override
+  String get costTreatmentUnknown => 'Unclassified';
+
+  @override
+  String get costLegacyDateUnknown => 'Historical period date unknown';
+
+  @override
+  String get costDescription => 'Description (optional)';
+
+  @override
+  String get costAmount => 'Amount charged';
+
+  @override
+  String get costDate => 'Charge date';
+
+  @override
+  String get costRateInvalid => 'Enter a valid rate of zero or more.';
+
+  @override
+  String get costPeriodInvalid =>
+      'The end date must be on or after the start date.';
+
+  @override
+  String get costPeriodOverlap =>
+      'A rate for this concept already exists in that period.';
+
+  @override
+  String get costChargeInvalid => 'Enter an amount charged greater than zero.';
+
+  @override
+  String get deleteCostTitle => 'Delete cost';
+
+  @override
+  String get deleteCostConfirm => 'Delete this record?';
+
+  @override
+  String get costConceptTer => 'Total TER';
+
+  @override
+  String get costConceptManagement => 'Management';
+
+  @override
+  String get costConceptDepositary => 'Depositary';
+
+  @override
+  String get costConceptOperating => 'Operating expenses';
+
+  @override
+  String get costConceptSubscription => 'Subscription or entry';
+
+  @override
+  String get costConceptRedemption => 'Redemption or exit';
+
+  @override
+  String get costConceptTransfer => 'Transfer or switch';
+
+  @override
+  String get costConceptDistributor => 'Distributor or broker';
+
+  @override
+  String get costConceptCustody => 'Custody or account maintenance';
+
+  @override
+  String get costConceptPerformance => 'Performance fee';
+
+  @override
+  String get costConceptTax => 'Related taxes';
+
+  @override
+  String get costConceptOther => 'Other';
 
   @override
   String get managementFeesTitle => 'Management Fees';
@@ -777,7 +980,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moicDesc => 'Final capital obtained for each euro invested.';
 
   @override
-  String get ageDesc => 'Time elapsed since the first operation.';
+  String get ageDesc => 'Time elapsed since the first subscription.';
 
   @override
   String get breakEvenDesc => 'Price needed to avoid losses.';

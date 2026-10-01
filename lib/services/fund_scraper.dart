@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+import '../models/fund_cost.dart';
 import '../utils/app_error.dart';
 
 class PricePoint {
@@ -77,6 +78,8 @@ class FundData {
   final double? alertMax;
   final double? ter;
   final double? performanceFee;
+  final List<FundCostPeriod> costPeriods;
+  final List<FundCostCharge> costCharges;
   final int? morningstarRating;
   final DateTime? morningstarCheckedAt;
   final DateTime? morningstarLastAttemptAt;
@@ -94,10 +97,16 @@ class FundData {
     this.alertMax,
     this.ter,
     this.performanceFee,
+    List<FundCostPeriod>? costPeriods,
+    List<FundCostCharge> costCharges = const [],
     this.morningstarRating,
     this.morningstarCheckedAt,
     this.morningstarLastAttemptAt,
-  }) : history = _syncHistory(history, lastValue, date);
+  }) : history = _syncHistory(history, lastValue, date),
+       costPeriods = List.unmodifiable(
+         costPeriods ?? _legacyCostPeriods(ter, performanceFee),
+       ),
+       costCharges = List.unmodifiable(costCharges);
 
   // Asegura que lastValue esté en history y sea el punto más reciente para esa fecha
   static List<PricePoint> _syncHistory(
@@ -145,6 +154,8 @@ class FundData {
     'alertMax': alertMax,
     'ter': ter,
     'performanceFee': performanceFee,
+    'costPeriods': costPeriods.map((cost) => cost.toJson()).toList(),
+    'costCharges': costCharges.map((charge) => charge.toJson()).toList(),
     'morningstarRating': morningstarRating,
     'morningstarCheckedAt': morningstarCheckedAt?.toIso8601String(),
     'morningstarLastAttemptAt': morningstarLastAttemptAt?.toIso8601String(),
@@ -174,6 +185,12 @@ class FundData {
     alertMax: json['alertMax']?.toDouble(),
     ter: json['ter']?.toDouble(),
     performanceFee: json['performanceFee']?.toDouble(),
+    costPeriods: _readCostPeriods(json),
+    costCharges:
+        (json['costCharges'] as List?)
+            ?.map((item) => FundCostCharge.fromJson(item))
+            .toList() ??
+        [],
     morningstarRating: (json['morningstarRating'] as num?)?.toInt(),
     morningstarCheckedAt: DateTime.tryParse(
       json['morningstarCheckedAt'] as String? ?? '',
@@ -182,6 +199,45 @@ class FundData {
       json['morningstarLastAttemptAt'] as String? ?? '',
     ),
   );
+
+  static List<FundCostPeriod> _readCostPeriods(Map<String, dynamic> json) {
+    final serialized = json['costPeriods'] as List?;
+    if (serialized != null) {
+      return serialized.map((item) => FundCostPeriod.fromJson(item)).toList();
+    }
+
+    final ter = (json['ter'] as num?)?.toDouble();
+    final performanceFee = (json['performanceFee'] as num?)?.toDouble();
+    return _legacyCostPeriods(ter, performanceFee);
+  }
+
+  static List<FundCostPeriod> _legacyCostPeriods(
+    double? ter,
+    double? performanceFee,
+  ) {
+    final periods = <FundCostPeriod>[];
+    if (ter != null) {
+      periods.add(
+        FundCostPeriod(
+          concept: FundCostConcept.ter,
+          ratePercent: ter,
+          basis: FundCostRateBasis.annualBalance,
+          treatment: FundCostTreatment.includedInNav,
+        ),
+      );
+    }
+    if (performanceFee != null) {
+      periods.add(
+        FundCostPeriod(
+          concept: FundCostConcept.performance,
+          ratePercent: performanceFee,
+          basis: FundCostRateBasis.positiveProfit,
+          treatment: FundCostTreatment.unknown,
+        ),
+      );
+    }
+    return periods;
+  }
 }
 
 class ScrapeResult {

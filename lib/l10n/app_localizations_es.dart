@@ -548,6 +548,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get marketTab => 'Mercado';
 
   @override
+  String get marketOperations => 'Operaciones';
+
+  @override
+  String get marketCosts => 'Costes';
+
+  @override
   String get updateDataTooltip => 'Actualizar datos';
 
   @override
@@ -674,6 +680,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get saveOperationFailed => 'No se pudo guardar la operación';
 
   @override
+  String get saveCostsFailed => 'No se pudieron guardar los costes.';
+
+  @override
   String get buy => 'Compra';
 
   @override
@@ -722,6 +731,202 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get netProfitEstLabel => '(Plusvalía Neta est.)';
+
+  @override
+  String get netProfitRecordedLabel =>
+      '(Tras cargos externos registrados; VL ya neto)';
+
+  @override
+  String get costPeriodsTitle => 'Tarifas por periodo';
+
+  @override
+  String get costChargesTitle => 'Cargos externos registrados';
+
+  @override
+  String get costPeriodsEmpty => 'No hay tarifas históricas registradas.';
+
+  @override
+  String get costChargesEmpty => 'No hay cargos externos registrados.';
+
+  @override
+  String get costHelpTooltip => 'Ayuda sobre los costes';
+
+  @override
+  String get costHelpTitle => 'Cómo se contabilizan los costes';
+
+  @override
+  String get costHelpNav =>
+      'El valor liquidativo (VL) normalmente ya descuenta los gastos propios del fondo. Los costes marcados como incluidos en el VL son informativos y no se restan otra vez.';
+
+  @override
+  String get costHelpTer =>
+      'El TER puede incluir gestión, depositaría y gastos operativos. Si registras el TER total, no sumes además sus componentes.';
+
+  @override
+  String get costHelpRates =>
+      'Las tarifas describen porcentajes y periodos, no importes pagados. Las tarifas externas recurrentes vigentes generan una estimación anual. La comisión de resultados potencial solo se muestra cuando está vinculada a una liquidación previa y hay valor liquidativo para comparar; si falta esa referencia, se oculta. Ninguna estimación modifica la plusvalía neta registrada.';
+
+  @override
+  String get costHelpExternal =>
+      'Registra como cargo externo solo el importe cobrado aparte al inversor, por ejemplo una comisión de entrada, salida, comercialización o custodia. Se admite desde la primera suscripción hasta hoy, aunque el VL disponible sea anterior.';
+
+  @override
+  String get costHelpNet =>
+      'La plusvalía neta se calcula como plusvalía bruta menos los cargos externos registrados dentro del periodo de inversión. Los costes ya incluidos en el VL no vuelven a descontarse.';
+
+  @override
+  String get costEstimateTitle => 'Estimación con tarifas vigentes';
+
+  @override
+  String get costAnnualEstimate => 'Coste anual recurrente';
+
+  @override
+  String get costAnnualEstimateNote =>
+      'Porcentaje anual sobre la posición, valorada al último VL disponible. No se resta del neto.';
+
+  @override
+  String get costPerformancePotential => 'Comisión de resultados potencial';
+
+  @override
+  String get costPerformancePotentialNote =>
+      'Incremento estimado desde la última liquidación vinculada; no es anual ni se resta del neto.';
+
+  @override
+  String get costPerformancePeriod => 'Tarifa de resultados vinculada';
+
+  @override
+  String get costSettlementUnlinked => 'Sin tarifa vinculada';
+
+  @override
+  String get costSettlementPeriodUnavailable => 'Tarifa ya no disponible';
+
+  @override
+  String get costSettledThrough => 'Liquidada hasta';
+
+  @override
+  String get costSettlementUnspecified => 'Sin fecha de liquidación';
+
+  @override
+  String get costSettlementDateInvalid =>
+      'La fecha de liquidación no puede ser posterior al cargo.';
+
+  @override
+  String get addCostPeriod => 'Añadir tarifa';
+
+  @override
+  String get editCostPeriod => 'Editar tarifa';
+
+  @override
+  String get addCostCharge => 'Registrar cargo';
+
+  @override
+  String get editCostCharge => 'Editar cargo';
+
+  @override
+  String get costConcept => 'Concepto';
+
+  @override
+  String get costRate => 'Tasa (%)';
+
+  @override
+  String get costBasis => 'Base';
+
+  @override
+  String get costTreatment => 'Tratamiento';
+
+  @override
+  String get costStartDate => 'Vigente desde';
+
+  @override
+  String get costEndDate => 'Vigente hasta (opcional)';
+
+  @override
+  String get costNoEndDate => 'Sin fecha de fin';
+
+  @override
+  String get costAnnualBalance => '% anual sobre el saldo';
+
+  @override
+  String get costPositiveProfit => '% sobre beneficio positivo';
+
+  @override
+  String get costIncludedInNav => 'Incluido en VL';
+
+  @override
+  String get costChargedSeparately => 'Cobrado aparte';
+
+  @override
+  String get costTreatmentUnknown => 'Pendiente de clasificar';
+
+  @override
+  String get costLegacyDateUnknown => 'Periodo histórico sin fecha conocida';
+
+  @override
+  String get costDescription => 'Descripción (opcional)';
+
+  @override
+  String get costAmount => 'Importe cobrado';
+
+  @override
+  String get costDate => 'Fecha del cargo';
+
+  @override
+  String get costRateInvalid =>
+      'Introduce una tasa válida igual o superior a cero.';
+
+  @override
+  String get costPeriodInvalid =>
+      'La fecha final debe ser igual o posterior a la inicial.';
+
+  @override
+  String get costPeriodOverlap =>
+      'Ya existe una tarifa del mismo concepto en ese periodo.';
+
+  @override
+  String get costChargeInvalid =>
+      'Introduce un importe cobrado mayor que cero.';
+
+  @override
+  String get deleteCostTitle => 'Eliminar coste';
+
+  @override
+  String get deleteCostConfirm => '¿Quieres eliminar este registro?';
+
+  @override
+  String get costConceptTer => 'TER total';
+
+  @override
+  String get costConceptManagement => 'Gestión';
+
+  @override
+  String get costConceptDepositary => 'Depositario';
+
+  @override
+  String get costConceptOperating => 'Gastos operativos';
+
+  @override
+  String get costConceptSubscription => 'Suscripción o entrada';
+
+  @override
+  String get costConceptRedemption => 'Reembolso o salida';
+
+  @override
+  String get costConceptTransfer => 'Traspaso o cambio';
+
+  @override
+  String get costConceptDistributor => 'Comercializador o intermediario';
+
+  @override
+  String get costConceptCustody => 'Custodia o mantenimiento';
+
+  @override
+  String get costConceptPerformance => 'Comisión de resultados';
+
+  @override
+  String get costConceptTax => 'Impuestos asociados';
+
+  @override
+  String get costConceptOther => 'Otro';
 
   @override
   String get managementFeesTitle => 'Costes de Gestión';
@@ -782,7 +987,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get moicDesc => 'Capital final obtenido por cada euro invertido.';
 
   @override
-  String get ageDesc => 'Tiempo transcurrido desde la primera operación.';
+  String get ageDesc => 'Tiempo transcurrido desde la primera suscripción.';
 
   @override
   String get breakEvenDesc => 'Precio necesario para no tener pérdidas.';

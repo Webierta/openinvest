@@ -24,45 +24,6 @@ class FundBalanceTab extends StatefulWidget {
 }
 
 class _FundBalanceTabState extends State<FundBalanceTab> {
-  late TextEditingController _fixedFeeController;
-  late TextEditingController _perfFeeController;
-
-  @override
-  void initState() {
-    super.initState();
-    _fixedFeeController = TextEditingController(
-      text: widget.fund.ter?.toString().replaceAll('.', ',') ?? '',
-    );
-    _perfFeeController = TextEditingController(
-      text: widget.fund.performanceFee?.toString().replaceAll('.', ',') ?? '',
-    );
-  }
-
-  @override
-  void didUpdateWidget(FundBalanceTab oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.fund.ter != widget.fund.ter) {
-      final newText = widget.fund.ter?.toString().replaceAll('.', ',') ?? '';
-      if (_fixedFeeController.text != newText) {
-        _fixedFeeController.text = newText;
-      }
-    }
-    if (oldWidget.fund.performanceFee != widget.fund.performanceFee) {
-      final newText =
-          widget.fund.performanceFee?.toString().replaceAll('.', ',') ?? '';
-      if (_perfFeeController.text != newText) {
-        _perfFeeController.text = newText;
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _fixedFeeController.dispose();
-    _perfFeeController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -70,8 +31,6 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     final locale = Localizations.localeOf(context).toString();
     final smartFormat = NumberFormat('#,##0.##', locale);
     final unitsFormat = NumberFormat('#,##0.####', locale);
-    final feeHintFormat = NumberFormat('0.00', locale);
-
     final metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
 
     final profitColor = metrics.profitAbs >= 0
@@ -114,45 +73,8 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
       }
     }
 
-    // Cálculos de costes de gestión
-    final fixedFee = widget.fund.ter ?? 0.0;
-    final perfFee = widget.fund.performanceFee ?? 0.0;
-
-    // 1. Costes Fijos (sobre valor actual)
-    final estFixedAnnualCost = metrics.currentValue * (fixedFee / 100);
-
-    // 2. Comisión de Resultados (sobre plusvalía bruta si es positiva)
-    final estPerfAnnualCost =
-    metrics.profitAbs > 0 ? metrics.profitAbs * (perfFee / 100) : 0.0;
-
-    final totalEstAnnualCost = estFixedAnnualCost + estPerfAnnualCost;
-    final totalEstMonthlyCost = totalEstAnnualCost / 12;
-
-    // Cálculo de Plusvalía Neta (Estimación histórica acumulada)
-    double netProfit = metrics.profitAbs;
-    double netProfitPercent = metrics.profitRel;
-    double totalAccumulatedCost = 0.0;
-
-    if ((fixedFee > 0 || perfFee > 0) && metrics.days > 0) {
-      final double yearsHeld = metrics.days / 365.25;
-
-      // Estimación costes fijos: media entre inversión inicial y actual por tiempo
-      final accumulatedFixed =
-          ((metrics.currentValue + metrics.totalInvested) / 2) *
-              (fixedFee / 100) *
-              yearsHeld;
-
-      // Estimación comisión resultados: aplicada sobre la plusvalía actual
-      final accumulatedPerf =
-      metrics.profitAbs > 0 ? metrics.profitAbs * (perfFee / 100) : 0.0;
-
-      totalAccumulatedCost = accumulatedFixed + accumulatedPerf;
-      netProfit = metrics.profitAbs - totalAccumulatedCost;
-      netProfitPercent =
-      metrics.totalInvested > 0
-          ? (netProfit / metrics.totalInvested) * 100
-          : 0.0;
-    }
+    final netProfit = metrics.netProfit;
+    final netProfitPercent = metrics.netProfitRel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +102,9 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              metrics.profitAbs > 0 ? l10n.grossProfitLabel : l10n.grossLossLabel,
+              metrics.profitAbs > 0
+                  ? l10n.grossProfitLabel
+                  : l10n.grossLossLabel,
               style: const TextStyle(color: Colors.white70),
             ),
             Column(
@@ -206,7 +130,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             ),
           ],
         ),
-        if (totalAccumulatedCost > 0) ...[
+        if (metrics.recordedExternalCosts > 0) ...[
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -222,7 +146,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
                     ),
                   ),
                   Text(
-                    l10n.netProfitEstLabel,
+                    l10n.netProfitRecordedLabel,
                     style: const TextStyle(color: Colors.white38, fontSize: 10),
                   ),
                 ],
@@ -233,10 +157,9 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
                   Text(
                     '${netProfit > 0 ? '+' : ''}${smartFormat.format(netProfit)} ${widget.fund.currency}',
                     style: TextStyle(
-                      color:
-                          netProfit >= 0
-                              ? Colors.greenAccent[400]
-                              : Colors.redAccent[200],
+                      color: netProfit >= 0
+                          ? Colors.greenAccent[400]
+                          : Colors.redAccent[200],
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -244,10 +167,9 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
                   Text(
                     '${netProfitPercent > 0 ? '+' : ''}${widget.percentFormat.format(netProfitPercent)}%',
                     style: TextStyle(
-                      color:
-                          netProfit >= 0
-                              ? Colors.greenAccent[400]
-                              : Colors.redAccent[200],
+                      color: netProfit >= 0
+                          ? Colors.greenAccent[400]
+                          : Colors.redAccent[200],
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -257,77 +179,6 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             ],
           ),
         ],
-        const Divider(height: 32, color: Colors.white10),
-        // SECCIÓN COSTES DE GESTIÓN
-        Text(
-          l10n.managementFeesTitle,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildFeeInput(
-                label: l10n.fixedFeesLabel,
-                hint: feeHintFormat.format(0),
-                suffix: l10n.fixedFeesSuffix,
-                controller: _fixedFeeController,
-                onSave: () {
-                  final f = double.tryParse(
-                    _fixedFeeController.text.replaceAll(',', '.'),
-                  );
-                  final p = double.tryParse(
-                    _perfFeeController.text.replaceAll(',', '.'),
-                  );
-                  context.read<FundProvider>().setFees(widget.fund.isin, f, p);
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildFeeInput(
-                label: l10n.perfFeesLabel,
-                hint: feeHintFormat.format(0),
-                suffix: l10n.perfFeesSuffix,
-                controller: _perfFeeController,
-                onSave: () {
-                  final f = double.tryParse(
-                    _fixedFeeController.text.replaceAll(',', '.'),
-                  );
-                  final p = double.tryParse(
-                    _perfFeeController.text.replaceAll(',', '.'),
-                  );
-                  context.read<FundProvider>().setFees(widget.fund.isin, f, p);
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSimpleStat(
-                l10n.annualCostEstLabel,
-                '${smartFormat.format(totalEstAnnualCost)} ${widget.fund.currency}',
-                color: Colors.orangeAccent.withValues(alpha: 0.8),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSimpleStat(
-                l10n.monthlyCostEstLabel,
-                '${smartFormat.format(totalEstMonthlyCost)} ${widget.fund.currency}',
-                color: Colors.orangeAccent.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-
         const Divider(height: 40, color: Colors.white10),
         Row(
           children: [
@@ -375,9 +226,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: _buildSimpleStat(l10n.twrTotalLabel, twrTotalStr),
-            ),
+            Expanded(child: _buildSimpleStat(l10n.twrTotalLabel, twrTotalStr)),
             const SizedBox(width: 12),
             Expanded(
               child: _buildSimpleStat(
@@ -392,10 +241,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
         Row(
           children: [
             Expanded(
-              child: _buildSimpleStat(
-                l10n.mwrHistoricalLabel,
-                mwrTotalStr,
-              ),
+              child: _buildSimpleStat(l10n.mwrHistoricalLabel, mwrTotalStr),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -418,74 +264,6 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
               ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeeInput({
-    required String label,
-    required String hint,
-    required String suffix,
-    required TextEditingController controller,
-    required VoidCallback onSave,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Colors.white38,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          height: 38,
-          child: TextField(
-            controller: controller,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textInputAction: TextInputAction.done,
-            textAlign: TextAlign.end,
-            style: const TextStyle(
-              color: Colors.blueAccent,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: Colors.white12),
-              suffixText: suffix,
-              suffixStyle: const TextStyle(color: Colors.white24, fontSize: 9),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.05),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.1),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                  color: Colors.blueAccent,
-                  width: 1.5,
-                ),
-              ),
-            ),
-            onSubmitted: (_) => onSave(),
-            onTapOutside: (_) {
-              onSave();
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
-          ),
         ),
       ],
     );
@@ -572,9 +350,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                l10n.bruteReturnsNote,
-              ),
+              Text(l10n.bruteReturnsNote),
               _IndexInfoRow(
                 title: l10n.annualizedReturnLabel,
                 description: l10n.aprTaeDesc,
@@ -587,14 +363,8 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
                 title: l10n.mwrInfoTitle,
                 description: l10n.mwrIrrDesc,
               ),
-              _IndexInfoRow(
-                title: l10n.moicLabel,
-                description: l10n.moicDesc,
-              ),
-              _IndexInfoRow(
-                title: l10n.ageLabel,
-                description: l10n.ageDesc,
-              ),
+              _IndexInfoRow(title: l10n.moicLabel, description: l10n.moicDesc),
+              _IndexInfoRow(title: l10n.ageLabel, description: l10n.ageDesc),
               _IndexInfoRow(
                 title: l10n.breakEvenLabel,
                 description: l10n.breakEvenDesc,

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
+import '../models/fund_cost.dart';
 import 'fund_scraper.dart';
 
 class DatabaseService {
@@ -42,7 +43,7 @@ class DatabaseService {
 
     return await openDatabase(
       newPath,
-      version: 8,
+      version: 10,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE funds (
@@ -80,6 +81,7 @@ class DatabaseService {
             amount REAL
           )
         ''');
+        await _createCostTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -151,9 +153,259 @@ class DatabaseService {
             'ALTER TABLE funds ADD COLUMN morningstar_last_attempt_at TEXT',
           );
         }
+        if (oldVersion < 9) {
+          await _createCostTables(db);
+          await db.execute('''
+            INSERT INTO fund_cost_periods
+              (isin, concept, rate_percent, basis, treatment,
+               valid_from, valid_to, description)
+            SELECT isin, 'ter', ter, 'annualBalance', 'includedInNav',
+                   NULL, NULL, NULL
+            FROM funds WHERE ter IS NOT NULL
+          ''');
+          await db.execute('''
+            INSERT INTO fund_cost_periods
+              (isin, concept, rate_percent, basis, treatment,
+               valid_from, valid_to, description)
+            SELECT isin, 'performance', performance_fee, 'positiveProfit',
+                   'unknown', NULL, NULL,
+                   NULL
+            FROM funds WHERE performance_fee IS NOT NULL
+          ''');
+        }
+        if (oldVersion < 10) {
+          final columns = await db.rawQuery(
+            'PRAGMA table_info(fund_cost_charges)',
+          );
+          final columnNames = columns.map((column) => column['name']).toSet();
+          if (!columnNames.contains('performance_period_uid')) {
+            await db.execute(
+              'ALTER TABLE fund_cost_charges ADD COLUMN performance_period_uid TEXT',
+            );
+          }
+          if (!columnNames.contains('settled_through')) {
+            await db.execute(
+              'ALTER TABLE fund_cost_charges ADD COLUMN settled_through TEXT',
+            );
+          }
+        }
       },
     );
   }
+
+  static Future<void> _createCostTables(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS fund_cost_periods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uid TEXT,
+        isin TEXT NOT NULL,
+        concept TEXT NOT NULL,
+        rate_percent REAL NOT NULL,
+        basis TEXT NOT NULL,
+        treatment TEXT NOT NULL,
+        valid_from TEXT,
+        valid_to TEXT,
+        description TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS fund_cost_charges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uid TEXT,
+        isin TEXT NOT NULL,
+        concept TEXT NOT NULL,
+        date TEXT NOT NULL,
+        amount REAL NOT NULL,
+        description TEXT,
+        performance_period_uid TEXT,
+        settled_through TEXT
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_cost_periods_isin ON fund_cost_periods(isin)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_cost_charges_isin_date ON fund_cost_charges(isin, date)',
+    );
+  }
+
+  static Future<void> _replaceFundCosts(
+    DatabaseExecutor executor,
+    FundData fund,
+  ) async {
+    _validateFundCosts(fund);
+    await executor.delete(
+      'fund_cost_periods',
+      where: 'isin = ?',
+      whereArgs: [fund.isin],
+    );
+    await executor.delete(
+      'fund_cost_charges',
+      where: 'isin = ?',
+      whereArgs: [fund.isin],
+    );
+    for (final period in fund.costPeriods) {
+      await executor.insert('fund_cost_periods', {
+        'uid': period.uid,
+        'isin': fund.isin,
+        'concept': period.concept.name,
+        'rate_percent': period.ratePercent,
+        'basis': period.basis.name,
+        'treatment': period.treatment.name,
+        'valid_from': period.validFrom?.toIso8601String(),
+        'valid_to': period.validTo?.toIso8601String(),
+        'description': period.description,
+      });
+    }
+    for (final charge in fund.costCharges) {
+      await executor.insert('fund_cost_charges', {
+        'uid': charge.uid,
+        'isin': fund.isin,
+        'concept': charge.concept.name,
+        'date': charge.date.toIso8601String(),
+        'amount': charge.amount,
+        'description': charge.description,
+        'performance_period_uid': charge.performancePeriodUid,
+        'settled_through': charge.settledThrough?.toIso8601String(),
+      });
+    }
+  }
+
+  static void _validateFundCosts(FundData fund) {
+    final periodUids = <String>{};
+    for (var index = 0; index < fund.costPeriods.length; index++) {
+      final period = fund.costPeriods[index];
+      if (!period.ratePercent.isFinite || period.ratePercent < 0) {
+        throw ArgumentError('La tasa de coste debe ser finita y no negativa.');
+      }
+      if (!periodUids.add(period.uid)) {
+        throw ArgumentError('Identificador de periodo de coste duplicado.');
+      }
+      if (period.validFrom == null &&
+          (period.validTo != null ||
+              period.treatment == FundCostTreatment.chargedSeparately)) {
+        throw ArgumentError('El periodo de coste requiere una fecha inicial.');
+      }
+      if (period.validFrom != null &&
+          period.validTo != null &&
+          period.validTo!.isBefore(period.validFrom!)) {
+        throw ArgumentError('El periodo de coste tiene fechas invertidas.');
+      }
+      final isOneOffConcept = {
+        FundCostConcept.subscription,
+        FundCostConcept.redemption,
+        FundCostConcept.transfer,
+        FundCostConcept.tax,
+      }.contains(period.concept);
+      if (isOneOffConcept ||
+          (period.concept == FundCostConcept.performance &&
+              period.basis != FundCostRateBasis.positiveProfit) ||
+          (period.concept != FundCostConcept.performance &&
+              period.basis != FundCostRateBasis.annualBalance)) {
+        throw ArgumentError('La base no corresponde al concepto del coste.');
+      }
+
+      for (
+        var otherIndex = index + 1;
+        otherIndex < fund.costPeriods.length;
+        otherIndex++
+      ) {
+        final other = fund.costPeriods[otherIndex];
+        if (period.concept != other.concept) continue;
+        final periodStart = period.validFrom ?? DateTime(1);
+        final otherStart = other.validFrom ?? DateTime(1);
+        final periodEnd = period.validTo ?? DateTime(9999);
+        final otherEnd = other.validTo ?? DateTime(9999);
+        if (!periodStart.isAfter(otherEnd) && !otherStart.isAfter(periodEnd)) {
+          throw ArgumentError('Los periodos del mismo concepto se solapan.');
+        }
+      }
+    }
+
+    final chargeUids = <String>{};
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final firstPurchase = fund.operations
+        .where((operation) => operation.type == OperationType.buy)
+        .map((operation) => operation.date)
+        .fold<DateTime?>(
+          null,
+          (earliest, date) =>
+              earliest == null || date.isBefore(earliest) ? date : earliest,
+        );
+    for (final charge in fund.costCharges) {
+      if (!charge.amount.isFinite || charge.amount <= 0) {
+        throw ArgumentError('El importe del cargo debe ser finito y positivo.');
+      }
+      if (!chargeUids.add(charge.uid)) {
+        throw ArgumentError('Identificador de cargo duplicado.');
+      }
+      if (charge.settledThrough != null &&
+          charge.settledThrough!.isAfter(charge.date)) {
+        throw ArgumentError(
+          'La fecha liquidada no puede ser posterior al cargo.',
+        );
+      }
+      final chargeDate = DateTime(
+        charge.date.year,
+        charge.date.month,
+        charge.date.day,
+      );
+      final firstPurchaseDate = firstPurchase == null
+          ? null
+          : DateTime(
+              firstPurchase.year,
+              firstPurchase.month,
+              firstPurchase.day,
+            );
+      if (chargeDate.isAfter(todayDate) ||
+          (firstPurchaseDate != null &&
+              chargeDate.isBefore(firstPurchaseDate))) {
+        throw ArgumentError(
+          'El cargo debe estar dentro del periodo invertido.',
+        );
+      }
+    }
+  }
+
+  static FundCostPeriod _periodFromMap(Map<String, dynamic> map) =>
+      FundCostPeriod(
+        id: map['id'] as int?,
+        uid: map['uid'] as String?,
+        concept: FundCostConcept.values.firstWhere(
+          (value) => value.name == map['concept'],
+          orElse: () => FundCostConcept.other,
+        ),
+        ratePercent: (map['rate_percent'] as num).toDouble(),
+        basis: FundCostRateBasis.values.firstWhere(
+          (value) => value.name == map['basis'],
+          orElse: () => FundCostRateBasis.annualBalance,
+        ),
+        treatment: FundCostTreatment.values.firstWhere(
+          (value) => value.name == map['treatment'],
+          orElse: () => FundCostTreatment.unknown,
+        ),
+        validFrom: DateTime.tryParse(map['valid_from'] as String? ?? ''),
+        validTo: DateTime.tryParse(map['valid_to'] as String? ?? ''),
+        description: map['description'] as String?,
+      );
+
+  static FundCostCharge _chargeFromMap(Map<String, dynamic> map) =>
+      FundCostCharge(
+        id: map['id'] as int?,
+        uid: map['uid'] as String?,
+        concept: FundCostConcept.values.firstWhere(
+          (value) => value.name == map['concept'],
+          orElse: () => FundCostConcept.other,
+        ),
+        date: DateTime.parse(map['date'] as String),
+        amount: (map['amount'] as num).toDouble(),
+        description: map['description'] as String?,
+        performancePeriodUid: map['performance_period_uid'] as String?,
+        settledThrough: DateTime.tryParse(
+          map['settled_through'] as String? ?? '',
+        ),
+      );
 
   static Future<void> saveFund(FundData fund) async {
     final db = await database;
@@ -221,6 +473,7 @@ class DatabaseService {
           });
         }
       }
+      await _replaceFundCosts(txn, fund);
       await batch.commit(noResult: true);
     });
   }
@@ -313,6 +566,7 @@ class DatabaseService {
           'amount': operation.amount,
         });
       }
+      await _replaceFundCosts(txn, fund);
       await batch.commit(noResult: true);
     });
   }
@@ -461,6 +715,19 @@ class DatabaseService {
           )
           .toList();
 
+      final costPeriodMaps = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'valid_from ASC, id ASC',
+      );
+      final costChargeMaps = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'date DESC, id DESC',
+      );
+
       funds.add(
         FundData(
           isin: isin,
@@ -475,6 +742,8 @@ class DatabaseService {
           alertMax: m['alert_max'],
           ter: m['ter'],
           performanceFee: m['performance_fee'],
+          costPeriods: costPeriodMaps.map(_periodFromMap).toList(),
+          costCharges: costChargeMaps.map(_chargeFromMap).toList(),
           morningstarRating: m['morningstar_rating'] as int?,
           morningstarCheckedAt: m['morningstar_checked_at'] == null
               ? null
@@ -538,6 +807,19 @@ class DatabaseService {
         )
         .toList();
 
+    final costPeriodMaps = await db.query(
+      'fund_cost_periods',
+      where: 'isin = ?',
+      whereArgs: [isin],
+      orderBy: 'valid_from ASC, id ASC',
+    );
+    final costChargeMaps = await db.query(
+      'fund_cost_charges',
+      where: 'isin = ?',
+      whereArgs: [isin],
+      orderBy: 'date DESC, id DESC',
+    );
+
     return FundData(
       isin: isin,
       symbol: m['symbol'],
@@ -551,6 +833,8 @@ class DatabaseService {
       alertMax: m['alert_max'],
       ter: m['ter'],
       performanceFee: m['performance_fee'],
+      costPeriods: costPeriodMaps.map(_periodFromMap).toList(),
+      costCharges: costChargeMaps.map(_chargeFromMap).toList(),
       morningstarRating: m['morningstar_rating'] as int?,
       morningstarCheckedAt: m['morningstar_checked_at'] == null
           ? null
@@ -593,6 +877,16 @@ class DatabaseService {
       await txn.delete('funds', where: 'isin = ?', whereArgs: [isin]);
       await txn.delete('prices', where: 'isin = ?', whereArgs: [isin]);
       await txn.delete('operations', where: 'isin = ?', whereArgs: [isin]);
+      await txn.delete(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [isin],
+      );
+      await txn.delete(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [isin],
+      );
     });
   }
 
@@ -601,6 +895,11 @@ class DatabaseService {
     await db.transaction((txn) async {
       await txn.delete('prices', where: 'isin = ?', whereArgs: [isin]);
       await txn.delete('operations', where: 'isin = ?', whereArgs: [isin]);
+      await txn.delete(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [isin],
+      );
       await txn.update(
         'funds',
         {'last_value': 0.0},
@@ -616,6 +915,8 @@ class DatabaseService {
       await txn.delete('funds');
       await txn.delete('prices');
       await txn.delete('operations');
+      await txn.delete('fund_cost_periods');
+      await txn.delete('fund_cost_charges');
     });
   }
 

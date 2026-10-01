@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../models/fund_cost.dart';
 import '../services/fund_scraper.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
@@ -415,6 +416,8 @@ class FundProvider with ChangeNotifier {
           operations: fund.operations,
           ter: fund.ter,
           performanceFee: fund.performanceFee,
+          costPeriods: fund.costPeriods,
+          costCharges: fund.costCharges,
           morningstarRating: fund.morningstarRating,
           morningstarCheckedAt: fund.morningstarCheckedAt,
           morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
@@ -521,6 +524,8 @@ class FundProvider with ChangeNotifier {
                 alertMax: existingFund.alertMax,
                 ter: existingFund.ter,
                 performanceFee: existingFund.performanceFee,
+                costPeriods: existingFund.costPeriods,
+                costCharges: existingFund.costCharges,
                 morningstarRating: existingFund.morningstarRating,
                 morningstarCheckedAt: existingFund.morningstarCheckedAt,
                 morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
@@ -593,6 +598,8 @@ class FundProvider with ChangeNotifier {
                 alertMax: existingFund.alertMax,
                 ter: existingFund.ter,
                 performanceFee: existingFund.performanceFee,
+                costPeriods: existingFund.costPeriods,
+                costCharges: existingFund.costCharges,
                 morningstarRating: existingFund.morningstarRating,
                 morningstarCheckedAt: existingFund.morningstarCheckedAt,
                 morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
@@ -691,6 +698,8 @@ class FundProvider with ChangeNotifier {
               alertMax: existing.alertMax,
               ter: existing.ter,
               performanceFee: existing.performanceFee,
+              costPeriods: existing.costPeriods,
+              costCharges: existing.costCharges,
               morningstarRating: existing.morningstarRating,
               morningstarCheckedAt: existing.morningstarCheckedAt,
               morningstarLastAttemptAt: existing.morningstarLastAttemptAt,
@@ -734,6 +743,8 @@ class FundProvider with ChangeNotifier {
         alertMax: max,
         ter: fund.ter,
         performanceFee: fund.performanceFee,
+        costPeriods: fund.costPeriods,
+        costCharges: fund.costCharges,
         morningstarRating: fund.morningstarRating,
         morningstarCheckedAt: fund.morningstarCheckedAt,
         morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
@@ -743,7 +754,11 @@ class FundProvider with ChangeNotifier {
     });
   }
 
-  Future<void> setFees(String isin, double? ter, double? performanceFee) async {
+  Future<void> setFundCosts(
+    String isin, {
+    required List<FundCostPeriod> periods,
+    required List<FundCostCharge> charges,
+  }) async {
     await _runDatabaseOperation(() async {
       final fund = await DatabaseService.getFund(isin);
       if (fund == null) return;
@@ -758,8 +773,10 @@ class FundProvider with ChangeNotifier {
         operations: fund.operations,
         alertMin: fund.alertMin,
         alertMax: fund.alertMax,
-        ter: ter,
-        performanceFee: performanceFee,
+        ter: fund.ter,
+        performanceFee: fund.performanceFee,
+        costPeriods: periods,
+        costCharges: charges,
         morningstarRating: fund.morningstarRating,
         morningstarCheckedAt: fund.morningstarCheckedAt,
         morningstarLastAttemptAt: fund.morningstarLastAttemptAt,

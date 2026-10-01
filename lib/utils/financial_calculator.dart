@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../models/fund_cost.dart';
 import '../services/fund_scraper.dart';
 
 class FundMetrics {
@@ -9,6 +10,9 @@ class FundMetrics {
   final double currentValue;
   final double profitAbs;
   final double profitRel;
+  final double recordedExternalCosts;
+  final double netProfit;
+  final double netProfitRel;
   final double tae;
   final bool isAnnualized;
   final double avgPurchasePrice;
@@ -26,6 +30,9 @@ class FundMetrics {
     required this.currentValue,
     required this.profitAbs,
     required this.profitRel,
+    required this.recordedExternalCosts,
+    required this.netProfit,
+    required this.netProfitRel,
     required this.tae,
     required this.isAnnualized,
     required this.avgPurchasePrice,
@@ -54,7 +61,202 @@ class GlobalMetrics {
   });
 }
 
+class FundCostEstimate {
+  final double annualRecurringCost;
+  final double potentialPerformanceFee;
+  final bool hasAnnualRates;
+  final bool hasPerformanceRate;
+
+  const FundCostEstimate({
+    required this.annualRecurringCost,
+    required this.potentialPerformanceFee,
+    required this.hasAnnualRates,
+    required this.hasPerformanceRate,
+  });
+
+  bool get hasEstimates => hasAnnualRates || hasPerformanceRate;
+}
+
 class FinancialCalculator {
+  static FundCostEstimate estimateCurrentFundCosts(
+    FundData fund, {
+    DateTime? asOf,
+  }) {
+    final date = asOf ?? DateTime.now();
+    final today = DateTime(date.year, date.month, date.day);
+    final activePeriods = fund.costPeriods.where((period) {
+      if (period.validFrom == null) return false;
+      final validFrom = DateTime(
+        period.validFrom!.year,
+        period.validFrom!.month,
+        period.validFrom!.day,
+      );
+      final validTo = period.validTo == null
+          ? null
+          : DateTime(
+              period.validTo!.year,
+              period.validTo!.month,
+              period.validTo!.day,
+            );
+      return !validFrom.isAfter(today) &&
+          (validTo == null || !validTo.isBefore(today));
+    }).toList();
+
+    final separatelyChargedTer = activePeriods.any(
+      (period) =>
+          period.concept == FundCostConcept.ter &&
+          period.basis == FundCostRateBasis.annualBalance &&
+          period.treatment == FundCostTreatment.chargedSeparately,
+    );
+    final annualPeriods = activePeriods.where(
+      (period) =>
+          period.basis == FundCostRateBasis.annualBalance &&
+          period.treatment == FundCostTreatment.chargedSeparately &&
+          !(separatelyChargedTer &&
+              {
+                FundCostConcept.management,
+                FundCostConcept.depositary,
+                FundCostConcept.operating,
+              }.contains(period.concept)),
+    );
+    final position = _positionValues(fund);
+    final annualCost = annualPeriods.fold<double>(
+      0,
+      (total, period) =>
+          total + position.currentValue * period.ratePercent / 100,
+    );
+
+    final performancePeriods = activePeriods
+        .where(
+          (period) =>
+              period.concept == FundCostConcept.performance &&
+              period.basis == FundCostRateBasis.positiveProfit &&
+              period.treatment == FundCostTreatment.chargedSeparately,
+        )
+        .toList();
+    var potentialPerformanceFee = 0.0;
+    var hasPerformanceRate = false;
+    if (performancePeriods.length == 1) {
+      final period = performancePeriods.single;
+      final settlements =
+          fund.costCharges
+              .where(
+                (charge) =>
+                    charge.concept == FundCostConcept.performance &&
+                    charge.performancePeriodUid == period.uid &&
+                    charge.settledThrough != null &&
+                    !DateTime(
+                      charge.date.year,
+                      charge.date.month,
+                      charge.date.day,
+                    ).isAfter(today),
+              )
+              .toList()
+            ..sort((a, b) => a.settledThrough!.compareTo(b.settledThrough!));
+      if (settlements.isNotEmpty) {
+        final latestSettlement = settlements.last;
+        final settlementDate = latestSettlement.settledThrough!;
+        final hasNewerUnclassifiedCharge = fund.costCharges.any((charge) {
+          if (charge.concept != FundCostConcept.performance ||
+              !DateTime(
+                charge.date.year,
+                charge.date.month,
+                charge.date.day,
+              ).isAfter(
+                DateTime(
+                  latestSettlement.date.year,
+                  latestSettlement.date.month,
+                  latestSettlement.date.day,
+                ),
+              ) ||
+              DateTime(
+                charge.date.year,
+                charge.date.month,
+                charge.date.day,
+              ).isAfter(today)) {
+            return false;
+          }
+          return charge.performancePeriodUid != period.uid ||
+              charge.settledThrough == null;
+        });
+        final profitAtSettlement = _grossProfitAt(fund, settlementDate);
+        if (!hasNewerUnclassifiedCharge && profitAtSettlement != null) {
+          potentialPerformanceFee =
+              max(0, position.grossProfit - profitAtSettlement) *
+              period.ratePercent /
+              100;
+          hasPerformanceRate = true;
+        }
+      }
+    }
+
+    return FundCostEstimate(
+      annualRecurringCost: annualCost,
+      potentialPerformanceFee: potentialPerformanceFee,
+      hasAnnualRates: annualPeriods.isNotEmpty,
+      hasPerformanceRate: hasPerformanceRate,
+    );
+  }
+
+  static ({double currentValue, double grossProfit}) _positionValues(
+    FundData fund,
+  ) {
+    var units = 0.0;
+    var invested = 0.0;
+    for (final operation in fund.operations) {
+      if (operation.type == OperationType.buy) {
+        units += operation.units;
+        invested += operation.amount;
+      } else {
+        units -= operation.units;
+        invested -= operation.amount;
+      }
+    }
+    final currentValue = units * fund.lastValue;
+    return (currentValue: currentValue, grossProfit: currentValue - invested);
+  }
+
+  static double? _grossProfitAt(FundData fund, DateTime date) {
+    final target = DateTime(date.year, date.month, date.day);
+    final currentQuoteDate = DateTime(
+      fund.date.year,
+      fund.date.month,
+      fund.date.day,
+    );
+    if (currentQuoteDate.isBefore(target)) return null;
+
+    PricePoint? quote;
+    for (final point in fund.history) {
+      final pointDate = DateTime(
+        point.date.year,
+        point.date.month,
+        point.date.day,
+      );
+      if (pointDate.isAfter(target)) break;
+      quote = point;
+    }
+    if (quote == null) return null;
+
+    var units = 0.0;
+    var invested = 0.0;
+    for (final operation in fund.operations) {
+      final operationDate = DateTime(
+        operation.date.year,
+        operation.date.month,
+        operation.date.day,
+      );
+      if (operationDate.isAfter(target)) continue;
+      if (operation.type == OperationType.buy) {
+        units += operation.units;
+        invested += operation.amount;
+      } else {
+        units -= operation.units;
+        invested -= operation.amount;
+      }
+    }
+    return units * quote.price - invested;
+  }
+
   static FundMetrics calculateFundMetrics(FundData fund) {
     double totalUnits = 0;
     double totalInvested = 0;
@@ -68,7 +270,8 @@ class FinancialCalculator {
         totalUnits -= op.units;
         totalInvested -= op.amount;
       }
-      if (firstOpDate == null || op.date.isBefore(firstOpDate)) {
+      if (op.type == OperationType.buy &&
+          (firstOpDate == null || op.date.isBefore(firstOpDate))) {
         firstOpDate = op.date;
       }
     }
@@ -243,6 +446,32 @@ class FinancialCalculator {
       }
     }
 
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final firstOpDateOnly = firstOpDate == null
+        ? null
+        : DateTime(firstOpDate.year, firstOpDate.month, firstOpDate.day);
+    final recordedExternalCosts = fund.costCharges
+        .where(
+          (charge) =>
+              !DateTime(
+                charge.date.year,
+                charge.date.month,
+                charge.date.day,
+              ).isAfter(todayDate) &&
+              (firstOpDateOnly == null ||
+                  !DateTime(
+                    charge.date.year,
+                    charge.date.month,
+                    charge.date.day,
+                  ).isBefore(firstOpDateOnly)),
+        )
+        .fold<double>(0, (total, charge) => total + charge.amount);
+    final netProfit = profitAbs - recordedExternalCosts;
+    final netProfitRel = totalInvested > 0
+        ? (netProfit / totalInvested) * 100
+        : 0.0;
+
     return FundMetrics(
       totalUnits: totalUnits,
       totalInvested: totalInvested,
@@ -250,6 +479,9 @@ class FinancialCalculator {
       currentValue: currentValue,
       profitAbs: profitAbs,
       profitRel: profitRel,
+      recordedExternalCosts: recordedExternalCosts,
+      netProfit: netProfit,
+      netProfitRel: netProfitRel,
       tae: tae,
       isAnnualized: isAnnualized,
       avgPurchasePrice: avgPurchasePrice,
