@@ -82,7 +82,7 @@ void main() {
     expect(find.text('Resultado de la comparación'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.scrollUntilVisible(
-      find.text('Rentabilidad acumulada'),
+      find.text('Evolución histórica'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
@@ -157,7 +157,7 @@ void main() {
     expect(find.text('Depositario'), findsNothing);
     expect(find.text('Gastos operativos'), findsNothing);
     expect(find.text('Tu inversión'), findsOneWidget);
-    expect(find.text('Rentabilidad acumulada'), findsOneWidget);
+    expect(find.text('Rentabilidad de la posición'), findsNothing);
     expect(
       find.text(
         'Las métricas de inversión requieren una posición abierta en ambos fondos.',

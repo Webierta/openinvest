@@ -54,7 +54,7 @@ class AppDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.compare_arrows, color: Colors.white70),
             title: Text(
-              'Comparador',
+              l10n.comparePageTitle,
               style: const TextStyle(color: Colors.white),
             ),
             onTap: () {
