@@ -1,0 +1,14 @@
+OpenInvest is an open-source application designed for investors seeking detailed, analytical, and 100% private tracking of their investment fund portfolios.
+
+Key Features:
+- Real-time fund search and quotes using ISIN codes (CNMV, Morningstar, and Yahoo Finance).
+- Professional-grade financial performance metrics: TAE, TWR, and MWR/TIR.
+- Fund comparator: evaluate two funds side-by-side with normalized charts and performance comparison.
+- Annual PDF reports and CSV operations export.
+- Complete portfolio backups with smart merge.
+- Cost and fee audit (TER impact assessment).
+- Interactive evolution charts and monthly return heatmaps.
+- Benchmark comparison against major global indices (S&P 500, MSCI World, etc.).
+- Advanced risk analysis: Max Drawdown and recovery time.
+- Multicurrency support with real-time conversion.
+- Total privacy: ad-free, tracker-free, with 100% local storage and biometric/password security.
