@@ -2521,6 +2521,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Cartera importada con fusión inteligente'**
   String get portfolioImportedSuccess;
+
+  /// No description provided for @compareInfoTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Comparador de Fondos'**
+  String get compareInfoTitle;
+
+  /// No description provided for @compareInfoDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Compara dos fondos de tu cartera lado a lado: evolución histórica con gráficos normalizados, comparativa de rentabilidades (1M, 6M, 1A, Total), volatilidad, costes (TER), rating Morningstar y posición de inversión personal.'**
+  String get compareInfoDesc;
 }
 
 class _AppLocalizationsDelegate

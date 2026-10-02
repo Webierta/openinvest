@@ -476,5 +476,7 @@
   "exportPortfolioMenu": "Export portfolio",
   "importPortfolioMenu": "Import portfolio",
   "portfolioExportedSuccess": "Portfolio exported successfully",
-  "portfolioImportedSuccess": "Portfolio imported with smart merge"
+  "portfolioImportedSuccess": "Portfolio imported with smart merge",
+  "compareInfoTitle": "Fund Comparator",
+  "compareInfoDesc": "Compare two funds from your portfolio side-by-side: historical evolution with normalized charts, performance comparison (1M, 6M, 1Y, Total), volatility, costs (TER), Morningstar rating, and personal investment position."
 }

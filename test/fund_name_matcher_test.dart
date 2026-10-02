@@ -1260,5 +1260,255 @@ void main() {
       // Intersección = 4, unión = 5 → 4/5.
       expect(similarity, closeTo(4 / 5, 0.000001));
     });
+
+    test('LF-10.3.1 - cambio de gestora con producto idéntico', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'BANKINTER DEUDA PUBLICA 2025 FI',
+        'CAIXABANK DEUDA PUBLICA 2025 FI',
+      );
+
+      // A = {BANKINTER, DEUDA, PUBLICA, 2025, FI} → 5
+      // B = {CAIXABANK, DEUDA, PUBLICA, 2025, FI} → 5
+      // Comunes = 4
+      // Unión = 6
+      expect(similarity, closeTo(4 / 6, 0.000001));
+    });
+
+    test('LF-10.3.2 - cambio geográfico con misma estrategia', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'IBERCAJA BOLSA ESPAÑA FI',
+        'IBERCAJA BOLSA USA FI',
+      );
+
+      // A → {IBERCAJA, BOLSA, ESPAÑA, FI} → 4
+      // B → {IBERCAJA, BOLSA, USA, FI} → 4
+      // Comunes = 3
+      // Unión = 5
+      expect(similarity, closeTo(3 / 5, 0.000001));
+    });
+
+    test('LF-10.3.3 - cambio de renta fija a renta variable', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'ABANCA RENTA FIJA MIXTA FI',
+        'ABANCA RENTA VARIABLE MIXTA FI',
+      );
+
+      // A → {ABANCA, RENTA, FIJA, MIXTA, FI} → 5
+      // B → {ABANCA, RENTA, VARIABLE, MIXTA, FI} → 5
+      // Comunes = {ABANCA, RENTA, MIXTA, FI} → 4
+      // Unión = 6
+      expect(similarity, closeTo(4 / 6, 0.000001));
+    });
+
+    test('LF-10.3.4 - cambio de perfil de riesgo', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'RURAL PERFIL CONSERVADOR FI',
+        'RURAL PERFIL MODERADO FI',
+      );
+
+      // A → {RURAL, PERFIL, CONSERVADOR, FI} → 4
+      // B → {RURAL, PERFIL, MODERADO, FI} → 4
+      // Comunes = 3
+      // Unión = 5
+      expect(similarity, closeTo(3 / 5, 0.000001));
+    });
+
+    test('LF-10.3.5 - serie II frente a serie III', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'ALTERALIA DEBT FUND II FIL',
+        'ALTERALIA DEBT FUND III FIL',
+      );
+
+      // A → {ALTERALIA, DEBT, FUND, II, FIL} → 5
+      // B → {ALTERALIA, DEBT, FUND, III, FIL} → 5
+      // Comunes = 4
+      // Unión = 6
+      expect(similarity, closeTo(4 / 6, 0.000001));
+    });
+
+    test(
+      'LF-10.3.6 - diferencia semántica con similitud exactamente en el umbral',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL BOND FUND',
+        );
+
+        // A → {GLOBAL, EQUITY, FUND} → 3
+        // B → {GLOBAL, BOND, FUND} → 3
+        // Comunes = {GLOBAL, FUND} → 2
+        // Unión = 4
+        // Resultado = 0.5, exactamente el umbral externo actual.
+        expect(similarity, closeTo(0.5, 0.000001));
+      },
+    );
+
+    test('LF-10.4.1 - añadir una clase mantiene todo el núcleo', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'GLOBAL EQUITY FUND',
+        'GLOBAL EQUITY FUND CLASS A',
+      );
+
+      // A = {GLOBAL, EQUITY, FUND} → 3
+      // B = {GLOBAL, EQUITY, FUND, CLASS, A} → 5
+      // Comunes = 3
+      // Unión = 5
+      expect(similarity, closeTo(3 / 5, 0.000001));
+    });
+
+    test('LF-10.4.2 - añadir clase y moneda reduce la similitud', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'GLOBAL EQUITY FUND',
+        'GLOBAL EQUITY FUND CLASS A USD',
+      );
+
+      // A = {GLOBAL, EQUITY, FUND} → 3
+      // B = {GLOBAL, EQUITY, FUND, CLASS, A, USD} → 6
+      // Comunes = 3
+      // Unión = 6
+      expect(similarity, closeTo(3 / 6, 0.000001));
+    });
+
+    test('LF-10.4.3 - añadir varios atributos al nombre PIMCO', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS INCOME FUND',
+        'PIMCO GIS INCOME FUND CLASS A USD ACC',
+      );
+
+      // A = {PIMCO, GIS, INCOME, FUND} → 4
+      // B = {PIMCO, GIS, INCOME, FUND, CLASS, A, USD, ACC} → 8
+      // Comunes = 4
+      // Unión = 8
+      expect(similarity, closeTo(4 / 8, 0.000001));
+    });
+
+    test('LF-10.4.4 - añadir un único descriptor geográfico', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'EUROPEAN EQUITY FUND',
+        'EUROPEAN EQUITY FUND EUROPE',
+      );
+
+      // A = {EUROPEAN, EQUITY, FUND} → 3
+      // B = {EUROPEAN, EQUITY, FUND, EUROPE} → 4
+      // Comunes = 3
+      // Unión = 4
+      expect(similarity, closeTo(3 / 4, 0.000001));
+    });
+
+    test('LF-10.4.5 - añadir dos tokens de clase sin modificar el núcleo', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'IBERCAJA BOLSA ESPAÑA FI',
+        'IBERCAJA BOLSA ESPAÑA FI CLASE A',
+      );
+
+      // A = {IBERCAJA, BOLSA, ESPAÑA, FI} → 4
+      // B = {IBERCAJA, BOLSA, ESPAÑA, FI, CLASE, A} → 6
+      // Comunes = 4
+      // Unión = 6
+      expect(similarity, closeTo(4 / 6, 0.000001));
+    });
+
+    test(
+      'LF-10.4.6 - expansión simétrica con un token distinto en cada lado',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME FUND USD',
+          'PIMCO GIS INCOME FUND EUR',
+        );
+
+        // A = {PIMCO, GIS, INCOME, FUND, USD} → 5
+        // B = {PIMCO, GIS, INCOME, FUND, EUR} → 5
+        // Comunes = {PIMCO, GIS, INCOME, FUND} → 4
+        // Unión = {PIMCO, GIS, INCOME, FUND, USD, EUR} → 6
+        expect(similarity, closeTo(4 / 6, 0.000001));
+      },
+    );
+
+    test('LF-10.5.1 - repetir un token no cambia un nombre idéntico', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS INCOME FUND',
+        'PIMCO PIMCO GIS INCOME FUND',
+      );
+
+      // A = {PIMCO, GIS, INCOME, FUND} → 4
+      // B = {PIMCO, GIS, INCOME, FUND} → 4
+      // Comunes = 4
+      // Unión = 4
+      expect(similarity, closeTo(1.0, 0.000001));
+    });
+
+    test('LF-10.5.2 - una repetición no cuenta como token adicional', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS INCOME FUND',
+        'PIMCO PIMCO GIS INCOME FUND CLASS',
+      );
+
+      // A = {PIMCO, GIS, INCOME, FUND} → 4
+      // B = {PIMCO, GIS, INCOME, FUND, CLASS} → 5
+      // Comunes = 4
+      // Unión = 5
+      expect(similarity, closeTo(4 / 5, 0.000001));
+    });
+
+    test(
+      'LF-10.5.3 - repeticiones en ambos nombres siguen contando una sola vez',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO PIMCO GIS INCOME FUND',
+          'PIMCO GIS INCOME FUND FUND CLASS',
+        );
+
+        // A = {PIMCO, GIS, INCOME, FUND} → 4
+        // B = {PIMCO, GIS, INCOME, FUND, CLASS} → 5
+        // Comunes = 4
+        // Unión = 5
+        expect(similarity, closeTo(4 / 5, 0.000001));
+      },
+    );
+
+    test(
+      'LF-10.5.4 - repetir distintos tokens no altera un conjunto idéntico',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY EQUITY FUND',
+        );
+
+        // A = {GLOBAL, EQUITY, FUND} → 3
+        // B = {GLOBAL, EQUITY, FUND} → 3
+        // Comunes = 3
+        // Unión = 3
+        expect(similarity, closeTo(1.0, 0.000001));
+      },
+    );
+
+    test('LF-10.5.5 - las repeticiones no compensan una diferencia real', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO PIMCO INCOME FUND',
+        'PIMCO INCOME GLOBAL FUND',
+      );
+
+      // A = {PIMCO, INCOME, FUND} → 3
+      // B = {PIMCO, INCOME, GLOBAL, FUND} → 4
+      // Comunes = {PIMCO, INCOME, FUND} → 3
+      // Unión = {PIMCO, INCOME, FUND, GLOBAL} → 4
+      expect(similarity, closeTo(3 / 4, 0.000001));
+    });
+
+    test(
+      'LF-10.5.6 - repetir un único token varias veces no altera la similitud',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'FUND FUND FUND FUND',
+          'FUND',
+        );
+
+        // A = {FUND} → 1
+        // B = {FUND} → 1
+        // Comunes = 1
+        // Unión = 1
+        expect(similarity, closeTo(1.0, 0.000001));
+      },
+    );
   });
 }

@@ -1343,4 +1343,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get portfolioImportedSuccess =>
       'Cartera importada con fusión inteligente';
+
+  @override
+  String get compareInfoTitle => 'Comparador de Fondos';
+
+  @override
+  String get compareInfoDesc =>
+      'Compara dos fondos de tu cartera lado a lado: evolución histórica con gráficos normalizados, comparativa de rentabilidades (1M, 6M, 1A, Total), volatilidad, costes (TER), rating Morningstar y posición de inversión personal.';
 }

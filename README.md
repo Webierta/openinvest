@@ -21,6 +21,7 @@ Aplicación de código abierto para la gestión de una cartera de fondos de inve
 - **Gráficos Interactivos**: Visualiza la evolución de tus fondos con filtros de rango rápido (1M, 6M, 1Y, ALL) y líneas de tendencia media.
 - **Mapa de Calor Mensual**: Analiza la estacionalidad de tus inversiones con una cuadrícula de rentabilidades mes a mes y acumulados anuales, identificando periodos de éxito y correcciones.
 - **Comparación con Benchmarks**: Superpón la evolución de los principales índices mundiales (S&P 500, MSCI World, etc.) sobre el gráfico del fondo para medir su rendimiento relativo en porcentaje.
+- **Comparador de Fondos**: Compara dos fondos de tu cartera lado a lado: evolución histórica con gráficos normalizados, comparativa de rentabilidades (1M, 6M, 1A, Total), volatilidad, costes (TER), rating Morningstar y posición de inversión personal.
 - **Análisis de Riesgo**: Métricas de nivel profesional para evaluar la seguridad: Max Drawdown: La mayor caída histórica desde un pico. Recuperación: Tiempo que el fondo tarda en sanar sus pérdidas.
 - **Exportación e Importación**: Lleva tus datos contigo. Exporta e importa tu cartera completa con fusión inteligente o fondos individuales en JSON para moverlos entre dispositivos.
 - **Informes y Generación de Archivos**: Genera informes anuales profesionales en PDF con resumen ejecutivo y desglose por fondo, exporta un registro completo de tus operaciones en CSV, y protege tus datos con copias de seguridad.

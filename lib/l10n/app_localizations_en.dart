@@ -1334,4 +1334,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get portfolioImportedSuccess => 'Portfolio imported with smart merge';
+
+  @override
+  String get compareInfoTitle => 'Fund Comparator';
+
+  @override
+  String get compareInfoDesc =>
+      'Compare two funds from your portfolio side-by-side: historical evolution with normalized charts, performance comparison (1M, 6M, 1Y, Total), volatility, costs (TER), Morningstar rating, and personal investment position.';
 }

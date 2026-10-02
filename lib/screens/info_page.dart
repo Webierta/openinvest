@@ -62,6 +62,11 @@ class InfoPage extends StatelessWidget {
                 description: l10n.benchmarkComparisonDesc,
               ),
               _InfoSection(
+                icon: Icons.compare_arrows,
+                title: l10n.compareInfoTitle,
+                description: l10n.compareInfoDesc,
+              ),
+              _InfoSection(
                 icon: Icons.warning_amber_outlined,
                 title: l10n.riskAnalysisTitle,
                 description: l10n.riskAnalysisDesc,
