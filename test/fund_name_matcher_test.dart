@@ -1510,5 +1510,174 @@ void main() {
         expect(similarity, closeTo(1.0, 0.000001));
       },
     );
+
+    // ===========================================================================
+    // LF-10.6 — Normalización combinada en nameSimilarity()
+    // ===========================================================================
+
+    test('LF-10.6.1 — guion normalizado + token adicional', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO-GIS INCOME FUND',
+        'PIMCO GIS INCOME FUND CLASS A',
+      );
+
+      // A = {PIMCO, GIS, INCOME, FUND}
+      // B = {PIMCO, GIS, INCOME, FUND, CLASS, A}
+      // Intersección = 4
+      // Unión = 6
+      expect(similarity, closeTo(4 / 6, 1e-12));
+    });
+
+    test('LF-10.6.2 — acento normalizado + token adicional', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'FONDOS DE INVERSIÓN GLOBAL',
+        'FONDOS DE INVERSION GLOBAL CLASE A',
+      );
+
+      // A = {FONDOS, DE, INVERSION, GLOBAL}
+      // B = {FONDOS, DE, INVERSION, GLOBAL, CLASE, A}
+      // Intersección = 4
+      // Unión = 6
+      expect(similarity, closeTo(4 / 6, 1e-12));
+    });
+
+    test('LF-10.6.3 — apóstrofe + guion + acento normalizados', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        "PIMCO O'BRIEN-ÉQUITY FUND",
+        'PIMCO OBRIEN EQUITY FUND CLASS A',
+      );
+
+      // A = {PIMCO, OBRIEN, EQUITY, FUND}
+      // B = {PIMCO, OBRIEN, EQUITY, FUND, CLASS, A}
+      // Intersección = 4
+      // Unión = 6
+      expect(similarity, closeTo(4 / 6, 1e-12));
+    });
+
+    test('LF-10.6.4 — slash + ampersand + token adicional', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'GLOBAL/ASIA EQUITY & INCOME FUND',
+        'GLOBAL ASIA EQUITY INCOME FUND CLASS A',
+      );
+
+      // A = {GLOBAL, ASIA, EQUITY, INCOME, FUND}
+      // B = {GLOBAL, ASIA, EQUITY, INCOME, FUND, CLASS, A}
+      // Intersección = 5
+      // Unión = 7
+      expect(similarity, closeTo(5 / 7, 1e-12));
+    });
+
+    test('LF-10.6.5 — paréntesis + token adicional', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'EUROPEAN EQUITY FUND (EUR)',
+        'EUROPEAN EQUITY FUND EUR CLASS A',
+      );
+
+      // A = {EUROPEAN, EQUITY, FUND, EUR}
+      // B = {EUROPEAN, EQUITY, FUND, EUR, CLASS, A}
+      // Intersección = 4
+      // Unión = 6
+      expect(similarity, closeTo(4 / 6, 1e-12));
+    });
+
+    test('LF-10.6.6 — múltiples separadores + token adicional', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'GLOBAL-EQUITY/INCOME_FUND',
+        'GLOBAL EQUITY INCOME FUND USD',
+      );
+
+      // A = {GLOBAL, EQUITY, INCOME, FUND}
+      // B = {GLOBAL, EQUITY, INCOME, FUND, USD}
+      // Intersección = 4
+      // Unión = 5
+      expect(similarity, closeTo(4 / 5, 1e-12));
+    });
+
+    // ===========================================================================
+    // LF-10.7 — Orden y multiplicidad de tokens tras normalización
+    // ===========================================================================
+
+    test('LF-10.7.1 — mismo contenido en orden diferente', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS INCOME FUND',
+        'FUND INCOME GIS PIMCO',
+      );
+
+      // A = {PIMCO, GIS, INCOME, FUND}
+      // B = {FUND, INCOME, GIS, PIMCO}
+      // Intersección = 4
+      // Unión = 4
+      expect(similarity, closeTo(1.0, 1e-12));
+    });
+
+    test('LF-10.7.2 — orden diferente + token adicional', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS INCOME FUND',
+        'CLASS A FUND PIMCO INCOME GIS',
+      );
+
+      // A = {PIMCO, GIS, INCOME, FUND}
+      // B = {CLASS, A, FUND, PIMCO, INCOME, GIS}
+      // Intersección = 4
+      // Unión = 6
+      expect(similarity, closeTo(4 / 6, 1e-12));
+    });
+
+    test('LF-10.7.3 — duplicación de token en un solo nombre', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'GLOBAL EQUITY FUND',
+        'FUND GLOBAL GLOBAL EQUITY',
+      );
+
+      // A = {GLOBAL, EQUITY, FUND}
+      // B = {FUND, GLOBAL, EQUITY}
+      // El segundo GLOBAL es duplicado y no altera el conjunto.
+      // Intersección = 3
+      // Unión = 3
+      expect(similarity, closeTo(1.0, 1e-12));
+    });
+
+    test('LF-10.7.4 — duplicaciones diferentes + token adicional', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS INCOME FUND',
+        'FUND FUND PIMCO GIS INCOME CLASS',
+      );
+
+      // A = {PIMCO, GIS, INCOME, FUND}
+      // B = {FUND, PIMCO, GIS, INCOME, CLASS}
+      // Intersección = 4
+      // Unión = 5
+      expect(similarity, closeTo(4 / 5, 1e-12));
+    });
+
+    test(
+      'LF-10.7.5 — mismo conjunto con repetición múltiple y distinto orden',
+      () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'EUROPEAN EQUITY FUND',
+          'EQUITY FUND EUROPEAN EUROPEAN FUND',
+        );
+
+        // A = {EUROPEAN, EQUITY, FUND}
+        // B = {EQUITY, FUND, EUROPEAN}
+        // Las repeticiones no cuentan.
+        // Intersección = 3
+        // Unión = 3
+        expect(similarity, closeTo(1.0, 1e-12));
+      },
+    );
+
+    test('LF-10.7.6 — orden + duplicados + dos tokens adicionales', () {
+      final similarity = FundNameMatcher.nameSimilarity(
+        'PIMCO GIS INCOME FUND',
+        'CLASS A FUND FUND INCOME GIS PIMCO USD',
+      );
+
+      // A = {PIMCO, GIS, INCOME, FUND}
+      // B = {CLASS, A, FUND, INCOME, GIS, PIMCO, USD}
+      // Intersección = 4
+      // Unión = 7
+      expect(similarity, closeTo(4 / 7, 1e-12));
+    });
   });
 }

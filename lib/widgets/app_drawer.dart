@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
@@ -111,7 +110,7 @@ class AppDrawer extends StatelessWidget {
             title: Text(l10n.exit, style: const TextStyle(color: Colors.white)),
             onTap: () async {
               await DatabaseService.close();
-              exit(0);
+              await SystemNavigator.pop();
             },
           ),
           const Spacer(),
