@@ -1,0 +1,32 @@
+AntiFeatures: []
+Categories:
+  - Money
+License: GPL-3.0-or-later
+AuthorName: Webierta
+WebSite: https://github.com/Webierta/openinvest
+SourceCode: https://github.com/Webierta/openinvest
+IssueTracker: https://github.com/Webierta/openinvest/issues
+
+Summary: Open-source investment fund portfolio manager
+Description: |-
+  OpenInvest is a clean, open-source application for managing and tracking investment fund portfolios on Android and Linux.
+
+  Features:
+  * Fund search and real-time data using ISIN codes (CNMV, Morningstar, Yahoo Finance).
+  * Advanced financial performance metrics (TAE, TWR, MWR/TIR).
+  * Cost and fee audits (TER and performance fees).
+  * Interactive evolution charts and monthly heatmaps.
+  * Benchmark comparisons against major global indices.
+  * Side-by-side fund comparison tool.
+  * Professional annual PDF report generation and CSV operations export.
+  * Full portfolio backup and restore with smart merge.
+  * 100% private, local storage with biometric/password security.
+
+# Configuración de compilación para F-Droid
+Builds:
+  - versionName: 1.6.1
+    versionCode: 29
+    commit: v1.6.1
+    subdir: .
+    gradle:
+      - yes
