@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +7,7 @@ import 'package:investing/l10n/app_localizations.dart';
 
 import '../../services/export_service.dart';
 import '../../services/fund_scraper.dart';
+import '../../utils/financial_calculator.dart';
 
 class FundSummaryTab extends StatelessWidget {
   final FundData fund;
@@ -488,26 +488,9 @@ class FundSummaryTab extends StatelessWidget {
     final locale = Localizations.localeOf(context).toString();
     if (fund.history.isEmpty) return const SizedBox.shrink();
 
-    final returns = <double>[];
-
-    for (int i = 0; i < fund.history.length; i++) {
-      final point = fund.history[i];
-      if (i > 0) {
-        final previousPrice = fund.history[i - 1].price;
-        if (previousPrice != 0) {
-          returns.add((point.price - previousPrice) / previousPrice);
-        }
-      }
-    }
-
-    double annualVolatility = 0;
-    if (returns.isNotEmpty) {
-      final meanReturn = returns.reduce((a, b) => a + b) / returns.length;
-      final varianceSum = returns
-          .map((value) => pow(value - meanReturn, 2).toDouble())
-          .reduce((a, b) => a + b);
-      annualVolatility = sqrt(varianceSum / returns.length) * sqrt(252) * 100;
-    }
+    final annualVolatility =
+        (FinancialCalculator.calculateAnnualizedVolatility(fund.history) ?? 0) *
+        100;
 
     // Cálculo de Max Drawdown y Tiempo de Recuperación
     double maxDrawdown = 0;

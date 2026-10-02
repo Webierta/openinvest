@@ -78,6 +78,25 @@ class FundCostEstimate {
 }
 
 class FinancialCalculator {
+  static double? calculateAnnualizedVolatility(List<PricePoint> history) {
+    if (history.length < 2) return null;
+
+    final returns = <double>[];
+    for (var index = 1; index < history.length; index++) {
+      final previousPrice = history[index - 1].price;
+      if (previousPrice != 0) {
+        returns.add((history[index].price - previousPrice) / previousPrice);
+      }
+    }
+    if (returns.isEmpty) return null;
+
+    final meanReturn = returns.reduce((a, b) => a + b) / returns.length;
+    final varianceSum = returns
+        .map((value) => pow(value - meanReturn, 2).toDouble())
+        .reduce((a, b) => a + b);
+    return sqrt(varianceSum / returns.length) * sqrt(252);
+  }
+
   static FundCostEstimate estimateCurrentFundCosts(
     FundData fund, {
     DateTime? asOf,

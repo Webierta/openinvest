@@ -1051,6 +1051,105 @@ class AppLocalizationsEs extends AppLocalizations {
   String get compareLabel => 'Comparar';
 
   @override
+  String get comparePageTitle => 'Comparador';
+
+  @override
+  String get compareFundSelection => 'Fondos para comparar';
+
+  @override
+  String get comparePortfolioNeedsTwo =>
+      'Necesitas al menos dos fondos en cartera para compararlos.';
+
+  @override
+  String get compareSelectFund => 'Selecciona un fondo';
+
+  @override
+  String get compareFundOne => 'Primer fondo';
+
+  @override
+  String get compareFundTwo => 'Segundo fondo';
+
+  @override
+  String get compareChooseDifferentFunds => 'Selecciona dos fondos diferentes.';
+
+  @override
+  String get compareResults => 'Resultado de la comparación';
+
+  @override
+  String get compareChartTitle => 'Evolución histórica';
+
+  @override
+  String get compareChartNoData =>
+      'No hay historial común suficiente para mostrar el gráfico.';
+
+  @override
+  String get compareMarketHistory => 'Fondo e historial';
+
+  @override
+  String get compareInvestmentPosition => 'Tu inversión';
+
+  @override
+  String get compareNoSharedPositions =>
+      'Las métricas de inversión requieren una posición abierta en ambos fondos.';
+
+  @override
+  String get compareHistoryStart => 'Primer valor disponible';
+
+  @override
+  String get compareCurrency => 'Moneda';
+
+  @override
+  String get compareLastNav => 'Último valor liquidativo';
+
+  @override
+  String get compareLastChange => 'Última variación';
+
+  @override
+  String get compareMonthChange => 'Variación en 1 mes';
+
+  @override
+  String get compareSixMonthChange => 'Variación en 6 meses';
+
+  @override
+  String get compareYearChange => 'Variación en 1 año';
+
+  @override
+  String get compareSinceInceptionChange => 'Variación desde el inicio';
+
+  @override
+  String get compareAnnualVolatility => 'Volatilidad anualizada';
+
+  @override
+  String get compareCosts => 'Costes y comisiones';
+
+  @override
+  String get compareMorningstarRating => 'Rating Morningstar';
+
+  @override
+  String get compareTer => 'TER';
+
+  @override
+  String get compareInvested => 'Capital invertido';
+
+  @override
+  String get compareCurrentValue => 'Valor actual';
+
+  @override
+  String get compareProfit => 'Plusvalía';
+
+  @override
+  String get compareReturn => 'Rentabilidad de la posición';
+
+  @override
+  String get compareTwr => 'TWR anualizado';
+
+  @override
+  String get compareMwr => 'TIR anualizada';
+
+  @override
+  String get compareMoic => 'MOIC';
+
+  @override
   String get compareWithBenchmark => 'Comparar con benchmark';
 
   @override

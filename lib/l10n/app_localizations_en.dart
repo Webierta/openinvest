@@ -1044,6 +1044,105 @@ class AppLocalizationsEn extends AppLocalizations {
   String get compareLabel => 'Compare';
 
   @override
+  String get comparePageTitle => 'Fund Comparator';
+
+  @override
+  String get compareFundSelection => 'Funds to compare';
+
+  @override
+  String get comparePortfolioNeedsTwo =>
+      'You need at least two funds in your portfolio to compare them.';
+
+  @override
+  String get compareSelectFund => 'Select a fund';
+
+  @override
+  String get compareFundOne => 'First fund';
+
+  @override
+  String get compareFundTwo => 'Second fund';
+
+  @override
+  String get compareChooseDifferentFunds => 'Select two different funds.';
+
+  @override
+  String get compareResults => 'Comparison result';
+
+  @override
+  String get compareChartTitle => 'Historical evolution';
+
+  @override
+  String get compareChartNoData =>
+      'There is not enough overlapping history to display the chart.';
+
+  @override
+  String get compareMarketHistory => 'Fund and history';
+
+  @override
+  String get compareInvestmentPosition => 'Your investment';
+
+  @override
+  String get compareNoSharedPositions =>
+      'Investment metrics require an open position in both funds.';
+
+  @override
+  String get compareHistoryStart => 'First available value';
+
+  @override
+  String get compareCurrency => 'Currency';
+
+  @override
+  String get compareLastNav => 'Latest net asset value';
+
+  @override
+  String get compareLastChange => 'Latest change';
+
+  @override
+  String get compareMonthChange => '1-month change';
+
+  @override
+  String get compareSixMonthChange => '6-month change';
+
+  @override
+  String get compareYearChange => '1-year change';
+
+  @override
+  String get compareSinceInceptionChange => 'Change since inception';
+
+  @override
+  String get compareAnnualVolatility => 'Annualized volatility';
+
+  @override
+  String get compareCosts => 'Costs and fees';
+
+  @override
+  String get compareMorningstarRating => 'Morningstar rating';
+
+  @override
+  String get compareTer => 'TER';
+
+  @override
+  String get compareInvested => 'Capital invested';
+
+  @override
+  String get compareCurrentValue => 'Current value';
+
+  @override
+  String get compareProfit => 'Profit / loss';
+
+  @override
+  String get compareReturn => 'Position return';
+
+  @override
+  String get compareTwr => 'Annualized TWR';
+
+  @override
+  String get compareMwr => 'Annualized IRR';
+
+  @override
+  String get compareMoic => 'MOIC';
+
+  @override
   String get compareWithBenchmark => 'Compare with benchmark';
 
   @override

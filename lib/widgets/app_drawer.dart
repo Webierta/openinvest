@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
+import '../screens/compara_page.dart';
 import '../screens/settings_page.dart';
 import '../screens/info_page.dart';
 import '../screens/about_page.dart';
@@ -37,10 +38,7 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(
-              Icons.settings_outlined,
-              color: Colors.white70,
-            ),
+            leading: const Icon(Icons.settings_outlined, color: Colors.white70),
             title: Text(
               l10n.settings,
               style: const TextStyle(color: Colors.white),
@@ -50,6 +48,20 @@ class AppDrawer extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.compare_arrows, color: Colors.white70),
+            title: Text(
+              'Comparador',
+              style: const TextStyle(color: Colors.white),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ComparaPage()),
               );
             },
           ),
@@ -80,10 +92,7 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(
-              Icons.favorite_outline,
-              color: Colors.white70,
-            ),
+            leading: const Icon(Icons.favorite_outline, color: Colors.white70),
             title: Text(
               l10n.support,
               style: const TextStyle(color: Colors.white),

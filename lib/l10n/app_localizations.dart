@@ -1994,6 +1994,198 @@ abstract class AppLocalizations {
   /// **'Comparar'**
   String get compareLabel;
 
+  /// No description provided for @comparePageTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Comparador'**
+  String get comparePageTitle;
+
+  /// No description provided for @compareFundSelection.
+  ///
+  /// In es, this message translates to:
+  /// **'Fondos para comparar'**
+  String get compareFundSelection;
+
+  /// No description provided for @comparePortfolioNeedsTwo.
+  ///
+  /// In es, this message translates to:
+  /// **'Necesitas al menos dos fondos en cartera para compararlos.'**
+  String get comparePortfolioNeedsTwo;
+
+  /// No description provided for @compareSelectFund.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona un fondo'**
+  String get compareSelectFund;
+
+  /// No description provided for @compareFundOne.
+  ///
+  /// In es, this message translates to:
+  /// **'Primer fondo'**
+  String get compareFundOne;
+
+  /// No description provided for @compareFundTwo.
+  ///
+  /// In es, this message translates to:
+  /// **'Segundo fondo'**
+  String get compareFundTwo;
+
+  /// No description provided for @compareChooseDifferentFunds.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona dos fondos diferentes.'**
+  String get compareChooseDifferentFunds;
+
+  /// No description provided for @compareResults.
+  ///
+  /// In es, this message translates to:
+  /// **'Resultado de la comparación'**
+  String get compareResults;
+
+  /// No description provided for @compareChartTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Evolución histórica'**
+  String get compareChartTitle;
+
+  /// No description provided for @compareChartNoData.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay historial común suficiente para mostrar el gráfico.'**
+  String get compareChartNoData;
+
+  /// No description provided for @compareMarketHistory.
+  ///
+  /// In es, this message translates to:
+  /// **'Fondo e historial'**
+  String get compareMarketHistory;
+
+  /// No description provided for @compareInvestmentPosition.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu inversión'**
+  String get compareInvestmentPosition;
+
+  /// No description provided for @compareNoSharedPositions.
+  ///
+  /// In es, this message translates to:
+  /// **'Las métricas de inversión requieren una posición abierta en ambos fondos.'**
+  String get compareNoSharedPositions;
+
+  /// No description provided for @compareHistoryStart.
+  ///
+  /// In es, this message translates to:
+  /// **'Primer valor disponible'**
+  String get compareHistoryStart;
+
+  /// No description provided for @compareCurrency.
+  ///
+  /// In es, this message translates to:
+  /// **'Moneda'**
+  String get compareCurrency;
+
+  /// No description provided for @compareLastNav.
+  ///
+  /// In es, this message translates to:
+  /// **'Último valor liquidativo'**
+  String get compareLastNav;
+
+  /// No description provided for @compareLastChange.
+  ///
+  /// In es, this message translates to:
+  /// **'Última variación'**
+  String get compareLastChange;
+
+  /// No description provided for @compareMonthChange.
+  ///
+  /// In es, this message translates to:
+  /// **'Variación en 1 mes'**
+  String get compareMonthChange;
+
+  /// No description provided for @compareSixMonthChange.
+  ///
+  /// In es, this message translates to:
+  /// **'Variación en 6 meses'**
+  String get compareSixMonthChange;
+
+  /// No description provided for @compareYearChange.
+  ///
+  /// In es, this message translates to:
+  /// **'Variación en 1 año'**
+  String get compareYearChange;
+
+  /// No description provided for @compareSinceInceptionChange.
+  ///
+  /// In es, this message translates to:
+  /// **'Variación desde el inicio'**
+  String get compareSinceInceptionChange;
+
+  /// No description provided for @compareAnnualVolatility.
+  ///
+  /// In es, this message translates to:
+  /// **'Volatilidad anualizada'**
+  String get compareAnnualVolatility;
+
+  /// No description provided for @compareCosts.
+  ///
+  /// In es, this message translates to:
+  /// **'Costes y comisiones'**
+  String get compareCosts;
+
+  /// No description provided for @compareMorningstarRating.
+  ///
+  /// In es, this message translates to:
+  /// **'Rating Morningstar'**
+  String get compareMorningstarRating;
+
+  /// No description provided for @compareTer.
+  ///
+  /// In es, this message translates to:
+  /// **'TER'**
+  String get compareTer;
+
+  /// No description provided for @compareInvested.
+  ///
+  /// In es, this message translates to:
+  /// **'Capital invertido'**
+  String get compareInvested;
+
+  /// No description provided for @compareCurrentValue.
+  ///
+  /// In es, this message translates to:
+  /// **'Valor actual'**
+  String get compareCurrentValue;
+
+  /// No description provided for @compareProfit.
+  ///
+  /// In es, this message translates to:
+  /// **'Plusvalía'**
+  String get compareProfit;
+
+  /// No description provided for @compareReturn.
+  ///
+  /// In es, this message translates to:
+  /// **'Rentabilidad de la posición'**
+  String get compareReturn;
+
+  /// No description provided for @compareTwr.
+  ///
+  /// In es, this message translates to:
+  /// **'TWR anualizado'**
+  String get compareTwr;
+
+  /// No description provided for @compareMwr.
+  ///
+  /// In es, this message translates to:
+  /// **'TIR anualizada'**
+  String get compareMwr;
+
+  /// No description provided for @compareMoic.
+  ///
+  /// In es, this message translates to:
+  /// **'MOIC'**
+  String get compareMoic;
+
   /// No description provided for @compareWithBenchmark.
   ///
   /// In es, this message translates to:
