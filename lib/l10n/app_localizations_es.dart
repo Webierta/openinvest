@@ -274,7 +274,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get permissionsDesc =>
-      '• Internet: Para descargar cotizaciones en tiempo real.\n• Almacenamiento: Para exportar e importar archivos JSON de copia de seguridad.';
+      '• Internet: Para descargar cotizaciones en tiempo real.\n• Almacenamiento: Para exportar e importar archivos JSON de copia de seguridad.\n• Uso Biométrico: Permite que la aplicación utilice las modalidades biométricas admitidas por el dispositivo si el usuario de Android activa la opción de acceso restringido.';
 
   @override
   String get warrantyTitle => 'Garantía y Responsabilidad';

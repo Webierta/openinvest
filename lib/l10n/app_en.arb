@@ -79,7 +79,7 @@
   "dataSourceTitle": "Data Source",
   "dataSourceDesc": "Financial data, official registries, and quotes are obtained from public sources such as CNMV, Morningstar, and Yahoo Finance. OpenInvest is not responsible for the accuracy of data provided by third parties.",
   "permissionsTitle": "Permissions",
-  "permissionsDesc": "• Internet: To download real-time quotes.\n• Storage: To export and import JSON backup files.",
+  "permissionsDesc": "• Internet: To download real-time quotes.\n• Storage: To export and import JSON backup files.\n• Biometric Usage: Allows the application to use the biometric modalities supported by the device if the Android user activates the restricted access option.",
   "warrantyTitle": "Warranty and Liability",
   "warrantyDesc": "The app is provided \"as is\", without warranty of any kind. It does not constitute professional financial advice. Invest at your own risk.",
   "privacyTitle": "Privacy and Security",

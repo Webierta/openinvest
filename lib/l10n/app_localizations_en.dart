@@ -272,7 +272,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionsDesc =>
-      '• Internet: To download real-time quotes.\n• Storage: To export and import JSON backup files.';
+      '• Internet: To download real-time quotes.\n• Storage: To export and import JSON backup files.\n• Biometric Usage: Allows the application to use the biometric modalities supported by the device if the Android user activates the restricted access option.';
 
   @override
   String get warrantyTitle => 'Warranty and Liability';
