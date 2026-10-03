@@ -5,4 +5,9 @@ abstract interface class IsinSourceProvider {
     required String ticker,
     required String fundName,
   });
+
+  Future<List<IsinResult>> resolveAll({
+    required String ticker,
+    required String fundName,
+  });
 }

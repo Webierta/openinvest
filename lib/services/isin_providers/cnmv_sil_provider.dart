@@ -13,6 +13,16 @@ class CnmvSilProvider implements IsinSourceProvider {
   final http.Client _client;
   Map<int, _CnmvEntity>? _cnmvEntities;
 
+  @override
+  Future<List<IsinResult>> resolveAll({
+    required String ticker,
+    required String fundName,
+  }) async {
+    final result = await resolve(ticker: ticker, fundName: fundName);
+
+    return result == null ? const [] : [result];
+  }
+
   static const String _cnmvListBaseUrl =
       'https://www.cnmv.es/portal/consultas/mostrarlistados'
       '?id=5&lang=es&page=';

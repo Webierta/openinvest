@@ -1843,5 +1843,1191 @@ void main() {
       // Unión = 5
       expect(similarity, closeTo(1 / 5, 1e-12));
     });
+
+    // ===========================================================================
+    // LF-12.1 — Gestora vs producto
+    // ===========================================================================
+    group('LF-12.1 — Gestora vs producto', () {
+      test('LF-12.1.1 — misma gestora, productos claramente distintos', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'BANKINTER DEUDA PUBLICA 2025 FI',
+          'BANKINTER RENTA VARIABLE ESPAÑA FI',
+        );
+
+        expect(similarity, closeTo(0.25, 0.0001));
+      });
+
+      test(
+        'LF-12.1.2 — productos distintos pero vocabulario parcialmente común',
+        () {
+          final similarity = FundNameMatcher.nameSimilarity(
+            'BANKINTER DEUDA PUBLICA 2025 FI',
+            'CAIXABANK DEUDA PUBLICA 2025 FI',
+          );
+
+          expect(similarity, closeTo(2 / 3, 0.0001));
+        },
+      );
+    });
+
+    // ===========================================================================
+    // LF-12.3 — Moneda como elemento de identidad
+    // ===========================================================================
+    group('LF-12.3 — Moneda como elemento de identidad', () {
+      test('LF-12.3.1 — PIMCO USD vs EUR', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund USD',
+          'PIMCO GIS Income Fund EUR',
+        );
+
+        expect(similarity, closeTo(2 / 3, 0.0001));
+      });
+
+      test('LF-12.3.2 — Global Equity EUR vs USD', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity Fund EUR Acc',
+          'Global Equity Fund USD Acc',
+        );
+
+        expect(similarity, closeTo(2 / 3, 0.0001));
+      });
+
+      test('LF-12.3.3 — EUR vs GBP', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity Fund EUR Acc',
+          'Global Equity Fund GBP Acc',
+        );
+
+        expect(similarity, closeTo(2 / 3, 0.0001));
+      });
+
+      test('LF-12.3.4 — moneda y clase simultáneamente diferentes', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity Fund Class A EUR',
+          'Global Equity Fund Class B USD',
+        );
+
+        expect(similarity, closeTo(0.5, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-12.4 — Tokens semánticamente opuestos
+    // ===========================================================================
+    group('LF-12.4 — Tokens semánticamente opuestos', () {
+      test('LF-12.4.1 — Equity vs Bond', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity Fund',
+          'Global Bond Fund',
+        );
+
+        expect(similarity, closeTo(0.5, 0.0001));
+      });
+
+      test('LF-12.4.2 — European Equity vs European Bond', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'European Equity Fund',
+          'European Bond Fund',
+        );
+
+        expect(similarity, closeTo(0.5, 0.0001));
+      });
+
+      test('LF-12.4.3 — Income vs Growth', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Income Fund',
+          'Growth Fund',
+        );
+
+        expect(similarity, closeTo(1 / 3, 0.0001));
+      });
+
+      test('LF-12.4.4 — Acc vs Inc', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity Fund Acc',
+          'Global Equity Fund Inc',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test(
+        'LF-12.4.5 — Growth vs Income dentro del mismo producto nominal',
+        () {
+          final similarity = FundNameMatcher.nameSimilarity(
+            'Global Equity Growth Fund',
+            'Global Equity Income Fund',
+          );
+
+          expect(similarity, closeTo(0.6, 0.0001));
+        },
+      );
+    });
+
+    // ===========================================================================
+    // LF-12.5 — Nombres reales / representativos de las fuentes
+    // ===========================================================================
+    group('LF-12.5 — Nombres reales de las fuentes', () {
+      test('LF-12.5.1 — PIMCO Yahoo vs Morningstar/CNMV', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Income Fund E Class USD Income',
+        );
+
+        expect(similarity, closeTo(5 / 8, 0.0001));
+      });
+
+      test('LF-12.5.2 — JPMorgan nombre corto vs nombre de clase', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'JPMorgan Funds Global Equity',
+          'JPMorgan Funds Global Equity A Acc EUR',
+        );
+
+        expect(similarity, closeTo(4 / 7, 0.0001));
+      });
+
+      test('LF-12.5.3 — Carmignac nombre completo vs nombre base', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Carmignac Patrimoine A EUR Acc',
+          'Carmignac Patrimoine',
+        );
+
+        expect(similarity, closeTo(0.4, 0.0001));
+      });
+
+      test('LF-12.5.4 — mismo nombre tras normalización', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'pimco gis income e usd inc',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test(
+        'LF-12.5.5 — fuente española vs nombre con metadatos adicionales',
+        () {
+          final similarity = FundNameMatcher.nameSimilarity(
+            'Carmignac Patrimoine',
+            'Carmignac Patrimoine A EUR Acc',
+          );
+
+          expect(similarity, closeTo(0.4, 0.0001));
+        },
+      );
+    });
+
+    // ===========================================================================
+    // LF-12.6 — Similitud léxica no equivale a identidad
+    // ===========================================================================
+    group('LF-12.6 — Similitud léxica no equivale a identidad', () {
+      test('LF-12.6.1 — clases diferentes con similitud > 0.7', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity Fund Class A USD',
+          'Global Equity Fund Class B USD',
+        );
+
+        expect(similarity, greaterThan(0.7));
+        expect(similarity, closeTo(5 / 7, 0.0001));
+      });
+
+      test('LF-12.6.2 — Equity vs Bond mantiene similitud significativa', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity Fund',
+          'Global Bond Fund',
+        );
+
+        expect(similarity, closeTo(0.5, 0.0001));
+        expect(similarity, greaterThan(0.0));
+      });
+
+      test('LF-12.6.3 — misma familia nominal con clase distinta', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income Fund E Class USD Income',
+          'PIMCO GIS Income Fund I Class USD Income',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+        expect(similarity, lessThan(1.0));
+      });
+
+      test('LF-12.6.4 — mismo producto con nombre abreviado', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Income Fund E Class USD Income',
+        );
+
+        expect(similarity, closeTo(5 / 8, 0.0001));
+        expect(similarity, lessThan(0.7));
+      });
+
+      test('LF-12.6.5 — identidad distinta puede superar 0.6', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'Global Equity Fund Class A',
+          'Global Equity Fund Class B',
+        );
+
+        expect(similarity, greaterThan(0.6));
+        expect(similarity, lessThan(1.0));
+      });
+    });
+
+    // ===========================================================================
+    // LF-13.1 — Gestora / identidad de producto
+    // ===========================================================================
+    group('LF-13.1 — Gestora / identidad de producto', () {
+      test('LF-13.1.1 — misma gestora, producto diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'BANKINTER DEUDA PUBLICA 2025 FI',
+          'BANKINTER RENTA VARIABLE ESPAÑA FI',
+        );
+
+        expect(similarity, closeTo(0.25, 0.0001));
+      });
+
+      test('LF-13.1.2 — gestora diferente, mismo producto nominal', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'BANKINTER DEUDA PUBLICA 2025 FI',
+          'CAIXABANK DEUDA PUBLICA 2025 FI',
+        );
+
+        expect(similarity, closeTo(2 / 3, 0.0001));
+      });
+
+      test('LF-13.1.3 — mismo producto sin gestora', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'DEUDA PUBLICA 2025 FI',
+          'DEUDA PUBLICA 2025 FI',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test('LF-13.1.4 — solo cambia la gestora', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'BANKINTER DEUDA PUBLICA 2025 FI',
+          'CAIXABANK DEUDA PUBLICA 2025 FI',
+        );
+
+        expect(similarity, greaterThan(0.5));
+        expect(similarity, lessThan(1.0));
+      });
+    });
+
+    // ===========================================================================
+    // LF-13.2 — Clase
+    // ===========================================================================
+    group('LF-13.2 — Clase', () {
+      test('LF-13.2.1 — clase A vs B', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND CLASS B',
+        );
+
+        expect(similarity, closeTo(2 / 3, 0.0001));
+      });
+
+      test('LF-13.2.2 — clase E vs I', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME FUND E CLASS USD INCOME',
+          'PIMCO GIS INCOME FUND I CLASS USD INCOME',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-13.2.3 — misma clase explícita', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND CLASS A',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test('LF-13.2.4 — clase omitida en uno de los nombres', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test(
+        'LF-13.2.5 — clase y nombre completamente iguales salvo formato',
+        () {
+          final similarity = FundNameMatcher.nameSimilarity(
+            'Global Equity Fund - Class A',
+            'GLOBAL EQUITY FUND CLASS A',
+          );
+
+          expect(similarity, 1.0);
+        },
+      );
+    });
+
+    // ===========================================================================
+    // LF-13.3 — Divisa
+    // ===========================================================================
+    group('LF-13.3 — Divisa', () {
+      test('LF-13.3.1 — EUR vs USD', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND USD',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-13.3.2 — misma divisa', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND EUR',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test('LF-13.3.3 — divisa omitida', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-13.3.4 — clase y divisa diferentes', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR',
+          'GLOBAL EQUITY FUND CLASS B USD',
+        );
+
+        expect(similarity, 0.5);
+      });
+
+      test('LF-13.3.5 — misma clase, divisa diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR',
+          'GLOBAL EQUITY FUND CLASS A USD',
+        );
+        expect(similarity, closeTo(5 / 7, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-13.4 — Distribución / acumulación
+    // ===========================================================================
+    group('LF-13.4 — Distribución / acumulación', () {
+      test('LF-13.4.1 — Acc vs Inc', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND INC',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-13.4.2 — Acc vs Distribution', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND DISTRIBUTION',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-13.4.3 — Income vs Growth', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY INCOME FUND',
+          'GLOBAL EQUITY GROWTH FUND',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-13.4.4 — misma modalidad de distribución', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND ACC',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test('LF-13.4.5 — modalidad omitida', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-13.5 — Tokens accesorios
+    // ===========================================================================
+    group('LF-13.5 — Tokens accesorios', () {
+      test('LF-13.5.1 — Fund', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME',
+          'PIMCO GIS INCOME FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-13.5.2 — FI', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'BANKINTER DEUDA PUBLICA 2025',
+          'BANKINTER DEUDA PUBLICA 2025 FI',
+        );
+
+        expect(similarity, closeTo(0.8, 0.0001));
+      });
+
+      test('LF-13.5.3 — Class', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND A',
+          'GLOBAL EQUITY FUND CLASS A',
+        );
+
+        expect(similarity, closeTo(4 / 5, 0.0001));
+      });
+
+      test('LF-13.5.4 — UCITS', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY FUND UCITS',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-13.5.5 — múltiples tokens accesorios', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY FUND UCITS SICAV',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-13.6 — Combinaciones estructurales
+    // ===========================================================================
+    group('LF-13.6 — Combinaciones estructurales', () {
+      test('LF-13.6.1 — misma clase, moneda diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME FUND E CLASS EUR INCOME',
+          'PIMCO GIS INCOME FUND E CLASS USD INCOME',
+        );
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-13.6.2 — clase y distribución diferentes', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME FUND E CLASS USD ACC',
+          'PIMCO GIS INCOME FUND I CLASS USD INC',
+        );
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-13.6.3 — clase, moneda y distribución diferentes', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME FUND E CLASS EUR ACC',
+          'PIMCO GIS INCOME FUND I CLASS USD INC',
+        );
+        expect(similarity, closeTo(5 / 11, 0.0001));
+      });
+
+      test('LF-13.6.4 — nombre abreviado frente a nombre estructurado', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME E USD INC',
+          'PIMCO GIS INCOME FUND E CLASS USD INCOME',
+        );
+
+        expect(similarity, closeTo(5 / 8, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-13.7 — Ausencia de información vs diferencia explícita
+    // ===========================================================================
+    group('LF-13.7 — Ausencia de información vs diferencia explícita', () {
+      test('LF-13.7.1 — clase ausente no equivale a clase diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND',
+        );
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-13.7.2 — moneda ausente no equivale a moneda diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test(
+        'LF-13.7.3 — distribución ausente no equivale a distribución diferente',
+        () {
+          final similarity = FundNameMatcher.nameSimilarity(
+            'GLOBAL EQUITY FUND ACC',
+            'GLOBAL EQUITY FUND',
+          );
+
+          expect(similarity, closeTo(0.75, 0.0001));
+        },
+      );
+
+      test('LF-13.7.4 — diferencia explícita de clase', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND CLASS B',
+        );
+
+        expect(similarity, closeTo(2 / 3, 0.0001));
+      });
+
+      test('LF-13.7.5 — diferencia explícita de moneda', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND USD',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-13.7.6 — diferencia explícita de distribución', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND INC',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-14.1 — Variantes de clase
+    // ===========================================================================
+    group('LF-14.1 — Variantes de clase', () {
+      test('LF-14.1.1 — Class A vs A', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND A',
+        );
+
+        expect(similarity, closeTo(4 / 5, 0.0001));
+      });
+
+      test('LF-14.1.2 — Class A vs Class A Share', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND CLASS A SHARE',
+        );
+
+        expect(similarity, closeTo(5 / 6, 0.0001));
+      });
+
+      test('LF-14.1.3 — Class A vs A Acc', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND A ACC',
+        );
+
+        expect(similarity, closeTo(4 / 6, 0.0001));
+      });
+
+      test('LF-14.1.4 — clase expresada como palabra vs letra', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND A',
+        );
+
+        expect(similarity, closeTo(4 / 5, 0.0001));
+      });
+
+      test('LF-14.1.5 — clase E real de PIMCO', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME FUND E CLASS USD INCOME',
+          'PIMCO GIS INCOME E USD INC',
+        );
+
+        expect(similarity, closeTo(5 / 8, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-14.2 — Variantes de moneda
+    // ===========================================================================
+    group('LF-14.2 — Variantes de moneda', () {
+      test('LF-14.2.1 — EUR explícito en ambos', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND EUR',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test('LF-14.2.2 — EUR vs USD', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND USD',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-14.2.3 — moneda ausente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-14.2.4 — EUR con clase', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND A EUR',
+          'GLOBAL EQUITY FUND A EUR',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test('LF-14.2.5 — EUR/Acc vs USD/Acc', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND A EUR ACC',
+          'GLOBAL EQUITY FUND A USD ACC',
+        );
+        expect(similarity, closeTo(5 / 7, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-14.3 — Variantes de distribución
+    // ===========================================================================
+    group('LF-14.3 — Variantes de distribución', () {
+      test('LF-14.3.1 — ACC vs ACC', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND ACC',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test('LF-14.3.2 — ACC vs INC', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND INC',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-14.3.3 — ACC vs INCOME', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND INCOME',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-14.3.4 — INC vs INCOME', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND INC',
+          'GLOBAL EQUITY FUND INCOME',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-14.3.5 — distribución ausente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-14.4 — Descriptores jurídicos / estructurales
+    // ===========================================================================
+    group('LF-14.4 — Descriptores jurídicos / estructurales', () {
+      test('LF-14.4.1 — FUND presente/ausente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS INCOME',
+          'PIMCO GIS INCOME FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-14.4.2 — FI presente/ausente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'BANKINTER DEUDA PUBLICA 2025',
+          'BANKINTER DEUDA PUBLICA 2025 FI',
+        );
+
+        expect(similarity, closeTo(0.8, 0.0001));
+      });
+
+      test('LF-14.4.3 — UCITS presente/ausente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY FUND UCITS',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-14.4.4 — SICAV presente/ausente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY FUND SICAV',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-14.4.5 — múltiples descriptores', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY FUND UCITS SICAV',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-14.5 — Nombres reales internacionales
+    // ===========================================================================
+    group('LF-14.5 — Nombres reales internacionales', () {
+      test('LF-14.5.1 — PIMCO abreviado vs completo', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Income Fund E Class USD Income',
+        );
+
+        expect(similarity, closeTo(5 / 8, 0.0001));
+      });
+
+      test('LF-14.5.2 — PIMCO misma clase y moneda', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Income E USD Inc',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test('LF-14.5.3 — PIMCO clase diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Income I USD Inc',
+        );
+        expect(similarity, closeTo(5 / 7, 0.0001));
+      });
+
+      test('LF-14.5.4 — PIMCO moneda diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Income E EUR Inc',
+        );
+        expect(similarity, closeTo(5 / 7, 0.0001));
+      });
+
+      test('LF-14.5.5 — PIMCO clase y moneda diferentes', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Income I EUR Inc',
+        );
+        expect(similarity, 0.5);
+      });
+    });
+
+    // ===========================================================================
+    // LF-14.6 — Ausencia frente a contradicción
+    // ===========================================================================
+    group('LF-14.6 — Ausencia frente a contradicción', () {
+      test('LF-14.6.1 — clase A vs clase ausente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-14.6.2 — clase A vs clase B', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A',
+          'GLOBAL EQUITY FUND CLASS B',
+        );
+
+        expect(similarity, closeTo(2 / 3, 0.0001));
+      });
+
+      test('LF-14.6.3 — EUR vs moneda ausente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-14.6.4 — EUR vs USD', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND EUR',
+          'GLOBAL EQUITY FUND USD',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+
+      test('LF-14.6.5 — ACC vs distribución ausente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND',
+        );
+
+        expect(similarity, closeTo(0.75, 0.0001));
+      });
+
+      test('LF-14.6.6 — ACC vs INC', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND ACC',
+          'GLOBAL EQUITY FUND INC',
+        );
+
+        expect(similarity, closeTo(0.6, 0.0001));
+      });
+    });
+
+    // ===========================================================================
+    // LF-14.7 — Composición de atributos estructurales
+    // ===========================================================================
+    group('LF-14.7 — Composición de atributos estructurales', () {
+      test('LF-14.7.1 — mismo producto, misma clase, misma moneda', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+        );
+
+        expect(similarity, 1.0);
+      });
+
+      test('LF-14.7.2 — cambia solo clase', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL EQUITY FUND CLASS B EUR ACC',
+        );
+        expect(similarity, 0.75);
+      });
+
+      test('LF-14.7.3 — cambia solo moneda', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL EQUITY FUND CLASS A USD ACC',
+        );
+        expect(similarity, 0.75);
+      });
+
+      test('LF-14.7.4 — cambia solo distribución', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL EQUITY FUND CLASS A EUR INC',
+        );
+        expect(similarity, 0.75);
+      });
+
+      test('LF-14.7.5 — cambia clase y moneda', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL EQUITY FUND CLASS B USD ACC',
+        );
+        expect(similarity, closeTo(5 / 9, 0.0001));
+      });
+
+      test('LF-14.7.6 — cambia clase, moneda y distribución', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL EQUITY FUND CLASS B USD INC',
+        );
+        expect(similarity, 0.4);
+      });
+    });
+
+    // ============================================================================
+    // LF-15 — FALSOS POSITIVOS POR COINCIDENCIA PARCIAL
+    // ============================================================================
+    //
+    // Objetivo:
+    //   Medir hasta qué punto dos fondos diferentes pueden obtener una similitud
+    //   elevada simplemente porque comparten muchos tokens.
+    //
+    // No se evalúa aquí si una pareja es realmente la misma clase de fondo.
+    // Se documenta exclusivamente el comportamiento léxico actual de Jaccard.
+    //
+    // Regla:
+    //   No modificar FundNameMatcher para hacer pasar estos tests.
+    // ============================================================================
+
+    group('LF-15 — Falsos positivos por coincidencia parcial', () {
+      // --------------------------------------------------------------------------
+      // LF-15.1 — Mismo nombre base, vehículo/instrumento diferente
+      // --------------------------------------------------------------------------
+
+      test('LF-15.1.1 — Equity Fund vs Equity ETF', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY ETF',
+        );
+
+        expect(similarity, closeTo(2 / 4, 0.0001));
+      });
+
+      test('LF-15.1.2 — Equity Fund vs Equity Index Fund', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY INDEX FUND',
+        );
+        expect(similarity, 0.75);
+      });
+
+      test('LF-15.1.3 — Equity Fund vs Equity Select Fund', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY SELECT FUND',
+        );
+        expect(similarity, 0.75);
+      });
+
+      test('LF-15.1.4 — Global Equity Fund vs Global Equity Income Fund', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EQUITY INCOME FUND',
+        );
+        expect(similarity, 0.75);
+      });
+
+      // --------------------------------------------------------------------------
+      // LF-15.2 — Diferencia en una palabra sustantiva
+      // --------------------------------------------------------------------------
+
+      test('LF-15.2.1 — Equity vs Bond', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL BOND FUND',
+        );
+
+        expect(similarity, closeTo(2 / 4, 0.0001));
+      });
+
+      test('LF-15.2.2 — Equity vs Credit', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL CREDIT FUND',
+        );
+
+        expect(similarity, closeTo(2 / 4, 0.0001));
+      });
+
+      test('LF-15.2.3 — Equity vs Emerging Markets', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL EMERGING MARKETS FUND',
+        );
+
+        expect(similarity, closeTo(2 / 5, 0.0001));
+      });
+
+      test('LF-15.2.4 — Global Equity vs Global Allocation', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND',
+          'GLOBAL ALLOCATION FUND',
+        );
+
+        expect(similarity, closeTo(2 / 4, 0.0001));
+      });
+
+      // --------------------------------------------------------------------------
+      // LF-15.3 — Diferencia en varios atributos semánticamente relevantes
+      // --------------------------------------------------------------------------
+
+      test('LF-15.3.1 — Equity vs Bond con misma clase y divisa', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL BOND FUND CLASS A EUR ACC',
+        );
+
+        expect(similarity, closeTo(6 / 8, 0.0001));
+      });
+
+      test('LF-15.3.2 — Equity vs Credit con misma clase y divisa', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL CREDIT FUND CLASS A EUR ACC',
+        );
+
+        expect(similarity, closeTo(6 / 8, 0.0001));
+      });
+
+      test('LF-15.3.3 — Equity vs Allocation con misma clase y divisa', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL ALLOCATION FUND CLASS A EUR ACC',
+        );
+
+        expect(similarity, closeTo(6 / 8, 0.0001));
+      });
+
+      // --------------------------------------------------------------------------
+      // LF-15.4 — Fondos de la misma gestora / familia nominal
+      // --------------------------------------------------------------------------
+
+      test('LF-15.4.1 — PIMCO Income vs PIMCO Credit', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Credit E USD Inc',
+        );
+
+        expect(similarity, closeTo(5 / 7, 0.0001));
+      });
+
+      test('LF-15.4.2 — PIMCO Income vs PIMCO Global Bond', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Global Bond E USD Inc',
+        );
+
+        expect(similarity, closeTo(5 / 8, 0.0001));
+      });
+
+      test('LF-15.4.3 — PIMCO Income vs PIMCO Short Duration', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Short Duration E USD Inc',
+        );
+
+        expect(similarity, closeTo(5 / 8, 0.0001));
+      });
+
+      test('LF-15.4.4 — PIMCO Income vs PIMCO Emerging Markets', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'PIMCO GIS Income E USD Inc',
+          'PIMCO GIS Emerging Markets E USD Inc',
+        );
+
+        expect(similarity, closeTo(5 / 8, 0.0001));
+      });
+
+      // --------------------------------------------------------------------------
+      // LF-15.5 — Tokens genéricos dominantes
+      // --------------------------------------------------------------------------
+
+      test('LF-15.5.1 — muchos tokens genéricos, estrategia diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL INVESTMENT FUND CLASS A EUR ACC',
+          'GLOBAL INVESTMENT FUND CLASS B EUR ACC',
+        );
+
+        expect(similarity, 0.75);
+      });
+
+      test('LF-15.5.2 — misma estructura, diferente producto', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL BOND FUND CLASS B USD INC',
+        );
+        expect(similarity, closeTo(3 / 11, 0.0001));
+      });
+
+      test('LF-15.5.3 — nombre largo con una diferencia sustantiva', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL SUSTAINABLE EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL SUSTAINABLE BOND FUND CLASS A EUR ACC',
+        );
+
+        expect(similarity, closeTo(7 / 9, 0.0001));
+      });
+
+      // --------------------------------------------------------------------------
+      // LF-15.6 — Coincidencia por tokens de estructura, sin identidad nominal
+      // --------------------------------------------------------------------------
+
+      test('LF-15.6.1 — misma estructura completa, producto diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'EUROPEAN EQUITY FUND CLASS A EUR ACC',
+          'EUROPEAN BOND FUND CLASS A EUR ACC',
+        );
+
+        expect(similarity, closeTo(6 / 8, 0.0001));
+      });
+
+      test('LF-15.6.2 — misma gestora y estructura, estrategia diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'ACME GLOBAL EQUITY FUND CLASS A EUR ACC',
+          'ACME GLOBAL BOND FUND CLASS A EUR ACC',
+        );
+
+        expect(similarity, closeTo(7 / 9, 0.0001));
+      });
+
+      test('LF-15.6.3 — familia muy parecida, producto diferente', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'ACME GLOBAL SUSTAINABLE EQUITY FUND CLASS A EUR ACC',
+          'ACME GLOBAL SUSTAINABLE BOND FUND CLASS A EUR ACC',
+        );
+
+        expect(similarity, closeTo(8 / 10, 0.0001));
+      });
+
+      // --------------------------------------------------------------------------
+      // LF-15.7 — Casos extremos: similitud alta sin identidad
+      // --------------------------------------------------------------------------
+
+      test('LF-15.7.1 — una sola diferencia sustantiva en nombre largo', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL SUSTAINABLE RESPONSIBLE EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL SUSTAINABLE RESPONSIBLE BOND FUND CLASS A EUR ACC',
+        );
+
+        expect(similarity, closeTo(8 / 10, 0.0001));
+      });
+
+      test('LF-15.7.2 — dos diferencias sustantivas en nombre largo', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL SUSTAINABLE EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL SUSTAINABLE BOND FUND CLASS B EUR ACC',
+        );
+        expect(similarity, 0.6);
+      });
+
+      test('LF-15.7.3 — familia idéntica salvo estrategia y clase', () {
+        final similarity = FundNameMatcher.nameSimilarity(
+          'GLOBAL SUSTAINABLE EQUITY FUND CLASS A EUR ACC',
+          'GLOBAL SUSTAINABLE BOND FUND CLASS B EUR ACC',
+        );
+
+        expect(similarity, closeTo(6 / 10, 0.0001));
+      });
+    });
   });
 }

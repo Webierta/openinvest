@@ -13,6 +13,16 @@ class CnmvFiProvider implements IsinSourceProvider {
   CnmvFiProvider({CnmvLocalFundProvider? cnmvLocalFundProvider})
     : _cnmvLocalFundProvider = cnmvLocalFundProvider ?? CnmvLocalFundProvider();
 
+  @override
+  Future<List<IsinResult>> resolveAll({
+    required String ticker,
+    required String fundName,
+  }) async {
+    final result = await resolve(ticker: ticker, fundName: fundName);
+
+    return result == null ? const [] : [result];
+  }
+
   void _log(String event, {Object? error, StackTrace? stackTrace}) {
     if (!kDebugMode) return;
 

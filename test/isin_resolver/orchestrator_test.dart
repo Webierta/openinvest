@@ -18,6 +18,16 @@ class _FakeProvider implements IsinSourceProvider {
   });
 
   @override
+  Future<List<IsinResult>> resolveAll({
+    required String ticker,
+    required String fundName,
+  }) async {
+    final result = await resolve(ticker: ticker, fundName: fundName);
+
+    return result == null ? const [] : [result];
+  }
+
+  @override
   Future<IsinResult?> resolve({
     required String ticker,
     required String fundName,

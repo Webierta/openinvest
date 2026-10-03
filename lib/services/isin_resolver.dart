@@ -45,6 +45,53 @@ class IsinResult {
       'cnmvRegistration: $cnmvRegistration, cnmvNif: $cnmvNif)';
 }
 
+class IsinCandidate {
+  final String isin;
+  final List<IsinResult> _evidence;
+
+  const IsinCandidate({required this.isin, required List<IsinResult> evidence})
+    : _evidence = evidence;
+
+  List<IsinResult> get evidence => List<IsinResult>.unmodifiable(_evidence);
+}
+
+class IsinResolution {
+  final List<IsinCandidate> _candidates;
+
+  const IsinResolution({required List<IsinCandidate> candidates})
+    : _candidates = candidates;
+
+  List<IsinCandidate> get candidates =>
+      List<IsinCandidate>.unmodifiable(_candidates);
+
+  factory IsinResolution.fromSourceResults(
+    List<List<IsinResult>> sourceResults,
+  ) {
+    final evidenceByIsin = <String, List<IsinResult>>{};
+    final candidateOrder = <String>[];
+
+    for (final results in sourceResults) {
+      for (final result in results) {
+        final isin = result.isin;
+
+        if (!evidenceByIsin.containsKey(isin)) {
+          evidenceByIsin[isin] = <IsinResult>[];
+          candidateOrder.add(isin);
+        }
+
+        evidenceByIsin[isin]!.add(result);
+      }
+    }
+
+    return IsinResolution(
+      candidates: <IsinCandidate>[
+        for (final isin in candidateOrder)
+          IsinCandidate(isin: isin, evidence: evidenceByIsin[isin]!),
+      ],
+    );
+  }
+}
+
 /// Proveedor extranjero basado en la ficha clásica de Morningstar.
 class MorningstarLtForeignIsinProvider implements ForeignIsinProvider {
   final http.Client client;
@@ -230,20 +277,36 @@ class IsinResolver {
     return null;
   }
 
-  /* static String? _extractEmbeddedIsin(String value) {
-    final upper = value.toUpperCase();
-    final regex = RegExp(r'[A-Z]{2}[A-Z0-9]{9}[0-9]');
+  Future<IsinResolution> resolveAll({
+    required String ticker,
+    required String fundName,
+  }) async {
+    final normalizedTicker = ticker.trim().toUpperCase();
 
-    for (final match in regex.allMatches(upper)) {
-      final candidate = match.group(0);
+    _log('');
+    _log('------------------------------------------------------------');
+    _log('IsinResolver.resolveAll');
+    _log('Ticker: $normalizedTicker');
+    _log('Nombre: $fundName');
+    _log('------------------------------------------------------------');
 
-      if (candidate != null && IsinValidator.isValid(candidate)) {
-        return candidate;
+    final sourceResults = <List<IsinResult>>[];
+
+    for (final provider in _providers) {
+      try {
+        final results = await provider.resolveAll(
+          ticker: normalizedTicker,
+          fundName: fundName,
+        );
+
+        sourceResults.add(results);
+      } catch (e, stackTrace) {
+        _log('Provider ${provider.runtimeType} error: $e\n$stackTrace');
       }
     }
 
-    return null;
-  } */
+    return IsinResolution.fromSourceResults(sourceResults);
+  }
 
   static String? _extractEmbeddedIsin(String value) {
     final upper = value.toUpperCase();
