@@ -49,8 +49,10 @@ class IsinCandidate {
   final String isin;
   final List<IsinResult> _evidence;
 
-  const IsinCandidate({required this.isin, required List<IsinResult> evidence})
-    : _evidence = evidence;
+  /* const IsinCandidate({required this.isin, required List<IsinResult> evidence})
+    : _evidence = evidence; */
+
+  const IsinCandidate({required this.isin, required this._evidence});
 
   List<IsinResult> get evidence => List<IsinResult>.unmodifiable(_evidence);
 }
@@ -58,8 +60,10 @@ class IsinCandidate {
 class IsinResolution {
   final List<IsinCandidate> _candidates;
 
-  const IsinResolution({required List<IsinCandidate> candidates})
-    : _candidates = candidates;
+  // const IsinResolution({required List<IsinCandidate> candidates})
+  //   : _candidates = candidates;
+
+  const IsinResolution({required this._candidates});
 
   List<IsinCandidate> get candidates =>
       List<IsinCandidate>.unmodifiable(_candidates);
