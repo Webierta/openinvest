@@ -16,6 +16,7 @@ import '../models/foreign_isin_provider.dart';
 import '../utils/http_config.dart';
 import '../utils/isin_validator.dart';
 import 'cnmv_local_fund_provider.dart';
+import 'isin_providers/ecb_ifs_provider.dart';
 import 'isin_providers/fondos_json_provider.dart';
 import 'isin_providers/isin_source_provider.dart';
 import 'isin_providers/input_isin_provider.dart';
@@ -248,6 +249,7 @@ class IsinResolver {
              CnmvSilProvider(client: client),
              CnmvFiProvider(cnmvLocalFundProvider: cnmvLocalFundProvider),
              FondosJsonProvider(),
+             EcbIfsProvider(),
              YahooProvider(
                client: client,
                foreignIsinProviders: foreignIsinProviders,
