@@ -563,7 +563,7 @@ abstract class AppLocalizations {
   /// No description provided for @dataSourceDesc.
   ///
   /// In es, this message translates to:
-  /// **'Los datos financieros, registros oficiales y cotizaciones se obtienen de fuentes públicas como la CNMV, Morningstar y Yahoo Finance. OpenInvest no se responsabiliza de la exactitud de los datos proporcionados por terceros.'**
+  /// **'Los datos financieros, registros oficiales y cotizaciones se obtienen de diversas fuentes públicas, entre ellas la CNMV, el Banco Central Europeo (ECB/IFS), Morningstar y Yahoo Finance. OpenInvest no se responsabiliza de la exactitud de los datos proporcionados por terceros.'**
   String get dataSourceDesc;
 
   /// No description provided for @permissionsTitle.
@@ -775,18 +775,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'GLOBAL'**
   String get global;
-
-  /// No description provided for @ecbSource.
-  ///
-  /// In es, this message translates to:
-  /// **'ECB / IFS'**
-  String get ecbSource;
-
-  /// No description provided for @ecbSourceDesc.
-  ///
-  /// In es, this message translates to:
-  /// **'Fondos y vehículos de inversión identificados mediante la base estadística IFS del Banco Central Europeo.'**
-  String get ecbSourceDesc;
 
   /// No description provided for @updatePortfolioTooltip.
   ///
@@ -2305,6 +2293,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Fondos armonizados del catálogo local.'**
   String get localCatalogDesc;
+
+  /// No description provided for @ecbSource.
+  ///
+  /// In es, this message translates to:
+  /// **'ECB / IFS'**
+  String get ecbSource;
+
+  /// No description provided for @ecbSourceDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Fondos y vehículos de inversión identificados mediante la base estadística IFS del Banco Central Europeo.'**
+  String get ecbSourceDesc;
 
   /// No description provided for @morningstarSource.
   ///

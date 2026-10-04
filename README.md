@@ -33,7 +33,7 @@ Aplicación de código abierto para la gestión de una cartera de fondos de inve
 
 - **Licencia**: Esta aplicación es Software Libre bajo la licencia GNU General Public License v3 (GPLv3).
 - **Código Abierto**: El código fuente está disponible públicamente en nuestro repositorio de GitHub: [github.com/Webierta/openinvest](https://github.com/Webierta/openinvest)
-- **Fuente de Datos**: Los datos financieros, registros oficiales y cotizaciones se obtienen de fuentes públicas como la CNMV, Morningstar y Yahoo Finance. OpenInvest no se responsabiliza de la exactitud de los datos proporcionados por terceros.
+- **Fuente de Datos**: Los datos financieros, registros oficiales y cotizaciones se obtienen de diversas fuentes públicas, entre ellas la CNMV, el Banco Central Europeo (ECB/IFS), Morningstar y Yahoo Finance. OpenInvest no se responsabiliza de la exactitud de los datos proporcionados por terceros.
 - **Privacidad y Seguridad**: OpenInvest es una aplicación 100% gratuita y sin publicidad. No recopilamos datos personales. Toda tu información financiera se guarda exclusivamente de forma local en tu dispositivo.
 - **Garantía y Responsabilidad**: La aplicación se proporciona "tal cual", sin garantía de ningún tipo. No constituye asesoramiento financiero profesional. Invierte bajo tu propio riesgo.
 

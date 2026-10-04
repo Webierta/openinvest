@@ -4,22 +4,20 @@ import 'package:investing/services/fund_scraper.dart';
 
 void main() {
   group('LF-20.10.1 — modelo actual de procedencia', () {
-    test(
-      'FundSource contiene actualmente las cuatro categorías existentes',
-      () {
-        expect(
-          FundSource.values,
-          containsAll(<FundSource>[
-            FundSource.cnmv,
-            FundSource.local,
-            FundSource.morningstar,
-            FundSource.yahoo,
-          ]),
-        );
+    test('LF-20.10.1 — modelo actual de procedencia FundSource contiene las cinco categorías existentes', () {
+      expect(FundSource.values, hasLength(5));
 
-        expect(FundSource.values, hasLength(4));
-      },
-    );
+      expect(
+        FundSource.values,
+        containsAll(<FundSource>[
+          FundSource.cnmv,
+          FundSource.local,
+          FundSource.ecb,
+          FundSource.morningstar,
+          FundSource.yahoo,
+        ]),
+      );
+    });
 
     test('FundSearchMatch usa YAHOO como fuente por defecto', () {
       const match = FundSearchMatch(

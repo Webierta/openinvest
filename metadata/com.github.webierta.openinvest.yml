@@ -12,7 +12,7 @@ Description: |-
   OpenInvest is a clean, open-source application for managing and tracking investment fund portfolios on Android and Linux.
 
   Features:
-  * Fund search and real-time data using ISIN codes (CNMV, Morningstar, Yahoo Finance).
+  * Fund search and real-time data using ISIN codes and public sources (CNMV, ECB/IFS, Morningstar, Yahoo Finance).
   * Advanced financial performance metrics (TAE, TWR, MWR/TIR).
   * Cost and fee audits (TER and performance fees).
   * Interactive evolution charts and monthly heatmaps.

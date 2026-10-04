@@ -478,7 +478,6 @@ class _FundSearchPageState extends State<FundSearchPage> {
         color = Colors.indigoAccent;
         label = 'ECB';
         break;
-
       case FundSource.morningstar:
         color = Colors.orangeAccent;
         label = 'MORNINGSTAR';

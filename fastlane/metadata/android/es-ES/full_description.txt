@@ -1,7 +1,7 @@
 OpenInvest es una aplicación de código abierto diseñada para inversores que buscan un seguimiento detallado, analítico y 100% privado de su cartera de fondos de inversión.
 
 Características principales:
-- Búsqueda de fondos y cotizaciones en tiempo real mediante códigos ISIN (CNMV, Morningstar y Yahoo Finance).
+- Búsqueda y resolución de fondos mediante códigos ISIN y diversas fuentes públicas (CNMV, ECB/IFS, Morningstar y Yahoo Finance), con cotizaciones en tiempo real cuando están disponibles.
 - Métricas financieras de nivel profesional: TAE, TWR y MWR/TIR.
 - Comparador de fondos: evalúa dos fondos lado a lado con gráficos normalizados y rentabilidades comparadas.
 - Informes anuales en PDF y exportación de operaciones en CSV.

@@ -265,7 +265,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataSourceDesc =>
-      'Financial data, official registries, and quotes are obtained from public sources such as CNMV, Morningstar, and Yahoo Finance. OpenInvest is not responsible for the accuracy of data provided by third parties.';
+      'Financial data, official registries, and quotes are obtained from various public sources, including CNMV, the European Central Bank (ECB/IFS), Morningstar, and Yahoo Finance. OpenInvest is not responsible for the accuracy of data provided by third parties.';
 
   @override
   String get permissionsTitle => 'Permissions';
@@ -380,13 +380,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get global => 'GLOBAL';
-
-  @override
-  String get ecbSource => 'ECB / IFS';
-
-  @override
-  String get ecbSourceDesc =>
-      'Investment funds and vehicles identified through the European Central Bank\'s IFS statistical database.';
 
   @override
   String get updatePortfolioTooltip => 'Update all portfolio';
@@ -1215,6 +1208,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localCatalogDesc => 'Harmonized funds from the local catalog.';
+
+  @override
+  String get ecbSource => 'ECB / IFS';
+
+  @override
+  String get ecbSourceDesc =>
+      'Investment funds and vehicles identified through the European Central Bank\'s IFS statistical database.';
 
   @override
   String get morningstarSource => 'Morningstar';
