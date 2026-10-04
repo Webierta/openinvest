@@ -12,6 +12,7 @@ class EcbIfsProvider implements IsinSourceProvider {
   static const String _source = 'ECB/IFS';
 
   Future<Map<String, List<_EcbRecord>>>? _indexFuture;
+  Future<Map<String, _EcbRecord>>? _isinIndexFuture;
 
   EcbIfsProvider();
 
@@ -21,7 +22,6 @@ class EcbIfsProvider implements IsinSourceProvider {
     required String fundName,
   }) async {
     final results = await resolveAll(ticker: ticker, fundName: fundName);
-
     return results.isEmpty ? null : results.first;
   }
 
@@ -49,8 +49,51 @@ class EcbIfsProvider implements IsinSourceProvider {
     ];
   }
 
+  /// Resolves an ECB/IFS fund directly from its ISIN.
+  ///
+  /// This is intentionally provider-specific and does not alter the
+  /// generic IsinSourceProvider contract.
+  Future<IsinResult?> resolveByIsin(String isin) async {
+    final normalizedIsin = isin.trim().toUpperCase();
+
+    if (!IsinValidator.isValid(normalizedIsin)) {
+      return null;
+    }
+
+    final index = await _loadIsinIndex();
+    final record = index[normalizedIsin];
+
+    if (record == null) {
+      return null;
+    }
+
+    return IsinResult(
+      isin: record.isin,
+      source: _source,
+      officialName: record.name,
+    );
+  }
+
   Future<Map<String, List<_EcbRecord>>> _loadIndex() {
     return _indexFuture ??= _buildIndex();
+  }
+
+  Future<Map<String, _EcbRecord>> _loadIsinIndex() {
+    return _isinIndexFuture ??= _buildIsinIndex();
+  }
+
+  Future<Map<String, _EcbRecord>> _buildIsinIndex() async {
+    final index = <String, _EcbRecord>{};
+
+    final nameIndex = await _loadIndex();
+
+    for (final records in nameIndex.values) {
+      for (final record in records) {
+        index[record.isin] = record;
+      }
+    }
+
+    return index;
   }
 
   Future<Map<String, List<_EcbRecord>>> _buildIndex() async {
@@ -66,21 +109,6 @@ class EcbIfsProvider implements IsinSourceProvider {
     final index = <String, List<_EcbRecord>>{};
 
     for (final item in decoded) {
-      /* if (item is! Map<String, dynamic>) {
-        throw const FormatException(
-          'Each ECB IFS record must be a JSON object',
-        );
-      }
-
-      final name = item['Name'];
-      final isin = item['ISIN'];
-
-      if (name is! String || isin is! String) {
-        throw const FormatException(
-          'Each ECB IFS record must contain string Name and ISIN',
-        );
-      } */
-
       if (item is! Map<String, dynamic>) {
         continue;
       }
@@ -95,17 +123,9 @@ class EcbIfsProvider implements IsinSourceProvider {
       final normalizedName = FundNameMatcher.normalizeName(name);
       final normalizedIsin = isin.trim().toUpperCase();
 
-      if (normalizedName.isEmpty) {
-        continue;
-      }
-
-      if (normalizedIsin == 'NO ENCONTRADO') {
-        continue;
-      }
-
-      if (!IsinValidator.isValid(normalizedIsin)) {
-        continue;
-      }
+      if (normalizedName.isEmpty) continue;
+      if (normalizedIsin == 'NO ENCONTRADO') continue;
+      if (!IsinValidator.isValid(normalizedIsin)) continue;
 
       final records = index.putIfAbsent(normalizedName, () => <_EcbRecord>[]);
 

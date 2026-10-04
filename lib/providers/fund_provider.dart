@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:investing/services/isin_providers/ecb_ifs_provider.dart';
 
 import '../models/fund_cost.dart';
 import '../services/fund_scraper.dart';
@@ -327,7 +328,29 @@ class FundProvider with ChangeNotifier {
     }
   }
 
-  Future<ScrapeResult> fetchFundOnly(String isin) async {
+  Future<ScrapeResult?> _tryResolveFundByIsin(String isin) async {
+    final provider = EcbIfsProvider();
+
+    final resolution = await provider.resolveByIsin(isin);
+
+    if (resolution == null) {
+      return null;
+    }
+
+    final fund = FundData(
+      isin: resolution.isin,
+      symbol: '',
+      name: resolution.officialName ?? '',
+      lastValue: 0,
+      currency: '',
+      date: DateTime.now(),
+      history: const [],
+    );
+
+    return ScrapeResult(data: fund, isResolved: true, source: FundSource.ecb);
+  }
+
+  /* Future<ScrapeResult> fetchFundOnly(String isin) async {
     if (isBusy) {
       final appError = AppError.busy();
       _setError(appError);
@@ -349,6 +372,58 @@ class FundProvider with ChangeNotifier {
       }
       return await _tryResolveIsin(result);
     } catch (error, stackTrace) {
+      final appError = _asError(error, stackTrace);
+      lastError = appError;
+      return ScrapeResult(error: appError);
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  } */
+
+  Future<ScrapeResult> fetchFundOnly(String isin) async {
+    if (isBusy) {
+      final appError = AppError.busy();
+      _setError(appError);
+      return ScrapeResult(error: appError);
+      /* return ScrapeResult(
+        error: AppError.busy('Ya hay una búsqueda en curso.'),
+      ); */
+    }
+
+    if (isin.length != 12) {
+      final appError = AppError.validation('El ISIN debe tener 12 caracteres.');
+      _setError(appError);
+      return ScrapeResult(error: appError);
+      /* return ScrapeResult(
+        error: AppError.invalid('El ISIN debe tener 12 caracteres.'),
+      ); */
+    }
+
+    isLoading = true;
+    lastError = null;
+    notifyListeners();
+
+    try {
+      final result = await FundScraper.getFundByIsin(isin.toUpperCase());
+
+      if (result.error != null) {
+        if (result.error!.type == AppErrorType.notFound) {
+          final ecbResult = await _tryResolveFundByIsin(isin.toUpperCase());
+
+          if (ecbResult != null) {
+            return ecbResult;
+          }
+        }
+
+        lastError = result.error;
+        return result;
+      }
+
+      return await _tryResolveIsin(result);
+    } catch (error, stackTrace) {
+      //lastError = AppError.network(e.toString());
+      //return ScrapeResult(error: lastError);
       final appError = _asError(error, stackTrace);
       lastError = appError;
       return ScrapeResult(error: appError);
