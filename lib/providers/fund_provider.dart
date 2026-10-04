@@ -364,9 +364,7 @@ class FundProvider with ChangeNotifier {
     }
 
     isLoading = true;
-    // _clearError();
-    // TODO: Revisar si _clearError() o  lastError = null;
-    lastError = null;
+    _clearError();
     notifyListeners();
 
     try {
