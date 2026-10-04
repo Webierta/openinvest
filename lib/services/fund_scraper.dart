@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/fund_cost.dart';
 import '../utils/app_error.dart';
+import 'isin_resolver.dart';
 
 class PricePoint {
   final DateTime date;
@@ -244,13 +245,45 @@ class ScrapeResult {
   final FundData? data;
   final AppError? error;
   final bool isResolved;
+  final FundSource? source;
 
-  ScrapeResult({this.data, this.error, this.isResolved = false});
+  ScrapeResult({this.data, this.error, this.isResolved = false, this.source});
 
   String? get errorMessage => error?.message;
 }
 
-enum FundSource { cnmv, local, morningstar, yahoo }
+enum FundSource { cnmv, local, ecb, morningstar, yahoo }
+
+FundSource fundSourceFromIsinSource(String source) {
+  if (source == 'CNMV/SIL' || source == 'CNMV/FI') {
+    return FundSource.cnmv;
+  }
+  if (source == 'fondos.json' || source == 'fondos_armonizados.json') {
+    return FundSource.local;
+  }
+  if (source == 'ECB/IFS') {
+    return FundSource.ecb;
+  }
+  if (source == 'Yahoo' || source.startsWith('Yahoo/')) {
+    return FundSource.yahoo;
+  }
+  if (source == 'Morningstar' || source.startsWith('Morningstar/')) {
+    return FundSource.morningstar;
+  }
+  throw ArgumentError('Fuente de ISIN desconocida: $source');
+}
+
+FundSearchMatch withResolvedSource(
+  FundSearchMatch match,
+  IsinResult resolution,
+) {
+  return FundSearchMatch(
+    isin: resolution.isin,
+    symbol: match.symbol,
+    name: match.name,
+    source: fundSourceFromIsinSource(resolution.source),
+  );
+}
 
 class FundSearchMatch {
   final String? isin;
@@ -718,7 +751,7 @@ class FundScraper {
     ];
   }
 
-  static Future<ScrapeResult> getFundBySearchMatch(
+  /* static Future<ScrapeResult> getFundBySearchMatch(
     FundSearchMatch match, {
     DateTime? startDate,
     DateTime? endDate,
@@ -733,6 +766,40 @@ class FundScraper {
       startDate: startDate,
       endDate: endDate,
     );
+  } */
+
+  static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
+    return ScrapeResult(
+      data: result.data,
+      error: result.error,
+      isResolved: result.isResolved,
+      source: source,
+    );
+  }
+
+  static Future<ScrapeResult> getFundBySearchMatch(
+    FundSearchMatch match, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    if (match.symbol.isEmpty && match.isin != null) {
+      final result = await getFundByIsin(
+        match.isin!,
+        startDate: startDate,
+        endDate: endDate,
+      );
+      return _withSource(result, match.source);
+    }
+
+    final result = await _getFundBySymbol(
+      isin: match.isin ?? match.symbol,
+      symbol: match.symbol,
+      name: match.name,
+      startDate: startDate,
+      endDate: endDate,
+    );
+
+    return _withSource(result, match.source);
   }
 
   static Future<ScrapeResult> getFundByIsin(

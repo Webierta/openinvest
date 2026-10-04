@@ -396,6 +396,7 @@ class FundProvider with ChangeNotifier {
     if (fund.hasValidIsin) return result;
 
     final resolver = IsinResolver();
+
     try {
       final resolution = await resolver.resolve(
         fundName: fund.name,
@@ -422,8 +423,15 @@ class FundProvider with ChangeNotifier {
           morningstarCheckedAt: fund.morningstarCheckedAt,
           morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
         );
-        return ScrapeResult(data: resolvedFund, isResolved: true);
+        //return ScrapeResult(data: resolvedFund, isResolved: true);
+        return ScrapeResult(
+          data: resolvedFund,
+          isResolved: true,
+          source: fundSourceFromIsinSource(resolution.source),
+        );
       }
+
+      if (fund.hasValidIsin) return result;
     } finally {
       resolver.dispose();
     }

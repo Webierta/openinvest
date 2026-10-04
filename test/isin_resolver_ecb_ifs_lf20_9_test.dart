@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:investing/services/isin_resolver.dart';
 import 'package:investing/services/isin_providers/ecb_ifs_provider.dart';
 import 'package:investing/services/isin_providers/fondos_json_provider.dart';
-import 'package:investing/services/isin_providers/isin_source_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
