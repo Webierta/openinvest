@@ -24,11 +24,14 @@ class _FundSearchPageState extends State<FundSearchPage> {
 
   Future<void> _searchByName(String value) async {
     final version = ++_searchVersion;
-    _searchTimer?.cancel();
-    if (value.trim().length < 2) {
+    _searchTimer?.cancel(); // Cancela la búsqueda anterior si el usuario sigue tecleando
+    // TODO: REVISAR EXPERIMENTAL
+    //if (value.trim().length < 2)
+    if (value.trim().length < 4) {
       setState(() => _matches = []);
       return;
     }
+    // Espera 300ms de inactividad antes de lanzar la búsqueda pesada
     _searchTimer = Timer(const Duration(milliseconds: 300), () async {
       final matches = await context.read<FundProvider>().searchFunds(value);
       if (mounted && version == _searchVersion) {
@@ -49,7 +52,8 @@ class _FundSearchPageState extends State<FundSearchPage> {
       return;
     }
 
-    // Ocultamos el teclado y limpiamos estados para asegurar que el indicador de carga sea visible
+    // Ocultamos el teclado y limpiamos estados para asegurar que
+    // el indicador de carga sea visible
     FocusScope.of(context).unfocus();
     provider.clearError();
     setState(() {

@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/fund_cost.dart';
 import '../utils/app_error.dart';
+import 'isin_providers/ecb_ifs_provider.dart';
 import 'isin_resolver.dart';
 
 class PricePoint {
@@ -314,6 +315,10 @@ class _FundCatalog {
 class FundScraper {
   static const String _fundCatalogAsset =
       'assets/files/fondos_armonizados.json';
+
+  // TODO: REVISAR EXPERIMENTAL
+  //static const String _fundEcbIfs = 'assets/files/ECB_IFS_2024.json';
+
   static const String _searchUrl =
       'https://query1.finance.yahoo.com/v1/finance/search?q=';
   static const String _chartUrl =
@@ -524,6 +529,27 @@ class FundScraper {
       allIsins: catalog.values.toSet(),
     );
     return _searchCatalog(internalCatalog, query);
+  }
+
+  // TODO: REVISAR EXPERIMENTAL
+  // Método que encapsula la llamda al proveedor local ECB
+  static Future<List<FundSearchMatch>> _searchEcbIfs(String query) async {
+    try {
+      final provider = EcbIfsProvider();
+      final results = await provider.searchByNameOrIsinSub(query);
+      return results
+          .map(
+            (result) => FundSearchMatch(
+          isin: result.isin,
+          symbol: '',
+          name: result.officialName ?? '',
+          source: FundSource.ecb,
+        ),
+      )
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   static Future<http.Response> _getWithRetry(Uri uri) async {
@@ -741,14 +767,33 @@ class FundScraper {
     }
 
     final localMatches = _searchCatalog(catalog, query);
-    final seenIsins = yahooMatches
+
+    // TODO: REVISAR EXPERIMENTAL
+    final ecbMatches = await _searchEcbIfs(query);
+    // Deduplicación inteligente por ISIN
+    final seenIsins = <String>{};
+    final combined = <FundSearchMatch>[];
+    for (final match in [...yahooMatches, ...localMatches, ...ecbMatches]) {
+      if (match.isin != null && match.isin!.isNotEmpty) {
+        if (seenIsins.add(match.isin!)) {
+          combined.add(match);
+        }
+      } else {
+        combined.add(match);
+      }
+    }
+    return combined;
+
+    // TODO: REVISAR EXPERIMENTAL
+    // Código comentado para la versión experimental
+    /*final seenIsins = yahooMatches
         .map((match) => match.isin)
         .whereType<String>()
         .toSet();
     return [
       ...yahooMatches,
       ...localMatches.where((match) => !seenIsins.contains(match.isin)),
-    ];
+    ];*/
   }
 
   static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
@@ -765,6 +810,25 @@ class FundScraper {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
+    // TODO: REVISAR EXPERIMENTAL
+    // Si la fuente es ECB, los datos ya están completos en el match local.
+    // No necesitamos consultar Yahoo Finance porque son fondos no cotizados allí.
+    if (match.source == FundSource.ecb) {
+      return ScrapeResult(
+        data: FundData(
+          isin: match.isin ?? '',
+          symbol: match.symbol,
+          name: match.name,
+          lastValue: 0.0, // Al no tener histórico online, parte de valor 0 hasta que se registren operaciones
+          currency: 'EUR',
+          date: DateTime.now(),
+          history: const [],
+        ),
+        isResolved: true,
+        source: FundSource.ecb,
+      );
+    }
+
     if (match.symbol.isEmpty && match.isin != null) {
       final result = await getFundByIsin(
         match.isin!,

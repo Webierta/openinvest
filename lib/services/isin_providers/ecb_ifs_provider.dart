@@ -11,8 +11,13 @@ class EcbIfsProvider implements IsinSourceProvider {
   static const String _assetPath = 'assets/files/ECB_IFS_2024.json';
   static const String _source = 'ECB/IFS';
 
-  Future<Map<String, List<_EcbRecord>>>? _indexFuture;
-  Future<Map<String, _EcbRecord>>? _isinIndexFuture;
+  //Future<Map<String, List<_EcbRecord>>>? _indexFuture;
+  //Future<Map<String, _EcbRecord>>? _isinIndexFuture;
+
+  // TODO: REVISAR EXPERIMENTAL
+  // Al ser estáticos, se comparten y cachean en memoria globalmente
+  static Future<Map<String, List<_EcbRecord>>>? _indexFuture;
+  static Future<Map<String, _EcbRecord>>? _isinIndexFuture;
 
   EcbIfsProvider();
 
@@ -86,6 +91,86 @@ class EcbIfsProvider implements IsinSourceProvider {
       officialName: record.name,
     );
   }
+
+  // TODO: REVISAR EXPERIMENTAL
+  // VERSION 1: Capacidad de búsqueda por subcadena utilizando tipos públicos (IsinResult)
+  /*Future<List<IsinResult>> searchByNameOrIsin(String query) async {
+    final normalizedQuery = FundNameMatcher.normalizeName(query);
+    final index = await _loadIndex();
+    final matches = <IsinResult>[];
+
+    // Buscar por ISIN directo
+    final isinMatch = await resolveByIsin(query);
+    if (isinMatch != null) {
+      matches.add(isinMatch);
+    }
+
+    // Buscar por subcadena en los nombres del índice
+    for (final entry in index.entries) {
+      if (entry.key.contains(normalizedQuery)) {
+        for (final record in entry.value) {
+          if (!matches.any((m) => m.isin == record.isin)) {
+            matches.add(
+              IsinResult(
+                isin: record.isin,
+                source: _source,
+                officialName: record.name,
+              ),
+            );
+          }
+        }
+      }
+    }
+    return matches;
+  }*/
+
+  // TODO: REVISAR EXPERIMENTAL
+  Future<List<IsinResult>> searchByNameOrIsinSub(String query) async {
+    final cleanQuery = query.trim().toUpperCase();
+    final normalizedQuery = FundNameMatcher.normalizeName(query);
+    final index = await _loadIndex();
+    final isinIndex = await _loadIsinIndex(); // Mapa de ISIN -> _EcbRecord
+    final matches = <IsinResult>[];
+
+    // 1. Búsqueda por subcadena de ISIN (si el usuario escribe al menos 4 caracteres alfanuméricos)
+    if (cleanQuery.length >= 6 && RegExp(r'^[A-Z0-9]+$').hasMatch(cleanQuery)) {
+      for (final record in isinIndex.values) {
+        if (record.isin.contains(cleanQuery)) {
+          if (!matches.any((m) => m.isin == record.isin)) {
+            matches.add(
+              IsinResult(
+                isin: record.isin,
+                source: _source,
+                officialName: record.name,
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    // 2. Búsqueda por subcadena en los nombres del índice (como hasta ahora)
+    if (normalizedQuery.length >= 4) {
+      for (final entry in index.entries) {
+        if (entry.key.contains(normalizedQuery)) {
+          for (final record in entry.value) {
+            if (!matches.any((m) => m.isin == record.isin)) {
+              matches.add(
+                IsinResult(
+                  isin: record.isin,
+                  source: _source,
+                  officialName: record.name,
+                ),
+              );
+            }
+          }
+        }
+      }
+    }
+
+    return matches;
+  }
+
 
   Future<Map<String, List<_EcbRecord>>> _loadIndex() {
     return _indexFuture ??= _buildIndex();
