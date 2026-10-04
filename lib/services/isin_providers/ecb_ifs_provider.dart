@@ -21,7 +21,20 @@ class EcbIfsProvider implements IsinSourceProvider {
     required String ticker,
     required String fundName,
   }) async {
+    final normalizedTicker = ticker.trim().toUpperCase();
+
+    // Si el ticker contiene un ISIN válido, intentar primero
+    // la resolución directa en ECB/IFS.
+    if (IsinValidator.isValid(normalizedTicker)) {
+      final result = await resolveByIsin(normalizedTicker);
+      if (result != null) {
+        return result;
+      }
+    }
+
+    // Mantener el comportamiento existente basado en el nombre.
     final results = await resolveAll(ticker: ticker, fundName: fundName);
+
     return results.isEmpty ? null : results.first;
   }
 
