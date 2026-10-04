@@ -44,20 +44,20 @@ class FundProvider with ChangeNotifier {
   List<FundAlertInfo> triggeredAlerts = [];
   final Set<String> _ratingRefreshesInProgress = {};
   final Future<ScrapeResult> Function(FundSearchMatch) _fundSearchFetcher;
+  final Future<ScrapeResult> Function(String) _fundIsinFetcher;
 
   Locale? get locale => _locale;
 
   final IsinResolver Function() _isinResolverFactory;
 
-  //FundProvider({IsinResolver Function()? isinResolverFactory})
-  //  : _isinResolverFactory = isinResolverFactory ?? IsinResolver.new;
-
   FundProvider({
     IsinResolver Function()? isinResolverFactory,
     Future<ScrapeResult> Function(FundSearchMatch)? fundSearchFetcher,
+    Future<ScrapeResult> Function(String)? fundIsinFetcher,
   }) : _isinResolverFactory = isinResolverFactory ?? IsinResolver.new,
        _fundSearchFetcher =
-           fundSearchFetcher ?? FundScraper.getFundBySearchMatch;
+           fundSearchFetcher ?? FundScraper.getFundBySearchMatch,
+       _fundIsinFetcher = fundIsinFetcher ?? FundScraper.getFundByIsin;
 
   Future<void> setLocale(Locale locale) async {
     _locale = locale;
@@ -350,80 +350,40 @@ class FundProvider with ChangeNotifier {
     return ScrapeResult(data: fund, isResolved: true, source: FundSource.ecb);
   }
 
-  /* Future<ScrapeResult> fetchFundOnly(String isin) async {
-    if (isBusy) {
-      final appError = AppError.busy();
-      _setError(appError);
-      return ScrapeResult(error: appError);
-    }
-    if (isin.length != 12) {
-      final appError = AppError.validation('El ISIN debe tener 12 caracteres.');
-      _setError(appError);
-      return ScrapeResult(error: appError);
-    }
-    isLoading = true;
-    _clearError();
-    notifyListeners();
-    try {
-      final result = await FundScraper.getFundByIsin(isin.toUpperCase());
-      if (result.error != null) {
-        lastError = result.error;
-        return result;
-      }
-      return await _tryResolveIsin(result);
-    } catch (error, stackTrace) {
-      final appError = _asError(error, stackTrace);
-      lastError = appError;
-      return ScrapeResult(error: appError);
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  } */
-
   Future<ScrapeResult> fetchFundOnly(String isin) async {
     if (isBusy) {
       final appError = AppError.busy();
       _setError(appError);
       return ScrapeResult(error: appError);
-      /* return ScrapeResult(
-        error: AppError.busy('Ya hay una búsqueda en curso.'),
-      ); */
     }
 
     if (isin.length != 12) {
       final appError = AppError.validation('El ISIN debe tener 12 caracteres.');
       _setError(appError);
       return ScrapeResult(error: appError);
-      /* return ScrapeResult(
-        error: AppError.invalid('El ISIN debe tener 12 caracteres.'),
-      ); */
     }
 
     isLoading = true;
+    // _clearError();
+    // TODO: Revisar si _clearError() o  lastError = null;
     lastError = null;
     notifyListeners();
 
     try {
-      final result = await FundScraper.getFundByIsin(isin.toUpperCase());
+      final result = await _fundIsinFetcher(isin.toUpperCase());
 
       if (result.error != null) {
         if (result.error!.type == AppErrorType.notFound) {
           final ecbResult = await _tryResolveFundByIsin(isin.toUpperCase());
-
           if (ecbResult != null) {
             return ecbResult;
           }
         }
-
         lastError = result.error;
         return result;
       }
-
       return await _tryResolveIsin(result);
     } catch (error, stackTrace) {
-      //lastError = AppError.network(e.toString());
-      //return ScrapeResult(error: lastError);
       final appError = _asError(error, stackTrace);
       lastError = appError;
       return ScrapeResult(error: appError);
@@ -461,7 +421,6 @@ class FundProvider with ChangeNotifier {
     _clearError();
     notifyListeners();
     try {
-      //final result = await FundScraper.getFundBySearchMatch(match);
       final result = await _fundSearchFetcher(match);
       if (result.error != null) {
         lastError = result.error;
@@ -484,7 +443,6 @@ class FundProvider with ChangeNotifier {
     FundData fund = result.data!;
     if (fund.hasValidIsin) return result;
 
-    //final resolver = IsinResolver();
     final resolver = _isinResolverFactory();
 
     try {
@@ -513,7 +471,6 @@ class FundProvider with ChangeNotifier {
           morningstarCheckedAt: fund.morningstarCheckedAt,
           morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
         );
-        //return ScrapeResult(data: resolvedFund, isResolved: true);
         return ScrapeResult(
           data: resolvedFund,
           isResolved: true,

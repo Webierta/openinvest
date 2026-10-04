@@ -751,23 +751,6 @@ class FundScraper {
     ];
   }
 
-  /* static Future<ScrapeResult> getFundBySearchMatch(
-    FundSearchMatch match, {
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    if (match.symbol.isEmpty && match.isin != null) {
-      return getFundByIsin(match.isin!, startDate: startDate, endDate: endDate);
-    }
-    return _getFundBySymbol(
-      isin: match.isin ?? match.symbol,
-      symbol: match.symbol,
-      name: match.name,
-      startDate: startDate,
-      endDate: endDate,
-    );
-  } */
-
   static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
     return ScrapeResult(
       data: result.data,
