@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:investing/services/fund_scraper.dart';
-import 'package:investing/services/isin_resolver.dart';
+
+//import 'package:investing/services/isin_resolver.dart';
 
 void main() {
   group('LF-20.10.2 — mapeo IsinSource → FundSource', () {
