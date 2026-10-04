@@ -120,6 +120,8 @@
   "isinNotDetectedDesc": "Yahoo Finance no ha proporcionado el código ISIN para este resultado. Intentaremos obtenerlo de los metadatos o usaremos el símbolo como identificador.\n\n¿Deseas continuar?",
   "continueText": "Continuar",
   "global": "GLOBAL",
+  "ecbSource": "ECB / IFS",
+  "ecbSourceDesc": "Fondos y vehículos de inversión identificados mediante la base estadística IFS del Banco Central Europeo.",
   "updatePortfolioTooltip": "Actualizar toda la cartera",
   "sortPortfolioTooltip": "Ordenar cartera",
   "sortByAlpha": "Nombre",

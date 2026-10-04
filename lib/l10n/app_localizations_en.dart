@@ -382,6 +382,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get global => 'GLOBAL';
 
   @override
+  String get ecbSource => 'ECB / IFS';
+
+  @override
+  String get ecbSourceDesc =>
+      'Investment funds and vehicles identified through the European Central Bank\'s IFS statistical database.';
+
+  @override
   String get updatePortfolioTooltip => 'Update all portfolio';
 
   @override

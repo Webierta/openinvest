@@ -402,6 +402,12 @@ class _FundSearchPageState extends State<FundSearchPage> {
               ),
               const SizedBox(height: 16),
               _buildBadgeInfoItem(
+                source: FundSource.ecb,
+                title: l10n.ecbSource,
+                description: l10n.ecbSourceDesc,
+              ),
+              const SizedBox(height: 16),
+              _buildBadgeInfoItem(
                 source: FundSource.morningstar,
                 title: l10n.morningstarSource,
                 description: l10n.morningstarSourceDesc,
@@ -468,6 +474,11 @@ class _FundSearchPageState extends State<FundSearchPage> {
         color = Colors.teal;
         label = 'LOCAL';
         break;
+      case FundSource.ecb:
+        color = Colors.indigoAccent;
+        label = 'ECB';
+        break;
+
       case FundSource.morningstar:
         color = Colors.orangeAccent;
         label = 'MORNINGSTAR';

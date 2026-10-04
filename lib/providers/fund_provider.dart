@@ -42,13 +42,21 @@ class FundProvider with ChangeNotifier {
   Locale? _locale;
   List<FundAlertInfo> triggeredAlerts = [];
   final Set<String> _ratingRefreshesInProgress = {};
+  final Future<ScrapeResult> Function(FundSearchMatch) _fundSearchFetcher;
 
   Locale? get locale => _locale;
 
   final IsinResolver Function() _isinResolverFactory;
 
-  FundProvider({IsinResolver Function()? isinResolverFactory})
-    : _isinResolverFactory = isinResolverFactory ?? IsinResolver.new;
+  //FundProvider({IsinResolver Function()? isinResolverFactory})
+  //  : _isinResolverFactory = isinResolverFactory ?? IsinResolver.new;
+
+  FundProvider({
+    IsinResolver Function()? isinResolverFactory,
+    Future<ScrapeResult> Function(FundSearchMatch)? fundSearchFetcher,
+  }) : _isinResolverFactory = isinResolverFactory ?? IsinResolver.new,
+       _fundSearchFetcher =
+           fundSearchFetcher ?? FundScraper.getFundBySearchMatch;
 
   Future<void> setLocale(Locale locale) async {
     _locale = locale;
@@ -378,7 +386,8 @@ class FundProvider with ChangeNotifier {
     _clearError();
     notifyListeners();
     try {
-      final result = await FundScraper.getFundBySearchMatch(match);
+      //final result = await FundScraper.getFundBySearchMatch(match);
+      final result = await _fundSearchFetcher(match);
       if (result.error != null) {
         lastError = result.error;
         return result;

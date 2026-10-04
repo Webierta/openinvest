@@ -776,6 +776,18 @@ abstract class AppLocalizations {
   /// **'GLOBAL'**
   String get global;
 
+  /// No description provided for @ecbSource.
+  ///
+  /// In es, this message translates to:
+  /// **'ECB / IFS'**
+  String get ecbSource;
+
+  /// No description provided for @ecbSourceDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Fondos y vehículos de inversión identificados mediante la base estadística IFS del Banco Central Europeo.'**
+  String get ecbSourceDesc;
+
   /// No description provided for @updatePortfolioTooltip.
   ///
   /// In es, this message translates to:
