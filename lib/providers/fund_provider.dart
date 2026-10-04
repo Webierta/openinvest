@@ -45,6 +45,11 @@ class FundProvider with ChangeNotifier {
 
   Locale? get locale => _locale;
 
+  final IsinResolver Function() _isinResolverFactory;
+
+  FundProvider({IsinResolver Function()? isinResolverFactory})
+    : _isinResolverFactory = isinResolverFactory ?? IsinResolver.new;
+
   Future<void> setLocale(Locale locale) async {
     _locale = locale;
     await SettingsService.setLocale(locale.languageCode);
@@ -395,7 +400,8 @@ class FundProvider with ChangeNotifier {
     FundData fund = result.data!;
     if (fund.hasValidIsin) return result;
 
-    final resolver = IsinResolver();
+    //final resolver = IsinResolver();
+    final resolver = _isinResolverFactory();
 
     try {
       final resolution = await resolver.resolve(
