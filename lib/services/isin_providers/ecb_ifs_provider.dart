@@ -11,15 +11,107 @@ class EcbIfsProvider implements IsinSourceProvider {
   static const String _assetPath = 'assets/files/ECB_IFS_2024.json';
   static const String _source = 'ECB/IFS';
 
-  //Future<Map<String, List<_EcbRecord>>>? _indexFuture;
-  //Future<Map<String, _EcbRecord>>? _isinIndexFuture;
-
-  // TODO: REVISAR EXPERIMENTAL
   // Al ser estáticos, se comparten y cachean en memoria globalmente
   static Future<Map<String, List<_EcbRecord>>>? _indexFuture;
   static Future<Map<String, _EcbRecord>>? _isinIndexFuture;
 
   EcbIfsProvider();
+
+  static Future<Map<String, List<_EcbRecord>>>? _tokenIndexFuture;
+
+  Future<Map<String, List<_EcbRecord>>> _loadTokenIndex() {
+    return _tokenIndexFuture ??= _buildTokenIndex();
+  }
+
+  Future<Map<String, List<_EcbRecord>>> _buildTokenIndex() async {
+    final nameIndex = await _loadIndex();
+    final index = <String, List<_EcbRecord>>{};
+
+    for (final records in nameIndex.values) {
+      for (final record in records) {
+        final normalized = FundNameMatcher.normalizeName(record.name);
+
+        final tokens = normalized
+            .split(RegExp(r'\s+'))
+            .where((token) => token.isNotEmpty)
+            .toSet();
+
+        for (final token in tokens) {
+          final bucket = index.putIfAbsent(token, () => <_EcbRecord>[]);
+          if (!bucket.any((item) => item.isin == record.isin)) {
+            bucket.add(record);
+          }
+        }
+      }
+    }
+
+    return index;
+  }
+
+  Future<List<IsinResult>> searchByNameOrIsin(String query) async {
+    final normalizedQuery = query.trim();
+
+    if (normalizedQuery.isEmpty) {
+      return const [];
+    }
+
+    if (IsinValidator.isValid(normalizedQuery)) {
+      final result = await resolveByIsin(normalizedQuery);
+      return result == null ? const [] : [result];
+    }
+
+    final normalizedName = FundNameMatcher.normalizeName(normalizedQuery);
+    if (normalizedName.isEmpty) {
+      return const [];
+    }
+
+    final exact = (await _loadIndex())[normalizedName];
+    if (exact != null && exact.isNotEmpty) {
+      return [
+        for (final record in exact)
+          IsinResult(
+            isin: record.isin,
+            source: _source,
+            officialName: record.name,
+          ),
+      ];
+    }
+
+    final queryTokens = normalizedName
+        .split(RegExp(r'\s+'))
+        .where((token) => token.isNotEmpty)
+        .toSet();
+    if (queryTokens.isEmpty) {
+      return const [];
+    }
+
+    final tokenIndex = await _loadTokenIndex();
+    List<_EcbRecord>? candidates;
+    for (final token in queryTokens) {
+      final bucket = tokenIndex[token];
+      if (bucket == null || bucket.isEmpty) {
+        return const [];
+      }
+      if (candidates == null) {
+        candidates = List<_EcbRecord>.from(bucket);
+      } else {
+        final isins = bucket.map((record) => record.isin).toSet();
+        candidates.removeWhere((record) => !isins.contains(record.isin));
+        if (candidates.isEmpty) {
+          return const [];
+        }
+      }
+    }
+
+    return [
+      for (final record in candidates!)
+        IsinResult(
+          isin: record.isin,
+          source: _source,
+          officialName: record.name,
+        ),
+    ];
+  }
 
   @override
   Future<IsinResult?> resolve({

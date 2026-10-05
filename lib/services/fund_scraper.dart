@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../models/fund_cost.dart';
 import '../utils/app_error.dart';
 //import 'isin_providers/ecb_ifs_provider.dart';
+import 'isin_providers/ecb_ifs_provider.dart';
 import 'isin_resolver.dart';
 
 class PricePoint {
@@ -531,6 +532,26 @@ class FundScraper {
     return _searchCatalog(internalCatalog, query);
   }
 
+  static Future<List<FundSearchMatch>> _searchEcbIfs(String query) async {
+    try {
+      final provider = EcbIfsProvider();
+      final results = await provider.searchByNameOrIsin(query);
+
+      return results
+          .map(
+            (result) => FundSearchMatch(
+              isin: result.isin,
+              symbol: '',
+              name: result.officialName ?? '',
+              source: FundSource.ecb,
+            ),
+          )
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   static Future<http.Response> _getWithRetry(Uri uri) async {
     Object? lastError;
     StackTrace? lastStackTrace;
@@ -748,12 +769,12 @@ class FundScraper {
     }
 
     final localMatches = _searchCatalog(catalog, query);
-    // final ecbMatches = await _searchEcbIfs(query);
+    final ecbMatches = await _searchEcbIfs(query);
 
     final seenIsins = <String>{};
     final combined = <FundSearchMatch>[];
 
-    for (final match in [...yahooMatches, ...localMatches]) {
+    for (final match in [...yahooMatches, ...localMatches, ...ecbMatches]) {
       if (match.isin != null && match.isin!.isNotEmpty) {
         if (seenIsins.add(match.isin!)) {
           combined.add(match);
@@ -780,7 +801,6 @@ class FundScraper {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    // TODO: REVISAR EXPERIMENTAL
     // Si la fuente es ECB, los datos ya están completos en el match local.
     // No necesitamos consultar Yahoo Finance porque son fondos no cotizados allí.
     if (match.source == FundSource.ecb) {

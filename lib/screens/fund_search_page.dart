@@ -31,17 +31,17 @@ class _FundSearchPageState extends State<FundSearchPage> {
     }
   }
 
-  bool _looksLikeIsin(String value) =>
-      RegExp(r'^[A-Za-z]{2}[A-Za-z0-9]{10}$').hasMatch(value.trim());
+  // bool _looksLikeIsin(String value) =>
+  //     RegExp(r'^[A-Za-z]{2}[A-Za-z0-9]{10}$').hasMatch(value.trim());
 
   Future<void> _handleSearch([FundSearchMatch? match]) async {
     final provider = context.read<FundProvider>();
     final l10n = AppLocalizations.of(context)!;
 
-    if (match == null && !_looksLikeIsin(_controller.text)) {
+    /* if (match == null) {
       await _searchByName(_controller.text);
       return;
-    }
+    } */
 
     // Ocultamos el teclado y limpiamos estados para asegurar que
     // el indicador de carga sea visible
@@ -75,6 +75,11 @@ class _FundSearchPageState extends State<FundSearchPage> {
     final result = match == null
         ? await provider.fetchFundOnly(_controller.text)
         : await provider.fetchFundMatch(match);
+
+    if (match == null) {
+      await _searchByName(_controller.text);
+      return;
+    }
 
     if (result.data != null && mounted) {
       final fund = result.data!;
