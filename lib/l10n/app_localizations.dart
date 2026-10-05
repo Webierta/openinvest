@@ -644,6 +644,12 @@ abstract class AppLocalizations {
   /// **'Buscar fondo'**
   String get searchFundAction;
 
+  /// No description provided for @noFundSearchResults.
+  ///
+  /// In es, this message translates to:
+  /// **'No se han encontrado fondos para este criterio de búsqueda.'**
+  String get noFundSearchResults;
+
   /// No description provided for @isinNotAvailable.
   ///
   /// In es, this message translates to:

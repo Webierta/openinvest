@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
+import '../../utils/isin_search_query.dart';
 import '../isin_resolver.dart';
 import '../../utils/fund_name_matcher.dart';
 import '../../utils/isin_validator.dart';
@@ -49,18 +50,36 @@ class EcbIfsProvider implements IsinSourceProvider {
   }
 
   Future<List<IsinResult>> searchByNameOrIsin(String query) async {
-    final normalizedQuery = query.trim();
-
-    if (normalizedQuery.isEmpty) {
+    final queryText = query.trim();
+    if (queryText.isEmpty) {
       return const [];
     }
 
-    if (IsinValidator.isValid(normalizedQuery)) {
-      final result = await resolveByIsin(normalizedQuery);
-      return result == null ? const [] : [result];
+    final isinPrefix = IsinSearchQuery.prefix(queryText);
+    if (isinPrefix != null) {
+      if (IsinValidator.isValid(isinPrefix)) {
+        final result = await resolveByIsin(isinPrefix);
+        return result == null ? const [] : [result];
+      }
+
+      final index = await _loadIsinIndex();
+      final matches =
+          index.entries
+              .where((entry) => entry.key.startsWith(isinPrefix))
+              .toList()
+            ..sort((a, b) => a.key.compareTo(b.key));
+
+      return [
+        for (final entry in matches.take(15))
+          IsinResult(
+            isin: entry.value.isin,
+            source: _source,
+            officialName: entry.value.name,
+          ),
+      ];
     }
 
-    final normalizedName = FundNameMatcher.normalizeName(normalizedQuery);
+    final normalizedName = FundNameMatcher.normalizeName(queryText);
     if (normalizedName.isEmpty) {
       return const [];
     }
@@ -87,6 +106,7 @@ class EcbIfsProvider implements IsinSourceProvider {
 
     final tokenIndex = await _loadTokenIndex();
     List<_EcbRecord>? candidates;
+
     for (final token in queryTokens) {
       final bucket = tokenIndex[token];
       if (bucket == null || bucket.isEmpty) {

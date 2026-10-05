@@ -312,6 +312,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchFundAction => 'Buscar fondo';
 
   @override
+  String get noFundSearchResults =>
+      'No se han encontrado fondos para este criterio de búsqueda.';
+
+  @override
   String get isinNotAvailable => 'ISIN no disponible';
 
   @override

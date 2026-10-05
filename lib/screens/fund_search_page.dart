@@ -19,29 +19,33 @@ class FundSearchPage extends StatefulWidget {
 class _FundSearchPageState extends State<FundSearchPage> {
   final TextEditingController _controller = TextEditingController();
   List<FundSearchMatch> _matches = [];
+  bool _hasSearched = false;
 
   Future<void> _searchByName(String value) async {
     if (value.trim().length < 2) {
-      setState(() => _matches = []);
+      setState(() {
+        _matches = [];
+        _hasSearched = false;
+      });
       return;
     }
     final matches = await context.read<FundProvider>().searchFunds(value);
     if (mounted) {
-      setState(() => _matches = matches);
+      setState(() {
+        _matches = matches;
+        _hasSearched = true;
+      });
     }
   }
-
-  // bool _looksLikeIsin(String value) =>
-  //     RegExp(r'^[A-Za-z]{2}[A-Za-z0-9]{10}$').hasMatch(value.trim());
 
   Future<void> _handleSearch([FundSearchMatch? match]) async {
     final provider = context.read<FundProvider>();
     final l10n = AppLocalizations.of(context)!;
 
-    /* if (match == null) {
+    if (match == null) {
       await _searchByName(_controller.text);
       return;
-    } */
+    }
 
     // Ocultamos el teclado y limpiamos estados para asegurar que
     // el indicador de carga sea visible
@@ -51,7 +55,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
       _matches = [];
     });
 
-    if (match != null && match.isin == null) {
+    if (match.isin == null) {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -72,14 +76,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
       if (confirm != true) return;
     }
 
-    final result = match == null
-        ? await provider.fetchFundOnly(_controller.text)
-        : await provider.fetchFundMatch(match);
-
-    if (match == null) {
-      await _searchByName(_controller.text);
-      return;
-    }
+    final result = await provider.fetchFundMatch(match);
 
     if (result.data != null && mounted) {
       final fund = result.data!;
@@ -288,6 +285,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                 ),
                 const SizedBox(height: 24),
                 if (_matches.isNotEmpty)
+                  // resultados
                   ..._matches.map(
                     (match) => Card(
                       color: match.isin == null
@@ -328,8 +326,9 @@ class _FundSearchPageState extends State<FundSearchPage> {
                         onTap: () => _handleSearch(match),
                       ),
                     ),
-                  ),
-                if (provider.isBusy)
+                  )
+                else if (provider.isBusy)
+                  // buscando / procesando
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 32),
@@ -359,6 +358,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                     ),
                   )
                 else if (provider.error != null)
+                  // error
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -369,6 +369,19 @@ class _FundSearchPageState extends State<FundSearchPage> {
                       provider.error!,
                       style: const TextStyle(color: Colors.redAccent),
                       textAlign: TextAlign.center,
+                    ),
+                  )
+                else if (_hasSearched)
+                  // sin resultados
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Text(
+                      l10n.noFundSearchResults,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
               ],

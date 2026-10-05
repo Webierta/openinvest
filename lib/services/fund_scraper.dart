@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../models/fund_cost.dart';
 import '../utils/app_error.dart';
 //import 'isin_providers/ecb_ifs_provider.dart';
+import '../utils/isin_search_query.dart';
 import 'isin_providers/ecb_ifs_provider.dart';
 import 'isin_resolver.dart';
 
@@ -489,6 +490,65 @@ class FundScraper {
     _FundCatalog catalog,
     String query,
   ) {
+    /* // Busqueda por ISIN parcial
+    final isinQuery = query.trim().toUpperCase().replaceAll(
+      RegExp(r'[^A-Z0-9]'),
+      '',
+    );
+    // bajado de 4 a 3 caracteres
+    if (RegExp(r'^[A-Z]{2}[A-Z0-9]{3,10}$').hasMatch(isinQuery)) {
+      final seenIsins = <String>{};
+      final isinMatches = <FundSearchMatch>[];
+      for (final entry in catalog.isinsByName.entries) {
+        for (final isin in entry.value) {
+          final normalizedIsin = isin.trim().toUpperCase();
+          if (!normalizedIsin.startsWith(isinQuery) ||
+              !seenIsins.add(normalizedIsin)) {
+            continue;
+          }
+          isinMatches.add(
+            FundSearchMatch(
+              isin: isin,
+              symbol: '',
+              name: catalog.names[entry.key] ?? entry.key,
+              source: FundSource.local,
+            ),
+          );
+        }
+      }
+      isinMatches.sort((a, b) => a.isin!.compareTo(b.isin!));
+      return isinMatches;
+    } */
+
+    final isinPrefix = IsinSearchQuery.prefix(query);
+
+    if (isinPrefix != null) {
+      final seenIsins = <String>{};
+      final isinMatches = <FundSearchMatch>[];
+
+      for (final entry in catalog.isinsByName.entries) {
+        for (final isin in entry.value) {
+          final normalizedIsin = isin.toUpperCase();
+          if (!normalizedIsin.startsWith(isinPrefix) ||
+              !seenIsins.add(normalizedIsin)) {
+            continue;
+          }
+
+          isinMatches.add(
+            FundSearchMatch(
+              isin: isin,
+              symbol: '',
+              name: catalog.names[entry.key] ?? entry.key,
+              source: FundSource.local,
+            ),
+          );
+        }
+      }
+
+      isinMatches.sort((a, b) => a.isin!.compareTo(b.isin!));
+      return isinMatches;
+    }
+
     final normalizedQuery = _normalizeFundName(query);
     final queryTokens = normalizedQuery
         .split(' ')
@@ -749,19 +809,30 @@ class FundScraper {
 
   static Future<List<FundSearchMatch>> searchFunds(String query) async {
     final catalog = await _loadFundCatalog();
+    final isinPrefix = IsinSearchQuery.prefix(query);
+    final yahooQuery = isinPrefix ?? query.trim();
     var yahooMatches = <FundSearchMatch>[];
 
     try {
       final response = await _getWithRetry(
         Uri.parse(
-          '$_searchUrl${Uri.encodeQueryComponent(query)}&quotesCount=10',
+          '$_searchUrl${Uri.encodeQueryComponent(yahooQuery)}&quotesCount=10',
         ),
       );
 
       if (response.statusCode == 200) {
         final payload = json.decode(response.body);
         if (payload is Map<String, dynamic>) {
-          yahooMatches = await _addCatalogIsins(parseSearchPayload(payload));
+          final enrichedMatches = await _addCatalogIsins(
+            parseSearchPayload(payload),
+          );
+          yahooMatches = isinPrefix == null
+              ? enrichedMatches
+              : enrichedMatches.where((match) {
+                  final isin = match.isin;
+                  return isin != null &&
+                      IsinSearchQuery.normalize(isin).startsWith(isinPrefix);
+                }).toList();
         }
       }
     } catch (_) {

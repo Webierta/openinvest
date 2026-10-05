@@ -310,6 +310,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchFundAction => 'Search fund';
 
   @override
+  String get noFundSearchResults =>
+      'No funds were found for this search criterion.';
+
+  @override
   String get isinNotAvailable => 'ISIN not available';
 
   @override

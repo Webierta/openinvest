@@ -91,6 +91,7 @@
   "fundSearchLabel": "Nombre o código ISIN",
   "fundSearchHint": "Ej: Amundi o ES0152743003",
   "searchFundAction": "Buscar fondo",
+  "noFundSearchResults": "No se han encontrado fondos para este criterio de búsqueda.",
   "isinNotAvailable": "ISIN no disponible",
   "fundFound": "Fondo Encontrado",
   "fundFoundDesc": "Se ha encontrado el siguiente fondo:",
