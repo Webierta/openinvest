@@ -18,26 +18,17 @@ class FundSearchPage extends StatefulWidget {
 
 class _FundSearchPageState extends State<FundSearchPage> {
   final TextEditingController _controller = TextEditingController();
-  Timer? _searchTimer;
   List<FundSearchMatch> _matches = [];
-  int _searchVersion = 0;
 
   Future<void> _searchByName(String value) async {
-    final version = ++_searchVersion;
-    _searchTimer?.cancel(); // Cancela la búsqueda anterior si el usuario sigue tecleando
-    // TODO: REVISAR EXPERIMENTAL
-    //if (value.trim().length < 2)
-    if (value.trim().length < 4) {
+    if (value.trim().length < 2) {
       setState(() => _matches = []);
       return;
     }
-    // Espera 300ms de inactividad antes de lanzar la búsqueda pesada
-    _searchTimer = Timer(const Duration(milliseconds: 300), () async {
-      final matches = await context.read<FundProvider>().searchFunds(value);
-      if (mounted && version == _searchVersion) {
-        setState(() => _matches = matches);
-      }
-    });
+    final matches = await context.read<FundProvider>().searchFunds(value);
+    if (mounted) {
+      setState(() => _matches = matches);
+    }
   }
 
   bool _looksLikeIsin(String value) =>
@@ -214,7 +205,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
 
   @override
   void dispose() {
-    _searchTimer?.cancel();
+    //_searchTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -286,8 +277,8 @@ class _FundSearchPageState extends State<FundSearchPage> {
                     ),
                   ),
                   textCapitalization: TextCapitalization.characters,
-                  onSubmitted: (_) => _handleSearch(),
-                  onChanged: _searchByName,
+                  //onSubmitted: (_) => _handleSearch(),
+                  //onChanged: _searchByName,
                   autofocus: true,
                 ),
                 const SizedBox(height: 24),
