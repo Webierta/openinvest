@@ -807,36 +807,60 @@ class FundScraper {
     return matches;
   }
 
+  /// Busca [query] en Yahoo Finance y enriquece los resultados con ISIN del
+  /// catálogo local. Devuelve una lista vacía si la petición falla o no hay
+  /// resultados válidos.
+  static Future<List<FundSearchMatch>> _searchYahoo(String query) async {
+    try {
+      final response = await _getWithRetry(
+        Uri.parse(
+          '$_searchUrl${Uri.encodeQueryComponent(query)}&quotesCount=10',
+        ),
+      );
+      if (response.statusCode != 200) return [];
+
+      final payload = json.decode(response.body);
+      if (payload is! Map<String, dynamic>) return [];
+      return await _addCatalogIsins(parseSearchPayload(payload));
+    } catch (_) {
+      return [];
+    }
+  }
+
   static Future<List<FundSearchMatch>> searchFunds(String query) async {
     final catalog = await _loadFundCatalog();
     final isinPrefix = IsinSearchQuery.prefix(query);
     final yahooQuery = isinPrefix ?? query.trim();
     var yahooMatches = <FundSearchMatch>[];
 
-    try {
-      final response = await _getWithRetry(
-        Uri.parse(
-          '$_searchUrl${Uri.encodeQueryComponent(yahooQuery)}&quotesCount=10',
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        final payload = json.decode(response.body);
-        if (payload is Map<String, dynamic>) {
-          final enrichedMatches = await _addCatalogIsins(
-            parseSearchPayload(payload),
-          );
-          yahooMatches = isinPrefix == null
-              ? enrichedMatches
-              : enrichedMatches.where((match) {
-                  final isin = match.isin;
-                  return isin != null &&
-                      IsinSearchQuery.normalize(isin).startsWith(isinPrefix);
-                }).toList();
-        }
+    yahooMatches = await _searchYahoo(yahooQuery);
+    if (isinPrefix != null) {
+      yahooMatches = yahooMatches.where((match) {
+        final isin = match.isin;
+        return isin != null &&
+            IsinSearchQuery.normalize(isin).startsWith(isinPrefix);
+      }).toList();
+    } else if (yahooMatches.isEmpty) {
+      final queryTokens = _normalizeFundName(query)
+          .split(' ')
+          .where((token) => token.length >= 2)
+          .toSet()
+          .toList();
+      if (queryTokens.length > 1) {
+        final fallbackTokens = [...queryTokens]
+          ..sort((a, b) => b.length.compareTo(a.length));
+        final fallbackResponses = await Future.wait(
+          fallbackTokens.take(3).map(_searchYahoo),
+        );
+        final seenSymbols = <String>{};
+        yahooMatches = fallbackResponses.expand((matches) => matches).where((
+          match,
+        ) {
+          final normalizedName = _normalizeFundName(match.name);
+          return queryTokens.every((token) => normalizedName.contains(token)) &&
+              seenSymbols.add(match.symbol.toUpperCase());
+        }).toList();
       }
-    } catch (_) {
-      // El catálogo local sigue permitiendo buscar sin conexión.
     }
 
     final localMatches = _searchCatalog(catalog, query);

@@ -19,6 +19,7 @@ class FundSearchPage extends StatefulWidget {
 class _FundSearchPageState extends State<FundSearchPage> {
   final TextEditingController _controller = TextEditingController();
   List<FundSearchMatch> _matches = [];
+  bool _isSearchInit = true;
   bool _hasSearched = false;
 
   Future<void> _searchByName(String value) async {
@@ -39,6 +40,10 @@ class _FundSearchPageState extends State<FundSearchPage> {
   }
 
   Future<void> _handleSearch([FundSearchMatch? match]) async {
+    setState(() {
+      _isSearchInit = false;
+    });
+
     final provider = context.read<FundProvider>();
     final l10n = AppLocalizations.of(context)!;
 
@@ -51,9 +56,6 @@ class _FundSearchPageState extends State<FundSearchPage> {
     // el indicador de carga sea visible
     FocusScope.of(context).unfocus();
     provider.clearError();
-    setState(() {
-      _matches = [];
-    });
 
     if (match.isin == null) {
       final confirm = await showDialog<bool>(
@@ -73,7 +75,9 @@ class _FundSearchPageState extends State<FundSearchPage> {
           ],
         ),
       );
-      if (confirm != true) return;
+      if (confirm != true) {
+        return;
+      }
     }
 
     final result = await provider.fetchFundMatch(match);
@@ -159,7 +163,10 @@ class _FundSearchPageState extends State<FundSearchPage> {
         var overwrite = false;
         if (exists) {
           final decision = await _confirmOverwrite(context, fund.name);
-          if (decision != true || !mounted) return;
+          if (decision != true || !mounted) {
+            //restoreMatches();
+            return;
+          }
           overwrite = true;
         }
         try {
@@ -209,7 +216,16 @@ class _FundSearchPageState extends State<FundSearchPage> {
   void dispose() {
     //_searchTimer?.cancel();
     _controller.dispose();
+    //_isSearchInit = true;
+    //_hasSearched = false;
     super.dispose();
+  }
+
+  void resetSearch() {
+    setState(() {
+      _isSearchInit = true;
+      _hasSearched = false;
+    });
   }
 
   @override
@@ -239,19 +255,6 @@ class _FundSearchPageState extends State<FundSearchPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
-                const Icon(
-                  Icons.search_rounded,
-                  size: 80,
-                  color: Colors.white24,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  l10n.searchFundPrompt,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                const SizedBox(height: 40),
                 TextField(
                   controller: _controller,
                   decoration: InputDecoration(
@@ -279,12 +282,31 @@ class _FundSearchPageState extends State<FundSearchPage> {
                     ),
                   ),
                   textCapitalization: TextCapitalization.characters,
-                  //onSubmitted: (_) => _handleSearch(),
-                  //onChanged: _searchByName,
+                  onSubmitted: (_) => _handleSearch(),
+                  onChanged: (_) => {
+                    if (_isSearchInit == false) {resetSearch()},
+                  },
                   autofocus: true,
                 ),
                 const SizedBox(height: 24),
-                if (_matches.isNotEmpty)
+                if (_isSearchInit == true)
+                // estado inicial
+                ...[
+                  const SizedBox(height: 40),
+                  const Icon(
+                    Icons.search_rounded,
+                    size: 80,
+                    color: Colors.white24,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    l10n.searchFundPrompt,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ] else if (_matches.isNotEmpty && provider.isBusy)
+                  ProviderIsBusy(l10n: l10n)
+                else if (_matches.isNotEmpty)
                   // resultados
                   ..._matches.map(
                     (match) => Card(
@@ -329,34 +351,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                   )
                 else if (provider.isBusy)
                   // buscando / procesando
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const CircularProgressIndicator(color: Colors.white),
-                          const SizedBox(height: 24),
-                          Text(
-                            l10n.processingFund,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.processingWait,
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
+                  ProviderIsBusy(l10n: l10n)
                 else if (provider.error != null)
                   // error
                   Container(
@@ -515,6 +510,41 @@ class _FundSearchPageState extends State<FundSearchPage> {
           fontSize: 9,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class ProviderIsBusy extends StatelessWidget {
+  const new({super.key, required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 24),
+            Text(
+              l10n.processingFund,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.processingWait,
+              style: const TextStyle(color: Colors.white38, fontSize: 12),
+            ),
+          ],
         ),
       ),
     );
