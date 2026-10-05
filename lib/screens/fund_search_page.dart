@@ -214,10 +214,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
 
   @override
   void dispose() {
-    //_searchTimer?.cancel();
     _controller.dispose();
-    //_isSearchInit = true;
-    //_hasSearched = false;
     super.dispose();
   }
 
@@ -305,6 +302,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                     style: const TextStyle(color: Colors.white70, fontSize: 16),
                   ),
                 ] else if (_matches.isNotEmpty && provider.isBusy)
+                  // nueva búsqueda sobre resultados
                   ProviderIsBusy(l10n: l10n)
                 else if (_matches.isNotEmpty)
                   // resultados
