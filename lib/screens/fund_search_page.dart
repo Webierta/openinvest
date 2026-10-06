@@ -65,6 +65,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
       mode: _selectedMode,
     );
     if (!mounted || generation != _searchGeneration) return;
+    FocusScope.of(context).unfocus();
     setState(() {
       _matches = matches;
       _searchStatus = _SearchStatus.completed;
@@ -185,9 +186,6 @@ class _FundSearchPageState extends State<FundSearchPage> {
 
       if (confirm == true && mounted) {
         final exists = provider.portfolio.any((item) => item.isin == fund.isin);
-        // final exists = provider.portfolio.any(
-        //   (item) => item.isin == resolverISIN,
-        // );
         var overwrite = false;
         if (exists) {
           final decision = await _confirmOverwrite(context, fund.name);

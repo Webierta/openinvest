@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:investing/models/fund_search_mode.dart';
 
 import 'package:investing/services/fund_scraper.dart';
 
@@ -87,9 +88,11 @@ void main() {
     });
 
     test('la búsqueda directa en el catálogo local produce LOCAL', () {
-      final matches = FundScraper.searchCatalogMatches({
-        'ing direct fondo naranja dinamico fi': 'ES0152743003',
-      }, 'ING DIRECT DINAMICO');
+      final matches = FundScraper.searchCatalogMatches(
+        {'ing direct fondo naranja dinamico fi': 'ES0152743003'},
+        'ING DIRECT DINAMICO',
+        mode: FundSearchMode.name,
+      );
 
       expect(matches, hasLength(1));
       expect(matches.single.source, FundSource.local);

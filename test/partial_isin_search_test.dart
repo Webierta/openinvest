@@ -9,9 +9,11 @@ void main() {
 
   group('Búsqueda por ISIN parcial', () {
     test('encuentra el fondo en el catálogo local', () {
-      final matches = FundScraper.searchCatalogMatches({
-        'mapfre private equity i fcr': 'ES0160483014',
-      }, 'ES016048301');
+      final matches = FundScraper.searchCatalogMatches(
+        {'mapfre private equity i fcr': 'ES0160483014'},
+        'ES016048301',
+        mode: FundSearchMode.isin,
+      );
 
       expect(matches, hasLength(1));
       expect(matches.single.isin, 'ES0160483014');

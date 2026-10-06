@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:investing/models/fund_search_mode.dart';
 
 import 'package:investing/services/fund_scraper.dart';
 import 'package:investing/utils/app_error.dart';
@@ -15,12 +16,28 @@ void main() {
   });
 
   test('devuelve el fondo del catálogo aunque Yahoo no lo encuentre', () {
-    final matches = FundScraper.searchCatalogMatches({
-      'ing direct fondo naranja dinamico fi': 'ES0152743003',
-    }, 'ING DIRECT DINAMICO');
+    final matches = FundScraper.searchCatalogMatches(
+      {'ing direct fondo naranja dinamico fi': 'ES0152743003'},
+      'ING DIRECT DINAMICO',
+      mode: FundSearchMode.name,
+    );
 
     expect(matches, hasLength(1));
     expect(matches.single.isin, 'ES0152743003');
+  });
+
+  test('agrupa ISINs de claves que se normalizan al mismo nombre', () {
+    final matches = FundScraper.searchCatalogMatches(
+      {'Global Equity': 'ES0000000001', 'GLOBAL EQUITY': 'ES0000000002'},
+      'global equity',
+      mode: FundSearchMode.name,
+    );
+
+    expect(matches.map((match) => match.isin).toList(), [
+      'ES0000000001',
+      'ES0000000002',
+    ]);
+    expect(matches.map((match) => match.name).toSet(), {'Global Equity'});
   });
 
   test('parsea resultados de búsqueda con nombre e ISIN', () {

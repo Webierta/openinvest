@@ -353,7 +353,6 @@ class FundScraper {
       final name = entry['nombre'];
       final isins = entry['isins'];
       if (name is String && name.isNotEmpty && isins is List) {
-        //final normalizedName = _normalizeFundName(name);
         final normalizedName = FundNameMatcher.normalizeName(name);
         final catalogIsins = catalog.putIfAbsent(normalizedName, () => []);
         for (final isin in isins) {
@@ -414,10 +413,10 @@ class FundScraper {
   }
 
   static String? findCatalogIsin(Map<String, String> catalog, String fundName) {
-    //final normalizedName = _normalizeFundName(fundName);
     final normalizedName = FundNameMatcher.normalizeName(fundName);
-    final exact = catalog[normalizedName];
-    if (exact != null) return exact;
+    final normalizedCatalog = _catalogFromMap(catalog);
+    final exact = normalizedCatalog.isinsByName[normalizedName];
+    if (exact != null) return exact.first;
 
     final queryTokens = normalizedName
         .split(' ')
@@ -425,15 +424,34 @@ class FundScraper {
         .toList();
     if (queryTokens.isEmpty) return null;
 
-    final candidates = catalog.entries.where((entry) {
+    final candidates = normalizedCatalog.isinsByName.entries.where((entry) {
       return queryTokens.every((qt) => entry.key.contains(qt));
     }).toList()..sort((a, b) => a.key.length.compareTo(b.key.length));
 
-    return candidates.isEmpty ? null : candidates.first.value;
+    return candidates.isEmpty ? null : candidates.first.value.first;
+  }
+
+  static _FundCatalog _catalogFromMap(Map<String, String> catalog) {
+    final isinsByName = <String, List<String>>{};
+    final names = <String, String>{};
+    final allIsins = <String>{};
+
+    for (final entry in catalog.entries) {
+      final normalizedName = FundNameMatcher.normalizeName(entry.key);
+      final isins = isinsByName.putIfAbsent(normalizedName, () => []);
+      if (!isins.contains(entry.value)) isins.add(entry.value);
+      names.putIfAbsent(normalizedName, () => entry.key);
+      allIsins.add(entry.value);
+    }
+
+    return _FundCatalog(
+      isinsByName: isinsByName,
+      names: names,
+      allIsins: allIsins,
+    );
   }
 
   static List<String> _findCatalogIsins(_FundCatalog catalog, String fundName) {
-    //final normalizedName = _normalizeFundName(fundName);
     final normalizedName = FundNameMatcher.normalizeName(fundName);
     final exact = catalog.isinsByName[normalizedName];
     if (exact != null) return exact;
@@ -494,7 +512,6 @@ class FundScraper {
       return isinMatches;
     }
 
-    //final normalizedQuery = _normalizeFundName(query);
     final normalizedQuery = FundNameMatcher.normalizeName(query);
     final queryTokens = normalizedQuery
         .split(' ')
@@ -529,19 +546,10 @@ class FundScraper {
   static List<FundSearchMatch> searchCatalogMatches(
     Map<String, String> catalog,
     String query, {
-    FundSearchMode? mode,
+    required FundSearchMode mode,
   }) {
-    final internalCatalog = _FundCatalog(
-      isinsByName: catalog.map((name, isin) => MapEntry(name, [isin])),
-      names: _fundCatalogNames,
-      allIsins: catalog.values.toSet(),
-    );
-    final searchMode =
-        mode ??
-        (IsinSearchQuery.prefix(query) == null
-            ? FundSearchMode.name
-            : FundSearchMode.isin);
-    return _searchCatalog(internalCatalog, query, mode: searchMode);
+    final internalCatalog = _catalogFromMap(catalog);
+    return _searchCatalog(internalCatalog, query, mode: mode);
   }
 
   static Future<List<FundSearchMatch>> _searchEcbIfs(
