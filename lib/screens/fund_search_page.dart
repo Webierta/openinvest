@@ -11,6 +11,8 @@ import '../utils/isin_search_query.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
 
+enum _SearchStatus { initial, invalidQuery, searching, completed }
+
 class FundSearchPage extends StatefulWidget {
   const FundSearchPage({super.key});
 
@@ -23,8 +25,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
   List<FundSearchMatch> _matches = [];
   FundSearchMode _selectedMode = FundSearchMode.name;
   String? _searchWarning;
-  bool _isSearchInit = true;
-  bool _hasSearched = false;
+  _SearchStatus _searchStatus = _SearchStatus.initial;
   int _searchGeneration = 0;
 
   Future<void> _search(String value) async {
@@ -34,7 +35,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
     if (value.trim().length < minimumLength) {
       setState(() {
         _matches = [];
-        _hasSearched = false;
+        _searchStatus = _SearchStatus.invalidQuery;
         _searchWarning = _selectedMode == FundSearchMode.isin
             ? l10n.fundSearchIsinTooShort
             : l10n.fundSearchNameTooShort;
@@ -47,7 +48,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
       final normalized = IsinSearchQuery.normalize(value);
       setState(() {
         _matches = [];
-        _hasSearched = false;
+        _searchStatus = _SearchStatus.invalidQuery;
         _searchWarning = normalized.length >= 12
             ? l10n.fundSearchInvalidIsinComplete
             : l10n.fundSearchInvalidIsinPrefix;
@@ -55,7 +56,10 @@ class _FundSearchPageState extends State<FundSearchPage> {
       return;
     }
 
-    setState(() => _searchWarning = null);
+    setState(() {
+      _searchStatus = _SearchStatus.searching;
+      _searchWarning = null;
+    });
     final matches = await context.read<FundProvider>().searchFunds(
       value,
       mode: _selectedMode,
@@ -63,15 +67,11 @@ class _FundSearchPageState extends State<FundSearchPage> {
     if (!mounted || generation != _searchGeneration) return;
     setState(() {
       _matches = matches;
-      _hasSearched = true;
+      _searchStatus = _SearchStatus.completed;
     });
   }
 
   Future<void> _handleSearch([FundSearchMatch? match]) async {
-    setState(() {
-      _isSearchInit = false;
-    });
-
     final provider = context.read<FundProvider>();
     final l10n = AppLocalizations.of(context)!;
 
@@ -248,8 +248,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
 
   void resetSearch() {
     setState(() {
-      _isSearchInit = true;
-      _hasSearched = false;
+      _searchStatus = _SearchStatus.initial;
       _matches = [];
       _searchWarning = null;
     });
@@ -310,8 +309,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                         _selectedMode = selection.first;
                         _controller.clear();
                         _matches = [];
-                        _isSearchInit = true;
-                        _hasSearched = false;
+                        _searchStatus = _SearchStatus.initial;
                         _searchWarning = null;
                       });
                     },
@@ -340,7 +338,8 @@ class _FundSearchPageState extends State<FundSearchPage> {
                       : TextCapitalization.words,
                   onSubmitted: (_) => _handleSearch(),
                   onChanged: (_) {
-                    if (_searchWarning != null || !_isSearchInit) {
+                    if (_searchWarning != null ||
+                        _searchStatus != _SearchStatus.initial) {
                       resetSearch();
                     }
                   },
@@ -360,7 +359,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                if (_isSearchInit == true)
+                if (_searchStatus == _SearchStatus.initial)
                 // estado inicial
                 ...[
                   const SizedBox(height: 40),
@@ -438,7 +437,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                       textAlign: TextAlign.center,
                     ),
                   )
-                else if (_hasSearched)
+                else if (_searchStatus == _SearchStatus.completed)
                   // sin resultados
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32),
