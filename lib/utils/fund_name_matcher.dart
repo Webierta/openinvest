@@ -67,6 +67,7 @@ class FundNameMatcher {
     return result.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
+  // filtrado semántico de búsqueda.
   static bool matchesAllTokens(String query, String candidateName) {
     final normalizedQuery = normalizeName(query);
     final queryTokens = normalizedQuery
@@ -78,7 +79,8 @@ class FundNameMatcher {
 
     final normalizedCandidate = normalizeName(candidateName);
 
-    // Todos los tokens de la consulta deben aparecer como palabras completas en el candidato
+    // Todos los tokens significativos de la consulta deben aparecer
+    // como subcadenas en el nombre normalizado del candidato.
     return queryTokens.every((qt) => normalizedCandidate.contains(qt));
   }
 }

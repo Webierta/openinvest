@@ -25,8 +25,10 @@ class _FundSearchPageState extends State<FundSearchPage> {
   String? _searchWarning;
   bool _isSearchInit = true;
   bool _hasSearched = false;
+  int _searchGeneration = 0;
 
   Future<void> _search(String value) async {
+    final generation = ++_searchGeneration;
     final l10n = AppLocalizations.of(context)!;
     final minimumLength = _selectedMode == FundSearchMode.isin ? 5 : 2;
     if (value.trim().length < minimumLength) {
@@ -58,12 +60,11 @@ class _FundSearchPageState extends State<FundSearchPage> {
       value,
       mode: _selectedMode,
     );
-    if (mounted) {
-      setState(() {
-        _matches = matches;
-        _hasSearched = true;
-      });
-    }
+    if (!mounted || generation != _searchGeneration) return;
+    setState(() {
+      _matches = matches;
+      _hasSearched = true;
+    });
   }
 
   Future<void> _handleSearch([FundSearchMatch? match]) async {
@@ -305,6 +306,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                     onSelectionChanged: (selection) {
                       if (selection.isEmpty) return;
                       setState(() {
+                        _searchGeneration++;
                         _selectedMode = selection.first;
                         _controller.clear();
                         _matches = [];

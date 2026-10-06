@@ -3030,4 +3030,20 @@ void main() {
       });
     });
   });
+  test('INCOME puede coincidir con INCOMES', () {
+    expect(
+      FundNameMatcher.matchesAllTokens('INCOME', 'GLOBAL INCOMES FUND'),
+      isTrue,
+    );
+  });
+
+  test('todos los tokens deben estar presentes', () {
+    expect(
+      FundNameMatcher.matchesAllTokens(
+        'AXONIC INCOME',
+        'AXONIC ALTERNATIVE FUND',
+      ),
+      isFalse,
+    );
+  });
 }
