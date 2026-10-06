@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../models/fund_cost.dart';
 import '../models/fund_search_mode.dart';
 import '../utils/app_error.dart';
+import '../utils/fund_name_matcher.dart';
 import '../utils/isin_search_query.dart';
 import 'isin_providers/ecb_ifs_provider.dart';
 import 'isin_resolver.dart';
@@ -333,37 +334,6 @@ class FundScraper {
   static Future<_FundCatalog>? _fundCatalog;
   static final Map<String, String> _fundCatalogNames = {};
 
-  static String _normalizeFundName(String value) {
-    const replacements = {
-      'á': 'a',
-      'à': 'a',
-      'ä': 'a',
-      'â': 'a',
-      'é': 'e',
-      'è': 'e',
-      'ë': 'e',
-      'ê': 'e',
-      'í': 'i',
-      'ì': 'i',
-      'ï': 'i',
-      'î': 'i',
-      'ó': 'o',
-      'ò': 'o',
-      'ö': 'o',
-      'ô': 'o',
-      'ú': 'u',
-      'ù': 'u',
-      'ü': 'u',
-      'û': 'u',
-      'ñ': 'n',
-    };
-    var normalized = value.toLowerCase();
-    replacements.forEach((from, to) {
-      normalized = normalized.replaceAll(from, to);
-    });
-    return normalized.replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
-  }
-
   static Future<_FundCatalog> _loadFundCatalog() {
     return _fundCatalog ??= _readFundCatalog();
   }
@@ -383,7 +353,8 @@ class FundScraper {
       final name = entry['nombre'];
       final isins = entry['isins'];
       if (name is String && name.isNotEmpty && isins is List) {
-        final normalizedName = _normalizeFundName(name);
+        //final normalizedName = _normalizeFundName(name);
+        final normalizedName = FundNameMatcher.normalizeName(name);
         final catalogIsins = catalog.putIfAbsent(normalizedName, () => []);
         for (final isin in isins) {
           if (isin is String && isin.isNotEmpty) {
@@ -443,7 +414,8 @@ class FundScraper {
   }
 
   static String? findCatalogIsin(Map<String, String> catalog, String fundName) {
-    final normalizedName = _normalizeFundName(fundName);
+    //final normalizedName = _normalizeFundName(fundName);
+    final normalizedName = FundNameMatcher.normalizeName(fundName);
     final exact = catalog[normalizedName];
     if (exact != null) return exact;
 
@@ -461,7 +433,8 @@ class FundScraper {
   }
 
   static List<String> _findCatalogIsins(_FundCatalog catalog, String fundName) {
-    final normalizedName = _normalizeFundName(fundName);
+    //final normalizedName = _normalizeFundName(fundName);
+    final normalizedName = FundNameMatcher.normalizeName(fundName);
     final exact = catalog.isinsByName[normalizedName];
     if (exact != null) return exact;
 
@@ -521,7 +494,8 @@ class FundScraper {
       return isinMatches;
     }
 
-    final normalizedQuery = _normalizeFundName(query);
+    //final normalizedQuery = _normalizeFundName(query);
+    final normalizedQuery = FundNameMatcher.normalizeName(query);
     final queryTokens = normalizedQuery
         .split(' ')
         .where((token) => token.length >= 2)
@@ -814,7 +788,7 @@ class FundScraper {
     var matches = await _searchYahoo(query.trim());
     if (matches.isNotEmpty) return matches;
 
-    final queryTokens = _normalizeFundName(query)
+    final queryTokens = FundNameMatcher.normalizeName(query)
         .split(' ')
         .where((token) => token.length >= 2)
         .toSet()
@@ -828,8 +802,7 @@ class FundScraper {
     );
     final seenSymbols = <String>{};
     matches = fallbackResponses.expand((response) => response).where((match) {
-      final normalizedName = _normalizeFundName(match.name);
-      return queryTokens.every((token) => normalizedName.contains(token)) &&
+      return FundNameMatcher.matchesAllTokens(query, match.name) &&
           seenSymbols.add(match.symbol.toUpperCase());
     }).toList();
     return matches;

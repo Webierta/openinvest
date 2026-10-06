@@ -30,6 +30,7 @@ class FundAlertInfo {
   });
 }
 
+// búsquedas serializadas con política latest wins
 class _FundSearchRequest {
   final String query;
   final FundSearchMode mode;
