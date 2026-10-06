@@ -30,6 +30,20 @@ class FundAlertInfo {
   });
 }
 
+class _FundSearchRequest {
+  final String query;
+  final FundSearchMode mode;
+  final int generation;
+  final Completer<List<FundSearchMatch>> completer =
+      Completer<List<FundSearchMatch>>();
+
+  _FundSearchRequest({
+    required this.query,
+    required this.mode,
+    required this.generation,
+  });
+}
+
 class FundProvider with ChangeNotifier {
   List<FundData> portfolio = [];
   FundData? currentFund;
@@ -47,6 +61,14 @@ class FundProvider with ChangeNotifier {
   final Set<String> _ratingRefreshesInProgress = {};
   final Future<ScrapeResult> Function(FundSearchMatch) _fundSearchFetcher;
   final Future<ScrapeResult> Function(String) _fundIsinFetcher;
+  final Future<List<FundSearchMatch>> Function(
+    String query, {
+    required FundSearchMode mode,
+  })
+  _fundSearchFunction;
+  _FundSearchRequest? _pendingFundSearch;
+  int _fundSearchGeneration = 0;
+  bool _isFundSearchInProgress = false;
 
   Locale? get locale => _locale;
 
@@ -56,10 +78,16 @@ class FundProvider with ChangeNotifier {
     IsinResolver Function()? isinResolverFactory,
     Future<ScrapeResult> Function(FundSearchMatch)? fundSearchFetcher,
     Future<ScrapeResult> Function(String)? fundIsinFetcher,
+    Future<List<FundSearchMatch>> Function(
+      String query, {
+      required FundSearchMode mode,
+    })?
+    fundSearch,
   }) : _isinResolverFactory = isinResolverFactory ?? IsinResolver.new,
        _fundSearchFetcher =
            fundSearchFetcher ?? FundScraper.getFundBySearchMatch,
-       _fundIsinFetcher = fundIsinFetcher ?? FundScraper.getFundByIsin;
+       _fundIsinFetcher = fundIsinFetcher ?? FundScraper.getFundByIsin,
+       _fundSearchFunction = fundSearch ?? FundScraper.searchFunds;
 
   Future<void> setLocale(Locale locale) async {
     _locale = locale;
@@ -396,20 +424,61 @@ class FundProvider with ChangeNotifier {
   Future<List<FundSearchMatch>> searchFunds(
     String query, {
     required FundSearchMode mode,
-  }) async {
-    if (isBusy) return [];
+  }) {
     final normalizedQuery = query.trim();
     final minimumLength = mode == FundSearchMode.isin ? 5 : 2;
-    if (normalizedQuery.length < minimumLength) return [];
+    if (normalizedQuery.length < minimumLength) return Future.value([]);
+    if (_databaseOperationInProgress ||
+        (isLoading && !_isFundSearchInProgress)) {
+      return Future.value([]);
+    }
+
+    final request = _FundSearchRequest(
+      query: normalizedQuery,
+      mode: mode,
+      generation: ++_fundSearchGeneration,
+    );
+
+    if (_isFundSearchInProgress) {
+      final supersededRequest = _pendingFundSearch;
+      if (supersededRequest != null) {
+        supersededRequest.completer.complete([]);
+      }
+      _pendingFundSearch = request;
+      _clearError();
+      notifyListeners();
+      return request.completer.future;
+    }
+
+    _pendingFundSearch = request;
+    _isFundSearchInProgress = true;
     isLoading = true;
     _clearError();
     notifyListeners();
+    unawaited(_processFundSearchQueue());
+    return request.completer.future;
+  }
+
+  Future<void> _processFundSearchQueue() async {
     try {
-      return await FundScraper.searchFunds(normalizedQuery, mode: mode);
-    } catch (error, stackTrace) {
-      lastError = _asError(error, stackTrace);
-      return [];
+      while (_pendingFundSearch != null) {
+        final request = _pendingFundSearch!;
+        _pendingFundSearch = null;
+        try {
+          final matches = await _fundSearchFunction(
+            request.query,
+            mode: request.mode,
+          );
+          request.completer.complete(matches);
+        } catch (error, stackTrace) {
+          if (request.generation == _fundSearchGeneration) {
+            lastError = _asError(error, stackTrace);
+          }
+          request.completer.complete([]);
+        }
+      }
     } finally {
+      _isFundSearchInProgress = false;
       isLoading = false;
       notifyListeners();
     }
