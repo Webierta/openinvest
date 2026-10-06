@@ -50,34 +50,39 @@ class EcbIfsProvider implements IsinSourceProvider {
   }
 
   Future<List<IsinResult>> searchByNameOrIsin(String query) async {
+    final isinPrefix = IsinSearchQuery.prefix(query);
+    return isinPrefix == null ? searchByName(query) : searchByIsin(isinPrefix);
+  }
+
+  Future<List<IsinResult>> searchByIsin(String query) async {
+    final isinPrefix = IsinSearchQuery.prefix(query);
+    if (isinPrefix == null) return const [];
+
+    if (IsinValidator.isValid(isinPrefix)) {
+      final result = await resolveByIsin(isinPrefix);
+      return result == null ? const [] : [result];
+    }
+
+    final index = await _loadIsinIndex();
+    final matches =
+        index.entries
+            .where((entry) => entry.key.startsWith(isinPrefix))
+            .toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
+
+    return [
+      for (final entry in matches.take(15))
+        IsinResult(
+          isin: entry.value.isin,
+          source: _source,
+          officialName: entry.value.name,
+        ),
+    ];
+  }
+
+  Future<List<IsinResult>> searchByName(String query) async {
     final queryText = query.trim();
-    if (queryText.isEmpty) {
-      return const [];
-    }
-
-    final isinPrefix = IsinSearchQuery.prefix(queryText);
-    if (isinPrefix != null) {
-      if (IsinValidator.isValid(isinPrefix)) {
-        final result = await resolveByIsin(isinPrefix);
-        return result == null ? const [] : [result];
-      }
-
-      final index = await _loadIsinIndex();
-      final matches =
-          index.entries
-              .where((entry) => entry.key.startsWith(isinPrefix))
-              .toList()
-            ..sort((a, b) => a.key.compareTo(b.key));
-
-      return [
-        for (final entry in matches.take(15))
-          IsinResult(
-            isin: entry.value.isin,
-            source: _source,
-            officialName: entry.value.name,
-          ),
-      ];
-    }
+    if (queryText.isEmpty) return const [];
 
     final normalizedName = FundNameMatcher.normalizeName(queryText);
     if (normalizedName.isEmpty) {

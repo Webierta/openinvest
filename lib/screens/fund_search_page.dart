@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
+import '../models/fund_search_mode.dart';
 import '../providers/fund_provider.dart';
 import '../services/fund_scraper.dart';
+import '../utils/isin_search_query.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
 
@@ -19,18 +21,43 @@ class FundSearchPage extends StatefulWidget {
 class _FundSearchPageState extends State<FundSearchPage> {
   final TextEditingController _controller = TextEditingController();
   List<FundSearchMatch> _matches = [];
+  FundSearchMode _selectedMode = FundSearchMode.name;
+  String? _searchWarning;
   bool _isSearchInit = true;
   bool _hasSearched = false;
 
-  Future<void> _searchByName(String value) async {
-    if (value.trim().length < 2) {
+  Future<void> _search(String value) async {
+    final l10n = AppLocalizations.of(context)!;
+    final minimumLength = _selectedMode == FundSearchMode.isin ? 5 : 2;
+    if (value.trim().length < minimumLength) {
       setState(() {
         _matches = [];
         _hasSearched = false;
+        _searchWarning = _selectedMode == FundSearchMode.isin
+            ? l10n.fundSearchIsinTooShort
+            : l10n.fundSearchNameTooShort;
       });
       return;
     }
-    final matches = await context.read<FundProvider>().searchFunds(value);
+
+    if (_selectedMode == FundSearchMode.isin &&
+        IsinSearchQuery.prefix(value) == null) {
+      final normalized = IsinSearchQuery.normalize(value);
+      setState(() {
+        _matches = [];
+        _hasSearched = false;
+        _searchWarning = normalized.length >= 12
+            ? l10n.fundSearchInvalidIsinComplete
+            : l10n.fundSearchInvalidIsinPrefix;
+      });
+      return;
+    }
+
+    setState(() => _searchWarning = null);
+    final matches = await context.read<FundProvider>().searchFunds(
+      value,
+      mode: _selectedMode,
+    );
     if (mounted) {
       setState(() {
         _matches = matches;
@@ -48,7 +75,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
     final l10n = AppLocalizations.of(context)!;
 
     if (match == null) {
-      await _searchByName(_controller.text);
+      await _search(_controller.text);
       return;
     }
 
@@ -222,6 +249,8 @@ class _FundSearchPageState extends State<FundSearchPage> {
     setState(() {
       _isSearchInit = true;
       _hasSearched = false;
+      _matches = [];
+      _searchWarning = null;
     });
   }
 
@@ -252,38 +281,81 @@ class _FundSearchPageState extends State<FundSearchPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  l10n.fundSearchModeLabel,
+                  style: Theme.of(context).textTheme.labelLarge
+                      ?.copyWith(color: Colors.white70),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<FundSearchMode>(
+                    showSelectedIcon: false,
+                    segments: [
+                      ButtonSegment(
+                        value: FundSearchMode.name,
+                        label: Text(l10n.fundSearchNameOption),
+                      ),
+                      ButtonSegment(
+                        value: FundSearchMode.isin,
+                        label: Text(l10n.fundSearchIsinOption),
+                      ),
+                    ],
+                    selected: {_selectedMode},
+                    onSelectionChanged: (selection) {
+                      if (selection.isEmpty) return;
+                      setState(() {
+                        _selectedMode = selection.first;
+                        _controller.clear();
+                        _matches = [];
+                        _isSearchInit = true;
+                        _hasSearched = false;
+                        _searchWarning = null;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _controller,
                   decoration: InputDecoration(
-                    labelText: l10n.fundSearchLabel,
-                    hintText: l10n.fundSearchHint,
+                    labelText: _selectedMode == FundSearchMode.name
+                        ? l10n.fundSearchNameLabel
+                        : l10n.fundSearchIsinLabel,
+                    hintText: _selectedMode == FundSearchMode.name
+                        ? l10n.fundSearchNameHint
+                        : l10n.fundSearchIsinHint,
+                    errorText: _searchWarning,
+                    errorMaxLines: 3,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.05),
-                    suffixIcon: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: IconButton(
-                          tooltip: l10n.searchFundAction,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          icon: const Icon(Icons.search),
-                          onPressed: _handleSearch,
-                        ),
-                      ),
-                    ),
                   ),
-                  textCapitalization: TextCapitalization.characters,
+                  textCapitalization: _selectedMode == FundSearchMode.isin
+                      ? TextCapitalization.characters
+                      : TextCapitalization.words,
                   onSubmitted: (_) => _handleSearch(),
-                  onChanged: (_) => {
-                    if (_isSearchInit == false) {resetSearch()},
+                  onChanged: (_) {
+                    if (_searchWarning != null || !_isSearchInit) {
+                      resetSearch();
+                    }
                   },
                   autofocus: true,
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: () => _handleSearch(),
+                    icon: const Icon(Icons.search),
+                    label: Text(
+                      _selectedMode == FundSearchMode.name
+                          ? l10n.searchFundByNameAction
+                          : l10n.searchFundByIsinAction,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 if (_isSearchInit == true)

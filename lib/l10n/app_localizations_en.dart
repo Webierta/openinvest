@@ -310,6 +310,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchFundAction => 'Search fund';
 
   @override
+  String get fundSearchModeLabel => 'Search fund by';
+
+  @override
+  String get fundSearchNameOption => 'Name';
+
+  @override
+  String get fundSearchIsinOption => 'ISIN';
+
+  @override
+  String get fundSearchNameLabel => 'Fund name';
+
+  @override
+  String get fundSearchNameHint => 'Enter one or more words from the fund name';
+
+  @override
+  String get fundSearchIsinLabel => 'ISIN';
+
+  @override
+  String get fundSearchIsinHint => 'Enter a complete or partial ISIN';
+
+  @override
+  String get searchFundByNameAction => 'Search by name';
+
+  @override
+  String get searchFundByIsinAction => 'Search by ISIN';
+
+  @override
+  String get fundSearchNameTooShort =>
+      'Enter at least 2 characters of the fund name.';
+
+  @override
+  String get fundSearchIsinTooShort =>
+      'The ISIN must have at least 5 characters.';
+
+  @override
+  String get fundSearchInvalidIsinPrefix =>
+      'The prefix must start with a two-letter country code and contain at least one digit.';
+
+  @override
+  String get fundSearchInvalidIsinComplete =>
+      'The complete ISIN has an invalid format or an incorrect check digit.';
+
+  @override
   String get noFundSearchResults =>
       'No funds were found for this search criterion.';
 

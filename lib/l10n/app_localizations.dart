@@ -644,6 +644,84 @@ abstract class AppLocalizations {
   /// **'Buscar fondo'**
   String get searchFundAction;
 
+  /// No description provided for @fundSearchModeLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar fondo por'**
+  String get fundSearchModeLabel;
+
+  /// No description provided for @fundSearchNameOption.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre'**
+  String get fundSearchNameOption;
+
+  /// No description provided for @fundSearchIsinOption.
+  ///
+  /// In es, this message translates to:
+  /// **'ISIN'**
+  String get fundSearchIsinOption;
+
+  /// No description provided for @fundSearchNameLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre del fondo'**
+  String get fundSearchNameLabel;
+
+  /// No description provided for @fundSearchNameHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce una o varias palabras del nombre del fondo'**
+  String get fundSearchNameHint;
+
+  /// No description provided for @fundSearchIsinLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'ISIN'**
+  String get fundSearchIsinLabel;
+
+  /// No description provided for @fundSearchIsinHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce un ISIN completo o parcial'**
+  String get fundSearchIsinHint;
+
+  /// No description provided for @searchFundByNameAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar por nombre'**
+  String get searchFundByNameAction;
+
+  /// No description provided for @searchFundByIsinAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar por ISIN'**
+  String get searchFundByIsinAction;
+
+  /// No description provided for @fundSearchNameTooShort.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce al menos 2 caracteres del nombre del fondo.'**
+  String get fundSearchNameTooShort;
+
+  /// No description provided for @fundSearchIsinTooShort.
+  ///
+  /// In es, this message translates to:
+  /// **'El ISIN debe tener al menos 5 caracteres.'**
+  String get fundSearchIsinTooShort;
+
+  /// No description provided for @fundSearchInvalidIsinPrefix.
+  ///
+  /// In es, this message translates to:
+  /// **'El prefijo debe empezar con dos letras de país y contener al menos un número.'**
+  String get fundSearchInvalidIsinPrefix;
+
+  /// No description provided for @fundSearchInvalidIsinComplete.
+  ///
+  /// In es, this message translates to:
+  /// **'El ISIN completo no tiene un formato válido o su dígito de control es incorrecto.'**
+  String get fundSearchInvalidIsinComplete;
+
   /// No description provided for @noFundSearchResults.
   ///
   /// In es, this message translates to:

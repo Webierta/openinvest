@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/fund_cost.dart';
+import '../models/fund_search_mode.dart';
 import '../utils/app_error.dart';
-//import 'isin_providers/ecb_ifs_provider.dart';
 import '../utils/isin_search_query.dart';
 import 'isin_providers/ecb_ifs_provider.dart';
 import 'isin_resolver.dart';
@@ -318,7 +318,7 @@ class FundScraper {
   static const String _fundCatalogAsset =
       'assets/files/fondos_armonizados.json';
 
-  // TODO: REVISAR EXPERIMENTAL
+  // REVISAR EXPERIMENTAL
   //static const String _fundEcbIfs = 'assets/files/ECB_IFS_2024.json';
 
   static const String _searchUrl =
@@ -488,41 +488,13 @@ class FundScraper {
 
   static List<FundSearchMatch> _searchCatalog(
     _FundCatalog catalog,
-    String query,
-  ) {
-    /* // Busqueda por ISIN parcial
-    final isinQuery = query.trim().toUpperCase().replaceAll(
-      RegExp(r'[^A-Z0-9]'),
-      '',
-    );
-    // bajado de 4 a 3 caracteres
-    if (RegExp(r'^[A-Z]{2}[A-Z0-9]{3,10}$').hasMatch(isinQuery)) {
-      final seenIsins = <String>{};
-      final isinMatches = <FundSearchMatch>[];
-      for (final entry in catalog.isinsByName.entries) {
-        for (final isin in entry.value) {
-          final normalizedIsin = isin.trim().toUpperCase();
-          if (!normalizedIsin.startsWith(isinQuery) ||
-              !seenIsins.add(normalizedIsin)) {
-            continue;
-          }
-          isinMatches.add(
-            FundSearchMatch(
-              isin: isin,
-              symbol: '',
-              name: catalog.names[entry.key] ?? entry.key,
-              source: FundSource.local,
-            ),
-          );
-        }
-      }
-      isinMatches.sort((a, b) => a.isin!.compareTo(b.isin!));
-      return isinMatches;
-    } */
+    String query, {
+    required FundSearchMode mode,
+  }) {
+    if (mode == FundSearchMode.isin) {
+      final isinPrefix = IsinSearchQuery.prefix(query);
+      if (isinPrefix == null) return [];
 
-    final isinPrefix = IsinSearchQuery.prefix(query);
-
-    if (isinPrefix != null) {
       final seenIsins = <String>{};
       final isinMatches = <FundSearchMatch>[];
 
@@ -582,20 +554,31 @@ class FundScraper {
 
   static List<FundSearchMatch> searchCatalogMatches(
     Map<String, String> catalog,
-    String query,
-  ) {
+    String query, {
+    FundSearchMode? mode,
+  }) {
     final internalCatalog = _FundCatalog(
       isinsByName: catalog.map((name, isin) => MapEntry(name, [isin])),
       names: _fundCatalogNames,
       allIsins: catalog.values.toSet(),
     );
-    return _searchCatalog(internalCatalog, query);
+    final searchMode =
+        mode ??
+        (IsinSearchQuery.prefix(query) == null
+            ? FundSearchMode.name
+            : FundSearchMode.isin);
+    return _searchCatalog(internalCatalog, query, mode: searchMode);
   }
 
-  static Future<List<FundSearchMatch>> _searchEcbIfs(String query) async {
+  static Future<List<FundSearchMatch>> _searchEcbIfs(
+    String query, {
+    required FundSearchMode mode,
+  }) async {
     try {
       final provider = EcbIfsProvider();
-      final results = await provider.searchByNameOrIsin(query);
+      final results = mode == FundSearchMode.isin
+          ? await provider.searchByIsin(query)
+          : await provider.searchByName(query);
 
       return results
           .map(
@@ -827,44 +810,52 @@ class FundScraper {
     }
   }
 
-  static Future<List<FundSearchMatch>> searchFunds(String query) async {
+  static Future<List<FundSearchMatch>> _searchYahooByName(String query) async {
+    var matches = await _searchYahoo(query.trim());
+    if (matches.isNotEmpty) return matches;
+
+    final queryTokens = _normalizeFundName(query)
+        .split(' ')
+        .where((token) => token.length >= 2)
+        .toSet()
+        .toList();
+    if (queryTokens.length <= 1) return matches;
+
+    final fallbackTokens = [...queryTokens]
+      ..sort((a, b) => b.length.compareTo(a.length));
+    final fallbackResponses = await Future.wait(
+      fallbackTokens.take(3).map(_searchYahoo),
+    );
+    final seenSymbols = <String>{};
+    matches = fallbackResponses.expand((response) => response).where((match) {
+      final normalizedName = _normalizeFundName(match.name);
+      return queryTokens.every((token) => normalizedName.contains(token)) &&
+          seenSymbols.add(match.symbol.toUpperCase());
+    }).toList();
+    return matches;
+  }
+
+  static Future<List<FundSearchMatch>> searchFunds(
+    String query, {
+    required FundSearchMode mode,
+  }) async {
+    final isinPrefix = mode == FundSearchMode.isin
+        ? IsinSearchQuery.prefix(query)
+        : null;
+    if (mode == FundSearchMode.isin && isinPrefix == null) return [];
+
     final catalog = await _loadFundCatalog();
-    final isinPrefix = IsinSearchQuery.prefix(query);
-    final yahooQuery = isinPrefix ?? query.trim();
-    var yahooMatches = <FundSearchMatch>[];
+    final yahooMatches = mode == FundSearchMode.isin
+        ? (await _searchYahoo(isinPrefix!)).where((match) {
+            final isin = match.isin;
+            return isin != null &&
+                IsinSearchQuery.normalize(isin).startsWith(isinPrefix);
+          }).toList()
+        : await _searchYahooByName(query);
 
-    yahooMatches = await _searchYahoo(yahooQuery);
-    if (isinPrefix != null) {
-      yahooMatches = yahooMatches.where((match) {
-        final isin = match.isin;
-        return isin != null &&
-            IsinSearchQuery.normalize(isin).startsWith(isinPrefix);
-      }).toList();
-    } else if (yahooMatches.isEmpty) {
-      final queryTokens = _normalizeFundName(query)
-          .split(' ')
-          .where((token) => token.length >= 2)
-          .toSet()
-          .toList();
-      if (queryTokens.length > 1) {
-        final fallbackTokens = [...queryTokens]
-          ..sort((a, b) => b.length.compareTo(a.length));
-        final fallbackResponses = await Future.wait(
-          fallbackTokens.take(3).map(_searchYahoo),
-        );
-        final seenSymbols = <String>{};
-        yahooMatches = fallbackResponses.expand((matches) => matches).where((
-          match,
-        ) {
-          final normalizedName = _normalizeFundName(match.name);
-          return queryTokens.every((token) => normalizedName.contains(token)) &&
-              seenSymbols.add(match.symbol.toUpperCase());
-        }).toList();
-      }
-    }
-
-    final localMatches = _searchCatalog(catalog, query);
-    final ecbMatches = await _searchEcbIfs(query);
+    final catalogQuery = isinPrefix ?? query;
+    final localMatches = _searchCatalog(catalog, catalogQuery, mode: mode);
+    final ecbMatches = await _searchEcbIfs(catalogQuery, mode: mode);
 
     final seenIsins = <String>{};
     final combined = <FundSearchMatch>[];

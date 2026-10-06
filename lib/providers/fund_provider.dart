@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:investing/services/isin_providers/ecb_ifs_provider.dart';
+
+import '../services/isin_providers/ecb_ifs_provider.dart';
 
 import '../models/fund_cost.dart';
+import '../models/fund_search_mode.dart';
 import '../services/fund_scraper.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
@@ -391,15 +393,19 @@ class FundProvider with ChangeNotifier {
     }
   }
 
-  Future<List<FundSearchMatch>> searchFunds(String query) async {
+  Future<List<FundSearchMatch>> searchFunds(
+    String query, {
+    required FundSearchMode mode,
+  }) async {
     if (isBusy) return [];
     final normalizedQuery = query.trim();
-    if (normalizedQuery.length < 2) return [];
+    final minimumLength = mode == FundSearchMode.isin ? 5 : 2;
+    if (normalizedQuery.length < minimumLength) return [];
     isLoading = true;
     _clearError();
     notifyListeners();
     try {
-      return await FundScraper.searchFunds(normalizedQuery);
+      return await FundScraper.searchFunds(normalizedQuery, mode: mode);
     } catch (error, stackTrace) {
       lastError = _asError(error, stackTrace);
       return [];

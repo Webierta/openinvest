@@ -312,6 +312,50 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchFundAction => 'Buscar fondo';
 
   @override
+  String get fundSearchModeLabel => 'Buscar fondo por';
+
+  @override
+  String get fundSearchNameOption => 'Nombre';
+
+  @override
+  String get fundSearchIsinOption => 'ISIN';
+
+  @override
+  String get fundSearchNameLabel => 'Nombre del fondo';
+
+  @override
+  String get fundSearchNameHint =>
+      'Introduce una o varias palabras del nombre del fondo';
+
+  @override
+  String get fundSearchIsinLabel => 'ISIN';
+
+  @override
+  String get fundSearchIsinHint => 'Introduce un ISIN completo o parcial';
+
+  @override
+  String get searchFundByNameAction => 'Buscar por nombre';
+
+  @override
+  String get searchFundByIsinAction => 'Buscar por ISIN';
+
+  @override
+  String get fundSearchNameTooShort =>
+      'Introduce al menos 2 caracteres del nombre del fondo.';
+
+  @override
+  String get fundSearchIsinTooShort =>
+      'El ISIN debe tener al menos 5 caracteres.';
+
+  @override
+  String get fundSearchInvalidIsinPrefix =>
+      'El prefijo debe empezar con dos letras de país y contener al menos un número.';
+
+  @override
+  String get fundSearchInvalidIsinComplete =>
+      'El ISIN completo no tiene un formato válido o su dígito de control es incorrecto.';
+
+  @override
   String get noFundSearchResults =>
       'No se han encontrado fondos para este criterio de búsqueda.';
 

@@ -66,4 +66,19 @@ class FundNameMatcher {
     replacements.forEach((from, to) => result = result.replaceAll(from, to));
     return result.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
+
+  static bool matchesAllTokens(String query, String candidateName) {
+    final normalizedQuery = normalizeName(query);
+    final queryTokens = normalizedQuery
+        .split(' ')
+        .where((token) => token.length >= 2)
+        .toList();
+
+    if (queryTokens.isEmpty) return false;
+
+    final normalizedCandidate = normalizeName(candidateName);
+
+    // Todos los tokens de la consulta deben aparecer como palabras completas en el candidato
+    return queryTokens.every((qt) => normalizedCandidate.contains(qt));
+  }
 }

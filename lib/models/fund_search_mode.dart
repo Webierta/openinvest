@@ -1,0 +1,1 @@
+enum FundSearchMode { name, isin }
