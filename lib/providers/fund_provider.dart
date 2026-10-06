@@ -12,6 +12,7 @@ import '../services/settings_service.dart';
 import '../services/isin_resolver.dart';
 import '../services/morningstar_rating.dart';
 import '../utils/financial_calculator.dart';
+import '../utils/isin_search_query.dart';
 import '../utils/app_error.dart';
 
 enum SortCriteria { name, value, performance }
@@ -427,8 +428,13 @@ class FundProvider with ChangeNotifier {
     required FundSearchMode mode,
   }) {
     final normalizedQuery = query.trim();
-    final minimumLength = mode == FundSearchMode.isin ? 5 : 2;
-    if (normalizedQuery.length < minimumLength) return Future.value([]);
+    if (mode == FundSearchMode.isin) {
+      if (IsinSearchQuery.prefix(normalizedQuery) == null) {
+        return Future.value([]);
+      }
+    } else if (normalizedQuery.length < 2) {
+      return Future.value([]);
+    }
     if (_databaseOperationInProgress ||
         (isLoading && !_isFundSearchInProgress)) {
       return Future.value([]);

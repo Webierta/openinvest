@@ -35,7 +35,7 @@ void main() {
         mode: FundSearchMode.name,
       );
       final latestResult = provider.searchFunds(
-        'latest',
+        'ES016',
         mode: FundSearchMode.isin,
       );
 
@@ -47,9 +47,30 @@ void main() {
 
       expect(await firstResult, isEmpty);
       expect(await latestResult, [match]);
-      expect(executedQueries, ['first', 'latest']);
+      expect(executedQueries, ['first', 'ES016']);
       expect(provider.error, isNull);
       expect(provider.isBusy, isFalse);
+    },
+  );
+
+  test(
+    'rejects invalid ISIN queries before invoking the search function',
+    () async {
+      var searchFunctionCalls = 0;
+      final provider = FundProvider(
+        fundSearch: (query, {required mode}) {
+          searchFunctionCalls++;
+          return Future.value([match]);
+        },
+      );
+
+      final results = await provider.searchFunds(
+        'ESFOO',
+        mode: FundSearchMode.isin,
+      );
+
+      expect(results, isEmpty);
+      expect(searchFunctionCalls, 0);
     },
   );
 }

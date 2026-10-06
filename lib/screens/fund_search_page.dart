@@ -330,6 +330,21 @@ class _FundSearchPageState extends State<FundSearchPage> {
                     ),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.05),
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: IconButton(
+                          tooltip: l10n.searchFundAction,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          icon: const Icon(Icons.search),
+                          onPressed: _handleSearch,
+                        ),
+                      ),
+                    ),
                   ),
                   textCapitalization: _selectedMode == FundSearchMode.isin
                       ? TextCapitalization.characters
@@ -343,8 +358,8 @@ class _FundSearchPageState extends State<FundSearchPage> {
                   },
                   autofocus: true,
                 ),
-                const SizedBox(height: 12),
-                Align(
+                //const SizedBox(height: 12),
+                /* Align(
                   alignment: Alignment.centerRight,
                   child: FilledButton.icon(
                     onPressed: () => _handleSearch(),
@@ -355,7 +370,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                           : l10n.searchFundByIsinAction,
                     ),
                   ),
-                ),
+                ), */
                 const SizedBox(height: 24),
                 if (_searchStatus == _SearchStatus.initial)
                 // estado inicial
@@ -396,17 +411,25 @@ class _FundSearchPageState extends State<FundSearchPage> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            _buildSourceBadge(match.source),
                           ],
                         ),
-                        subtitle: Text(
-                          match.isin == null
-                              ? l10n.isinNotAvailable
-                              : '${match.isin}',
-                          style: TextStyle(
-                            color: match.isin == null ? Colors.grey : null,
-                          ),
+                        subtitle: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                match.isin == null
+                                    ? l10n.isinNotAvailable
+                                    : '${match.isin}',
+                                style: TextStyle(
+                                  color: match.isin == null
+                                      ? Colors.grey
+                                      : null,
+                                ),
+                              ),
+                            ),
+                            //const SizedBox(width: 8),
+                            _buildSourceBadge(match.source),
+                          ],
                         ),
                         trailing: Icon(
                           match.isin == null

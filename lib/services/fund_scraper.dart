@@ -841,7 +841,10 @@ class FundScraper {
     final seenIsins = <String>{};
     final combined = <FundSearchMatch>[];
 
-    for (final match in [...yahooMatches, ...localMatches, ...ecbMatches]) {
+    // Revisar orden (por facilidad de obtener cotizaciones):
+    // 1º local CNMV, 2º Yahoo - Morningstar 3º ECB
+    //for (final match in [...yahooMatches, ...localMatches, ...ecbMatches]) {
+    for (final match in [...localMatches, ...yahooMatches, ...ecbMatches]) {
       if (match.isin != null && match.isin!.isNotEmpty) {
         if (seenIsins.add(match.isin!)) {
           combined.add(match);
