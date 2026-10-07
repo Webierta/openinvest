@@ -4,30 +4,6 @@ import 'package:http/http.dart' as http;
 
 import '../models/scraper_result.dart';
 
-/* class QueFondosResult {
-  final String? nombre;
-  final String? valorLiquidativo;
-  final String? fecha;
-  final String? divisa;
-
-  const QueFondosResult({
-    this.nombre,
-    this.valorLiquidativo,
-    this.fecha,
-    this.divisa,
-  });
-
-  @override
-  String toString() {
-    return 'QueFondosResult('
-        'nombre: $nombre, '
-        'valorLiquidativo: $valorLiquidativo, '
-        'fecha: $fecha, '
-        'divisa: $divisa'
-        ')';
-  }
-} */
-
 // Obtiene nombre, VL, fecha y divisa a partir de ISIN
 class QueFondosScraper {
   final http.Client _client;
