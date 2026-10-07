@@ -13,6 +13,10 @@ void main() {
         final provider = FundProvider(
           fundIsinFetcher: (_) async =>
               ScrapeResult(error: AppError.notFound('ISIN no encontrado.')),
+          queFondosFetcher: (_) async =>
+              throw Exception('QueFondos no disponible'),
+          ftFetcher: (_) async =>
+              throw Exception('Financial Times no disponible'),
         );
 
         final result = await provider.fetchFundOnly('ES0160483014');

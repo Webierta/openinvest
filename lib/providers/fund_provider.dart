@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
+import '../models/scraper_result.dart';
+import '../services/finantialtimes_scraper.dart';
 import '../services/isin_providers/ecb_ifs_provider.dart';
 
 import '../models/fund_cost.dart';
@@ -11,9 +14,12 @@ import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/isin_resolver.dart';
 import '../services/morningstar_rating.dart';
+import '../services/quefondos_scraper.dart';
 import '../utils/financial_calculator.dart';
 import '../utils/isin_search_query.dart';
+import '../utils/isin_validator.dart';
 import '../utils/app_error.dart';
+import '../utils/http_config.dart';
 
 enum SortCriteria { name, value, performance }
 
@@ -61,6 +67,8 @@ class FundProvider with ChangeNotifier {
   Locale? _locale;
   List<FundAlertInfo> triggeredAlerts = [];
   final Set<String> _ratingRefreshesInProgress = {};
+  final Future<ScraperResult?> Function(String) _queFondosFetcher;
+  final Future<ScraperResult?> Function(String) _ftFetcher;
   final Future<ScrapeResult> Function(FundSearchMatch) _fundSearchFetcher;
   final Future<ScrapeResult> Function(String) _fundIsinFetcher;
   final Future<List<FundSearchMatch>> Function(
@@ -78,6 +86,8 @@ class FundProvider with ChangeNotifier {
 
   FundProvider({
     IsinResolver Function()? isinResolverFactory,
+    Future<ScraperResult?> Function(String)? queFondosFetcher,
+    Future<ScraperResult?> Function(String)? ftFetcher,
     Future<ScrapeResult> Function(FundSearchMatch)? fundSearchFetcher,
     Future<ScrapeResult> Function(String)? fundIsinFetcher,
     Future<List<FundSearchMatch>> Function(
@@ -86,6 +96,8 @@ class FundProvider with ChangeNotifier {
     })?
     fundSearch,
   }) : _isinResolverFactory = isinResolverFactory ?? IsinResolver.new,
+       _queFondosFetcher = queFondosFetcher ?? _fetchQueFondos,
+       _ftFetcher = ftFetcher ?? _fetchFT,
        _fundSearchFetcher =
            fundSearchFetcher ?? FundScraper.getFundBySearchMatch,
        _fundIsinFetcher = fundIsinFetcher ?? FundScraper.getFundByIsin,
@@ -400,19 +412,30 @@ class FundProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _fundIsinFetcher(isin.toUpperCase());
-
-      if (result.error != null) {
-        if (result.error!.type == AppErrorType.notFound) {
-          final ecbResult = await _tryResolveFundByIsin(isin.toUpperCase());
-          if (ecbResult != null) {
-            return ecbResult;
-          }
-        }
-        lastError = result.error;
-        return result;
+      final normalizedIsin = isin.toUpperCase();
+      ScrapeResult primaryResult;
+      try {
+        primaryResult = await _fundIsinFetcher(normalizedIsin);
+      } catch (error, stackTrace) {
+        primaryResult = ScrapeResult(error: _asError(error, stackTrace));
       }
-      return await _tryResolveIsin(result);
+
+      if (primaryResult.data == null &&
+          primaryResult.error?.type == AppErrorType.notFound) {
+        final ecbResult = await _tryResolveFundByIsin(normalizedIsin);
+        if (ecbResult != null) primaryResult = ecbResult;
+      }
+
+      if (primaryResult.data != null) {
+        primaryResult = await _tryResolveIsin(primaryResult);
+      }
+
+      final result = await _fetchLatestFundWithFallback(
+        normalizedIsin,
+        primaryResult: primaryResult,
+      );
+      lastError = result.error;
+      return result;
     } catch (error, stackTrace) {
       final appError = _asError(error, stackTrace);
       lastError = appError;
@@ -502,11 +525,32 @@ class FundProvider with ChangeNotifier {
     notifyListeners();
     try {
       final result = await _fundSearchFetcher(match);
+      if (result.data == null) {
+        final candidateIsin = match.isin?.trim().toUpperCase();
+        if (candidateIsin != null && IsinValidator.isValid(candidateIsin)) {
+          final fallbackResult = await _fetchLatestFundWithFallback(
+            candidateIsin,
+            primaryResult: result,
+          );
+          lastError = fallbackResult.error;
+          return fallbackResult;
+        }
+
+        lastError = result.error;
+        return result;
+      }
       if (result.error != null) {
         lastError = result.error;
         return result;
       }
-      return await _tryResolveIsin(result);
+      final resolvedResult = await _tryResolveIsin(result);
+      final fund = resolvedResult.data;
+      if (fund == null || !fund.hasValidIsin) return resolvedResult;
+
+      return await _fetchLatestFundWithFallback(
+        fund.isin,
+        primaryResult: resolvedResult,
+      );
     } catch (error, stackTrace) {
       final appError = _asError(error, stackTrace);
       lastError = appError;
@@ -632,11 +676,19 @@ class FundProvider with ChangeNotifier {
     _clearError();
     notifyListeners();
     try {
-      final result = await FundScraper.getFundByIsin(isin.toUpperCase());
+      final normalizedIsin = isin.toUpperCase();
+      final existingFund = await DatabaseService.getFund(normalizedIsin);
+      final result = await _fetchLatestFundWithFallback(
+        normalizedIsin,
+        existingFund: existingFund,
+      );
       if (result.data != null) {
         final fetchedFund = result.data!;
-        final existingFund = await DatabaseService.getFund(fetchedFund.isin);
         if (existingFund != null && !_hasNewData(existingFund, fetchedFund)) {
+          if (result.error != null) {
+            lastError = result.error;
+            return false;
+          }
           _setError(
             AppError.info(
               'Los datos ya están actualizados y no se han producido cambios.',
@@ -699,6 +751,272 @@ class FundProvider with ChangeNotifier {
       final date = DateTime(point.date.year, point.date.month, point.date.day);
       return existingPrices[date] != point.price;
     });
+  }
+
+  static Future<ScraperResult?> _fetchQueFondos(String isin) async {
+    final client = http.Client();
+    try {
+      return await QueFondosScraper(client: client)
+          .scrape(isin)
+          .timeout(HttpConfig.timeout);
+    } finally {
+      client.close();
+    }
+  }
+
+  static Future<ScraperResult?> _fetchFT(String isin) async {
+    final client = http.Client();
+    try {
+      return await FTFundScraper(client: client)
+          .scrape(isin)
+          .timeout(HttpConfig.timeout);
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<ScrapeResult> _fetchLatestFundWithFallback(
+    String isin, {
+    FundData? existingFund,
+    ScrapeResult? primaryResult,
+  }) async {
+    if (primaryResult == null) {
+      try {
+        primaryResult = await _fundIsinFetcher(isin);
+      } catch (error, stackTrace) {
+        primaryResult = ScrapeResult(error: _asError(error, stackTrace));
+      }
+    }
+
+    final primaryFund = primaryResult.data;
+    final existingDate = _latestKnownPriceDate(existingFund);
+    final primaryDate = _latestKnownPriceDate(primaryFund);
+    final existingHasNav = _hasUsableNav(existingFund);
+    final primaryIsUsable = _hasUsableNav(primaryFund);
+    final primaryImprovesExisting =
+        primaryIsUsable &&
+        primaryDate != null &&
+        (existingDate == null ||
+            primaryDate.isAfter(existingDate) ||
+            (!existingHasNav && !primaryDate.isBefore(existingDate)));
+
+    FundData? fallbackFund;
+    AppError? scraperError;
+    try {
+      final queFondosResult = await _queFondosFetcher(isin)
+          .timeout(HttpConfig.timeout);
+      fallbackFund = _fundFromScraper(
+        isin,
+        queFondosResult,
+        existingFund: existingFund,
+        primaryFund: primaryFund,
+      );
+    } catch (error, stackTrace) {
+      scraperError = _asError(error, stackTrace);
+    }
+
+    if (fallbackFund == null) {
+      try {
+        final ftResult = await _ftFetcher(isin).timeout(HttpConfig.timeout);
+        fallbackFund = _fundFromScraper(
+          isin,
+          ftResult,
+          existingFund: existingFund,
+          primaryFund: primaryFund,
+        );
+        if (fallbackFund != null) scraperError = null;
+      } catch (error, stackTrace) {
+        scraperError ??= _asError(error, stackTrace);
+      }
+    }
+
+    var fallbackError = primaryResult.isResolved ? null : scraperError;
+    if (fallbackFund != null) {
+      final fallbackDate = DateTime(
+        fallbackFund.date.year,
+        fallbackFund.date.month,
+        fallbackFund.date.day,
+      );
+      final isNewerThanExisting =
+          existingDate == null ||
+          fallbackDate.isAfter(existingDate) ||
+          (!existingHasNav && !fallbackDate.isBefore(existingDate));
+      final isNotOlderThanPrimary =
+          primaryDate == null ||
+          (primaryIsUsable
+              ? fallbackDate.isAfter(primaryDate)
+              : !fallbackDate.isBefore(primaryDate));
+
+      if (isNewerThanExisting && isNotOlderThanPrimary) {
+        return ScrapeResult(
+          data: fallbackFund,
+          isResolved: primaryResult.isResolved,
+          source: primaryResult.source,
+        );
+      }
+
+      if (primaryImprovesExisting) return primaryResult;
+    }
+
+    if (fallbackFund == null && !primaryResult.isResolved) {
+      fallbackError ??= AppError.data(
+        'QueFondos y Financial Times no devolvieron una valoración válida.',
+      );
+    }
+
+    if (existingFund != null) {
+      return ScrapeResult(
+        data: existingFund,
+        error: existingHasNav ? null : fallbackError,
+      );
+    }
+
+    if (primaryIsUsable) return primaryResult;
+
+    if (primaryFund != null) {
+      return ScrapeResult(
+        data: primaryFund,
+        error: fallbackError,
+        isResolved: primaryResult.isResolved,
+        source: primaryResult.source,
+      );
+    }
+
+    return ScrapeResult(error: primaryResult.error ?? fallbackError);
+  }
+
+  // FundData? _fundFromQueFondos(
+  FundData? _fundFromScraper(
+    String isin,
+    ScraperResult? result, {
+    FundData? existingFund,
+    FundData? primaryFund,
+  }) {
+    if (result == null) return null;
+
+    final value = _parseScraperValue(result.valorLiquidativo);
+    final date = _parseScraperDate(result.fecha);
+    if (value == null || date == null) return null;
+
+    final metadata = existingFund ?? primaryFund;
+    final fallbackCurrency = result.divisa?.trim().toUpperCase();
+    if (fallbackCurrency != null &&
+        fallbackCurrency.isNotEmpty &&
+        !RegExp(r'^[A-Z]{3}$').hasMatch(fallbackCurrency)) {
+      return null;
+    }
+
+    final metadataCurrency = metadata?.currency.trim().toUpperCase();
+    if (fallbackCurrency != null &&
+        fallbackCurrency.isNotEmpty &&
+        metadataCurrency != null &&
+        metadataCurrency.isNotEmpty &&
+        fallbackCurrency != metadataCurrency) {
+      return null;
+    }
+
+    final currency = fallbackCurrency?.isNotEmpty == true
+        ? fallbackCurrency!
+        : metadataCurrency;
+    if (currency == null || currency.isEmpty) return null;
+
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    final historyByDate = <DateTime, PricePoint>{};
+    void addHistory(Iterable<PricePoint> history) {
+      for (final point in history) {
+        final pointDate = DateTime(
+          point.date.year,
+          point.date.month,
+          point.date.day,
+        );
+        historyByDate[pointDate] = PricePoint(pointDate, point.price);
+      }
+    }
+
+    addHistory(existingFund?.history ?? const []);
+    addHistory(primaryFund?.history ?? const []);
+    historyByDate[normalizedDate] = PricePoint(normalizedDate, value);
+    final history = historyByDate.values.toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    final officialName = result.nombre?.trim();
+    return FundData(
+      isin: isin,
+      symbol: existingFund?.symbol ?? primaryFund?.symbol ?? '',
+      name: officialName?.isNotEmpty == true
+          ? officialName!
+          : metadata?.name ?? 'Fondo desconocido',
+      lastValue: value,
+      currency: currency,
+      date: normalizedDate,
+      history: history,
+      operations: metadata?.operations ?? const [],
+      alertMin: metadata?.alertMin,
+      alertMax: metadata?.alertMax,
+      ter: metadata?.ter,
+      performanceFee: metadata?.performanceFee,
+      costPeriods: metadata?.costPeriods,
+      costCharges: metadata?.costCharges ?? const [],
+      morningstarRating: metadata?.morningstarRating,
+      morningstarCheckedAt: metadata?.morningstarCheckedAt,
+      morningstarLastAttemptAt: metadata?.morningstarLastAttemptAt,
+    );
+  }
+
+  bool _hasUsableNav(FundData? fund) =>
+      fund != null && fund.lastValue.isFinite && fund.lastValue > 0;
+
+  DateTime? _latestKnownPriceDate(FundData? fund) {
+    if (fund == null) return null;
+
+    DateTime? latestDate;
+    void includeDate(DateTime date) {
+      final normalized = DateTime(date.year, date.month, date.day);
+      if (latestDate == null || normalized.isAfter(latestDate!)) {
+        latestDate = normalized;
+      }
+    }
+
+    if (_hasUsableNav(fund)) includeDate(fund.date);
+    for (final point in fund.history) {
+      if (point.price.isFinite && point.price > 0) includeDate(point.date);
+    }
+    return latestDate;
+  }
+
+  double? _parseScraperValue(String? rawValue) {
+    if (rawValue == null) return null;
+    final value = rawValue.trim().replaceAll(RegExp(r'\s+'), '');
+    if (value.contains(',')) {
+      final isEuropeanNumber = RegExp(
+        r'^(?:[0-9]{1,3}(?:\.[0-9]{3})+|[0-9]+),[0-9]+$',
+      ).hasMatch(value);
+      if (!isEuropeanNumber) return null;
+      final parsed = double.tryParse(
+        value.replaceAll('.', '').replaceAll(',', '.'),
+      );
+      return parsed != null && parsed.isFinite && parsed > 0 ? parsed : null;
+    }
+
+    if (!RegExp(r'^[0-9]+(?:\.[0-9]+)?$').hasMatch(value)) return null;
+    final parsed = double.tryParse(value);
+    return parsed != null && parsed.isFinite && parsed > 0 ? parsed : null;
+  }
+
+  DateTime? _parseScraperDate(String? rawDate) {
+    if (rawDate == null) return null;
+    final match = RegExp(r'^([0-9]{2})/([0-9]{2})/([0-9]{4})$')
+        .firstMatch(rawDate.trim());
+    if (match == null) return null;
+
+    final day = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final year = int.parse(match.group(3)!);
+    final date = DateTime(year, month, day);
+    if (date.year != year || date.month != month || date.day != day) {
+      return null;
+    }
+    return date;
   }
 
   Future<bool> searchFundByRange(String isin, DateTimeRange range) async {
@@ -814,10 +1132,16 @@ class FundProvider with ChangeNotifier {
       AppError? updateError;
       var hasChanges = false;
       for (final isin in isins) {
-        final result = await FundScraper.getFundByIsin(isin);
+        final existing = portfolio.firstWhere((f) => f.isin == isin);
+        final result = await _fetchLatestFundWithFallback(
+          isin,
+          existingFund: existing,
+        );
+        if (result.error != null && updateError == null) {
+          updateError = result.error;
+        }
         if (result.data != null) {
           // Mantener las alertas existentes al actualizar
-          final existing = portfolio.firstWhere((f) => f.isin == isin);
           if (_hasNewData(existing, result.data!)) {
             hasChanges = true;
             final updatedFund = FundData(
@@ -842,8 +1166,6 @@ class FundProvider with ChangeNotifier {
             await DatabaseService.saveFund(updatedFund);
             await _syncFundState(isin);
           }
-        } else if (updateError == null && result.error != null) {
-          updateError = result.error;
         }
       }
       await loadPortfolio();

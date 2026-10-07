@@ -209,4 +209,54 @@ void main() {
     expect(result.data, isNull);
     expect(result.error?.type, AppErrorType.data);
   });
+
+  test('la búsqueda por nombre usa los mismos tokens del catálogo', () {
+    final catalog = {
+      'ING DIRECT FONDO NARANJA DINAMICO FI': 'ES0152743003',
+      'ING DIRECT PROFILO DINAMICO ARANCIO': 'ES0000000001',
+      'ING DIRECT FONDO RENTA FIJA': 'ES0000000002',
+    };
+
+    final matches = FundScraper.searchCatalogMatches(
+      catalog,
+      'ING DINAMICO',
+      mode: FundSearchMode.name,
+    );
+
+    expect(matches.map((match) => match.isin).toSet(), {
+      'ES0152743003',
+      'ES0000000001',
+    });
+  });
+
+  test('la búsqueda por nombre exige todos los tokens de la consulta', () {
+    final matches = FundScraper.searchCatalogMatches(
+      {
+        'AXONIC STRATEGIC FUND': 'ES0000000001',
+        'GLOBAL INCOME FUND': 'ES0000000002',
+        'AXONIC ALTERNATIVE': 'ES0000000003',
+      },
+      'AXONIC INCOME',
+      mode: FundSearchMode.name,
+    );
+
+    expect(matches, isEmpty);
+  });
+
+  test('la búsqueda por ISIN sigue ignorando los nombres del catálogo', () {
+    final matches = FundScraper.searchCatalogMatches(
+      {
+        'ES0160483014': 'ES0160483014',
+        'MAPFRE PRIVATE EQUITY I FCR': 'ES0000000001',
+        'OTRO FONDO': 'ES0160489999',
+      },
+      'ES016048',
+      mode: FundSearchMode.isin,
+    );
+
+    expect(matches.map((match) => match.isin).toList(), [
+      'ES0160483014',
+      'ES0160489999',
+    ]);
+  });
 }

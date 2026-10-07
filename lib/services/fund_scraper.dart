@@ -451,7 +451,41 @@ class FundScraper {
     );
   }
 
+  static List<MapEntry<String, List<String>>> _findCatalogNameMatches(
+    _FundCatalog catalog,
+    String query,
+  ) {
+    final normalizedName = FundNameMatcher.normalizeName(query);
+
+    final queryTokens = normalizedName
+        .split(' ')
+        .where((token) => token.length >= 2)
+        .toList();
+
+    if (queryTokens.isEmpty) return [];
+
+    return catalog.isinsByName.entries
+        .where((entry) => FundNameMatcher.matchesAllTokens(query, entry.key))
+        .toList()
+      ..sort((a, b) {
+        final lengthComparison = a.key.length.compareTo(b.key.length);
+        if (lengthComparison != 0) return lengthComparison;
+        return a.key.compareTo(b.key);
+      });
+  }
+
   static List<String> _findCatalogIsins(_FundCatalog catalog, String fundName) {
+    final normalizedName = FundNameMatcher.normalizeName(fundName);
+    final exact = catalog.isinsByName[normalizedName];
+    if (exact != null) return exact;
+
+    return _findCatalogNameMatches(
+      catalog,
+      fundName,
+    ).expand((entry) => entry.value).toList();
+  }
+
+  /* static List<String> _findCatalogIsins(_FundCatalog catalog, String fundName) {
     final normalizedName = FundNameMatcher.normalizeName(fundName);
     final exact = catalog.isinsByName[normalizedName];
     if (exact != null) return exact;
@@ -475,7 +509,7 @@ class FundScraper {
         });
 
     return candidates.expand((entry) => entry.value).toList();
-  }
+  } */
 
   static List<FundSearchMatch> _searchCatalog(
     _FundCatalog catalog,

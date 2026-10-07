@@ -102,9 +102,9 @@ class FundSummaryTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
+                        width: 76.0,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          shape: BoxShape.rectangle,
                           borderRadius: BorderRadius.circular(8),
                           boxShadow: [
                             BoxShadow(
@@ -114,24 +114,25 @@ class FundSummaryTab extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: FittedBox(
-                          fit: BoxFit.fill,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
+                                  horizontal: 4,
                                   vertical: 5,
                                 ),
+                                //color: Colors.red,
                                 decoration: const BoxDecoration(
                                   color: Colors.red,
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(8),
-                                    topRight: Radius.circular(8),
-                                  ),
+                                  // borderRadius: BorderRadius.vertical(
+                                  //   top: Radius.circular(8),
+                                  // ),
                                 ),
+
                                 child: Text(
                                   () {
                                     final full = DateFormat.yMMM(locale)
@@ -142,6 +143,9 @@ class FundSummaryTab extends StatelessWidget {
                                         : yearStr;
                                     return full.replaceAll(yearStr, shortYear);
                                   }(),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,
@@ -150,13 +154,16 @@ class FundSummaryTab extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              Padding(
+                            ),
+                            SizedBox(
+                              width: double.infinity,
+                              child: Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
                                   vertical: 6,
                                 ),
                                 child: Text(
                                   DateFormat.d(locale).format(fund.date),
+                                  textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: Colors.black87,
                                     fontSize: 32,
@@ -164,8 +171,8 @@ class FundSummaryTab extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
