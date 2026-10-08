@@ -289,13 +289,49 @@ class _FundSearchPageState extends State<FundSearchPage> {
                   width: double.infinity,
                   child: SegmentedButton<FundSearchMode>(
                     showSelectedIcon: false,
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        if (states.contains(WidgetState.selected)) {
+                          return Theme.of(context).colorScheme.primary;
+                        }
+                        return Colors.white.withValues(alpha: 0.06);
+                      }),
+                      foregroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        if (states.contains(WidgetState.selected)) {
+                          return Theme.of(context).colorScheme.onPrimary;
+                        }
+                        return Colors.white70;
+                      }),
+                      side: WidgetStateProperty.resolveWith((states) {
+                        final color = states.contains(WidgetState.selected)
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.white.withValues(alpha: 0.18);
+                        return BorderSide(color: color);
+                      }),
+                      shape: WidgetStatePropertyAll(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
+                      textStyle: WidgetStatePropertyAll(
+                        Theme.of(context).textTheme.labelLarge
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
                     segments: [
                       ButtonSegment(
                         value: FundSearchMode.name,
+                        icon: const Icon(Icons.text_fields, size: 18),
                         label: Text(l10n.fundSearchNameOption),
                       ),
                       ButtonSegment(
                         value: FundSearchMode.isin,
+                        icon: const Icon(Icons.tag, size: 18),
                         label: Text(l10n.fundSearchIsinOption),
                       ),
                     ],
