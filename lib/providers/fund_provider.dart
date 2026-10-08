@@ -723,7 +723,7 @@ class FundProvider with ChangeNotifier {
                 morningstarRating: existingFund.morningstarRating,
                 morningstarCheckedAt: existingFund.morningstarCheckedAt,
                 morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
-                source: fetchedFund.source ?? existingFund.source,
+                source: existingFund.source ?? fetchedFund.source,
                 valuationSource:
                     fetchedFund.valuationSource ?? existingFund.valuationSource,
               );
@@ -1102,6 +1102,9 @@ class FundProvider with ChangeNotifier {
                 morningstarRating: existingFund.morningstarRating,
                 morningstarCheckedAt: existingFund.morningstarCheckedAt,
                 morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
+                // TODO: PENDIENTE ?
+                //source: existingFund.source,
+                //valuationSource: existingFund.valuationSource,
               );
         await _runDatabaseOperation(() async {
           await DatabaseService.saveFund(fundToSave);
@@ -1208,6 +1211,9 @@ class FundProvider with ChangeNotifier {
               morningstarRating: existing.morningstarRating,
               morningstarCheckedAt: existing.morningstarCheckedAt,
               morningstarLastAttemptAt: existing.morningstarLastAttemptAt,
+              source: existing.source ?? result.data!.source,
+              valuationSource:
+                  result.data!.valuationSource ?? existing.valuationSource,
             );
             await DatabaseService.saveFund(updatedFund);
             await _syncFundState(isin);
