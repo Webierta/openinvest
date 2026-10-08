@@ -279,7 +279,6 @@ enum FundSource {
   financialTimes,
 }
 
-// TODO: AÑADIR SOURCE QUEFONDOS Y FT ?
 FundSource fundSourceFromIsinSource(String source) {
   if (source == 'CNMV/SIL' || source == 'CNMV/FI') {
     return FundSource.cnmv;

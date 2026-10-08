@@ -87,6 +87,39 @@ void main() {
         payload: jsonDecode(jsonEncode(payload)) as Map<String, dynamic>,
       );
 
+  test('parseChartPayload etiqueta Yahoo como fuente de valoración', () {
+    final result = FundScraper.parseChartPayload(
+      isin: 'TEST',
+      symbol: 'TST',
+      name: 'Test Fund',
+      payload: {
+        'chart': {
+          'result': [
+            {
+              'meta': {
+                'regularMarketPrice': 12.5,
+                'currency': 'EUR',
+                'regularMarketTime': 1788307200,
+              },
+              'timestamp': [1788220800, 1788307200],
+              'indicators': {
+                'quote': [
+                  {
+                    'close': [12.0, 12.5],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    );
+
+    expect(result.error, isNull);
+    expect(result.data, isNotNull);
+    expect(result.data!.valuationSource, FundSource.yahoo);
+  });
+
   test('rechaza historiales con longitudes diferentes', () {
     final payload = {
       ...basePayload,

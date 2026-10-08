@@ -409,6 +409,7 @@ class FundScraper {
           effectiveDate.day,
         ),
         history: history,
+        valuationSource: FundSource.yahoo,
       ),
     );
   }
