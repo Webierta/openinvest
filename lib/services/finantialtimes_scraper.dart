@@ -2,6 +2,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:html/parser.dart' as html_parser;
 
+import '../models/fund_data.dart';
 import '../models/scraper_result.dart';
 
 class FTFundScraper {
@@ -10,6 +11,55 @@ class FTFundScraper {
 
   static const String baseUrl =
       'https://markets.ft.com/data/funds/tearsheet/summary';
+
+  Future<ScrapeResult?> scrapeByIsin(String isin) async {
+    if (isin.trim().isEmpty) return null;
+
+    final scrapeIsin = await scrape(isin);
+    if (scrapeIsin == null) return null;
+
+    final scrapeHistorical = await getHistoricalPrices(isin) ?? {};
+    final List<PricePoint> history = [];
+    if (scrapeHistorical.isNotEmpty) {
+      scrapeHistorical.forEach((fecha, precio) {
+        final parseFecha = _parseFtDate(fecha);
+        if (parseFecha != null) {
+          history.add(
+            PricePoint(
+              DateTime(parseFecha.year, parseFecha.month, parseFecha.day),
+              precio,
+            ),
+          );
+        }
+      });
+    }
+
+    if (scrapeIsin.nombre == null ||
+        scrapeIsin.fecha == null ||
+        scrapeIsin.valorLiquidativo == null ||
+        scrapeIsin.divisa == null) {
+      return null;
+    }
+
+    final fecha = _parseFtDate(scrapeIsin.fecha!);
+    if (fecha == null) return null;
+
+    final priceString = scrapeIsin.valorLiquidativo!.replaceAll(',', '').trim();
+    final price = double.tryParse(priceString);
+    if (price == null) return null;
+
+    final fundScrape = FundData(
+      isin: isin,
+      symbol: isin,
+      name: scrapeIsin.nombre!,
+      lastValue: price,
+      currency: scrapeIsin.divisa!,
+      date: fecha,
+      history: history,
+    );
+
+    return ScrapeResult(data: fundScrape);
+  }
 
   Future<ScraperResult?> scrape(String isin) async {
     if (isin.trim().isEmpty) return null;
@@ -30,7 +80,7 @@ class FTFundScraper {
           .timeout(const Duration(seconds: 10)); // Timeout de seguridad
 
       if (response.statusCode == 200) {
-        return _parseHtml(response.body);
+        return _parseHtml(response.body, isin);
       } else {
         throw Exception('FT respondió con HTTP ${response.statusCode}');
       }
@@ -39,7 +89,7 @@ class FTFundScraper {
     }
   }
 
-  ScraperResult? _parseHtml(String html) {
+  ScraperResult? _parseHtml(String html, String isin) {
     final document = html_parser.parse(html);
 
     // 1. NOMBRE: Priorizar el <h1>, que en FT contiene el nombre limpio del fondo.
@@ -171,7 +221,7 @@ class FTFundScraper {
 
   DateTime? _parseFtDate(String rawDate) {
     final normalizedDate = rawDate.trim().replaceAll(',', '');
-    for (final pattern in ['MMM d yyyy', 'MMMM d yyyy']) {
+    for (final pattern in ['dd/MM/yyyy', 'MMM d yyyy', 'MMMM d yyyy']) {
       try {
         return DateFormat(pattern, 'en_US').parseStrict(normalizedDate);
       } on FormatException {
@@ -179,5 +229,84 @@ class FTFundScraper {
       }
     }
     return null;
+  }
+
+  // https://markets.ft.com/data/funds/tearsheet/historical?s=LU2597552558:EUR
+  Future<Map<String, double>?> getHistoricalPrices(String isin) async {
+    if (isin.trim().isEmpty) return null;
+
+    try {
+      final uri = Uri.parse(
+        'https://markets.ft.com/data/funds/tearsheet/historical?s=$isin',
+      );
+
+      final response = await _client
+          .get(
+            uri,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.5',
+            },
+          )
+          .timeout(const Duration(seconds: 10)); // Timeout de seguridad
+
+      if (response.statusCode == 200) {
+        return _parseHistoricalPricesHtml(response.body);
+      } else {
+        throw Exception('FT respondió con HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error durante el scraping de precios históricos: $e');
+    }
+  }
+
+  Map<String, double>? _parseHistoricalPricesHtml(String html) {
+    final document = html_parser.parse(html);
+    final result = <String, double>{};
+
+    // Buscar la tabla de precios históricos. FT la envuelve en un contenedor con esta clase específica.
+    final table =
+        document.querySelector('.mod-tearsheet-historical-prices table') ??
+        document.querySelector('table');
+
+    if (table == null) return null;
+
+    final rows = table.querySelectorAll('tr');
+
+    // Empezamos en el índice 1 para saltar la fila de encabezados (Date, Open, High, Low, Close, Volume)
+    for (var i = 1; i < rows.length; i++) {
+      final cells = rows[i].querySelectorAll('td');
+      if (cells.length < 2) continue;
+
+      final dateCell = cells[0].text.trim();
+      final openCell = cells[1].text.trim();
+
+      // Extraer la fecha (ej: "October 05, 2026") usando regex.
+      // FT concatena la fecha larga y la corta en la misma celda sin espacios:
+      // "Monday, October 05, 2026Mon, Oct 05, 2026"
+      final dateMatch = RegExp(r'([A-Za-z]+\s+\d{1,2},\s+\d{4})')
+          .firstMatch(dateCell);
+      if (dateMatch == null) continue;
+
+      final rawDate = dateMatch.group(1)!;
+
+      // Reutilizamos el método existente de parseo de fecha
+      final parsedDate = _parseFtDate(rawDate);
+      if (parsedDate == null) continue;
+
+      // Formateamos a dd/MM/yyyy para mantener consistencia con el resto de la clase
+      final formattedDate = DateFormat('dd/MM/yyyy').format(parsedDate);
+
+      // Parsear el precio (Open), eliminando posibles comas de miles y espacios
+      final priceString = openCell.replaceAll(',', '').trim();
+      final price = double.tryParse(priceString);
+
+      if (price != null) {
+        result[formattedDate] = price;
+      }
+    }
+
+    return result.isEmpty ? null : result;
   }
 }

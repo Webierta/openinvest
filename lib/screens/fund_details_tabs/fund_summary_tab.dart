@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
+import '../../models/fund_data.dart';
 import '../../services/export_service.dart';
-import '../../services/fund_scraper.dart';
 import '../../utils/financial_calculator.dart';
 
 class FundSummaryTab extends StatelessWidget {

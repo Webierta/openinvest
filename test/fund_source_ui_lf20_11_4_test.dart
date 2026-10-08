@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:investing/services/fund_scraper.dart';
+import 'package:investing/models/fund_data.dart';
 
 void main() {
   group('LF-20.11.4 — regresión FundSource en UI', () {

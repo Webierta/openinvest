@@ -9,7 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../l10n/app_localizations.dart';
-import 'fund_scraper.dart';
+import '../models/fund_data.dart';
 
 class _PdfLabels {
   final String annualPortfolioReport;

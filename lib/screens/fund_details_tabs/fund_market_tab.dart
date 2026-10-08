@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../services/fund_scraper.dart';
+import '../../models/fund_data.dart';
 import 'fund_costs_tab.dart';
 import 'fund_operations_list.dart';
 

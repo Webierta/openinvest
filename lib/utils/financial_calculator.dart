@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import '../models/fund_cost.dart';
-import '../services/fund_scraper.dart';
+import '../models/fund_data.dart';
 
 class FundMetrics {
   final double totalUnits;

@@ -1,8 +1,10 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
-import '../../services/fund_scraper.dart';
+
+import '../../models/fund_data.dart';
 
 class MonthlyReturnsTab extends StatelessWidget {
   final FundData fund;
@@ -18,7 +20,7 @@ class MonthlyReturnsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
-    
+
     if (fund.history.isEmpty) {
       return Center(
         child: Text(
@@ -39,31 +41,39 @@ class MonthlyReturnsTab extends StatelessWidget {
     }
 
     final years = data.keys.toList()..sort((a, b) => b.compareTo(a));
-    final months = List.generate(12, (i) => 
-      DateFormat.MMM(locale).format(DateTime(2023, i + 1)).toUpperCase());
+    final months = List.generate(
+      12,
+      (i) => DateFormat.MMM(locale).format(DateTime(2023, i + 1)).toUpperCase(),
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
         // Cálculo del ancho adaptativo real considerando márgenes internos
         const double minCellWidth = 38.0;
         const double totalColumnWeight = 1.3;
-        const double totalUnits = 14 + totalColumnWeight; 
-        const double totalMargins = 15 * 2; // 15 celdas * 2px de margen horizontal cada una
-        
-        final double availableWidth = constraints.maxWidth - 16; // Ancho menos padding del contenedor
+        const double totalUnits = 14 + totalColumnWeight;
+        const double totalMargins =
+            15 * 2; // 15 celdas * 2px de margen horizontal cada una
+
+        final double availableWidth =
+            constraints.maxWidth - 16; // Ancho menos padding del contenedor
         final double availableForCells = availableWidth - totalMargins;
-        
-        final double adaptiveCellWidth = max(minCellWidth, availableForCells / totalUnits);
+
+        final double adaptiveCellWidth = max(
+          minCellWidth,
+          availableForCells / totalUnits,
+        );
         final double adaptiveTotalWidth = adaptiveCellWidth * totalColumnWeight;
 
         // Comprobamos si el contenido total realmente cabe
-        final double totalContentWidth = (adaptiveCellWidth * 14) + adaptiveTotalWidth + totalMargins;
+        final double totalContentWidth =
+            (adaptiveCellWidth * 14) + adaptiveTotalWidth + totalMargins;
         final bool needsScroll = totalContentWidth > availableWidth;
 
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          physics: needsScroll 
-              ? const AlwaysScrollableScrollPhysics() 
+          physics: needsScroll
+              ? const AlwaysScrollableScrollPhysics()
               : const NeverScrollableScrollPhysics(),
           child: SingleChildScrollView(
             child: Padding(
@@ -74,10 +84,28 @@ class MonthlyReturnsTab extends StatelessWidget {
                   // Cabecera de meses
                   Row(
                     children: [
-                      _HeatBox(text: l10n.yearLabel, isHeader: true, width: adaptiveCellWidth),
-                      ...months.map((m) => _HeatBox(text: m, isHeader: true, width: adaptiveCellWidth)),
-                      _HeatBox(text: 'TOTAL', isHeader: true, width: adaptiveTotalWidth),
-                      _HeatBox(text: l10n.yearLabel, isHeader: true, width: adaptiveCellWidth),
+                      _HeatBox(
+                        text: l10n.yearLabel,
+                        isHeader: true,
+                        width: adaptiveCellWidth,
+                      ),
+                      ...months.map(
+                        (m) => _HeatBox(
+                          text: m,
+                          isHeader: true,
+                          width: adaptiveCellWidth,
+                        ),
+                      ),
+                      _HeatBox(
+                        text: 'TOTAL',
+                        isHeader: true,
+                        width: adaptiveTotalWidth,
+                      ),
+                      _HeatBox(
+                        text: l10n.yearLabel,
+                        isHeader: true,
+                        width: adaptiveCellWidth,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -91,14 +119,21 @@ class MonthlyReturnsTab extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Row(
                         children: [
-                          _HeatBox(text: year.toString(), isHeader: true, width: adaptiveCellWidth),
+                          _HeatBox(
+                            text: year.toString(),
+                            isHeader: true,
+                            width: adaptiveCellWidth,
+                          ),
                           ...List.generate(12, (index) {
                             final month = index + 1;
                             final value = yearData[month];
                             if (value != null) {
                               yearAcc *= (1 + value / 100);
                               hasData = true;
-                              return _HeatBox(value: value, width: adaptiveCellWidth);
+                              return _HeatBox(
+                                value: value,
+                                width: adaptiveCellWidth,
+                              );
                             }
                             return _HeatBox(width: adaptiveCellWidth);
                           }),
@@ -107,7 +142,11 @@ class MonthlyReturnsTab extends StatelessWidget {
                             width: adaptiveTotalWidth,
                             isBold: true,
                           ),
-                          _HeatBox(text: year.toString(), isHeader: true, width: adaptiveCellWidth),
+                          _HeatBox(
+                            text: year.toString(),
+                            isHeader: true,
+                            width: adaptiveCellWidth,
+                          ),
                         ],
                       ),
                     );
@@ -117,7 +156,7 @@ class MonthlyReturnsTab extends StatelessWidget {
             ),
           ),
         );
-      }
+      },
     );
   }
 
@@ -128,16 +167,17 @@ class MonthlyReturnsTab extends StatelessWidget {
     // Agrupar por mes/año y tomar el último precio disponible de cada mes
     final Map<int, Map<int, double>> lastPrices = {};
     for (var point in fund.history) {
-      lastPrices.putIfAbsent(point.date.year, () => {})[point.date.month] = point.price;
+      lastPrices.putIfAbsent(point.date.year, () => {})[point.date.month] =
+          point.price;
     }
 
     final sortedYears = lastPrices.keys.toList()..sort();
-    
+
     for (var year in sortedYears) {
       final months = lastPrices[year]!.keys.toList()..sort();
       for (var month in months) {
         double? prevPrice;
-        
+
         if (month > 1) {
           // Intentar el mes anterior del mismo año
           prevPrice = lastPrices[year]![month - 1];
@@ -176,7 +216,7 @@ class _HeatBox extends StatelessWidget {
   Color _getBackgroundColor() {
     if (isHeader) return Colors.white10;
     if (value == null) return Colors.transparent;
-    
+
     if (value! > 0) {
       // Escala de verdes
       final opacity = (value! / 8).clamp(0.1, 0.8);
@@ -206,14 +246,18 @@ class _HeatBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: _getBackgroundColor(),
         borderRadius: BorderRadius.circular(4),
-        border: isHeader ? null : Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: isHeader
+            ? null
+            : Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       alignment: Alignment.center,
       child: Text(
         display,
         style: TextStyle(
           fontSize: isHeader ? 10 : 11,
-          fontWeight: (isHeader || isBold) ? FontWeight.bold : FontWeight.normal,
+          fontWeight: (isHeader || isBold)
+              ? FontWeight.bold
+              : FontWeight.normal,
           color: isHeader ? Colors.white54 : Colors.white,
         ),
       ),

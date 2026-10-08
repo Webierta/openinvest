@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:investing/models/fund_data.dart';
 import 'package:investing/models/fund_search_mode.dart';
 
 import 'package:investing/services/fund_scraper.dart';

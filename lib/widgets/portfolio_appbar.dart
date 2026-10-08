@@ -6,9 +6,9 @@ import 'package:investing/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/fund_cost.dart';
+import '../models/fund_data.dart';
 import '../providers/fund_provider.dart';
 import '../services/export_service.dart';
-import '../services/fund_scraper.dart';
 import '../services/pdf_report_generator.dart';
 import '../services/report_generator.dart';
 

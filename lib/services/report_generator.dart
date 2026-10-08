@@ -6,7 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
-import 'fund_scraper.dart';
+import '../models/fund_data.dart';
 
 class ReportGenerator {
   /// Genera un CSV con todas las operaciones ordenadas cronológicamente.

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
-import '../services/fund_scraper.dart';
+import '../models/fund_data.dart';
 import '../utils/fund_comparison_calculator.dart';
 
 class ComparisonFundChart extends StatefulWidget {

@@ -3,9 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/fund_data.dart';
 import '../providers/fund_provider.dart';
 import 'comparison_fund_chart.dart';
-import '../services/fund_scraper.dart';
 import '../utils/fund_comparison_calculator.dart';
 import '../widgets/gradient_background.dart';
 

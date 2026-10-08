@@ -6,7 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'fund_scraper.dart';
+import '../models/fund_data.dart';
 import '../utils/app_error.dart';
 
 class ExportService {

@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 import '../models/fund_cost.dart';
-import 'fund_scraper.dart';
+import '../models/fund_data.dart';
 
 class DatabaseService {
   static Database? _database;

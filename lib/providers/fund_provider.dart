@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../models/fund_data.dart';
 import '../models/scraper_result.dart';
 import '../services/finantialtimes_scraper.dart';
 import '../services/isin_providers/ecb_ifs_provider.dart';
@@ -69,6 +70,7 @@ class FundProvider with ChangeNotifier {
   final Set<String> _ratingRefreshesInProgress = {};
   final Future<ScraperResult?> Function(String) _queFondosFetcher;
   final Future<ScraperResult?> Function(String) _ftFetcher;
+  final Future<ScrapeResult?> Function(String) _ftByIsinFetcher;
   final Future<ScrapeResult> Function(FundSearchMatch) _fundSearchFetcher;
   final Future<ScrapeResult> Function(String) _fundIsinFetcher;
   final Future<List<FundSearchMatch>> Function(
@@ -88,6 +90,7 @@ class FundProvider with ChangeNotifier {
     IsinResolver Function()? isinResolverFactory,
     Future<ScraperResult?> Function(String)? queFondosFetcher,
     Future<ScraperResult?> Function(String)? ftFetcher,
+    Future<ScrapeResult?> Function(String)? ftByIsinFetcher,
     Future<ScrapeResult> Function(FundSearchMatch)? fundSearchFetcher,
     Future<ScrapeResult> Function(String)? fundIsinFetcher,
     Future<List<FundSearchMatch>> Function(
@@ -98,6 +101,7 @@ class FundProvider with ChangeNotifier {
   }) : _isinResolverFactory = isinResolverFactory ?? IsinResolver.new,
        _queFondosFetcher = queFondosFetcher ?? _fetchQueFondos,
        _ftFetcher = ftFetcher ?? _fetchFT,
+       _ftByIsinFetcher = ftByIsinFetcher ?? _fetchFTByIsin,
        _fundSearchFetcher =
            fundSearchFetcher ?? FundScraper.getFundBySearchMatch,
        _fundIsinFetcher = fundIsinFetcher ?? FundScraper.getFundByIsin,
@@ -764,6 +768,19 @@ class FundProvider with ChangeNotifier {
     }
   }
 
+  static Future<ScrapeResult?> _fetchFTByIsin(String isin) async {
+    final client = http.Client();
+    try {
+      return await FTFundScraper(client: client)
+          .scrapeByIsin(isin)
+          .timeout(HttpConfig.timeout);
+    } catch (e) {
+      return null;
+    } finally {
+      client.close();
+    }
+  }
+
   static Future<ScraperResult?> _fetchFT(String isin) async {
     final client = http.Client();
     try {
@@ -784,6 +801,18 @@ class FundProvider with ChangeNotifier {
       try {
         primaryResult = await _fundIsinFetcher(isin);
       } catch (error, stackTrace) {
+        //primaryResult ??= await _ftByIsinFetcher(isin);
+        primaryResult = ScrapeResult(error: _asError(error, stackTrace));
+      }
+    }
+    if (!_hasUsableNav(primaryResult.data)) {
+      try {
+        final ftResult = await _ftByIsinFetcher(isin);
+        if (ftResult != null && _hasUsableNav(ftResult.data)) {
+          primaryResult = ftResult;
+        }
+      } catch (error, stackTrace) {
+        // Se conserva el resultado original; los siguientes fallbacks siguen ejecutándose.
         primaryResult = ScrapeResult(error: _asError(error, stackTrace));
       }
     }

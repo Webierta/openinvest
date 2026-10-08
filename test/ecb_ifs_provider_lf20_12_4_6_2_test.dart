@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:investing/models/fund_data.dart';
 import 'package:investing/providers/fund_provider.dart';
-import 'package:investing/services/fund_scraper.dart';
 import 'package:investing/utils/app_error.dart';
 
 void main() {

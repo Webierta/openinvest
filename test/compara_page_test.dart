@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:investing/l10n/app_localizations.dart';
+import 'package:investing/models/fund_data.dart';
 import 'package:investing/providers/fund_provider.dart';
 import 'package:investing/screens/compara_page.dart';
-import 'package:investing/services/fund_scraper.dart';
 import 'package:provider/provider.dart';
 
 void main() {

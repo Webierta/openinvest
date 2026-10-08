@@ -3,8 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/fund_data.dart';
 import '../../providers/fund_provider.dart';
-import '../../services/fund_scraper.dart';
 
 class FundOperationsList extends StatelessWidget {
   final FundData fund;

@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
+import '../models/fund_data.dart';
 import '../models/fund_search_mode.dart';
 import '../providers/fund_provider.dart';
-import '../services/fund_scraper.dart';
 import '../utils/isin_search_query.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
@@ -358,19 +358,6 @@ class _FundSearchPageState extends State<FundSearchPage> {
                   },
                   autofocus: true,
                 ),
-                //const SizedBox(height: 12),
-                /* Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.icon(
-                    onPressed: () => _handleSearch(),
-                    icon: const Icon(Icons.search),
-                    label: Text(
-                      _selectedMode == FundSearchMode.name
-                          ? l10n.searchFundByNameAction
-                          : l10n.searchFundByIsinAction,
-                    ),
-                  ),
-                ), */
                 const SizedBox(height: 24),
                 if (_searchStatus == _SearchStatus.initial)
                 // estado inicial

@@ -3,8 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/fund_data.dart';
 import '../../providers/fund_provider.dart';
-import '../../services/fund_scraper.dart';
 import '../../utils/financial_calculator.dart';
 
 class FundBalanceTab extends StatefulWidget {
