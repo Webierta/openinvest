@@ -78,6 +78,9 @@ class FundData {
   final DateTime? morningstarCheckedAt;
   final DateTime? morningstarLastAttemptAt;
 
+  final FundSource? source;
+  final FundSource? valuationSource;
+
   FundData({
     required this.isin,
     required this.symbol,
@@ -96,6 +99,8 @@ class FundData {
     this.morningstarRating,
     this.morningstarCheckedAt,
     this.morningstarLastAttemptAt,
+    this.source,
+    this.valuationSource,
   }) : history = _syncHistory(history, lastValue, date),
        costPeriods = List.unmodifiable(
          costPeriods ?? _legacyCostPeriods(ter, performanceFee),
@@ -153,10 +158,20 @@ class FundData {
     'morningstarRating': morningstarRating,
     'morningstarCheckedAt': morningstarCheckedAt?.toIso8601String(),
     'morningstarLastAttemptAt': morningstarLastAttemptAt?.toIso8601String(),
+    'source': source?.name,
+    'valuationSource': valuationSource?.name,
   };
 
   bool get hasValidIsin =>
       RegExp(r'^[A-Z]{2}[A-Z0-9]{9}[0-9]$').hasMatch(isin.toUpperCase());
+
+  static FundSource? _fundSourceFromJson(String? value) {
+    if (value == null || value.isEmpty) return null;
+    for (final source in FundSource.values) {
+      if (source.name == value) return source;
+    }
+    return null;
+  }
 
   factory FundData.fromJson(Map<String, dynamic> json) => FundData(
     isin: json['isin'],
@@ -192,6 +207,8 @@ class FundData {
     morningstarLastAttemptAt: DateTime.tryParse(
       json['morningstarLastAttemptAt'] as String? ?? '',
     ),
+    source: _fundSourceFromJson(json['source'] as String?),
+    valuationSource: _fundSourceFromJson(json['valuationSource'] as String?),
   );
 
   static List<FundCostPeriod> _readCostPeriods(Map<String, dynamic> json) {
@@ -239,8 +256,15 @@ class ScrapeResult {
   final AppError? error;
   final bool isResolved;
   final FundSource? source;
+  //final FundSource? valuationSource;
 
-  ScrapeResult({this.data, this.error, this.isResolved = false, this.source});
+  ScrapeResult({
+    this.data,
+    this.error,
+    this.isResolved = false,
+    this.source,
+    //this.valuationSource,
+  });
 
   String? get errorMessage => error?.message;
 }
@@ -251,10 +275,11 @@ enum FundSource {
   ecb,
   morningstar,
   yahoo,
-  //queFondos,
-  //finantialTimes,
+  queFondos,
+  financialTimes,
 }
 
+// TODO: AÑADIR SOURCE QUEFONDOS Y FT ?
 FundSource fundSourceFromIsinSource(String source) {
   if (source == 'CNMV/SIL' || source == 'CNMV/FI') {
     return FundSource.cnmv;

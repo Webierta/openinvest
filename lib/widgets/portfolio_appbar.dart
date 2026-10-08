@@ -210,6 +210,8 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
       morningstarLastAttemptAt:
           incoming.morningstarLastAttemptAt ??
           existing.morningstarLastAttemptAt,
+      source: incoming.source ?? existing.source,
+      valuationSource: incoming.valuationSource ?? existing.valuationSource,
     );
   }
 

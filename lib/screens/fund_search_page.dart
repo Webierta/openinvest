@@ -562,7 +562,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
         label = 'LOCAL';
         break;
       case FundSource.ecb:
-        color = Colors.indigoAccent;
+        color = Colors.deepPurpleAccent;
         label = 'ECB';
         break;
       case FundSource.morningstar:
@@ -572,6 +572,13 @@ class _FundSearchPageState extends State<FundSearchPage> {
       case FundSource.yahoo:
         color = Colors.blueAccent;
         label = 'YAHOO';
+        break;
+      case FundSource.queFondos:
+        color = Colors.green;
+        label = 'QUEFONDOS';
+      case FundSource.financialTimes:
+        color = Colors.brown;
+        label = 'FT';
         break;
     }
 

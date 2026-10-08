@@ -5,8 +5,8 @@ import 'package:investing/services/fund_scraper.dart';
 
 void main() {
   group('LF-20.10.1 — modelo actual de procedencia', () {
-    test('LF-20.10.1 — modelo actual de procedencia FundSource contiene las cinco categorías existentes', () {
-      expect(FundSource.values, hasLength(5));
+    test('LF-20.10.1 — modelo actual de procedencia FundSource contiene las siete categorías existentes', () {
+      expect(FundSource.values, hasLength(7));
 
       expect(
         FundSource.values,
@@ -16,6 +16,8 @@ void main() {
           FundSource.ecb,
           FundSource.morningstar,
           FundSource.yahoo,
+          FundSource.queFondos,
+          FundSource.financialTimes,
         ]),
       );
     });

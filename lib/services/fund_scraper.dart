@@ -574,12 +574,45 @@ class FundScraper {
     return combined;
   }
 
-  static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
+  /* static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
     return ScrapeResult(
       data: result.data,
       error: result.error,
       isResolved: result.isResolved,
       source: source,
+      valuationSource: FundSource.yahoo,
+    );
+  } */
+
+  static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
+    return ScrapeResult(
+      data: result.data == null
+          ? null
+          : FundData(
+              isin: result.data!.isin,
+              symbol: result.data!.symbol,
+              name: result.data!.name,
+              lastValue: result.data!.lastValue,
+              currency: result.data!.currency,
+              date: result.data!.date,
+              history: result.data!.history,
+              operations: result.data!.operations,
+              alertMin: result.data!.alertMin,
+              alertMax: result.data!.alertMax,
+              ter: result.data!.ter,
+              performanceFee: result.data!.performanceFee,
+              costPeriods: result.data!.costPeriods,
+              costCharges: result.data!.costCharges,
+              morningstarRating: result.data!.morningstarRating,
+              morningstarCheckedAt: result.data!.morningstarCheckedAt,
+              morningstarLastAttemptAt: result.data!.morningstarLastAttemptAt,
+              source: source,
+              valuationSource: FundSource.yahoo,
+            ),
+      error: result.error,
+      isResolved: result.isResolved,
+      source: source,
+      //valuationSource: FundSource.yahoo,
     );
   }
 
@@ -603,6 +636,7 @@ class FundScraper {
         ),
         isResolved: true,
         source: FundSource.ecb,
+        //valuationSource: null,
       );
     }
 

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/fund_data.dart';
 import '../models/scraper_result.dart';
-import '../services/finantialtimes_scraper.dart';
+import '../services/financialtimes_scraper.dart';
 import '../services/isin_providers/ecb_ifs_provider.dart';
 
 import '../models/fund_cost.dart';
@@ -598,11 +598,14 @@ class FundProvider with ChangeNotifier {
           morningstarRating: fund.morningstarRating,
           morningstarCheckedAt: fund.morningstarCheckedAt,
           morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
+          source: fund.source,
+          valuationSource: fund.valuationSource,
         );
         return ScrapeResult(
           data: resolvedFund,
           isResolved: true,
           source: fundSourceFromIsinSource(resolution.source),
+          //valuationSource: result.valuationSource,
         );
       }
 
@@ -720,6 +723,9 @@ class FundProvider with ChangeNotifier {
                 morningstarRating: existingFund.morningstarRating,
                 morningstarCheckedAt: existingFund.morningstarCheckedAt,
                 morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
+                source: fetchedFund.source ?? existingFund.source,
+                valuationSource:
+                    fetchedFund.valuationSource ?? existingFund.valuationSource,
               );
         await _runDatabaseOperation(() async {
           await DatabaseService.saveFund(fundToSave);
@@ -839,6 +845,7 @@ class FundProvider with ChangeNotifier {
         queFondosResult,
         existingFund: existingFund,
         primaryFund: primaryFund,
+        valuationSource: FundSource.queFondos,
       );
     } catch (error, stackTrace) {
       scraperError = _asError(error, stackTrace);
@@ -852,6 +859,7 @@ class FundProvider with ChangeNotifier {
           ftResult,
           existingFund: existingFund,
           primaryFund: primaryFund,
+          valuationSource: FundSource.financialTimes,
         );
         if (fallbackFund != null) scraperError = null;
       } catch (error, stackTrace) {
@@ -877,10 +885,16 @@ class FundProvider with ChangeNotifier {
               : !fallbackDate.isBefore(primaryDate));
 
       if (isNewerThanExisting && isNotOlderThanPrimary) {
-        return ScrapeResult(
+        /* return ScrapeResult(
           data: fallbackFund,
           isResolved: primaryResult.isResolved,
           source: primaryResult.source,
+        ); */
+        return ScrapeResult(
+          data: fallbackFund,
+          isResolved: primaryResult.isResolved,
+          source: fallbackFund.source,
+          //valuationSource: fallbackFund.valuationSource,
         );
       }
 
@@ -920,6 +934,7 @@ class FundProvider with ChangeNotifier {
     ScraperResult? result, {
     FundData? existingFund,
     FundData? primaryFund,
+    required FundSource valuationSource,
   }) {
     if (result == null) return null;
 
@@ -989,6 +1004,8 @@ class FundProvider with ChangeNotifier {
       morningstarRating: metadata?.morningstarRating,
       morningstarCheckedAt: metadata?.morningstarCheckedAt,
       morningstarLastAttemptAt: metadata?.morningstarLastAttemptAt,
+      source: existingFund?.source ?? primaryFund?.source ?? valuationSource,
+      valuationSource: valuationSource,
     );
   }
 

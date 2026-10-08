@@ -43,7 +43,7 @@ class DatabaseService {
 
     return await openDatabase(
       newPath,
-      version: 10,
+      version: 11,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE funds (
@@ -59,7 +59,9 @@ class DatabaseService {
             performance_fee REAL,
             morningstar_rating INTEGER,
             morningstar_checked_at TEXT,
-            morningstar_last_attempt_at TEXT
+            morningstar_last_attempt_at TEXT,
+            source TEXT,
+            valuation_source TEXT
           )
         ''');
         await db.execute('''
@@ -187,6 +189,21 @@ class DatabaseService {
             await db.execute(
               'ALTER TABLE fund_cost_charges ADD COLUMN settled_through TEXT',
             );
+          }
+        }
+        if (oldVersion < 11) {
+          try {
+            await db.execute('ALTER TABLE funds ADD COLUMN source TEXT');
+          } catch (_) {
+            // La columna puede existir en bases parcialmente migradas.
+          }
+
+          try {
+            await db.execute(
+              'ALTER TABLE funds ADD COLUMN valuation_source TEXT',
+            );
+          } catch (_) {
+            // La columna puede existir en bases parcialmente migradas.
           }
         }
       },
@@ -438,6 +455,8 @@ class DatabaseService {
         'morningstar_checked_at': fund.morningstarCheckedAt?.toIso8601String(),
         'morningstar_last_attempt_at': fund.morningstarLastAttemptAt
             ?.toIso8601String(),
+        'source': fund.source?.name,
+        'valuation_source': fund.valuationSource?.name,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 
       final batch = txn.batch();
@@ -534,6 +553,8 @@ class DatabaseService {
         'morningstar_checked_at': fund.morningstarCheckedAt?.toIso8601String(),
         'morningstar_last_attempt_at': fund.morningstarLastAttemptAt
             ?.toIso8601String(),
+        'source': fund.source?.name,
+        'valuation_source': fund.valuationSource?.name,
       });
 
       final batch = txn.batch();
@@ -751,10 +772,22 @@ class DatabaseService {
           morningstarLastAttemptAt: m['morningstar_last_attempt_at'] == null
               ? null
               : DateTime.parse(m['morningstar_last_attempt_at']),
+          source: _fundSourceFromDatabase(m['source'] as String?),
+          valuationSource: _fundSourceFromDatabase(
+            m['valuation_source'] as String?,
+          ),
         ),
       );
     }
     return funds;
+  }
+
+  static FundSource? _fundSourceFromDatabase(String? value) {
+    if (value == null || value.isEmpty) return null;
+    for (final source in FundSource.values) {
+      if (source.name == value) return source;
+    }
+    return null;
   }
 
   static Future<FundData?> getFund(String isin) async {
@@ -842,6 +875,10 @@ class DatabaseService {
       morningstarLastAttemptAt: m['morningstar_last_attempt_at'] == null
           ? null
           : DateTime.parse(m['morningstar_last_attempt_at']),
+      source: _fundSourceFromDatabase(m['source'] as String?),
+      valuationSource: _fundSourceFromDatabase(
+        m['valuation_source'] as String?,
+      ),
     );
   }
 
