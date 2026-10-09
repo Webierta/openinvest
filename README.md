@@ -42,5 +42,26 @@ Aplicación de código abierto para la gestión de una cartera de fondos de inve
 - **Android**
 - **Linux (Desktop)**
 
+### 🐧 Requisitos y Solución de Problemas en Linux
+
+*OpenInvest* utiliza el almacenamiento seguro del sistema operativo para proteger tus preferencias de acceso. En Linux, esto depende de `libsecret` (GNOME Keyring o KWallet).
+
+#### ¿La aplicación se cierra o no guarda la configuración de bloqueo en Linux?
+Esto puede ocurrir en distribuciones Linux minimalistas o entornos de escritorio personalizados que no ejecutan un demonio de keyring (como `gnome-keyring` o `kwallet`) en segundo plano.
+
+**Solución recomendada:** Asegúrate de tener instalado y en ejecución un gestor de claves. En la mayoría de las distribuciones basadas en Debian/Ubuntu, puedes instalarlo con:
+
+```bash
+sudo apt update
+sudo apt install gnome-keyring
+```
+
+Y asegúrate de que tu entorno de escritorio inicie el demonio de keyring al arrancar.
+
+**Mecanismo de Respaldo (Fallback)**: A partir de la versión actual, *OpenInvest* incluye un mecanismo de respaldo seguro. Si detecta que el almacenamiento seguro del sistema no está disponible, la aplicación no se bloqueará. En su lugar, cambiará automáticamente a un archivo local cifrado (AES) para guardar tus preferencias de acceso, garantizando que puedas seguir usando la aplicación sin interrupciones. 
+
+>> **Nota de seguridad**: Aunque el archivo de respaldo está cifrado, se recomienda encarecidamente usar un gestor de keyring nativo para obtener el máximo nivel de seguridad que tu sistema operativo puede ofrecer.
+
+
 ---
 Desarrollado por *Webierta*
