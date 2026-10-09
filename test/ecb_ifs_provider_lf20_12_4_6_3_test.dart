@@ -8,6 +8,10 @@ import 'package:investing/utils/app_error.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  tearDown(() async {
+    FundProvider.disposeHttpClient();
+  });
+
   const funds = <Map<String, String>>[
     {'isin': 'ES0160483014', 'name': 'MAPFRE PRIVATE EQUITY I FCR'},
     {'isin': 'ES0165272008', 'name': 'NARA HEALTH CAPITAL, FCR'},

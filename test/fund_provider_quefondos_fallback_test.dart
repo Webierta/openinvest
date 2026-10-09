@@ -29,6 +29,7 @@ void main() {
   tearDown(() async {
     await DatabaseService.resetDatabasePathForTesting();
     await temporaryDirectory.delete(recursive: true);
+    FundProvider.disposeHttpClient();
   });
 
   test(

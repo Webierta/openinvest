@@ -8,6 +8,7 @@ import 'package:investing/l10n/app_localizations.dart';
 
 import 'providers/fund_provider.dart';
 import 'screens/portfolio_page.dart';
+import 'services/database_service.dart';
 import 'services/settings_service.dart';
 import 'widgets/gradient_background.dart';
 import 'utils/route_observer.dart';
@@ -28,8 +29,25 @@ void main() {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void dispose() {
+    // Cierra el cliente HTTP compartido
+    FundProvider.disposeHttpClient();
+    // Cierra la base de datos con manejo de errores
+    DatabaseService.close().catchError((error) {
+      debugPrint('Error al cerrar la base de datos: $error');
+    });
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     const darkBlue = Color(0xFF0F172A);

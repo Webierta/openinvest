@@ -60,7 +60,7 @@ Y asegúrate de que tu entorno de escritorio inicie el demonio de keyring al arr
 
 **Mecanismo de Respaldo (Fallback)**: A partir de la versión actual, *OpenInvest* incluye un mecanismo de respaldo seguro. Si detecta que el almacenamiento seguro del sistema no está disponible, la aplicación no se bloqueará. En su lugar, cambiará automáticamente a un archivo local cifrado (AES) para guardar tus preferencias de acceso, garantizando que puedas seguir usando la aplicación sin interrupciones. 
 
->> **Nota de seguridad**: Aunque el archivo de respaldo está cifrado, se recomienda encarecidamente usar un gestor de keyring nativo para obtener el máximo nivel de seguridad que tu sistema operativo puede ofrecer.
+> **Nota de seguridad**: Aunque el archivo de respaldo está cifrado, se recomienda encarecidamente usar un gestor de keyring nativo para obtener el máximo nivel de seguridad que tu sistema operativo puede ofrecer.
 
 
 ---

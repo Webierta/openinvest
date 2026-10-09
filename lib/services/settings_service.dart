@@ -47,28 +47,6 @@ class SettingsService {
     await SecureStorageService.delete(_keyAppPassword);
   }
 
-  /* static Future<String?> getAppPassword() async {
-    try {
-      return await _secureStorage.read(key: _keyAppPassword);
-    } catch (_) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        return prefs.getString(_keyAppPassword);
-      } catch (_) {
-        return null;
-      }
-    }
-  } */
-
-  /* static Future<void> setAppPassword(String password) async {
-    try {
-      await _secureStorage.write(key: _keyAppPassword, value: password);
-    } catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyAppPassword, password);
-    }
-  } */
-
   static Future<bool> isAutoRefreshEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyAutoRefresh) ?? true; // Por defecto activado

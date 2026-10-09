@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
+import '../providers/fund_provider.dart';
 import '../screens/compara_page.dart';
 import '../screens/settings_page.dart';
 import '../screens/info_page.dart';
@@ -109,7 +110,11 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.logout, color: Colors.redAccent),
             title: Text(l10n.exit, style: const TextStyle(color: Colors.white)),
             onTap: () async {
+              // Cierra el cliente HTTP compartido
+              FundProvider.disposeHttpClient();
+              // Cierra la base de datos
               await DatabaseService.close();
+              // Cierra la aplicación
               await SystemNavigator.pop();
             },
           ),

@@ -6,6 +6,10 @@ import 'package:investing/utils/app_error.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  tearDown(() async {
+    FundProvider.disposeHttpClient();
+  });
+
   group('LF-20.12.4.6.1 — FundProvider + ECB/IFS', () {
     test(
       'ES0160483014 se recupera mediante ECB/IFS cuando Yahoo no lo encuentra',

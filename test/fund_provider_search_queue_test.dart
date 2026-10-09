@@ -6,6 +6,9 @@ import 'package:investing/models/fund_search_mode.dart';
 import 'package:investing/providers/fund_provider.dart';
 
 void main() {
+  tearDown(() async {
+    FundProvider.disposeHttpClient();
+  });
   const match = FundSearchMatch(
     isin: 'ES0123456789',
     symbol: 'TEST',

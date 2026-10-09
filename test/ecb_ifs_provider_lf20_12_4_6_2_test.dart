@@ -6,6 +6,10 @@ import 'package:investing/utils/app_error.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  tearDown(() async {
+    FundProvider.disposeHttpClient();
+  });
+
   group('LF-20.12.4.6.2 — Límites del fallback ECB/IFS', () {
     test('un error remote de Yahoo no activa el fallback ECB/IFS', () async {
       final provider = FundProvider(

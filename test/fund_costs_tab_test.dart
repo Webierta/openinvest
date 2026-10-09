@@ -65,6 +65,10 @@ void main() {
     return provider;
   }
 
+  tearDown(() async {
+    FundProvider.disposeHttpClient();
+  });
+
   testWidgets('valida tarifa dentro del diálogo sin crear otro overlay', (
     tester,
   ) async {

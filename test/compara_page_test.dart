@@ -7,6 +7,9 @@ import 'package:investing/screens/compara_page.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  tearDown(() async {
+    FundProvider.disposeHttpClient();
+  });
   testWidgets('los selectores no desbordan en una pantalla estrecha', (
     tester,
   ) async {

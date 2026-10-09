@@ -5,6 +5,9 @@ import 'package:investing/services/isin_providers/isin_source_provider.dart';
 import 'package:investing/services/isin_resolver.dart';
 
 void main() {
+  tearDown(() async {
+    FundProvider.disposeHttpClient();
+  });
   group('LF-20.10.4.b - FundSearchMatch → FundProvider → '
       'IsinResolver → ScrapeResult.source', () {
     const expectedIsin = 'ES0123456789';

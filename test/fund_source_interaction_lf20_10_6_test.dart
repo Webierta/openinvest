@@ -7,6 +7,9 @@ import 'package:investing/services/isin_providers/isin_source_provider.dart';
 import 'package:investing/services/isin_resolver.dart';
 
 void main() {
+  tearDown(() async {
+    FundProvider.disposeHttpClient();
+  });
   group('LF-20.10.6 - procedencia y preservación tras resolución', () {
     const match = FundSearchMatch(
       isin: null,

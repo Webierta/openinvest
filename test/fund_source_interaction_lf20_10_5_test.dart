@@ -6,6 +6,9 @@ import 'package:investing/services/isin_resolver.dart';
 import 'package:investing/utils/app_error.dart';
 
 void main() {
+  tearDown(() async {
+    FundProvider.disposeHttpClient();
+  });
   group('LF-20.10.5 - interacción con ScrapeResult/error', () {
     const match = FundSearchMatch(
       isin: null,

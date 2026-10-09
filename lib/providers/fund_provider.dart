@@ -81,10 +81,10 @@ class FundProvider with ChangeNotifier {
   _FundSearchRequest? _pendingFundSearch;
   int _fundSearchGeneration = 0;
   bool _isFundSearchInProgress = false;
-
   Locale? get locale => _locale;
-
   final IsinResolver Function() _isinResolverFactory;
+  // === NUEVO: Cliente HTTP compartido para reutilización de conexiones ===
+  static http.Client? _sharedHttpClient;
 
   FundProvider({
     IsinResolver Function()? isinResolverFactory,
@@ -106,6 +106,21 @@ class FundProvider with ChangeNotifier {
            fundSearchFetcher ?? FundScraper.getFundBySearchMatch,
        _fundIsinFetcher = fundIsinFetcher ?? FundScraper.getFundByIsin,
        _fundSearchFunction = fundSearch ?? FundScraper.searchFunds;
+
+  /// Obtiene o crea el cliente HTTP compartido.
+  /// Este cliente reutiliza conexiones TCP, mejorando significativamente
+  /// el rendimiento al actualizar múltiples fondos secuencialmente.
+  static http.Client _getHttpClient() {
+    _sharedHttpClient ??= http.Client();
+    return _sharedHttpClient!;
+  }
+
+  /// Cierra el cliente HTTP compartido.
+  /// Debe llamarse cuando la aplicación se cierra para liberar recursos.
+  static void disposeHttpClient() {
+    _sharedHttpClient?.close();
+    _sharedHttpClient = null;
+  }
 
   Future<void> setLocale(Locale locale) async {
     _locale = locale;
@@ -764,18 +779,21 @@ class FundProvider with ChangeNotifier {
   }
 
   static Future<ScraperResult?> _fetchQueFondos(String isin) async {
-    final client = http.Client();
+    /* final client = http.Client();
     try {
       return await QueFondosScraper(client: client)
           .scrape(isin)
           .timeout(HttpConfig.timeout);
     } finally {
       client.close();
-    }
+    } */
+    return await QueFondosScraper(client: _getHttpClient())
+        .scrape(isin)
+        .timeout(HttpConfig.timeout);
   }
 
   static Future<ScrapeResult?> _fetchFTByIsin(String isin) async {
-    final client = http.Client();
+    /* final client = http.Client();
     try {
       return await FTFundScraper(client: client)
           .scrapeByIsin(isin)
@@ -784,18 +802,28 @@ class FundProvider with ChangeNotifier {
       return null;
     } finally {
       client.close();
+    } */
+    try {
+      return await FTFundScraper(client: _getHttpClient())
+          .scrapeByIsin(isin)
+          .timeout(HttpConfig.timeout);
+    } catch (e) {
+      return null;
     }
   }
 
   static Future<ScraperResult?> _fetchFT(String isin) async {
-    final client = http.Client();
+    /* final client = http.Client();
     try {
       return await FTFundScraper(client: client)
           .scrape(isin)
           .timeout(HttpConfig.timeout);
     } finally {
       client.close();
-    }
+    } */
+    return await FTFundScraper(client: _getHttpClient())
+        .scrape(isin)
+        .timeout(HttpConfig.timeout);
   }
 
   Future<ScrapeResult> _fetchLatestFundWithFallback(
