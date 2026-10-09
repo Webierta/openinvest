@@ -74,6 +74,8 @@ class _FundSearchPageState extends State<FundSearchPage> {
 
   Future<void> _handleSearch([FundSearchMatch? match]) async {
     final provider = context.read<FundProvider>();
+    if (provider.isBusy) return;
+
     final l10n = AppLocalizations.of(context)!;
 
     if (match == null) {
@@ -338,6 +340,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                     selected: {_selectedMode},
                     onSelectionChanged: (selection) {
                       if (selection.isEmpty) return;
+                      if (provider.isBusy) return;
                       setState(() {
                         _searchGeneration++;
                         _selectedMode = selection.first;
@@ -378,6 +381,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
                           color: Theme.of(context).colorScheme.onPrimary,
                           icon: const Icon(Icons.search),
                           onPressed: _handleSearch,
+                          //onPressed: provider.isBusy ? null : _handleSearch,
                         ),
                       ),
                     ),
