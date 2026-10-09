@@ -1525,19 +1525,31 @@ class FundProvider with ChangeNotifier {
     isLoading = true;
     _clearError();
     notifyListeners();
+
     try {
       final isins = portfolio.map((f) => f.isin).toList();
-      AppError? updateError;
+
+      //AppError? updateError;
+      // ✅ NUEVO: Acumulamos los mensajes de error de cada fondo fallido
+      final failedUpdates = <String>[];
       var hasChanges = false;
+
       for (final isin in isins) {
         final existing = portfolio.firstWhere((f) => f.isin == isin);
         final result = await _fetchLatestFundWithFallback(
           isin,
           existingFund: existing,
         );
-        if (result.error != null && updateError == null) {
+
+        /* if (result.error != null && updateError == null) {
+          // ❌ Solo guarda el PRIMER error y ignora el resto
           updateError = result.error;
+        } */
+        // ✅ Acumulamos el error con el nombre del fondo para que no se pierda
+        if (result.error != null) {
+          failedUpdates.add('• ${existing.name}: ${result.error!.message}');
         }
+
         if (result.data != null) {
           // Mantener las alertas existentes al actualizar
           if (_hasNewData(existing, result.data!)) {
@@ -1570,8 +1582,25 @@ class FundProvider with ChangeNotifier {
         }
       }
       await loadPortfolio();
-      if (updateError != null) lastError = updateError;
+
+      /* if (updateError != null) lastError = updateError;
       if (updateError == null && !hasChanges) {
+        lastError = AppError.info(
+          'Los datos ya están actualizados y no se han producido cambios.',
+        );
+      } */
+      // ✅ NUEVO: Generamos un mensaje de error claro y detallado si hubo fallos
+      if (failedUpdates.isNotEmpty) {
+        final count = failedUpdates.length;
+        final header = count == 1
+            ? 'No se pudo actualizar 1 fondo:'
+            : 'No se pudieron actualizar $count fondos:';
+
+        lastError = AppError(
+          type: AppErrorType.network,
+          message: '$header\n${failedUpdates.join('\n')}',
+        );
+      } else if (!hasChanges) {
         lastError = AppError.info(
           'Los datos ya están actualizados y no se han producido cambios.',
         );
