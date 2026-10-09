@@ -868,16 +868,19 @@ class FundProvider with ChangeNotifier {
     }
 
     var fallbackError = primaryResult.isResolved ? null : scraperError;
+
     if (fallbackFund != null) {
       final fallbackDate = DateTime(
         fallbackFund.date.year,
         fallbackFund.date.month,
         fallbackFund.date.day,
       );
+
       final isNewerThanExisting =
           existingDate == null ||
           fallbackDate.isAfter(existingDate) ||
           (!existingHasNav && !fallbackDate.isBefore(existingDate));
+
       final isNotOlderThanPrimary =
           primaryDate == null ||
           (primaryIsUsable
@@ -885,21 +888,16 @@ class FundProvider with ChangeNotifier {
               : !fallbackDate.isBefore(primaryDate));
 
       if (isNewerThanExisting && isNotOlderThanPrimary) {
-        /* return ScrapeResult(
-          data: fallbackFund,
-          isResolved: primaryResult.isResolved,
-          source: primaryResult.source,
-        ); */
         return ScrapeResult(
           data: fallbackFund,
           isResolved: primaryResult.isResolved,
           source: fallbackFund.source,
-          //valuationSource: fallbackFund.valuationSource,
         );
       }
-
-      if (primaryImprovesExisting) return primaryResult;
     }
+
+    // Evaluar Yahoo también cuando no haya un fallback válido.
+    if (primaryImprovesExisting) return primaryResult;
 
     if (fallbackFund == null && !primaryResult.isResolved) {
       fallbackError ??= AppError.data(

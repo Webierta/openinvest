@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:investing/models/fund_data.dart';
+import 'package:investing/models/scraper_result.dart';
 import 'package:investing/providers/fund_provider.dart';
 import 'package:investing/services/database_service.dart';
 import 'package:investing/services/fund_scraper.dart';
@@ -86,7 +87,9 @@ void main() {
       final saved = await DatabaseService.getFund(isin);
       expect(saved, isNotNull);
       expect(saved!.source, FundSource.financialTimes);
-      expect(saved.valuationSource, FundSource.financialTimes);
+      expect(saved.valuationSource, FundSource.yahoo);
+      expect(saved.lastValue, 105);
+      expect(saved.date, DateTime(2026, 10, 2));
     },
   );
 
@@ -124,7 +127,9 @@ void main() {
       final saved = await DatabaseService.getFund(isin);
       expect(saved, isNotNull);
       expect(saved!.source, FundSource.financialTimes);
-      expect(saved.valuationSource, FundSource.financialTimes);
+      expect(saved.valuationSource, FundSource.yahoo);
+      expect(saved.lastValue, 105);
+      expect(saved.date, DateTime(2026, 10, 2));
     },
   );
 
@@ -162,7 +167,54 @@ void main() {
       final saved = await DatabaseService.getFund(isin);
       expect(saved, isNotNull);
       expect(saved!.source, FundSource.financialTimes);
-      expect(saved.valuationSource, FundSource.financialTimes);
+      expect(saved.valuationSource, FundSource.yahoo);
+      expect(saved.lastValue, 105);
+      expect(saved.date, DateTime(2026, 10, 2));
+    },
+  );
+
+  test(
+    'searchFund usa como valuationSource la fuente del fallback seleccionado',
+    () async {
+      final existing = fund(
+        source: FundSource.financialTimes,
+        valuationSource: FundSource.financialTimes,
+        value: 100,
+        date: DateTime(2026, 10, 1),
+      );
+
+      await DatabaseService.saveFund(existing);
+
+      final yahoo = fund(
+        source: FundSource.yahoo,
+        valuationSource: FundSource.yahoo,
+        value: 105,
+        date: DateTime(2026, 10, 2),
+      );
+
+      final provider = FundProvider(
+        fundIsinFetcher: (_) async =>
+            ScrapeResult(data: yahoo, source: FundSource.yahoo),
+        queFondosFetcher: (_) async => const ScraperResult(
+          nombre: 'Test Fund',
+          valorLiquidativo: '110',
+          fecha: '03/10/2026',
+          divisa: 'EUR',
+        ),
+        ftFetcher: (_) async => null,
+        ftByIsinFetcher: (_) async => null,
+      );
+
+      final result = await provider.searchFund(isin);
+
+      expect(result, isTrue);
+
+      final saved = await DatabaseService.getFund(isin);
+      expect(saved, isNotNull);
+      expect(saved!.source, FundSource.financialTimes);
+      expect(saved.valuationSource, FundSource.queFondos);
+      expect(saved.lastValue, 110);
+      expect(saved.date, DateTime(2026, 10, 3));
     },
   );
 
@@ -198,7 +250,9 @@ void main() {
       final saved = await DatabaseService.getFund(isin);
       expect(saved, isNotNull);
       expect(saved!.source, FundSource.financialTimes);
-      expect(saved.valuationSource, FundSource.financialTimes);
+      expect(saved.valuationSource, FundSource.yahoo);
+      expect(saved.lastValue, 105);
+      expect(saved.date, DateTime(2026, 10, 2));
     },
   );
 
@@ -231,8 +285,10 @@ void main() {
 
     final saved = await DatabaseService.getFund(isin);
     expect(saved, isNotNull);
+    //expect(saved!.source, FundSource.financialTimes);
+    //expect(saved.valuationSource, FundSource.financialTimes);
     expect(saved!.source, FundSource.financialTimes);
-    expect(saved.valuationSource, FundSource.financialTimes);
+    expect(saved.valuationSource, FundSource.yahoo);
   });
 
   test(
@@ -250,8 +306,8 @@ void main() {
       final fetched = fund(
         source: FundSource.financialTimes,
         valuationSource: FundSource.yahoo,
-        value: 105,
-        date: DateTime(2026, 10, 2),
+        value: 95,
+        date: DateTime(2026, 9, 30),
       );
 
       final provider = FundProvider(
