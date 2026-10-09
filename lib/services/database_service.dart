@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -24,6 +25,21 @@ class DatabaseService {
     if (_database != null) return _database!;
     _database = await _initDB();
     return _database!;
+  }
+
+  /// Verifica si una columna existe antes de intentar añadirla,
+  /// evitando errores de SQLite y eliminando la necesidad de try-catch silenciosos.
+  static Future<void> _addColumnIfNotExists(
+    Transaction txn,
+    String table,
+    String column,
+    String type,
+  ) async {
+    final columns = await txn.rawQuery('PRAGMA table_info($table)');
+    final columnExists = columns.any((c) => c['name'] == column);
+    if (!columnExists) {
+      await txn.execute('ALTER TABLE $table ADD COLUMN $column $type');
+    }
   }
 
   static Future<Database> _initDB() async {
@@ -86,6 +102,122 @@ class DatabaseService {
         await _createCostTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
+        // Envolvemos toda la migración en una transacción atómica.
+        // Si cualquier paso falla, SQLite revierte todos los cambios,
+        // evitando dejar la base de datos en un estado corrupto o inconsistente.
+        await db.transaction((txn) async {
+          try {
+            if (oldVersion < 2) {
+              await txn.execute('''
+                CREATE TABLE IF NOT EXISTS operations (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  isin TEXT,
+                  date TEXT,
+                  type TEXT,
+                  units REAL,
+                  price REAL
+                )
+              ''');
+            }
+            if (oldVersion < 3) {
+              await _addColumnIfNotExists(txn, 'operations', 'amount', 'REAL');
+              await txn.execute(
+                'UPDATE operations SET amount = units * price WHERE amount IS NULL',
+              );
+            }
+            if (oldVersion < 4) {
+              await _addColumnIfNotExists(txn, 'funds', 'alert_min', 'REAL');
+              await _addColumnIfNotExists(txn, 'funds', 'alert_max', 'REAL');
+            }
+            // Agrupamos las versiones 5 y 6. La v6 era un parche para la v5.
+            // Con < 6 cubrimos cualquier base de datos que venga de v4 o v5.
+            if (oldVersion < 6) {
+              await _addColumnIfNotExists(txn, 'funds', 'ter', 'REAL');
+            }
+            if (oldVersion < 7) {
+              await _addColumnIfNotExists(
+                txn,
+                'funds',
+                'performance_fee',
+                'REAL',
+              );
+            }
+            if (oldVersion < 8) {
+              await _addColumnIfNotExists(
+                txn,
+                'funds',
+                'morningstar_rating',
+                'INTEGER',
+              );
+              await _addColumnIfNotExists(
+                txn,
+                'funds',
+                'morningstar_checked_at',
+                'TEXT',
+              );
+              await _addColumnIfNotExists(
+                txn,
+                'funds',
+                'morningstar_last_attempt_at',
+                'TEXT',
+              );
+            }
+            if (oldVersion < 9) {
+              // Transaction implementa DatabaseExecutor, por lo que esto es seguro
+              await _createCostTables(txn);
+              // Migramos datos existentes de TER (Añadido > 0 para evitar datos basura)
+              await txn.execute('''
+                INSERT INTO fund_cost_periods
+                  (isin, concept, rate_percent, basis, treatment, valid_from, valid_to, description)
+                SELECT isin, 'ter', ter, 'annualBalance', 'includedInNav', NULL, NULL, NULL
+                FROM funds WHERE ter IS NOT NULL AND ter > 0
+              ''');
+              // Migramos datos existentes de Performance Fee
+              await txn.execute('''
+                INSERT INTO fund_cost_periods
+                  (isin, concept, rate_percent, basis, treatment, valid_from, valid_to, description)
+                SELECT isin, 'performance', performance_fee, 'positiveProfit', 'unknown', NULL, NULL, NULL
+                FROM funds WHERE performance_fee IS NOT NULL AND performance_fee > 0
+              ''');
+            }
+            if (oldVersion < 10) {
+              await _addColumnIfNotExists(
+                txn,
+                'fund_cost_charges',
+                'performance_period_uid',
+                'TEXT',
+              );
+              await _addColumnIfNotExists(
+                txn,
+                'fund_cost_charges',
+                'settled_through',
+                'TEXT',
+              );
+            }
+            if (oldVersion < 11) {
+              await _addColumnIfNotExists(txn, 'funds', 'source', 'TEXT');
+              await _addColumnIfNotExists(
+                txn,
+                'funds',
+                'valuation_source',
+                'TEXT',
+              );
+            }
+          } catch (e, stackTrace) {
+            // Si algo falla, la transacción se revierte automáticamente (Rollback).
+            // Registramos el error para depuración en lugar de silenciarlo.
+            debugPrint(
+              '❌ Error crítico durante la migración de la base de datos (v$oldVersion -> v$newVersion): $e',
+            );
+            debugPrint(stackTrace.toString());
+            // Relanzamos la excepción. Es mejor que la app falle al inicio y pueda
+            // ofrecer recuperar/borrar la DB, a que continúe con un esquema corrupto
+            // y corrompa los datos del usuario silenciosamente más adelante.
+            rethrow;
+          }
+        });
+      },
+      /* onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute('''
             CREATE TABLE operations (
@@ -206,7 +338,7 @@ class DatabaseService {
             // La columna puede existir en bases parcialmente migradas.
           }
         }
-      },
+      }, */
     );
   }
 
