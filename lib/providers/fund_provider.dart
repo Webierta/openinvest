@@ -170,28 +170,6 @@ class FundProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ❌ ELIMINAR este método completo
-  /* Future<void> _runDatabaseOperation(Future<void> Function() operation) async {
-    if (_databaseOperationInProgress) {
-      final appError = AppError.busy();
-      _setError(appError);
-      throw appError;
-    }
-    _databaseOperationInProgress = true;
-    _clearError();
-    notifyListeners();
-    try {
-      await operation();
-    } catch (error, stackTrace) {
-      final appError = _asError(error, stackTrace, type: AppErrorType.database);
-      _setError(appError);
-      throw appError;
-    } finally {
-      _databaseOperationInProgress = false;
-      notifyListeners();
-    }
-  } */
-
   Future<void> loadPortfolio() async {
     final pendingLoad = _portfolioLoadFuture;
     if (pendingLoad != null) {
@@ -484,11 +462,6 @@ class FundProvider with ChangeNotifier {
       return Future.value([]);
     }
 
-    // ✅ CAMBIO: Ahora solo verifica isLoading
-    /* if (_databaseOperationInProgress ||
-        (isLoading && !_isFundSearchInProgress)) {
-      return Future.value([]);
-    } */
     if (isLoading && !_isFundSearchInProgress) {
       return Future.value([]);
     }
@@ -645,15 +618,6 @@ class FundProvider with ChangeNotifier {
 
   // === OPERACIONES DE CARTERA ===
 
-  /* Future<void> addToPortfolio(FundData fund) async {
-    await _runDatabaseOperation(() async {
-      await DatabaseService.saveFund(fund);
-      currentFund = fund;
-      await loadPortfolio();
-    });
-    unawaited(_refreshMorningstarRatingIfNeeded(fund.isin));
-  } */
-
   Future<void> addToPortfolio(FundData fund) async {
     isLoading = true;
     _clearError();
@@ -670,15 +634,6 @@ class FundProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-
-  /* Future<void> replaceFund(FundData fund) async {
-    await _runDatabaseOperation(() async {
-      await DatabaseService.replaceFund(fund);
-      currentFund = fund;
-      await loadPortfolio();
-    });
-    unawaited(_refreshMorningstarRatingIfNeeded(fund.isin));
-  } */
 
   Future<void> replaceFund(FundData fund) async {
     isLoading = true;
@@ -697,14 +652,6 @@ class FundProvider with ChangeNotifier {
     }
   }
 
-  /* Future<void> removeFromPortfolio(String isin) async {
-    await _runDatabaseOperation(() async {
-      await DatabaseService.deleteFund(isin);
-      if (currentFund?.isin == isin) currentFund = null;
-      await loadPortfolio();
-    });
-  } */
-
   Future<void> removeFromPortfolio(String isin) async {
     isLoading = true;
     _clearError();
@@ -721,15 +668,6 @@ class FundProvider with ChangeNotifier {
     }
   }
 
-  /* Future<void> clearCurrentFundData() async {
-    if (currentFund != null) {
-      await _runDatabaseOperation(() async {
-        await DatabaseService.clearAllData(currentFund!.isin);
-        await loadPortfolio();
-      });
-    }
-  } */
-
   Future<void> clearCurrentFundData() async {
     if (currentFund == null) return;
     isLoading = true;
@@ -745,15 +683,6 @@ class FundProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-
-  /* Future<void> clearPortfolio() async {
-    await _runDatabaseOperation(() async {
-      await DatabaseService.clearPortfolio();
-      portfolio = [];
-      currentFund = null;
-      notifyListeners();
-    });
-  } */
 
   Future<void> clearPortfolio() async {
     isLoading = true;
@@ -773,13 +702,6 @@ class FundProvider with ChangeNotifier {
 
   // === OPERACIONES DE COMPRA/VENTA ===
 
-  /* Future<void> addOperation(FundOperation op) async {
-    await _runDatabaseOperation(() async {
-      await DatabaseService.saveOperation(op);
-      await loadPortfolio();
-    });
-  } */
-
   Future<void> addOperation(FundOperation op) async {
     isLoading = true;
     _clearError();
@@ -795,13 +717,6 @@ class FundProvider with ChangeNotifier {
     }
   }
 
-  /* Future<void> deleteOperation(int id) async {
-    await _runDatabaseOperation(() async {
-      await DatabaseService.deleteOperation(id);
-      await loadPortfolio();
-    });
-  } */
-
   Future<void> deleteOperation(int id) async {
     isLoading = true;
     _clearError();
@@ -816,13 +731,6 @@ class FundProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-
-  /* Future<void> restoreOperation(FundOperation operation) async {
-    await _runDatabaseOperation(() async {
-      await DatabaseService.restoreOperation(operation);
-      await loadPortfolio();
-    });
-  } */
 
   Future<void> restoreOperation(FundOperation operation) async {
     isLoading = true;
@@ -841,13 +749,6 @@ class FundProvider with ChangeNotifier {
 
   // === OPERACIONES DE PRECIOS ===
 
-  /* Future<void> deletePricePoint(String isin, DateTime date) async {
-    await _runDatabaseOperation(() async {
-      await DatabaseService.deletePricePoint(isin, date);
-      await loadPortfolio();
-    });
-  } */
-
   Future<void> deletePricePoint(String isin, DateTime date) async {
     isLoading = true;
     _clearError();
@@ -862,13 +763,6 @@ class FundProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-
-  /* Future<void> restorePricePoint(String isin, PricePoint point) async {
-    await _runDatabaseOperation(() async {
-      await DatabaseService.restorePricePoint(isin, point);
-      await loadPortfolio();
-    });
-  } */
 
   Future<void> restorePricePoint(String isin, PricePoint point) async {
     isLoading = true;
@@ -886,34 +780,6 @@ class FundProvider with ChangeNotifier {
   }
 
   // === OPERACIONES DE CONFIGURACIÓN ===
-
-  /* Future<void> setAlerts(String isin, double? min, double? max) async {
-    await _runDatabaseOperation(() async {
-      final fund = await DatabaseService.getFund(isin);
-      if (fund == null) return;
-      final updated = FundData(
-        isin: fund.isin,
-        symbol: fund.symbol,
-        name: fund.name,
-        lastValue: fund.lastValue,
-        currency: fund.currency,
-        date: fund.date,
-        history: fund.history,
-        operations: fund.operations,
-        alertMin: min,
-        alertMax: max,
-        ter: fund.ter,
-        performanceFee: fund.performanceFee,
-        costPeriods: fund.costPeriods,
-        costCharges: fund.costCharges,
-        morningstarRating: fund.morningstarRating,
-        morningstarCheckedAt: fund.morningstarCheckedAt,
-        morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
-      );
-      await DatabaseService.saveFund(updated);
-      await loadPortfolio();
-    });
-  } */
 
   Future<void> setAlerts(String isin, double? min, double? max) async {
     isLoading = true;
@@ -950,38 +816,6 @@ class FundProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-
-  /* Future<void> setFundCosts(
-    String isin, {
-    required List<FundCostPeriod> periods,
-    required List<FundCostCharge> charges,
-  }) async {
-    await _runDatabaseOperation(() async {
-      final fund = await DatabaseService.getFund(isin);
-      if (fund == null) return;
-      final updated = FundData(
-        isin: fund.isin,
-        symbol: fund.symbol,
-        name: fund.name,
-        lastValue: fund.lastValue,
-        currency: fund.currency,
-        date: fund.date,
-        history: fund.history,
-        operations: fund.operations,
-        alertMin: fund.alertMin,
-        alertMax: fund.alertMax,
-        ter: fund.ter,
-        performanceFee: fund.performanceFee,
-        costPeriods: periods,
-        costCharges: charges,
-        morningstarRating: fund.morningstarRating,
-        morningstarCheckedAt: fund.morningstarCheckedAt,
-        morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
-      );
-      await DatabaseService.saveFund(updated);
-      await loadPortfolio();
-    });
-  } */
 
   Future<void> setFundCosts(
     String isin, {
@@ -1123,30 +957,12 @@ class FundProvider with ChangeNotifier {
   }
 
   static Future<ScraperResult?> _fetchQueFondos(String isin) async {
-    /* final client = http.Client();
-    try {
-      return await QueFondosScraper(client: client)
-          .scrape(isin)
-          .timeout(HttpConfig.timeout);
-    } finally {
-      client.close();
-    } */
     return await QueFondosScraper(client: _getHttpClient())
         .scrape(isin)
         .timeout(HttpConfig.timeout);
   }
 
   static Future<ScrapeResult?> _fetchFTByIsin(String isin) async {
-    /* final client = http.Client();
-    try {
-      return await FTFundScraper(client: client)
-          .scrapeByIsin(isin)
-          .timeout(HttpConfig.timeout);
-    } catch (e) {
-      return null;
-    } finally {
-      client.close();
-    } */
     try {
       return await FTFundScraper(client: _getHttpClient())
           .scrapeByIsin(isin)
@@ -1157,14 +973,6 @@ class FundProvider with ChangeNotifier {
   }
 
   static Future<ScraperResult?> _fetchFT(String isin) async {
-    /* final client = http.Client();
-    try {
-      return await FTFundScraper(client: client)
-          .scrape(isin)
-          .timeout(HttpConfig.timeout);
-    } finally {
-      client.close();
-    } */
     return await FTFundScraper(client: _getHttpClient())
         .scrape(isin)
         .timeout(HttpConfig.timeout);
@@ -1280,7 +1088,10 @@ class FundProvider with ChangeNotifier {
     if (existingFund != null) {
       return ScrapeResult(
         data: existingFund,
-        error: existingHasNav ? null : fallbackError,
+        //error: existingHasNav ? null : fallbackError, // BUG
+        // ✅ SIEMPRE reportamos el error si la red falló, aunque tengamos datos locales.
+        // El llamador decidirá si mostrarlo al usuario o no.
+        error: fallbackError,
       );
     }
 
@@ -1298,7 +1109,6 @@ class FundProvider with ChangeNotifier {
     return ScrapeResult(error: primaryResult.error ?? fallbackError);
   }
 
-  // FundData? _fundFromQueFondos(
   FundData? _fundFromScraper(
     String isin,
     ScraperResult? result, {
@@ -1472,7 +1282,7 @@ class FundProvider with ChangeNotifier {
                 morningstarRating: existingFund.morningstarRating,
                 morningstarCheckedAt: existingFund.morningstarCheckedAt,
                 morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
-                // TODO: PENDIENTE ?
+                // PENDIENTE ?
                 //source: existingFund.source,
                 //valuationSource: existingFund.valuationSource,
               );
@@ -1583,12 +1393,6 @@ class FundProvider with ChangeNotifier {
       }
       await loadPortfolio();
 
-      /* if (updateError != null) lastError = updateError;
-      if (updateError == null && !hasChanges) {
-        lastError = AppError.info(
-          'Los datos ya están actualizados y no se han producido cambios.',
-        );
-      } */
       // ✅ NUEVO: Generamos un mensaje de error claro y detallado si hubo fallos
       if (failedUpdates.isNotEmpty) {
         final count = failedUpdates.length;

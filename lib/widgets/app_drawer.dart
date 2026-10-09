@@ -110,6 +110,8 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.logout, color: Colors.redAccent),
             title: Text(l10n.exit, style: const TextStyle(color: Colors.white)),
             onTap: () async {
+              // Cierra el Drawer
+              Navigator.of(context).pop();
               // Cierra el cliente HTTP compartido
               FundProvider.disposeHttpClient();
               // Cierra la base de datos
