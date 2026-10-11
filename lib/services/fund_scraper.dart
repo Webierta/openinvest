@@ -634,6 +634,7 @@ class FundScraper {
           currency: 'EUR',
           date: DateTime.now(),
           history: const [],
+          source: FundSource.ecb,
         ),
         isResolved: true,
         source: FundSource.ecb,
