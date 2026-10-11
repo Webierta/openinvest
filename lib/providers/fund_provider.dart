@@ -406,6 +406,7 @@ class FundProvider with ChangeNotifier {
       currency: '',
       date: DateTime.now(),
       history: const [],
+      source: FundSource.ecb,
     );
 
     return ScrapeResult(data: fund, isResolved: true, source: FundSource.ecb);
