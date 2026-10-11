@@ -806,6 +806,8 @@ class FundProvider with ChangeNotifier {
         morningstarRating: fund.morningstarRating,
         morningstarCheckedAt: fund.morningstarCheckedAt,
         morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
+        source: fund.source,
+        valuationSource: fund.valuationSource,
       );
       await DatabaseService.saveFund(updated);
       await loadPortfolio();
@@ -846,6 +848,8 @@ class FundProvider with ChangeNotifier {
         morningstarRating: fund.morningstarRating,
         morningstarCheckedAt: fund.morningstarCheckedAt,
         morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
+        source: fund.source,
+        valuationSource: fund.valuationSource,
       );
       await DatabaseService.saveFund(updated);
       await loadPortfolio();
