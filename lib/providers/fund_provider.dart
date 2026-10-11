@@ -74,6 +74,7 @@ class FundProvider with ChangeNotifier {
   final Future<ScrapeResult?> Function(String) _ftByIsinFetcher;
   final Future<ScrapeResult> Function(FundSearchMatch) _fundSearchFetcher;
   final Future<ScrapeResult> Function(String) _fundIsinFetcher;
+  final Future<ScrapeResult> Function(String, DateTimeRange) _fundRangeFetcher;
   final Future<List<FundSearchMatch>> Function(
     String query, {
     required FundSearchMode mode,
@@ -94,6 +95,7 @@ class FundProvider with ChangeNotifier {
     Future<ScrapeResult?> Function(String)? ftByIsinFetcher,
     Future<ScrapeResult> Function(FundSearchMatch)? fundSearchFetcher,
     Future<ScrapeResult> Function(String)? fundIsinFetcher,
+    Future<ScrapeResult> Function(String, DateTimeRange)? fundRangeFetcher,
     Future<List<FundSearchMatch>> Function(
       String query, {
       required FundSearchMode mode,
@@ -106,6 +108,7 @@ class FundProvider with ChangeNotifier {
        _fundSearchFetcher =
            fundSearchFetcher ?? FundScraper.getFundBySearchMatch,
        _fundIsinFetcher = fundIsinFetcher ?? FundScraper.getFundByIsin,
+       _fundRangeFetcher = fundRangeFetcher ?? _fetchFundByRange,
        _fundSearchFunction = fundSearch ?? FundScraper.searchFunds;
 
   /// Obtiene o crea el cliente HTTP compartido.
@@ -121,6 +124,17 @@ class FundProvider with ChangeNotifier {
   static void disposeHttpClient() {
     _sharedHttpClient?.close();
     _sharedHttpClient = null;
+  }
+
+  static Future<ScrapeResult> _fetchFundByRange(
+    String isin,
+    DateTimeRange range,
+  ) {
+    return FundScraper.getFundByIsin(
+      isin,
+      startDate: range.start,
+      endDate: range.end,
+    );
   }
 
   Future<void> setLocale(Locale locale) async {
@@ -1258,11 +1272,12 @@ class FundProvider with ChangeNotifier {
     _clearError();
     notifyListeners();
     try {
-      final result = await FundScraper.getFundByIsin(
+      /* final result = await FundScraper.getFundByIsin(
         isin.toUpperCase(),
         startDate: range.start,
         endDate: range.end,
-      );
+      ); */
+      final result = await _fundRangeFetcher(isin.toUpperCase(), range);
       if (result.data != null) {
         final fetchedFund = result.data!;
         final existingFund = await DatabaseService.getFund(fetchedFund.isin);
@@ -1286,9 +1301,8 @@ class FundProvider with ChangeNotifier {
                 morningstarRating: existingFund.morningstarRating,
                 morningstarCheckedAt: existingFund.morningstarCheckedAt,
                 morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
-                // PENDIENTE ?
-                //source: existingFund.source,
-                //valuationSource: existingFund.valuationSource,
+                source: existingFund.source,
+                valuationSource: existingFund.valuationSource,
               );
         /* await _runDatabaseOperation(() async {
           await DatabaseService.saveFund(fundToSave);
