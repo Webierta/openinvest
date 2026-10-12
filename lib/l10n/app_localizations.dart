@@ -383,7 +383,7 @@ abstract class AppLocalizations {
   /// No description provided for @operationsMgmtDesc.
   ///
   /// In es, this message translates to:
-  /// **'Registra tus suscripciones (compras) y reembolsos (ventas). La aplicación calcula automáticamente tus participaciones totales y capital invertido.'**
+  /// **'Registra tus suscripciones (compras) y reembolsos (ventas). La aplicación incluye un estimador fiscal FIFO para los reembolsos.'**
   String get operationsMgmtDesc;
 
   /// No description provided for @profitabilityAnalysisTitle.
@@ -2629,6 +2629,108 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Compara dos fondos de tu cartera lado a lado: evolución histórica con gráficos normalizados, comparativa de rentabilidades (1M, 6M, 1A, Total), volatilidad, costes (TER), rating Morningstar y posición de inversión personal.'**
   String get compareInfoDesc;
+
+  /// No description provided for @fiscalEstimationTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Estimación Fiscal (FIFO)'**
+  String get fiscalEstimationTitle;
+
+  /// No description provided for @unitsToSellLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Participaciones a vender'**
+  String get unitsToSellLabel;
+
+  /// No description provided for @grossRedemptionValueLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Valor de reembolso (Bruto)'**
+  String get grossRedemptionValueLabel;
+
+  /// No description provided for @acquisitionCostLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Coste de adquisición'**
+  String get acquisitionCostLabel;
+
+  /// No description provided for @estimatedCapitalGainLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Plusvalía estimada'**
+  String get estimatedCapitalGainLabel;
+
+  /// No description provided for @estimatedTaxLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Impuesto estimado ({taxRate})'**
+  String estimatedTaxLabel(String taxRate);
+
+  /// No description provided for @netProceedsLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'NETO A PERCIBIR'**
+  String get netProceedsLabel;
+
+  /// No description provided for @fifoDisclaimer.
+  ///
+  /// In es, this message translates to:
+  /// **'* Estimación orientativa basada en el método FIFO. No constituye asesoramiento fiscal profesional.'**
+  String get fifoDisclaimer;
+
+  /// No description provided for @registerSaleAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar esta Venta'**
+  String get registerSaleAction;
+
+  /// No description provided for @fiscalSimulationTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Simulación Fiscal'**
+  String get fiscalSimulationTitle;
+
+  /// No description provided for @fiscalSimulationDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Calcula la plusvalía e impuestos estimados sin guardar la operación.'**
+  String get fiscalSimulationDesc;
+
+  /// No description provided for @taxRateLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Tax %'**
+  String get taxRateLabel;
+
+  /// No description provided for @calculateEstimationAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Calcular Estimación'**
+  String get calculateEstimationAction;
+
+  /// No description provided for @specifyUnitsOrAmountError.
+  ///
+  /// In es, this message translates to:
+  /// **'Indica el número de participaciones o el valor total.'**
+  String get specifyUnitsOrAmountError;
+
+  /// No description provided for @allNumericFieldsGreaterThanZeroError.
+  ///
+  /// In es, this message translates to:
+  /// **'Todos los campos numéricos deben ser mayores que cero.'**
+  String get allNumericFieldsGreaterThanZeroError;
+
+  /// No description provided for @cannotSellMoreThanOwnedError.
+  ///
+  /// In es, this message translates to:
+  /// **'No puedes vender más participaciones de las que posees.'**
+  String get cannotSellMoreThanOwnedError;
+
+  /// No description provided for @saleAmountExceedsCurrentValueError.
+  ///
+  /// In es, this message translates to:
+  /// **'El importe de venta no puede superar el valor actual del fondo.'**
+  String get saleAmountExceedsCurrentValueError;
 }
 
 class _AppLocalizationsDelegate

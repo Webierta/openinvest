@@ -162,7 +162,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get operationsMgmtDesc =>
-      'Record your subscriptions (buys) and redemptions (sells). The app automatically calculates your total units and invested capital.';
+      'Record your subscriptions (buys) and redemptions (sells). The application includes a FIFO tax estimator for redemptions.';
 
   @override
   String get profitabilityAnalysisTitle => 'Profitability Analysis';
@@ -1395,4 +1395,63 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get compareInfoDesc =>
       'Compare two funds from your portfolio side-by-side: historical evolution with normalized charts, performance comparison (1M, 6M, 1Y, Total), volatility, costs (TER), Morningstar rating, and personal investment position.';
+
+  @override
+  String get fiscalEstimationTitle => 'Fiscal Estimation (FIFO)';
+
+  @override
+  String get unitsToSellLabel => 'Units to sell';
+
+  @override
+  String get grossRedemptionValueLabel => 'Redemption value (Gross)';
+
+  @override
+  String get acquisitionCostLabel => 'Acquisition cost';
+
+  @override
+  String get estimatedCapitalGainLabel => 'Estimated capital gain';
+
+  @override
+  String estimatedTaxLabel(String taxRate) {
+    return 'Estimated tax ($taxRate)';
+  }
+
+  @override
+  String get netProceedsLabel => 'NET PROCEEDS';
+
+  @override
+  String get fifoDisclaimer =>
+      '* Indicative estimate based on the FIFO method. Does not constitute professional tax advice.';
+
+  @override
+  String get registerSaleAction => 'Register this Sale';
+
+  @override
+  String get fiscalSimulationTitle => 'Fiscal Simulation';
+
+  @override
+  String get fiscalSimulationDesc =>
+      'Calculate estimated capital gains and taxes without saving the operation.';
+
+  @override
+  String get taxRateLabel => 'Tax %';
+
+  @override
+  String get calculateEstimationAction => 'Calculate Estimation';
+
+  @override
+  String get specifyUnitsOrAmountError =>
+      'Specify the number of units or the total amount.';
+
+  @override
+  String get allNumericFieldsGreaterThanZeroError =>
+      'All numeric fields must be greater than zero.';
+
+  @override
+  String get cannotSellMoreThanOwnedError =>
+      'You cannot sell more units than you own.';
+
+  @override
+  String get saleAmountExceedsCurrentValueError =>
+      'The sale amount cannot exceed the current fund value.';
 }

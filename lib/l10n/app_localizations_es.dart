@@ -164,7 +164,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get operationsMgmtDesc =>
-      'Registra tus suscripciones (compras) y reembolsos (ventas). La aplicación calcula automáticamente tus participaciones totales y capital invertido.';
+      'Registra tus suscripciones (compras) y reembolsos (ventas). La aplicación incluye un estimador fiscal FIFO para los reembolsos.';
 
   @override
   String get profitabilityAnalysisTitle => 'Análisis de Rentabilidad';
@@ -1405,4 +1405,63 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get compareInfoDesc =>
       'Compara dos fondos de tu cartera lado a lado: evolución histórica con gráficos normalizados, comparativa de rentabilidades (1M, 6M, 1A, Total), volatilidad, costes (TER), rating Morningstar y posición de inversión personal.';
+
+  @override
+  String get fiscalEstimationTitle => 'Estimación Fiscal (FIFO)';
+
+  @override
+  String get unitsToSellLabel => 'Participaciones a vender';
+
+  @override
+  String get grossRedemptionValueLabel => 'Valor de reembolso (Bruto)';
+
+  @override
+  String get acquisitionCostLabel => 'Coste de adquisición';
+
+  @override
+  String get estimatedCapitalGainLabel => 'Plusvalía estimada';
+
+  @override
+  String estimatedTaxLabel(String taxRate) {
+    return 'Impuesto estimado ($taxRate)';
+  }
+
+  @override
+  String get netProceedsLabel => 'NETO A PERCIBIR';
+
+  @override
+  String get fifoDisclaimer =>
+      '* Estimación orientativa basada en el método FIFO. No constituye asesoramiento fiscal profesional.';
+
+  @override
+  String get registerSaleAction => 'Registrar esta Venta';
+
+  @override
+  String get fiscalSimulationTitle => 'Simulación Fiscal';
+
+  @override
+  String get fiscalSimulationDesc =>
+      'Calcula la plusvalía e impuestos estimados sin guardar la operación.';
+
+  @override
+  String get taxRateLabel => 'Tax %';
+
+  @override
+  String get calculateEstimationAction => 'Calcular Estimación';
+
+  @override
+  String get specifyUnitsOrAmountError =>
+      'Indica el número de participaciones o el valor total.';
+
+  @override
+  String get allNumericFieldsGreaterThanZeroError =>
+      'Todos los campos numéricos deben ser mayores que cero.';
+
+  @override
+  String get cannotSellMoreThanOwnedError =>
+      'No puedes vender más participaciones de las que posees.';
+
+  @override
+  String get saleAmountExceedsCurrentValueError =>
+      'El importe de venta no puede superar el valor actual del fondo.';
 }

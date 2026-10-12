@@ -12,7 +12,7 @@ Aplicación de código abierto para la gestión de una cartera de fondos de inve
 
 - **Búsqueda de Fondos**: Busca cualquier fondo de inversión del mundo utilizando su código ISIN. Obtenemos los datos en tiempo real a través de fuentes públicas financieras.
 - **Historial de Precios**: Descarga el histórico de valores liquidativos (VL) para analizar la evolución temporal. Puedes seleccionar rangos de fechas personalizados.
-- **Gestión de Operaciones**: Registra tus suscripciones (compras) y reembolsos (ventas). La aplicación calcula automáticamente tus participaciones totales y capital invertido.
+- **Gestión de Operaciones**: Registra tus suscripciones (compras) y reembolsos (ventas). La aplicación incluye un **estimador fiscal FIFO** para los reembolsos.
 - **Análisis de Rentabilidad**: Cálculo de índices avanzados para un análisis profesional:
   - **TAE**: Rentabilidad anualizada de tu bolsillo.
   - **TWR**: Rendimiento real del fondo (activo), eliminando el efecto de tus flujos de caja.

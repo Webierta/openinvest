@@ -47,7 +47,7 @@
   "priceHistoryTitle": "Price History",
   "priceHistoryDesc": "Download the history of net asset values (NAV) to analyze temporal evolution. You can select custom date ranges.",
   "operationsMgmtTitle": "Operations Management",
-  "operationsMgmtDesc": "Record your subscriptions (buys) and redemptions (sells). The app automatically calculates your total units and invested capital.",
+  "operationsMgmtDesc": "Record your subscriptions (buys) and redemptions (sells). The application includes a FIFO tax estimator for redemptions.",
   "profitabilityAnalysisTitle": "Profitability Analysis",
   "profitabilityAnalysisDesc": "Advanced index calculation:\n• APR/TAE: Annualized return for your pocket.\n• TWR: Real performance of the fund (asset).\n• MWR/IRR: Your personal success based on the investment timing.",
   "costsAuditTitle": "Costs Audit",
@@ -494,5 +494,28 @@
   "portfolioExportedSuccess": "Portfolio exported successfully",
   "portfolioImportedSuccess": "Portfolio imported with smart merge",
   "compareInfoTitle": "Fund Comparator",
-  "compareInfoDesc": "Compare two funds from your portfolio side-by-side: historical evolution with normalized charts, performance comparison (1M, 6M, 1Y, Total), volatility, costs (TER), Morningstar rating, and personal investment position."
+  "compareInfoDesc": "Compare two funds from your portfolio side-by-side: historical evolution with normalized charts, performance comparison (1M, 6M, 1Y, Total), volatility, costs (TER), Morningstar rating, and personal investment position.",
+  "fiscalEstimationTitle": "Fiscal Estimation (FIFO)",
+  "unitsToSellLabel": "Units to sell",
+  "grossRedemptionValueLabel": "Redemption value (Gross)",
+  "acquisitionCostLabel": "Acquisition cost",
+  "estimatedCapitalGainLabel": "Estimated capital gain",
+  "estimatedTaxLabel": "Estimated tax ({taxRate})",
+  "@estimatedTaxLabel": {
+    "placeholders": {
+      "taxRate": { "type": "String" }
+    }
+  },
+  "netProceedsLabel": "NET PROCEEDS",
+  "fifoDisclaimer": "* Indicative estimate based on the FIFO method. Does not constitute professional tax advice.",
+  "close": "Close",
+  "registerSaleAction": "Register this Sale",
+  "fiscalSimulationTitle": "Fiscal Simulation",
+  "fiscalSimulationDesc": "Calculate estimated capital gains and taxes without saving the operation.",
+  "taxRateLabel": "Tax %",
+  "calculateEstimationAction": "Calculate Estimation",
+  "specifyUnitsOrAmountError": "Specify the number of units or the total amount.",
+  "allNumericFieldsGreaterThanZeroError": "All numeric fields must be greater than zero.",
+  "cannotSellMoreThanOwnedError": "You cannot sell more units than you own.",
+  "saleAmountExceedsCurrentValueError": "The sale amount cannot exceed the current fund value."
 }

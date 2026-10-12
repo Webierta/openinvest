@@ -47,7 +47,7 @@
   "priceHistoryTitle": "Historial de Precios",
   "priceHistoryDesc": "Descarga el histórico de valores liquidativos (VL) para analizar la evolución temporal. Puedes seleccionar rangos de fechas personalizados.",
   "operationsMgmtTitle": "Gestión de Operaciones",
-  "operationsMgmtDesc": "Registra tus suscripciones (compras) y reembolsos (ventas). La aplicación calcula automáticamente tus participaciones totales y capital invertido.",
+  "operationsMgmtDesc": "Registra tus suscripciones (compras) y reembolsos (ventas). La aplicación incluye un estimador fiscal FIFO para los reembolsos.",
   "profitabilityAnalysisTitle": "Análisis de Rentabilidad",
   "profitabilityAnalysisDesc": "Cálculo de índices avanzados:\n• TAE: Rentabilidad anualizada de tu bolsillo.\n• TWR: Rendimiento real del fondo (activo).\n• MWR/TIR: Tu éxito personal según el momento de inversión.",
   "costsAuditTitle": "Auditoría de Costes",
@@ -494,5 +494,28 @@
   "portfolioExportedSuccess": "Cartera exportada correctamente",
   "portfolioImportedSuccess": "Cartera importada con fusión inteligente",
   "compareInfoTitle": "Comparador de Fondos",
-  "compareInfoDesc": "Compara dos fondos de tu cartera lado a lado: evolución histórica con gráficos normalizados, comparativa de rentabilidades (1M, 6M, 1A, Total), volatilidad, costes (TER), rating Morningstar y posición de inversión personal."
+  "compareInfoDesc": "Compara dos fondos de tu cartera lado a lado: evolución histórica con gráficos normalizados, comparativa de rentabilidades (1M, 6M, 1A, Total), volatilidad, costes (TER), rating Morningstar y posición de inversión personal.",
+  "fiscalEstimationTitle": "Estimación Fiscal (FIFO)",
+  "unitsToSellLabel": "Participaciones a vender",
+  "grossRedemptionValueLabel": "Valor de reembolso (Bruto)",
+  "acquisitionCostLabel": "Coste de adquisición",
+  "estimatedCapitalGainLabel": "Plusvalía estimada",
+  "estimatedTaxLabel": "Impuesto estimado ({taxRate})",
+  "@estimatedTaxLabel": {
+    "placeholders": {
+      "taxRate": { "type": "String" }
+    }
+  },
+  "netProceedsLabel": "NETO A PERCIBIR",
+  "fifoDisclaimer": "* Estimación orientativa basada en el método FIFO. No constituye asesoramiento fiscal profesional.",
+  "close": "Cerrar",
+  "registerSaleAction": "Registrar esta Venta",
+  "fiscalSimulationTitle": "Simulación Fiscal",
+  "fiscalSimulationDesc": "Calcula la plusvalía e impuestos estimados sin guardar la operación.",
+  "taxRateLabel": "Tax %",
+  "calculateEstimationAction": "Calcular Estimación",
+  "specifyUnitsOrAmountError": "Indica el número de participaciones o el valor total.",
+  "allNumericFieldsGreaterThanZeroError": "Todos los campos numéricos deben ser mayores que cero.",
+  "cannotSellMoreThanOwnedError": "No puedes vender más participaciones de las que posees.",
+  "saleAmountExceedsCurrentValueError": "El importe de venta no puede superar el valor actual del fondo."
 }

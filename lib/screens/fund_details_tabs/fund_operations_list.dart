@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
@@ -30,6 +32,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
   late NumberFormat smartFormat;
   late NumberFormat unitsFormat;
   late NumberFormat moneyFormat;
+  late NumberFormat percentFormat ;
   late FundMetrics metrics;
 
   @override
@@ -47,6 +50,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
     smartFormat = NumberFormat('#,##0.####', locale);
     unitsFormat = NumberFormat('#,##0.####', locale);
     moneyFormat = NumberFormat('#,##0.## €', locale);
+    percentFormat = NumberFormat('#,##0.00 %', locale);
   }
 
   @override
@@ -258,22 +262,46 @@ class _FundOperationsListState extends State<FundOperationsList> {
     }
   }
 
+  Future<void> _saveOperation(
+    BuildContext dialogContext,
+    FundOperation operation,
+  ) async {
+    if (provider.isBusy) return;
+    try {
+      await provider.addOperation(operation);
+      if (dialogContext.mounted) {
+        Navigator.pop(dialogContext);
+      }
+    } catch (_) {
+      if (dialogContext.mounted) {
+        ScaffoldMessenger.of(dialogContext).showSnackBar(
+          SnackBar(
+            content: Text(l10n.saveOperationFailed),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   // Muestra el diálogo con los resultados del TaxEstimatorService
   void _showFiscalSimulationResult(
     BuildContext context,
     FundData fund,
     double units,
     double price,
+    double taxRate,
+    DateTime selectedDate,
   ) {
-    // Instanciamos el servicio que creamos en el paso anterior
+    // Instanciamos el servicio Tax Estimator
     final estimator = TaxEstimator();
 
     final request = TaxSimulation(
       fund: fund,
       amount: units, // Usamos las participaciones para el cálculo FIFO
       isSharesInput: true, // Indicamos que el 'amount' son participaciones
-      // Tipo impositivo por defecto (tramo general bajo en España; revisar si permitir al usuario editarlo)
-      taxRate: 19.0,
+      taxRate: taxRate,
       targetNav: price, // El precio al que se simula la venta
     );
 
@@ -343,19 +371,22 @@ class _FundOperationsListState extends State<FundOperationsList> {
                 isPositive: result.capitalGain >= 0,
               ),
               _buildInfoRow(
-                'Impuesto estimado (19%)',
+                'Impuesto estimado (${percentFormat.format(taxRate / 100)})',
                 '- ${moneyFormat.format(result.estimatedTax)}',
                 isNegative: true,
               ),
               const Divider(height: 24),
               _buildInfoRow(
-                'NETO A PERCIBIR',
+                //'NETO A PERCIBIR',
+                l10n.netProfitEstLabel,
                 moneyFormat.format(result.netAmount),
                 isBold: true,
               ),
               const SizedBox(height: 16),
-              const Text(
-                '* Estimación orientativa basada en el método FIFO. No constituye asesoramiento fiscal profesional.',
+              Text(
+                //'* Estimación orientativa basada en el método FIFO.
+                // No constituye asesoramiento fiscal profesional.',
+                l10n.fifoDisclaimer,
                 style: TextStyle(
                   fontSize: 10,
                   color: Colors.grey,
@@ -368,14 +399,24 @@ class _FundOperationsListState extends State<FundOperationsList> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cerrar'),
+            child: Text(l10n.close),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx); // Cierra el diálogo de simulación
-              Navigator.pop(context); // Cierra el diálogo de operación para que el usuario pueda rellenarlo de nuevo si quiere guardar
+              await _saveOperation(
+                context, // Contexto del diálogo de operación
+                FundOperation(
+                  isin: fund.isin,
+                  date: selectedDate,
+                  type: OperationType.sell,
+                  units: units,
+                  price: price,
+                  amount: units * price,
+                ),
+              );
             },
-            child: const Text('Registrar esta Venta'),
+            child: Text(l10n.registerSaleAction),
           ),
         ],
       ),
@@ -425,6 +466,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
 
     // Estado para controlar la visibilidad y lógica de la simulación
     bool isFiscalSimulation = false;
+    String? dialogError;
 
     final unitsController = TextEditingController(
       text: operation?.units.toString().replaceAll('.', ',') ?? '',
@@ -437,6 +479,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
     final amountController = TextEditingController(
       text: operation?.amount.toString().replaceAll('.', ',') ?? '',
     );
+    final taxRateController = TextEditingController(text: '19.0');
 
     void updateAmount() {
       final units =
@@ -460,48 +503,91 @@ class _FundOperationsListState extends State<FundOperationsList> {
       }
     }
 
+    // Diálogo de Nueva Operación: Compra / Venta
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (formContext, setState) => AlertDialog(
+          constraints: BoxConstraints(
+            minWidth: MediaQuery.of(formContext).size.width - 40,
+            maxWidth: MediaQuery.of(formContext).size.width - 40,
+          ),
           title: Text(
-            //operation == null ? l10n.newOperation : l10n.editOperation,
             operation == null
-                ? (isFiscalSimulation ? 'Simulación Fiscal' : l10n.newOperation)
+                ? (isFiscalSimulation ? l10n.fiscalSimulationTitle : l10n.newOperation)
                 : l10n.editOperation,
           ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SegmentedButton<OperationType>(
-                  segments: [
-                    ButtonSegment(
-                      value: OperationType.buy,
-                      label: Text(l10n.buy),
+                if (dialogError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.red.withValues(alpha: 0.35),
+                      ),
                     ),
-                    ButtonSegment(
-                      value: OperationType.sell,
-                      label: Text(l10n.sell),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.redAccent,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            dialogError!,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: SegmentedButton<OperationType>(
+                        segments: [
+                          ButtonSegment(
+                            value: OperationType.buy,
+                            label: Text(l10n.buy),
+                          ),
+                          ButtonSegment(
+                            value: OperationType.sell,
+                            label: Text(l10n.sell),
+                          ),
+                        ],
+                        selected: {selectedType},
+                        onSelectionChanged: (selection) => setState(() {
+                          selectedType = selection.first;
+                          dialogError = null;
+                          // Si cambia a Compra, desactivamos la simulación fiscal
+                          if (selectedType == OperationType.buy) {
+                            isFiscalSimulation = false;
+                          }
+                        }),
+                      ),
                     ),
                   ],
-                  selected: {selectedType},
-                  onSelectionChanged: (selection) => setState(() {
-                    selectedType = selection.first;
-                    // Si cambia a Compra, desactivamos la simulación fiscal
-                    if (selectedType == OperationType.buy) {
-                      isFiscalSimulation = false;
-                    }
-                  }),
                 ),
                 const SizedBox(height: 16),
                 // Checkbox de simulación fiscal (solo visible en Venta y si es operación nueva)
                 if (selectedType == OperationType.sell &&
                     operation == null) ...[
                   CheckboxListTile(
-                    title: const Text('Simulación Fiscal'),
+                    title: Text(l10n.fiscalSimulationTitle),
                     subtitle: Text(
-                      'Calcula la plusvalía e impuestos estimados sin guardar la operación.',
+                      l10n.fiscalSimulationDesc,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     value: isFiscalSimulation,
@@ -512,6 +598,22 @@ class _FundOperationsListState extends State<FundOperationsList> {
                     },
                     controlAffinity: ListTileControlAffinity.leading,
                     contentPadding: EdgeInsets.zero,
+                    secondary: isFiscalSimulation == true
+                        ? SizedBox(
+                            width: 75,
+                            child: TextField(
+                              controller: taxRateController,
+                              keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              decoration: const InputDecoration(
+                                labelText: 'Tax %',
+                                isDense: true,
+                              ),
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -527,6 +629,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                       lastDate: DateTime.now(),
                     );
                     if (picked == null) return;
+                    if (!formContext.mounted) return;
                     setState(() {
                       selectedDate = picked;
                       if (operation == null) {
@@ -566,7 +669,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                             'Max: ${unitsFormat.format(metrics.totalUnits)}',
                             style: TextStyle(fontSize: 11, color: Colors.grey),
                           )
-                        : Text(''),
+                        : SizedBox.shrink(),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -582,7 +685,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                             'Max: ${smartFormat.format(metrics.profitAbs)} ${widget.fund.currency}',
                             style: TextStyle(fontSize: 11, color: Colors.grey),
                           )
-                        : Text(''),
+                        : SizedBox.shrink(),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -600,7 +703,6 @@ class _FundOperationsListState extends State<FundOperationsList> {
                     : () => _deleteEditedOperation(
                         context,
                         dialogContext,
-                        //provider,
                         operation,
                       ),
                 child: Text(
@@ -629,54 +731,70 @@ class _FundOperationsListState extends State<FundOperationsList> {
                       amountController.text.replaceAll(',', '.'),
                     ) ??
                     0;
-                if (units <= 0 || price <= 0 || amount <= 0
-                //|| provider.isBusy
-                ) {
+                if (selectedType == OperationType.sell) {
+                  if (units <= 0 && amount <= 0) {
+                    setState(() {
+                      dialogError = l10n.specifyUnitsOrAmountError;
+                    });
+                    return;
+                  }
+                }
+
+                if (units <= 0 || price <= 0 || amount <= 0) {
+                  setState(() {
+                    dialogError = l10n.allNumericFieldsGreaterThanZeroError;
+                  });
                   return;
+                }
+
+                if (selectedType == OperationType.sell) {
+                  if (units > metrics.totalUnits + 0.00001) {
+                    setState(() {
+                      dialogError = l10n.cannotSellMoreThanOwnedError;
+                    });
+                    return;
+                  }
+                  if (amount > metrics.currentValue + 0.01) {
+                    setState(() {
+                      dialogError = l10n.saleAmountExceedsCurrentValueError;
+                    });
+                    return;
+                  }
                 }
                 // Si es simulación, mostramos el resultado y salimos sin guardar
                 if (isFiscalSimulation) {
-                  // TODO: formContext o dialogContext ??
+                  final taxRate =
+                      double.tryParse(
+                        taxRateController.text.replaceAll(',', '.'),
+                      ) ??
+                      19.0;
                   _showFiscalSimulationResult(
                     dialogContext,
                     widget.fund,
                     units,
                     price,
+                    taxRate,
+                    selectedDate,
                   );
                   return;
                 }
-                // Lógica original de guardado (solo se ejecuta si NO es simulación)
-                if (provider.isBusy) return;
-                try {
-                  await provider.addOperation(
-                    FundOperation(
-                      id: operation?.id,
-                      isin: widget.fund.isin,
-                      date: selectedDate,
-                      type: selectedType,
-                      units: units,
-                      price: price,
-                      amount: amount,
-                    ),
-                  );
-                  if (dialogContext.mounted) {
-                    Navigator.pop(dialogContext);
-                  }
-                } catch (_) {
-                  if (dialogContext.mounted) {
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(
-                        content: Text(l10n.saveOperationFailed),
-                        backgroundColor: Colors.redAccent,
-                        duration: const Duration(seconds: 4),
-                      ),
-                    );
-                  }
-                }
+                // Lógica de guardado (solo se ejecuta si NO es simulación)
+                await _saveOperation(
+                  dialogContext,
+                  FundOperation(
+                    id: operation?.id,
+                    isin: widget.fund.isin,
+                    date: selectedDate,
+                    type: selectedType,
+                    units: units,
+                    price: price,
+                    amount: amount,
+                  ),
+                );
               },
               //child: Text(l10n.save),
               child: Text(
-                isFiscalSimulation ? 'Calcular Estimación' : l10n.save,
+                isFiscalSimulation ? l10n.calculateEstimationAction : l10n.save,
               ),
             ),
           ],
