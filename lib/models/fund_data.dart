@@ -140,6 +140,51 @@ class FundData {
     return synced;
   }
 
+  FundData copyWith({
+    String? isin,
+    String? symbol,
+    String? name,
+    double? lastValue,
+    String? currency,
+    DateTime? date,
+    List<PricePoint>? history,
+    List<FundOperation>? operations,
+    double? alertMin,
+    double? alertMax,
+    double? ter,
+    double? performanceFee,
+    List<FundCostPeriod>? costPeriods,
+    List<FundCostCharge>? costCharges,
+    int? morningstarRating,
+    DateTime? morningstarCheckedAt,
+    DateTime? morningstarLastAttemptAt,
+    FundSource? source,
+    FundSource? valuationSource,
+  }) {
+    return FundData(
+      isin: isin ?? this.isin,
+      symbol: symbol ?? this.symbol,
+      name: name ?? this.name,
+      lastValue: lastValue ?? this.lastValue,
+      currency: currency ?? this.currency,
+      date: date ?? this.date,
+      history: history ?? this.history,
+      operations: operations ?? this.operations,
+      alertMin: alertMin ?? this.alertMin,
+      alertMax: alertMax ?? this.alertMax,
+      ter: ter ?? this.ter,
+      performanceFee: performanceFee ?? this.performanceFee,
+      costPeriods: costPeriods ?? this.costPeriods,
+      costCharges: costCharges ?? this.costCharges,
+      morningstarRating: morningstarRating ?? this.morningstarRating,
+      morningstarCheckedAt: morningstarCheckedAt ?? this.morningstarCheckedAt,
+      morningstarLastAttemptAt:
+          morningstarLastAttemptAt ?? this.morningstarLastAttemptAt,
+      source: source ?? this.source,
+      valuationSource: valuationSource ?? this.valuationSource,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'isin': isin,
     'symbol': symbol,
