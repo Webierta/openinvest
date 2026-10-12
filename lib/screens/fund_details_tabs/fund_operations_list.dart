@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
@@ -32,7 +30,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
   late NumberFormat smartFormat;
   late NumberFormat unitsFormat;
   late NumberFormat moneyFormat;
-  late NumberFormat percentFormat ;
+  late NumberFormat percentFormat;
   late FundMetrics metrics;
 
   @override
@@ -514,7 +512,9 @@ class _FundOperationsListState extends State<FundOperationsList> {
           ),
           title: Text(
             operation == null
-                ? (isFiscalSimulation ? l10n.fiscalSimulationTitle : l10n.newOperation)
+                ? (isFiscalSimulation
+                      ? l10n.fiscalSimulationTitle
+                      : l10n.newOperation)
                 : l10n.editOperation,
           ),
           content: SingleChildScrollView(
@@ -603,9 +603,10 @@ class _FundOperationsListState extends State<FundOperationsList> {
                             width: 75,
                             child: TextField(
                               controller: taxRateController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               decoration: const InputDecoration(
                                 labelText: 'Tax %',
                                 isDense: true,
