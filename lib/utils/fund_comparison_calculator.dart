@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:math';
 
 import '../models/fund_cost.dart';
 import '../models/fund_data.dart';
@@ -304,5 +305,107 @@ class FundComparisonCalculator {
     final month = monthIndex % 12 + 1;
     final lastDayOfMonth = DateTime(year, month + 1, 0).day;
     return DateTime(year, month, math.min(date.day, lastDayOfMonth));
+  }
+
+  /// Calcula el coeficiente de correlación de Pearson entre los históricos de dos fondos.
+  /// Devuelve `null` si no hay suficientes datos superpuestos para un cálculo fiable.
+  static double? calculateFundCorrelation(
+    FundData fundA,
+    FundData fundB, {
+    int minDataPoints = 30,
+  }) {
+    // 1. Crear mapas de fecha (normalizada a día) a precio para acceso rápido O(1)
+    final Map<DateTime, double> pricesA = {};
+    for (final point in fundA.history) {
+      final normalizedDate = DateTime(
+        point.date.year,
+        point.date.month,
+        point.date.day,
+      );
+      pricesA[normalizedDate] = point.price;
+    }
+
+    final Map<DateTime, double> pricesB = {};
+    for (final point in fundB.history) {
+      final normalizedDate = DateTime(
+        point.date.year,
+        point.date.month,
+        point.date.day,
+      );
+      pricesB[normalizedDate] = point.price;
+    }
+
+    // 2. Encontrar fechas comunes y ordenarlas cronológicamente
+    final commonDates = pricesA.keys
+        .where((date) => pricesB.containsKey(date))
+        .toList();
+    commonDates.sort((a, b) => a.compareTo(b));
+
+    // 3. Calcular los retornos porcentuales para las fechas comunes
+    final List<double> returnsA = [];
+    final List<double> returnsB = [];
+
+    for (int i = 1; i < commonDates.length; i++) {
+      final prevDate = commonDates[i - 1];
+      final currDate = commonDates[i];
+
+      final priceAPrev = pricesA[prevDate]!;
+      final priceACurr = pricesA[currDate]!;
+      final priceBPrev = pricesB[prevDate]!;
+      final priceBCurr = pricesB[currDate]!;
+
+      // Evitar división por cero (aunque un VL debería ser siempre > 0)
+      if (priceAPrev <= 0 || priceBPrev <= 0) continue;
+
+      // Retorno porcentual: (PrecioHoy - PrecioAyer) / PrecioAyer
+      final returnA = (priceACurr - priceAPrev) / priceAPrev;
+      final returnB = (priceBCurr - priceBPrev) / priceBPrev;
+
+      returnsA.add(returnA);
+      returnsB.add(returnB);
+    }
+
+    // 4. Validar que tenemos suficientes puntos de datos (ej. al menos 30 días de superposición)
+    if (returnsA.length < minDataPoints) {
+      return null; // Datos insuficientes para una correlación estadísticamente válida
+    }
+
+    // 5. Calcular y devolver la correlación de Pearson
+    return _calculatePearsonCorrelation(returnsA, returnsB);
+  }
+
+  /// Función auxiliar matemática para el coeficiente de correlación de Pearson
+  /// Calcula el coeficiente de correlación de Pearson entre dos series de retornos.
+  /// Asume que ambas listas tienen la misma longitud y están alineadas por fecha.
+  /// (Nota: Hay pasarle a esta función las listas de retornos porcentuales diarios o mensuales,
+  /// no los valores liquidativos absolutos, para que la correlación sea estadísticamente válida).
+  static double _calculatePearsonCorrelation(
+    List<double> returnsA,
+    List<double> returnsB,
+  ) {
+    if (returnsA.length != returnsB.length || returnsA.length < 2) {
+      return 0.0; // Datos insuficientes
+    }
+
+    final n = returnsA.length;
+    double sumA = 0, sumB = 0, sumAB = 0, sumA2 = 0, sumB2 = 0;
+
+    for (int i = 0; i < n; i++) {
+      sumA += returnsA[i];
+      sumB += returnsB[i];
+      sumAB += returnsA[i] * returnsB[i];
+      sumA2 += returnsA[i] * returnsA[i];
+      sumB2 += returnsB[i] * returnsB[i];
+    }
+
+    final numerator = (n * sumAB) - (sumA * sumB);
+    final denominator = sqrt(
+      ((n * sumA2) - (sumA * sumA)) * ((n * sumB2) - (sumB * sumB)),
+    );
+
+    if (denominator == 0) return 0.0;
+    //return numerator / denominator;
+    final correlation = numerator / denominator;
+    return correlation.clamp(-1.0, 1.0);
   }
 }

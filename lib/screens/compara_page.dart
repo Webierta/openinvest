@@ -386,6 +386,11 @@ class _ComparisonResults extends StatelessWidget {
     final amountFormat = NumberFormat('#,##0.##', locale);
     final percentFormat = NumberFormat('#,##0.00', locale);
 
+    final correlation = FundComparisonCalculator.calculateFundCorrelation(
+      first,
+      second,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -487,8 +492,115 @@ class _ComparisonResults extends StatelessWidget {
           percentFormat: percentFormat,
         ),
         const SizedBox(height: 24),
+        //_buildCorrelationIndicator(result.calculateFundCorrelation),
+        if (correlation != null) _buildCorrelationIndicator(correlation),
+        const SizedBox(height: 24),
         ComparisonFundChart(first: first, second: second),
       ],
+    );
+  }
+
+  Widget _buildCorrelationIndicator(double correlation) {
+    // Determinar color y mensaje basado en el coeficiente
+    Color barColor;
+    String message;
+    String message2;
+
+    if (correlation >= 0.8) {
+      barColor =
+          Colors.redAccent; // Alta correlación positiva (poca diversificación)
+      message = 'Alta correlación: Se mueven casi al unísono.';
+      message2 = 'Nivel de riesgo alto por baja diversificación';
+    } else if (correlation >= 0.3) {
+      barColor = Colors.orange; // Correlación moderada
+      message = 'Correlación moderada: Diversificación parcial';
+      message2 = 'Nivel de riesgo medio';
+    } else if (correlation >= -0.3) {
+      barColor = Colors.blueGrey; // Correlación baja/nula
+      message = 'Baja correlación: Buena diversificación entre sí';
+      message2 = 'Nivel de riesgo bajo';
+    } else {
+      barColor = Colors.green; // Correlación negativa
+      message = 'Correlación negativa: Se comportan de forma opuesta';
+      message2 = 'Cobertura ideal: Alta diversificación';
+    }
+
+    return Card(
+      //color: Colors.white.withAlpha(100),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.insights, size: 20, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text(
+                  'Correlación histórica',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                // El valor numérico grande
+                Text(
+                  correlation.toStringAsFixed(2),
+                  style: TextStyle(
+                    color: barColor,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // La barra visual estilo heatmap
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(message2),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 8,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          //color: barColor.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor:
+                              (correlation + 1) / 2, // Mapea -1..1 a 0..1
+                          child: Container(
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: barColor,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
