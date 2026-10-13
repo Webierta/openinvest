@@ -1,16 +1,11 @@
-import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:investing/l10n/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models/fund_cost.dart';
 import '../models/fund_data.dart';
 import '../providers/fund_provider.dart';
 import '../services/export_service.dart';
-import '../services/pdf_report_generator.dart';
-import '../services/report_generator.dart';
+import '../tools/files_generator.dart';
 
 class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
   final FundProvider provider;
@@ -215,204 +210,6 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Future<void> _handleExport(
-    BuildContext context,
-    FundProvider provider,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    final filePath = await ReportGenerator.exportOperationsToCsv(
-      context,
-      provider.portfolio,
-    );
-
-    if (context.mounted) Navigator.of(context).pop();
-
-    if (context.mounted) {
-      if (filePath != null) {
-        _showSnackBar(
-          context,
-          l10n.reportSavedSuccess(filePath.split('/').last),
-          action: SnackBarAction(
-            label: l10n.openAction,
-            onPressed: () => _openFile(filePath),
-          ),
-        );
-      } else {
-        _showSnackBar(context, l10n.exportCancelledOrFailed, error: true);
-      }
-    }
-  }
-
-  Future<void> _openFile(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (!await file.exists()) {
-        throw Exception('El archivo no existe');
-      }
-
-      final uri = Uri.file(filePath, windows: Platform.isWindows);
-
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else {
-        throw Exception('No se pudo abrir el archivo');
-      }
-    } catch (e) {
-      debugPrint('Error al abrir el archivo: $e');
-    }
-  }
-
-  void _showYearPicker(BuildContext context, FundProvider provider) {
-    final l10n = AppLocalizations.of(context)!;
-    final currentYear = DateTime.now().year;
-    final years = List.generate(10, (i) => currentYear - i);
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => SimpleDialog(
-        title: Text(l10n.selectReportYear),
-        children: years
-            .map(
-              (year) => SimpleDialogOption(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                  _generateReport(context, year, provider);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    year.toString(),
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
-
-  Future<void> _generateReport(
-    BuildContext context,
-    int year,
-    FundProvider provider,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      final pdfBytes = await PdfReportGenerator.generateAnnualReport(
-        context,
-        portfolio: provider.portfolio,
-        year: year,
-      );
-
-      if (context.mounted) Navigator.of(context).pop();
-
-      if (context.mounted) {
-        _showActionsDialog(context, pdfBytes, year);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        _showSnackBar(
-          context,
-          l10n.pdfGenerationError(e.toString()),
-          error: true,
-        );
-      }
-    }
-  }
-
-  void _showActionsDialog(BuildContext context, Uint8List pdfBytes, int year) {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.reportGeneratedTitle),
-        content: Text(l10n.annualReportReadyMessage(year.toString())),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await _saveFile(context, pdfBytes, year);
-            },
-            child: Text(l10n.save),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await _previewAndPrint(context, pdfBytes, year);
-            },
-            child: Text(l10n.previewAndPrint),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _saveFile(
-    BuildContext context,
-    Uint8List pdfBytes,
-    int year,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final filePath = await PdfReportGenerator.savePdfToDevice(
-      context,
-      pdfBytes,
-      'OpenInvest_InformeAnual_$year.pdf',
-    );
-
-    if (context.mounted) {
-      if (filePath != null) {
-        _showSnackBar(
-          context,
-          l10n.reportSavedSuccess(filePath.split('/').last),
-          action: SnackBarAction(
-            label: l10n.openAction,
-            onPressed: () => _openFile2(filePath),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _previewAndPrint(
-    BuildContext context,
-    Uint8List pdfBytes,
-    int year,
-  ) async {
-    await PdfReportGenerator.previewAndPrint(
-      pdfBytes,
-      'OpenInvest_InformeAnual_$year.pdf',
-    );
-  }
-
-  Future<void> _openFile2(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (!await file.exists()) return;
-      final uri = Uri.file(filePath, windows: Platform.isWindows);
-      if (await canLaunchUrl(uri)) await launchUrl(uri);
-    } catch (e) {
-      debugPrint('Error al abrir el PDF: $e');
-    }
-  }
-
   void _onClearPortfolio(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
@@ -545,10 +342,20 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
                 _handleExportPortfolio(context, provider);
                 break;
               case 'operaciones':
-                _handleExport(context, provider);
+                final filesGenerator = FilesGenerator(
+                  context: context,
+                  l10n: l10n,
+                  provider: provider,
+                );
+                filesGenerator.initExportCsv();
                 break;
               case 'informe':
-                _showYearPicker(context, provider);
+                final filesGenerator = FilesGenerator(
+                  context: context,
+                  l10n: l10n,
+                  provider: provider,
+                );
+                filesGenerator.initReportPdf();
                 break;
               case 'clear':
                 _onClearPortfolio(context);

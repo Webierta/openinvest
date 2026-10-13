@@ -7,13 +7,12 @@ import '../l10n/app_localizations.dart';
 import '../providers/fund_provider.dart';
 import '../screens/correlation_matrix_page.dart';
 import '../screens/compara_page.dart';
+import '../tools/files_generator.dart';
 import '../utils/financial_calculator.dart';
 import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
 import 'fund_search_page.dart';
-
-// Importa aquí tu página de añadir fondo o informes si las tienes separadas
 
 class PortfolioSummaryPage extends StatelessWidget {
   const PortfolioSummaryPage({super.key});
@@ -105,7 +104,7 @@ class PortfolioSummaryPage extends StatelessWidget {
                             16.0,
                             24.0,
                           ),
-                          child: _buildActionGrid(context, provider),
+                          child: _buildActionGrid(context, l10n, provider),
                         ),
                       ),
 
@@ -349,7 +348,11 @@ class PortfolioSummaryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionGrid(BuildContext context, FundProvider provider) {
+  Widget _buildActionGrid(
+    BuildContext context,
+    AppLocalizations l10n,
+    FundProvider provider,
+  ) {
     final screenWidth = MediaQuery.of(context).size.width;
     // Responsive: 2 columnas en móvil, 4 en escritorio (Linux/Windows)
     //final int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
@@ -435,11 +438,54 @@ class PortfolioSummaryPage extends StatelessWidget {
           title: 'Informes',
           subtitle: 'PDF / CSV',
           color: Colors.teal,
-          onTap: () {
-            // TODO: Crear y Navegar a ReportsPage
+          onTap: () async {
+            final returnDialogInformes = await _showDialogInformes(context);
+            if (returnDialogInformes == null || !context.mounted) return;
+            final filesGenerator = FilesGenerator(
+              context: context,
+              l10n: l10n,
+              provider: provider,
+            );
+            if (returnDialogInformes == 'PDF') {
+              filesGenerator.initReportPdf();
+            }
+            if (returnDialogInformes == 'CSV') {
+              filesGenerator.initExportCsv();
+            }
           },
         ),
       ],
+    );
+  }
+
+  Future<String?> _showDialogInformes(BuildContext context) async {
+    return await showDialog(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          contentPadding: EdgeInsets.all(24),
+          //titlePadding: EdgeInsets.all(24),
+          title: Center(child: Text('Genera archivos de tu Cartera')),
+          children: <Widget>[
+            SimpleDialogOption(
+              onPressed: () {
+                Navigator.pop(context, 'CSV');
+              },
+              child: Text(
+                '✔️ Hoja de calculo de las operaciones (formato CSV)',
+              ),
+              //child: TextButton(onPressed: onPressed, child: child),
+            ),
+            const SizedBox(height: 12),
+            SimpleDialogOption(
+              onPressed: () {
+                Navigator.pop(context, 'PDF');
+              },
+              child: Text('✔️ Informe anual en formato PDF'),
+            ),
+          ],
+        );
+      },
     );
   }
 
