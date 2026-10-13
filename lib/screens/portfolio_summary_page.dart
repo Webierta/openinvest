@@ -4,7 +4,6 @@ import 'package:investing/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/fund_provider.dart';
-import '../tools/portfolio_correlation_matrix.dart';
 import '../utils/financial_calculator.dart';
 import '../widgets/circle_avatar_fund.dart';
 import '../widgets/error_banner.dart';
@@ -188,25 +187,38 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                                       ),
                                       ElevatedButton.icon(
                                         onPressed: () async {
-                                          // Mostrar indicador de carga si la cartera es grande (>10 fondos)
-                                          if (provider.portfolio.length > 10) {
-                                            // Muestra un CircularProgressIndicator aquí si lo deseas
+                                          if (provider.portfolio.length < 2) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Necesitas al menos 2 fondos para ver la matriz.',
+                                                    ),
+                                                  ),
+                                                );
+                                            return;
                                           }
-                                          // Cálculo (puedes usar 'compute' aquí si quieres ser ultra-optimista)
-                                          final matrix =
-                                              calculatePortfolioCorrelationMatrix(
-                                                provider.portfolio,
-                                                minDataPoints: 30,
-                                              );
-                                          if (!mounted) return;
+                                          // 1. Mostrar indicador de carga (buena UX si la cartera es grande)
+                                          showDialog(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (ctx) => const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
+                                          );
+                                          // 2. Pedir al proveedor que calcule la matriz en segundo plano
+                                          await provider
+                                              .loadCorrelationMatrix();
+                                          // 3. Cerrar el indicador de carga
+                                          if (!context.mounted) return;
+                                          Navigator.pop(context);
+                                          // 4. Navegar a la página (sin pasar argumentos, ella leerá del provider)
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) =>
-                                                  CorrelationMatrixPage(
-                                                    funds: provider.portfolio,
-                                                    matrix: matrix,
-                                                  ),
+                                                  const CorrelationMatrixPage(),
                                             ),
                                           );
                                         },

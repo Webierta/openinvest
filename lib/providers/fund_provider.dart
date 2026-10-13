@@ -98,6 +98,9 @@ class FundProvider with ChangeNotifier {
   final Set<String> _ratingRefreshesInProgress = {};
   Locale? _locale;
 
+  PortfolioCorrelationMatrix? _correlationMatrix;
+  bool _isCalculatingMatrix = false;
+
   // =============================================================
   // PUBLIC FIELDS (observable state)
   // =============================================================
@@ -171,6 +174,9 @@ class FundProvider with ChangeNotifier {
   /// La UI debe usar esta propiedad para deshabilitar botones y evitar
   /// interacciones duplicadas (doble clic, etc.).
   bool get isBusy => isLoading;
+
+  PortfolioCorrelationMatrix? get correlationMatrix => _correlationMatrix;
+  bool get isCalculatingMatrix => _isCalculatingMatrix;
 
   // =============================================================
   // INITIALIZATION & LIFECYCLE
@@ -1563,7 +1569,7 @@ class FundProvider with ChangeNotifier {
   // =============================================================
 
   // En tu Provider o ViewModel:
-  Future<PortfolioCorrelationMatrix?> loadCorrelationMatrix(
+  /* Future<PortfolioCorrelationMatrix?> loadCorrelationMatrix(
     List<FundData> funds,
   ) async {
     if (funds.length < 2) return null; // No tiene sentido con 0 o 1 fondo
@@ -1582,5 +1588,33 @@ class FundProvider with ChangeNotifier {
     List<FundData> funds,
   ) {
     return calculatePortfolioCorrelationMatrix(funds, minDataPoints: 30);
+  } */
+
+  /// Método optimizado para calcular la matriz en un isolate secundario
+  Future<void> loadCorrelationMatrix() async {
+    if (portfolio.length < 2) {
+      _correlationMatrix = null;
+      notifyListeners();
+      return;
+    }
+
+    _isCalculatingMatrix = true;
+    notifyListeners();
+
+    try {
+      // 'compute' ejecuta la función en un hilo separado, evitando bloquear la UI
+      _correlationMatrix = await compute(_calculateMatrixIsolate, portfolio);
+    } catch (e) {
+      debugPrint('Error calculando matriz de correlación: $e');
+      _correlationMatrix = null;
+    } finally {
+      _isCalculatingMatrix = false;
+      notifyListeners();
+    }
   }
+}
+
+/// Esta función DEBE ser de nivel superior (top-level) o estática para que 'compute' funcione
+PortfolioCorrelationMatrix _calculateMatrixIsolate(List<FundData> funds) {
+  return calculatePortfolioCorrelationMatrix(funds, minDataPoints: 30);
 }

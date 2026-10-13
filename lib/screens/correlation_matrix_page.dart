@@ -1,21 +1,23 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/fund_data.dart';
+import '../providers/fund_provider.dart';
 import '../tools/portfolio_correlation_matrix.dart';
 //import '../utils/fund_comparison_calculator.dart'; // Ajusta la ruta a tu utilitario
 import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart'; // Tu widget existente
 
 class CorrelationMatrixPage extends StatefulWidget {
-  final List<FundData> funds;
-  final PortfolioCorrelationMatrix matrix;
+  //final List<FundData> funds;
+  //final PortfolioCorrelationMatrix matrix;
 
   const CorrelationMatrixPage({
     super.key,
-    required this.funds,
-    required this.matrix,
+    //required this.funds,
+    //required this.matrix,
   });
 
   @override
@@ -36,20 +38,36 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.matrix.size < 2) {
+    // 1. Observamos el Provider para obtener los datos actualizados
+    final provider = context.watch<FundProvider>();
+    final funds = provider.portfolio;
+    final matrix = provider.correlationMatrix;
+
+    // 2. Manejo de estados (Carga o Datos insuficientes)
+    if (provider.isCalculatingMatrix) {
+      return const Scaffold(
+        body: GradientBackground(
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    if (matrix == null || funds.length < 2) {
       return Scaffold(
         appBar: AppBar(title: const Text('Matriz de Correlación')),
-        body: const Center(
-          child: Text(
-            'Necesitas al menos 2 fondos en tu cartera\npara calcular la correlación.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70),
+        body: const GradientBackground(
+          child: Center(
+            child: Text(
+              'No hay datos suficientes para generar la matriz.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70),
+            ),
           ),
         ),
       );
     }
 
-    final int gridSize = widget.matrix.size + 1; // +1 para las etiquetas
+    final int gridSize = matrix.size + 1; // +1 para las etiquetas
 
     return Scaffold(
       appBar: AppBar(
@@ -80,13 +98,6 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                /* const Text(
-                  'Valores cercanos a 1.0 indican que los fondos se mueven juntos.\n'
-                  'Valores cercanos a 0 o negativos indican buena diversificación.\n'
-                  'Pulsa sobre la celda para más detalles.',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ), */
-                //const SizedBox(height: 24),
                 Expanded(
                   // 1. Asignamos el controlador vertical al Scrollbar
                   child: Scrollbar(
@@ -128,6 +139,8 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
                                 final col = index % gridSize;
                                 return _buildGridCell(
                                   context,
+                                  funds,
+                                  matrix,
                                   row,
                                   col,
                                   gridSize,
@@ -148,22 +161,29 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
     );
   }
 
-  Widget _buildGridCell(BuildContext context, int row, int col, int gridSize) {
+  Widget _buildGridCell(
+    BuildContext context,
+    List<FundData> funds,
+    PortfolioCorrelationMatrix matrix,
+    int row,
+    int col,
+    int gridSize,
+  ) {
     if (row == 0 && col == 0) return const SizedBox.shrink();
 
     if (row == 0) {
       //return _buildHeaderCell(widget.funds[col - 1].isin);
-      return _buildHeaderAvatar(widget.funds[col - 1]);
+      return _buildHeaderAvatar(funds[col - 1]);
     }
 
     if (col == 0) {
       //return _buildHeaderCell(widget.funds[row - 1].isin, isRow: true);
-      return _buildHeaderAvatar(widget.funds[row - 1], isRow: true);
+      return _buildHeaderAvatar(funds[row - 1], isRow: true);
     }
 
-    final fundA = widget.funds[row - 1];
-    final fundB = widget.funds[col - 1];
-    final correlation = widget.matrix.getCorrelation(fundA.isin, fundB.isin);
+    final fundA = funds[row - 1];
+    final fundB = funds[col - 1];
+    final correlation = matrix.getCorrelation(fundA.isin, fundB.isin);
 
     return _buildDataCell(context, fundA, fundB, correlation, row == col);
   }
