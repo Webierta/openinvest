@@ -4,10 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
 import '../providers/fund_provider.dart';
+import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart';
 import '../widgets/portfolio_appbar.dart';
-//import '../services/export_service.dart';
-//import '../services/database_service.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/app_drawer.dart';
 import 'fund_search_page.dart';
@@ -67,10 +66,6 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
       provider.portfolio,
       provider.exchangeRates,
     );
-
-    final Color globalProfitColor = globalMetrics.profitAbs >= 0
-        ? Colors.greenAccent[400]!
-        : Colors.redAccent[200]!;
 
     final bool showPortfolioSummary = globalMetrics.totalInvested > 0;
 
@@ -166,150 +161,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               (showPortfolioSummary ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (showPortfolioSummary && index == 0) {
-                              return Card(
-                                margin: const EdgeInsets.all(12),
-                                color: Colors.white.withValues(alpha: 0.05),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  side: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.1),
-                                  ),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20),
-                                  child: Column(
-                                    children: [
-                                      Text(
-                                        l10n.portfolioSummary,
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1.2,
-                                          color: Colors.white60,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        '${smartFormat.format(globalMetrics.totalValue)} €',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .headlineMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${l10n.invested}: ${smartFormat.format(globalMetrics.totalInvested)} €',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(color: Colors.white70),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            globalMetrics.profitAbs >= 0
-                                                ? Icons.trending_up
-                                                : Icons.trending_down,
-                                            color: globalProfitColor,
-                                            size: 18,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            '${globalMetrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(globalMetrics.profitAbs)} €',
-                                            style: TextStyle(
-                                              color: globalProfitColor,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: globalProfitColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                            ),
-                                            child: Text(
-                                              '${globalMetrics.isAnnualized ? l10n.sortByPerformance : l10n.gain}: ${globalMetrics.profitRel > 0 ? '+' : ''}${percentFormat.format(globalMetrics.profitRel)}%',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      if (globalMetrics.totalValue > 0) ...[
-                                        const SizedBox(height: 24),
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          child: SizedBox(
-                                            height: 8,
-                                            width: double.infinity,
-                                            child: Row(
-                                              children: provider.portfolio.map((
-                                                item,
-                                              ) {
-                                                final metrics =
-                                                    FinancialCalculator.calculateFundMetrics(
-                                                      item,
-                                                    );
-                                                final double rate =
-                                                    provider.exchangeRates[item
-                                                        .currency] ??
-                                                    1.0;
-                                                final fundValue =
-                                                    metrics.currentValue * rate;
-                                                final weight =
-                                                    fundValue /
-                                                    globalMetrics.totalValue;
-
-                                                if (weight <= 0) {
-                                                  return const SizedBox.shrink();
-                                                }
-
-                                                return Expanded(
-                                                  flex: (weight * 1000).toInt(),
-                                                  child: Tooltip(
-                                                    message:
-                                                        '${item.name}\n${l10n.weightLabel}: ${percentFormat.format(weight * 100)}%',
-                                                    triggerMode:
-                                                        TooltipTriggerMode.tap,
-                                                    preferBelow: false,
-                                                    child: Container(
-                                                      color: _getFundColor(
-                                                        item.isin,
-                                                      ),
-                                                      margin:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 0.5,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                );
-                                              }).toList(),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              );
+                              return SizedBox.shrink();
                             }
 
                             final item =
@@ -366,24 +218,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                         children: [
                                           Hero(
                                             tag: 'avatar_${item.isin}',
-                                            child: CircleAvatar(
-                                              radius: 20,
-                                              backgroundColor: _getFundColor(
-                                                item.isin,
-                                              ).withValues(alpha: 0.2),
-                                              child: Text(
-                                                item.name.isNotEmpty
-                                                    ? item.name[0].toUpperCase()
-                                                    : 'F',
-                                                style: TextStyle(
-                                                  color: _getFundColor(
-                                                    item.isin,
-                                                  ),
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 18,
-                                                ),
-                                              ),
-                                            ),
+                                            child: CircleAvatarFund(fund: item),
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
@@ -734,7 +569,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     );
   }
 
-  Color _getFundColor(String isin) {
+  /* Color _getFundColor(String isin) {
     final int hash = isin.hashCode;
     final List<Color> colors = [
       Colors.blueAccent,
@@ -748,5 +583,5 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
       Colors.lightGreenAccent,
     ];
     return colors[hash.abs() % colors.length];
-  }
+  } */
 }

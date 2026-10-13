@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:investing/screens/portfolio_summary_page.dart';
+//import 'package:investing/screens/correlation_matrix_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
@@ -38,16 +40,15 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.settings_outlined, color: Colors.white70),
-            title: Text(
-              l10n.settings,
-              style: const TextStyle(color: Colors.white),
-            ),
+            leading: const Icon(Icons.business_center, color: Colors.white70),
+            title: Text('Cartera', style: const TextStyle(color: Colors.white)),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SettingsPage()),
+                MaterialPageRoute(
+                  builder: (context) => const PortfolioSummaryPage(),
+                ),
               );
             },
           ),
@@ -62,6 +63,21 @@ class AppDrawer extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ComparaPage()),
+              );
+            },
+          ),
+          const Divider(color: Colors.white10),
+          ListTile(
+            leading: const Icon(Icons.settings_outlined, color: Colors.white70),
+            title: Text(
+              l10n.settings,
+              style: const TextStyle(color: Colors.white),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
               );
             },
           ),

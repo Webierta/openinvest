@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../models/fund_data.dart';
 import '../providers/fund_provider.dart';
 import '../services/export_service.dart';
+import '../widgets/circle_avatar_fund.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_tabs/fund_balance_tab.dart';
@@ -73,19 +74,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
             children: [
               Hero(
                 tag: 'avatar_${fund.isin}',
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: _getFundColor(fund.isin)
-                      .withValues(alpha: 0.2),
-                  child: Text(
-                    fund.name.isNotEmpty ? fund.name[0].toUpperCase() : 'F',
-                    style: TextStyle(
-                      color: _getFundColor(fund.isin),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
+                child: CircleAvatarFund(fund: fund),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -529,7 +518,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
   }
 }
 
-Color _getFundColor(String isin) {
+/* Color _getFundColor(String isin) {
   final hash = isin.hashCode;
   final colors = [
     Colors.blueAccent,
@@ -543,4 +532,4 @@ Color _getFundColor(String isin) {
     Colors.lightGreenAccent,
   ];
   return colors[hash.abs() % colors.length];
-}
+} */

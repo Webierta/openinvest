@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,6 +18,7 @@ import '../services/morningstar_rating.dart';
 import '../services/quefondos_scraper.dart';
 import '../services/settings_service.dart';
 
+import '../tools/portfolio_correlation_matrix.dart';
 import '../utils/app_error.dart';
 import '../utils/financial_calculator.dart';
 import '../utils/http_config.dart';
@@ -1553,5 +1555,32 @@ class FundProvider with ChangeNotifier {
       return null;
     }
     return date;
+  }
+
+  // TODO: REVISAR DUPLICIDAD EN lib/tools/portfolio_correlation_matrix.dart
+  // =============================================================
+  // PORTFOLIO CORRELATION MATRIX
+  // =============================================================
+
+  // En tu Provider o ViewModel:
+  Future<PortfolioCorrelationMatrix?> loadCorrelationMatrix(
+    List<FundData> funds,
+  ) async {
+    if (funds.length < 2) return null; // No tiene sentido con 0 o 1 fondo
+
+    try {
+      // 'compute' ejecuta la función en un hilo secundario
+      return await compute(_calculateMatrixIsolate, funds);
+    } catch (e) {
+      //print('Error calculando matriz de correlación: $e');
+      return null;
+    }
+  }
+
+  // Esta función debe ser de nivel superior (top-level) o estática para 'compute'
+  static PortfolioCorrelationMatrix _calculateMatrixIsolate(
+    List<FundData> funds,
+  ) {
+    return calculatePortfolioCorrelationMatrix(funds, minDataPoints: 30);
   }
 }
