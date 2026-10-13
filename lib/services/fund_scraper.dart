@@ -585,7 +585,7 @@ class FundScraper {
     );
   } */
 
-  static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
+  /* static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
     return ScrapeResult(
       data: result.data == null
           ? null
@@ -614,6 +614,18 @@ class FundScraper {
       isResolved: result.isResolved,
       source: source,
       //valuationSource: FundSource.yahoo,
+    );
+  } */
+
+  static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
+    return ScrapeResult(
+      data: result.data?.copyWith(
+        source: source,
+        valuationSource: FundSource.yahoo,
+      ),
+      error: result.error,
+      isResolved: result.isResolved,
+      source: source,
     );
   }
 
