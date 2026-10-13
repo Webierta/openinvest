@@ -90,7 +90,9 @@ class _AboutItem extends StatelessWidget {
   }
 
   List<InlineSpan> _buildRichContent(String text, BuildContext context) {
-    final pattern = RegExp(r'(ChatGPT · OpenAI|GitHub Copilot|Google Gemini)');
+    final pattern = RegExp(
+      r'(ChatGPT · OpenAI|GitHub Copilot|Google Gemini|Qwen)',
+    );
     final matches = pattern.allMatches(text);
 
     if (matches.isEmpty) {
@@ -113,8 +115,9 @@ class _AboutItem extends StatelessWidget {
         url = 'https://github.com/features/copilot';
       } else if (matchedText.contains('Gemini')) {
         url = 'https://gemini.google.com';
+      } else if (matchedText.contains('Qwen')) {
+        url = 'https://chat.qwen.ai';
       }
-
       spans.add(
         TextSpan(
           text: matchedText,

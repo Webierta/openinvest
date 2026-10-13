@@ -105,15 +105,15 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
                     thumbVisibility: Platform.isLinux
                         ? true
                         : false, // Muestra la barra al interactuar
-                    child: SingleChildScrollView(
-                      // 2. Y el mismo controlador a la vista de scroll vertical
-                      controller: _verticalScrollController,
-                      scrollDirection: Axis.vertical,
-                      child: Scrollbar(
-                        controller: _horizontalScrollController,
-                        thumbVisibility: Platform.isLinux ? true : false,
-                        notificationPredicate: (notification) =>
-                            notification.depth == 1,
+                    child: Scrollbar(
+                      controller: _horizontalScrollController,
+                      thumbVisibility: Platform.isLinux ? true : false,
+                      notificationPredicate: (notification) =>
+                          notification.depth == 1,
+                      child: SingleChildScrollView(
+                        // 2. Y el mismo controlador a la vista de scroll vertical
+                        controller: _verticalScrollController,
+                        scrollDirection: Axis.vertical,
                         child: SingleChildScrollView(
                           // 3. Controlador independiente para el scroll horizontal
                           controller: _horizontalScrollController,
@@ -410,14 +410,16 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: .start,
           children: [
             Text(
-              'Valores cercanos a 1.0 indican que los fondos se mueven juntos. '
-              'Valores cercanos a 0 o negativos indican buena diversificación.\n'
-              'Pulsa sobre la celda para más detalles.',
+              'Valores cercanos a 1 indican que los fondos se mueven juntos, '
+              'mientras que los valores cercanos a 0 o negativos indican buena diversificación.\n'
+              'Pulsa sobre una celda de la matriz para ver más detalles.',
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
-            Text('Leyenda de colores'),
+            const SizedBox(height: 10),
+            Text('Leyenda de colores', style: TextStyle(fontSize: 16)),
             _legendItem(
               Colors.redAccent,
               '0.80 a 1.00',
@@ -451,39 +453,26 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
   }
 
   Widget _legendItem(Color color, String range, String description) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 16,
-            height: 16,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  range,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  description,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        ],
+    return ListTile(
+      titleAlignment: ListTileTitleAlignment.titleHeight,
+      leading: Container(
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+      title: Text(
+        range,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      subtitle: Text(
+        description,
+        style: const TextStyle(color: Colors.white70, fontSize: 13),
       ),
     );
   }

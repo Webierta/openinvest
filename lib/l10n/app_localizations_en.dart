@@ -478,7 +478,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get portfolioSummary => 'PORTFOLIO SUMMARY';
 
   @override
-  String get invested => 'Invested';
+  String get invested => 'Investment';
 
   @override
   String get gain => 'GAIN';
@@ -1372,7 +1372,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creditsDesc =>
-      'OpenInvest — Open-source project developed by Webierta.\n\nAI tools — ChatGPT · OpenAI, GitHub Copilot, and Google Gemini — Assistance with software architecture, technical research and testing, code generation, debugging and review, security and automation.';
+      'OpenInvest — Open-source project developed by Webierta.\n\nAI tools — ChatGPT · OpenAI, GitHub Copilot, Google Gemini and Qwen — Assistance with software architecture, technical research and testing, code generation, debugging and review, security and automation.';
 
   @override
   String get generateFilesLabel => 'Generate files';

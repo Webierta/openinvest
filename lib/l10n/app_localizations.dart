@@ -959,7 +959,7 @@ abstract class AppLocalizations {
   /// No description provided for @invested.
   ///
   /// In es, this message translates to:
-  /// **'Invertido'**
+  /// **'Inversión'**
   String get invested;
 
   /// No description provided for @gain.
@@ -2585,7 +2585,7 @@ abstract class AppLocalizations {
   /// No description provided for @creditsDesc.
   ///
   /// In es, this message translates to:
-  /// **'OpenInvest — Proyecto de código abierto desarrollado por Webierta.\n\nHerramientas de IA — ChatGPT · OpenAI, GitHub Copilot y Google Gemini — Asistencia en arquitectura de software, investigación técnica y pruebas, generación, depuración y revisión de código, seguridad y automatización.'**
+  /// **'OpenInvest — Proyecto de código abierto desarrollado por Webierta.\n\nHerramientas de IA — ChatGPT · OpenAI, GitHub Copilot, Google Gemini y Qwen — Asistencia en arquitectura de software, investigación técnica y pruebas, generación, depuración y revisión de código, seguridad y automatización.'**
   String get creditsDesc;
 
   /// No description provided for @generateFilesLabel.
