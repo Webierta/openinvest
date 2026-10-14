@@ -22,14 +22,6 @@ class PortfolioPage extends StatefulWidget {
 }
 
 class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
-  late AppLocalizations l10n;
-  late FundProvider provider;
-  late String locale;
-  late NumberFormat priceFormat;
-  late NumberFormat percentFormat;
-  late NumberFormat smartFormat;
-  late DateFormat smartDateFormat;
-
   bool _alertChecked = false;
 
   @override
@@ -38,21 +30,15 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     final route = ModalRoute.of(context);
     if (route != null) routeObserver.subscribe(this, route);
 
-    provider = context.read<FundProvider>();
+    final provider = context.read<FundProvider>();
     if (!_alertChecked && provider.triggeredAlerts.isNotEmpty) {
       _alertChecked = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _showTriggeredAlertsDialog(context);
+          _showTriggeredAlertsDialog(context, provider);
         }
       });
     }
-    l10n = AppLocalizations.of(context)!;
-    locale = Localizations.localeOf(context).toString();
-    priceFormat = NumberFormat('#,##0.0000', locale);
-    percentFormat = NumberFormat('#,##0.00', locale);
-    smartFormat = NumberFormat('#,##0.##', locale);
-    smartDateFormat = DateFormat('dd/MM/yy', locale);
   }
 
   @override
@@ -66,8 +52,18 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     context.read<FundProvider>().clearError();
   }
 
+  // GETTERS
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+  String get locale => Localizations.localeOf(context).toString();
+  NumberFormat get priceFormat => NumberFormat('#,##0.0000', locale);
+  NumberFormat get percentFormat => NumberFormat('#,##0.00', locale);
+  NumberFormat get smartFormat => NumberFormat('#,##0.##', locale);
+  DateFormat get smartDateFormat => DateFormat('dd/MM/yy', locale);
+
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<FundProvider>();
+
     final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
       provider.exchangeRates,
@@ -480,7 +476,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     );
   }
 
-  void _showTriggeredAlertsDialog(BuildContext context) {
+  void _showTriggeredAlertsDialog(BuildContext context, FundProvider provider) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(

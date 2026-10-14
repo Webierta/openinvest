@@ -23,44 +23,24 @@ class PortfolioSummaryPage extends StatefulWidget {
 }
 
 class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
-  late AppLocalizations l10n;
-  late FundProvider provider;
-  late List<FundData> funds;
-  late String locale;
-  //late NumberFormat priceFormat;
-  late NumberFormat percentFormat;
-  late NumberFormat smartFormat;
-  late DateFormat smartDateFormat;
-  late GlobalMetrics globalMetrics;
-  late Color globalProfitColor;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    l10n = AppLocalizations.of(context)!;
-    provider = context.watch<FundProvider>();
-    funds = provider.portfolio;
-    locale = Localizations.localeOf(context).toString();
-    //priceFormat = NumberFormat('#,##0.0000', locale);
-    percentFormat = NumberFormat('#,##0.00', locale);
-    smartFormat = NumberFormat('#,##0.##', locale);
-    smartDateFormat = DateFormat('dd/MM/yy', locale);
-    globalMetrics = FinancialCalculator.calculateGlobalMetrics(
-      provider.portfolio,
-      provider.exchangeRates,
-    );
-    globalProfitColor = globalMetrics.profitAbs >= 0
-        ? Colors.greenAccent[400]!
-        : Colors.redAccent[200]!;
-  }
+  // GETTERS
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+  String get locale => Localizations.localeOf(context).toString();
+  //NumberFormat get priceFormat => NumberFormat('#,##0.0000', locale);
+  NumberFormat get percentFormat => NumberFormat('#,##0.00', locale);
+  NumberFormat get smartFormat => NumberFormat('#,##0.##', locale);
+  DateFormat get smartDateFormat => DateFormat('dd/MM/yy', locale);
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<FundProvider>();
+    final funds = provider.portfolio;
+
+    final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
+      provider.portfolio,
+      provider.exchangeRates,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Cartera'), // Ajusta a tu clave de localización
@@ -88,7 +68,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
-                          child: _buildSummaryCard(),
+                          child: _buildSummaryCard(provider, globalMetrics),
                         ),
                       ),
                       // 2. CUADRÍCULA DE ACCIONES RÁPIDAS
@@ -113,7 +93,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                             16.0,
                             24.0,
                           ),
-                          child: _buildActionGrid(context),
+                          child: _buildActionGrid(context, provider),
                         ),
                       ),
                       // 3. LISTADO DE FONDOS
@@ -154,7 +134,11 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                               index,
                             ) {
                               final fund = funds[index];
-                              return _buildFundListItem(context, fund);
+                              return _buildFundListItem(
+                                context,
+                                provider,
+                                fund,
+                              );
                             }, childCount: funds.length),
                           ),
                         ),
@@ -162,7 +146,10 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: _buildRecentOperations(context),
+                          child: _buildRecentOperations(
+                            context,
+                            provider.portfolio,
+                          ),
                         ),
                       ),
                       const SliverToBoxAdapter(
@@ -177,8 +164,12 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
   }
 
   // --- WIDGETS AUXILIARES DE DISEÑO ---
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(FundProvider provider, GlobalMetrics globalMetrics) {
+    final globalProfitColor = globalMetrics.profitAbs >= 0
+        ? Colors.greenAccent[400]!
+        : Colors.redAccent[200]!;
     final bool hayInversion = globalMetrics.totalInvested > 0;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -344,7 +335,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     );
   }
 
-  Widget _buildActionGrid(BuildContext context) {
+  Widget _buildActionGrid(BuildContext context, FundProvider provider) {
     final screenWidth = MediaQuery.of(context).size.width;
     // Responsive: 2 columnas en móvil, 4 en escritorio (Linux/Windows)
     //final int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
@@ -367,6 +358,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       children: [
         _buildActionCard(
           context,
+          provider,
           icon: Icons.add_chart,
           title: 'Añadir',
           subtitle: 'Nuevo Fondo',
@@ -378,6 +370,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
         _buildActionCard(
           context,
+          provider,
           icon: Icons.compare_arrows,
           title: 'Comparar',
           subtitle: '2 Fondos',
@@ -391,6 +384,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
         _buildActionCard(
           context,
+          provider,
           icon: Icons.grid_4x4,
           title: 'Correlación',
           subtitle: 'Matriz de Riesgo',
@@ -425,6 +419,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
         _buildActionCard(
           context,
+          provider,
           icon: Icons.description,
           title: 'Informes',
           subtitle: 'PDF / CSV',
@@ -480,7 +475,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
   }
 
   Widget _buildActionCard(
-    BuildContext context, {
+    BuildContext context,
+    FundProvider provider, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -544,7 +540,11 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     );
   }
 
-  Widget _buildFundListItem(BuildContext context, FundData fund) {
+  Widget _buildFundListItem(
+    BuildContext context,
+    FundProvider provider,
+    FundData fund,
+  ) {
     final metrics = FinancialCalculator.calculateFundMetrics(fund);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -616,7 +616,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     );
   }
 
-  Widget _buildRecentOperations(BuildContext context) {
+  Widget _buildRecentOperations(BuildContext context, List<FundData> funds) {
     // 1. Aplanar todas las operaciones de todos los fondos
     final List<FundOperation> allOps = [];
     for (final fund in funds) {
@@ -656,7 +656,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
             children: [
               for (int i = 0; i < recentOps.length; i++) ...[
                 if (i > 0) const Divider(height: 1, color: Colors.white12),
-                _buildOperationTile(recentOps[i]),
+                _buildOperationTile(recentOps[i], funds),
               ],
             ],
           ),
@@ -665,14 +665,17 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     );
   }
 
-  Widget _buildOperationTile(FundOperation op) {
+  Widget _buildOperationTile(FundOperation op, List<FundData> funds) {
     final isBuy = op.type == OperationType.buy;
     final color = isBuy ? Colors.greenAccent : Colors.redAccent;
     final icon = isBuy ? Icons.add_circle_outline : Icons.remove_circle_outline;
     // En compra el dinero sale (-), en venta entra (+)
     //final sign = isBuy ? '-' : '+';
     final tooltip = isBuy ? 'Suscripción' : 'Reembolso';
-    final fund = funds.firstWhere((fund) => fund.isin == op.isin);
+    //final fund = funds.firstWhere((fund) => fund.isin == op.isin);
+    final fundIsin = funds.where((fund) => fund.isin == op.isin).toList();
+    if (fundIsin.isEmpty) return SizedBox.shrink();
+    final fund = fundIsin.first;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
