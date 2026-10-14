@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:investing/models/fund_data.dart';
 import 'package:provider/provider.dart';
+
+import '../models/fund_data.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/fund_provider.dart';
@@ -27,6 +28,7 @@ class PortfolioSummaryPage extends StatelessWidget {
     //final priceFormat = NumberFormat('#,##0.0000', locale);
     final percentFormat = NumberFormat('#,##0.00', locale);
     final smartFormat = NumberFormat('#,##0.##', locale);
+    final smartDateFormat = DateFormat('dd/MM/yy', locale);
 
     final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
@@ -154,6 +156,20 @@ class PortfolioSummaryPage extends StatelessWidget {
                             }, childCount: funds.length),
                           ),
                         ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _buildRecentOperations(
+                            context,
+                            funds,
+                            smartFormat,
+                            smartDateFormat,
+                          ),
+                        ),
+                      ),
+                      const SliverToBoxAdapter(
+                        child: SizedBox(height: 32), // Espacio final para que el FAB no tape el último elemento
+                      ),
                     ],
                   ),
                 ),
@@ -615,10 +631,142 @@ class PortfolioSummaryPage extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (fund.operations.isNotEmpty) Icon(Icons.shopping_cart),
+                  //Icon(Icons.attach_money_outlined),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentOperations(
+    BuildContext context,
+    List<FundData> funds,
+    NumberFormat smartFormat,
+    DateFormat smartDateFormat,
+  ) {
+    // 1. Aplanar todas las operaciones de todos los fondos
+    final List<FundOperation> allOps = [];
+    for (final fund in funds) {
+      for (final op in fund.operations) {
+        allOps.add(op);
+      }
+    }
+    // 2. Ordenar por fecha descendente (las más recientes primero)
+    allOps.sort((a, b) => b.date.compareTo(a.date));
+    // 3. Tomar solo las últimas 5 operaciones
+    final recentOps = allOps.take(5).toList();
+
+    if (recentOps.isEmpty) {
+      return const SizedBox.shrink(); // No mostramos nada si no hay operaciones
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            'Últimas operaciones',
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(color: Colors.white70, fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          ),
+          child: Column(
+            children: [
+              for (int i = 0; i < recentOps.length; i++) ...[
+                if (i > 0) const Divider(height: 1, color: Colors.white12),
+                _buildOperationTile(
+                  funds,
+                  recentOps[i],
+                  smartFormat,
+                  smartDateFormat,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOperationTile(
+    List<FundData> funds,
+    FundOperation op,
+    NumberFormat smartFormat,
+    DateFormat smartDateFormat,
+  ) {
+    final isBuy = op.type == OperationType.buy;
+    final color = isBuy ? Colors.greenAccent : Colors.redAccent;
+    final icon = isBuy ? Icons.add_circle_outline : Icons.remove_circle_outline;
+
+    // En compra el dinero sale (-), en venta entra (+)
+    //final sign = isBuy ? '-' : '+';
+    final tooltip = isBuy ? 'Suscripción' : 'Reembolso';
+
+    final fund = funds.firstWhere((fund) => fund.isin == op.isin);
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: Tooltip(
+        message: tooltip,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+      ),
+      title: Text(
+        fund.name,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
+        ),
+      ),
+      subtitle: Text(
+        smartDateFormat.format(op.date),
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.6),
+          fontSize: 13,
+        ),
+      ),
+      trailing: FittedBox(
+        child: Column(
+          mainAxisSize: .max,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${smartFormat.format(op.amount)} ${fund.currency}',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            Text(
+              '${op.units.toStringAsFixed(3)} partes',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ),
     );
