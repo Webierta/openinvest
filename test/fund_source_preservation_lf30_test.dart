@@ -23,23 +23,6 @@ class _FixedIsinResolver implements IsinResolver {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-/* class _FixedIsinResolver implements IsinResolver {
-  _FixedIsinResolver(this.resolution);
-
-  final IsinResult resolution;
-
-  @override
-  Future<IsinResult?> resolve({
-    required String ticker,
-    required String fundName,
-  }) async {
-    return resolution;
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-} */
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

@@ -575,16 +575,6 @@ class FundScraper {
     return combined;
   }
 
-  /* static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
-    return ScrapeResult(
-      data: result.data,
-      error: result.error,
-      isResolved: result.isResolved,
-      source: source,
-      valuationSource: FundSource.yahoo,
-    );
-  } */
-
   /*  static ScrapeResult _withSource(ScrapeResult result, FundSource source) {
     return ScrapeResult(
       data: result.data == null
