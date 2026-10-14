@@ -294,6 +294,22 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
               PopupMenuItem(
+                value: SortCriteria.date,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.date_range,
+                      size: 20,
+                      color: provider.sortCriteria == SortCriteria.date
+                          ? Colors.blueAccent
+                          : Colors.white70,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(l10n.dateLabel),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
                 value: SortCriteria.value,
                 child: Row(
                   children: [

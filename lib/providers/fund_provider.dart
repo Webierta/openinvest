@@ -28,7 +28,7 @@ import '../utils/isin_validator.dart';
 // =============================================================
 // TOP-LEVEL TYPES
 // =============================================================
-enum SortCriteria { name, value, performance }
+enum SortCriteria { name, date, value, performance }
 
 // =============================================================
 // AUXILIARY CLASSES
@@ -356,6 +356,9 @@ class FundProvider with ChangeNotifier {
         portfolio.sort(
           (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
         );
+        break;
+      case SortCriteria.date:
+        portfolio.sort((a, b) => b.date.compareTo(a.date));
         break;
       case SortCriteria.value:
         portfolio.sort((a, b) {

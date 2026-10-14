@@ -29,7 +29,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
   //NumberFormat get priceFormat => NumberFormat('#,##0.0000', locale);
   NumberFormat get percentFormat => NumberFormat('#,##0.00', locale);
   NumberFormat get smartFormat => NumberFormat('#,##0.##', locale);
-  DateFormat get smartDateFormat => DateFormat('dd/MM/yy', locale);
+  //DateFormat get smartDateFormat => DateFormat('dd/MM/yy', locale);
+  DateFormat get dateFormat => DateFormat.yMMMd(locale);
 
   @override
   Widget build(BuildContext context) {
@@ -699,7 +700,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
       ),
       subtitle: Text(
-        smartDateFormat.format(op.date),
+        dateFormat.format(op.date),
         style: TextStyle(
           color: Colors.white.withValues(alpha: 0.6),
           fontSize: 13,

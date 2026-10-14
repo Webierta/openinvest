@@ -58,7 +58,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   NumberFormat get priceFormat => NumberFormat('#,##0.0000', locale);
   NumberFormat get percentFormat => NumberFormat('#,##0.00', locale);
   NumberFormat get smartFormat => NumberFormat('#,##0.##', locale);
-  DateFormat get smartDateFormat => DateFormat('dd/MM/yy', locale);
+  //DateFormat get smartDateFormat => DateFormat('dd/MM/yy', locale);
+  DateFormat get dateFormat => DateFormat.yMMMd(locale);
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +199,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               child: Badge(
                                 label: Text(
                                   //DateFormat.yMd(locale).format(item.date),
-                                  smartDateFormat.format(item.date),
+                                  dateFormat.format(item.date),
                                 ),
                                 textColor: Colors.white,
                                 textStyle: TextStyle(fontSize: 14),
@@ -207,6 +208,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                   horizontal: 8,
                                   vertical: 4,
                                 ),
+                                backgroundColor: Colors.blueGrey,
                                 child: Card(
                                   margin: const EdgeInsets.symmetric(
                                     horizontal: 12,
