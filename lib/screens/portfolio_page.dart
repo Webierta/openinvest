@@ -22,6 +22,14 @@ class PortfolioPage extends StatefulWidget {
 }
 
 class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
+  late AppLocalizations l10n;
+  late FundProvider provider;
+  late String locale;
+  late NumberFormat priceFormat;
+  late NumberFormat percentFormat;
+  late NumberFormat smartFormat;
+  late DateFormat smartDateFormat;
+
   bool _alertChecked = false;
 
   @override
@@ -30,15 +38,21 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     final route = ModalRoute.of(context);
     if (route != null) routeObserver.subscribe(this, route);
 
-    final provider = context.read<FundProvider>();
+    provider = context.read<FundProvider>();
     if (!_alertChecked && provider.triggeredAlerts.isNotEmpty) {
       _alertChecked = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _showTriggeredAlertsDialog(context, provider);
+          _showTriggeredAlertsDialog(context);
         }
       });
     }
+    l10n = AppLocalizations.of(context)!;
+    locale = Localizations.localeOf(context).toString();
+    priceFormat = NumberFormat('#,##0.0000', locale);
+    percentFormat = NumberFormat('#,##0.00', locale);
+    smartFormat = NumberFormat('#,##0.##', locale);
+    smartDateFormat = DateFormat('dd/MM/yy', locale);
   }
 
   @override
@@ -54,19 +68,10 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final provider = context.watch<FundProvider>();
-    final locale = Localizations.localeOf(context).toString();
-    final priceFormat = NumberFormat('#,##0.0000', locale);
-    final percentFormat = NumberFormat('#,##0.00', locale);
-    final smartFormat = NumberFormat('#,##0.##', locale);
-    //final smartDateFormat = DateFormat('dd/MM/yy', locale);
-
     final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
       provider.exchangeRates,
     );
-
     final bool showPortfolioSummary = globalMetrics.totalInvested > 0;
 
     return Scaffold(
@@ -192,54 +197,70 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                 ? Colors.greenAccent[400]!
                                 : Colors.redAccent[200]!;
 
-                            return Card(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              color: Colors.white.withValues(alpha: 0.03),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(16),
-                                onTap: () {
-                                  provider.selectFund(item);
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const FundDetailsPage(),
-                                    ),
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    children: [
-                                      Row(
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 15),
+                              child: Badge(
+                                label: Text(
+                                  //DateFormat.yMd(locale).format(item.date),
+                                  smartDateFormat.format(item.date),
+                                ),
+                                textColor: Colors.white,
+                                textStyle: TextStyle(fontSize: 14),
+                                alignment: AlignmentDirectional(0.7, -1),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                child: Card(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  color: Colors.white.withValues(alpha: 0.03),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () {
+                                      provider.selectFund(item);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const FundDetailsPage(),
+                                        ),
+                                      );
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(
                                         children: [
-                                          Hero(
-                                            tag: 'avatar_${item.isin}',
-                                            child: CircleAvatarFund(fund: item),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Hero(
-                                                  tag: 'name_${item.isin}',
-                                                  child: Material(
-                                                    color: Colors.transparent,
-                                                    child: Row(
-                                                      children: [
-                                                        Flexible(
-                                                          child: Text(
-                                                            item.name,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style:
-                                                                const TextStyle(
+                                          Row(
+                                            children: [
+                                              Hero(
+                                                tag: 'avatar_${item.isin}',
+                                                child: CircleAvatarFund(
+                                                  fund: item,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Hero(
+                                                      tag: 'name_${item.isin}',
+                                                      child: Material(
+                                                        color:
+                                                            Colors.transparent,
+                                                        child: Row(
+                                                          children: [
+                                                            Flexible(
+                                                              child: Text(
+                                                                item.name,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                                style: const TextStyle(
                                                                   fontWeight:
                                                                       FontWeight
                                                                           .bold,
@@ -247,60 +268,60 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                                   color: Colors
                                                                       .white,
                                                                 ),
-                                                          ),
+                                                              ),
+                                                            ),
+                                                            if ((item.alertMin !=
+                                                                        null &&
+                                                                    item.lastValue <=
+                                                                        item.alertMin!) ||
+                                                                (item.alertMax !=
+                                                                        null &&
+                                                                    item.lastValue >=
+                                                                        item.alertMax!)) ...[
+                                                              const SizedBox(
+                                                                width: 6,
+                                                              ),
+                                                              const Icon(
+                                                                Icons
+                                                                    .notifications_active_rounded,
+                                                                color: Colors
+                                                                    .amber,
+                                                                size: 16,
+                                                              ),
+                                                            ],
+                                                          ],
                                                         ),
-                                                        if ((item.alertMin !=
-                                                                    null &&
-                                                                item.lastValue <=
-                                                                    item.alertMin!) ||
-                                                            (item.alertMax !=
-                                                                    null &&
-                                                                item.lastValue >=
-                                                                    item.alertMax!)) ...[
-                                                          const SizedBox(
-                                                            width: 6,
-                                                          ),
-                                                          const Icon(
-                                                            Icons
-                                                                .notifications_active_rounded,
-                                                            color: Colors.amber,
-                                                            size: 16,
-                                                          ),
-                                                        ],
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                                Text(
-                                                  item.isin,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        fontSize: 11,
-                                                        color: Colors.white38,
                                                       ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                '${priceFormat.format(item.lastValue)} ${item.currency}',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 15,
-                                                  height: 1.1,
-                                                  color: Colors.white,
+                                                    ),
+                                                    Text(
+                                                      item.isin,
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            fontSize: 11,
+                                                            color:
+                                                                Colors.white38,
+                                                          ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                              const SizedBox(height: 2),
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
                                                 children: [
+                                                  Text(
+                                                    '${priceFormat.format(item.lastValue)} ${item.currency}',
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 15,
+                                                      height: 1.1,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
                                                   if (dailyVariation !=
                                                       null) ...[
                                                     Text(
@@ -313,133 +334,125 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                         height: 1.0,
                                                       ),
                                                     ),
-                                                    const SizedBox(width: 6),
                                                   ],
-                                                  Text(
-                                                    DateFormat.yMd(locale)
-                                                        .format(item.date),
-                                                    //SmartDateFormat.format(),
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          height: 1.0,
-                                                          fontSize: 10,
-                                                          color: Colors.white70,
-                                                        ),
-                                                  ),
                                                 ],
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
-                                      if (hasOps) ...[
-                                        const Divider(
-                                          height: 30,
-                                          color: Colors.white10,
-                                        ),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Column(
+                                          if (hasOps) ...[
+                                            const Divider(
+                                              height: 30,
+                                              color: Colors.white10,
+                                            ),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                Text(
-                                                  l10n.valueLabel,
-                                                  style: const TextStyle(
-                                                    fontSize: 9,
-                                                    color: Colors.white38,
-                                                    fontWeight: FontWeight.bold,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  '${smartFormat.format(metrics.currentValue)} ${item.currency}',
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Colors.white70,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 10),
-                                                Text(
-                                                  l10n.performanceLabel,
-                                                  style: const TextStyle(
-                                                    fontSize: 9,
-                                                    color: Colors.white38,
-                                                    fontWeight: FontWeight.bold,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${item.currency}',
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: profitColor,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.end,
-                                              children: [
-                                                Text(
-                                                  metrics.isAnnualized
-                                                      ? l10n.sortByPerformance
-                                                      : l10n.totalGain,
-                                                  style: const TextStyle(
-                                                    fontSize: 9,
-                                                    color: Colors.white38,
-                                                    fontWeight: FontWeight.bold,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 6),
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 4,
+                                                Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      l10n.valueLabel,
+                                                      style: const TextStyle(
+                                                        fontSize: 9,
+                                                        color: Colors.white38,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        letterSpacing: 0.5,
                                                       ),
-                                                  decoration: BoxDecoration(
-                                                    color: profitColor
-                                                        .withValues(
-                                                          alpha: 0.15,
-                                                        ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          6,
-                                                        ),
-                                                    border: Border.all(
-                                                      color: profitColor
-                                                          .withValues(
-                                                            alpha: 0.3,
+                                                    ),
+                                                    Text(
+                                                      '${smartFormat.format(metrics.currentValue)} ${item.currency}',
+                                                      style: const TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Colors.white70,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    Text(
+                                                      l10n.performanceLabel,
+                                                      style: const TextStyle(
+                                                        fontSize: 9,
+                                                        color: Colors.white38,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        letterSpacing: 0.5,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${item.currency}',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: profitColor,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    Text(
+                                                      metrics.isAnnualized
+                                                          ? l10n.sortByPerformance
+                                                          : l10n.totalGain,
+                                                      style: const TextStyle(
+                                                        fontSize: 9,
+                                                        color: Colors.white38,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        letterSpacing: 0.5,
+                                                      ),
+                                                    ),
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 4,
                                                           ),
+                                                      decoration: BoxDecoration(
+                                                        color: profitColor
+                                                            .withValues(
+                                                              alpha: 0.15,
+                                                            ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              6,
+                                                            ),
+                                                        border: Border.all(
+                                                          color: profitColor
+                                                              .withValues(
+                                                                alpha: 0.3,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        '${(metrics.isAnnualized ? metrics.tae : metrics.profitRel) > 0 ? '+' : ''}'
+                                                        '${percentFormat.format(metrics.isAnnualized ? metrics.tae : metrics.profitRel)}%',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: profitColor,
+                                                        ),
+                                                      ),
                                                     ),
-                                                  ),
-                                                  child: Text(
-                                                    '${(metrics.isAnnualized ? metrics.tae : metrics.profitRel) > 0 ? '+' : ''}${percentFormat.format(metrics.isAnnualized ? metrics.tae : metrics.profitRel)}%',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: profitColor,
-                                                    ),
-                                                  ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
                                           ],
-                                        ),
-                                      ],
-                                    ],
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -467,11 +480,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     );
   }
 
-  void _showTriggeredAlertsDialog(BuildContext context, FundProvider provider) {
-    final l10n = AppLocalizations.of(context)!;
-    final locale = Localizations.localeOf(context).toString();
-    final priceFormat = NumberFormat('#,##0.0000', locale);
-
+  void _showTriggeredAlertsDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -568,20 +577,4 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
       ),
     );
   }
-
-  /* Color _getFundColor(String isin) {
-    final int hash = isin.hashCode;
-    final List<Color> colors = [
-      Colors.blueAccent,
-      Colors.purpleAccent,
-      Colors.orangeAccent,
-      Colors.tealAccent,
-      Colors.pinkAccent,
-      Colors.indigoAccent,
-      Colors.amberAccent,
-      Colors.cyanAccent,
-      Colors.lightGreenAccent,
-    ];
-    return colors[hash.abs() % colors.length];
-  } */
 }

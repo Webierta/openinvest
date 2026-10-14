@@ -15,41 +15,57 @@ import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
 import 'fund_search_page.dart';
 
-class PortfolioSummaryPage extends StatelessWidget {
+class PortfolioSummaryPage extends StatefulWidget {
   const PortfolioSummaryPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final provider = context.watch<FundProvider>();
-    final funds = provider.portfolio;
+  State<PortfolioSummaryPage> createState() => _PortfolioSummaryPageState();
+}
 
-    final locale = Localizations.localeOf(context).toString();
-    //final priceFormat = NumberFormat('#,##0.0000', locale);
-    final percentFormat = NumberFormat('#,##0.00', locale);
-    final smartFormat = NumberFormat('#,##0.##', locale);
-    final smartDateFormat = DateFormat('dd/MM/yy', locale);
+class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
+  late AppLocalizations l10n;
+  late FundProvider provider;
+  late List<FundData> funds;
+  late String locale;
+  //late NumberFormat priceFormat;
+  late NumberFormat percentFormat;
+  late NumberFormat smartFormat;
+  late DateFormat smartDateFormat;
+  late GlobalMetrics globalMetrics;
+  late Color globalProfitColor;
 
-    final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    l10n = AppLocalizations.of(context)!;
+    provider = context.watch<FundProvider>();
+    funds = provider.portfolio;
+    locale = Localizations.localeOf(context).toString();
+    //priceFormat = NumberFormat('#,##0.0000', locale);
+    percentFormat = NumberFormat('#,##0.00', locale);
+    smartFormat = NumberFormat('#,##0.##', locale);
+    smartDateFormat = DateFormat('dd/MM/yy', locale);
+    globalMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
       provider.exchangeRates,
     );
-    final Color globalProfitColor = globalMetrics.profitAbs >= 0
+    globalProfitColor = globalMetrics.profitAbs >= 0
         ? Colors.greenAccent[400]!
         : Colors.redAccent[200]!;
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Cartera'), // Ajusta a tu clave de localización
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
-        actions: [
-          /* IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar datos',
-            onPressed: () => provider.refreshPortfolio(), // Tu método de actualización
-          ), */
-        ],
       ),
       body: GradientBackground(
         child: SafeArea(
@@ -63,7 +79,7 @@ class PortfolioSummaryPage extends StatelessWidget {
                   ),
                 )
               : funds.isEmpty
-              ? _buildEmptyState(context, l10n) // NO HAY FONDOS
+              ? _buildEmptyState(context) // NO HAY FONDOS
               : RefreshIndicator(
                   onRefresh: provider.loadPortfolio,
                   child: CustomScrollView(
@@ -72,18 +88,9 @@ class PortfolioSummaryPage extends StatelessWidget {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
-                          child: _buildSummaryCard(
-                            context,
-                            provider,
-                            l10n,
-                            globalMetrics,
-                            smartFormat,
-                            percentFormat,
-                            globalProfitColor,
-                          ),
+                          child: _buildSummaryCard(),
                         ),
                       ),
-
                       // 2. CUADRÍCULA DE ACCIONES RÁPIDAS
                       SliverToBoxAdapter(
                         child: Padding(
@@ -106,10 +113,9 @@ class PortfolioSummaryPage extends StatelessWidget {
                             16.0,
                             24.0,
                           ),
-                          child: _buildActionGrid(context, l10n, provider),
+                          child: _buildActionGrid(context),
                         ),
                       ),
-
                       // 3. LISTADO DE FONDOS
                       SliverToBoxAdapter(
                         child: Padding(
@@ -148,23 +154,15 @@ class PortfolioSummaryPage extends StatelessWidget {
                               index,
                             ) {
                               final fund = funds[index];
-                              return _buildFundListItem(
-                                context,
-                                provider,
-                                fund,
-                              );
+                              return _buildFundListItem(context, fund);
                             }, childCount: funds.length),
                           ),
                         ),
+                      // Listado de Operaciones recientes
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: _buildRecentOperations(
-                            context,
-                            funds,
-                            smartFormat,
-                            smartDateFormat,
-                          ),
+                          child: _buildRecentOperations(context),
                         ),
                       ),
                       const SliverToBoxAdapter(
@@ -175,29 +173,11 @@ class PortfolioSummaryPage extends StatelessWidget {
                 ),
         ),
       ),
-      // Tu Floating Action Button existente para añadir fondo
-      /* floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // Navega a tu página de añadir fondo
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Añadir Fondo'),
-        backgroundColor: const Color(0xFF3B82F6),
-      ), */
     );
   }
 
   // --- WIDGETS AUXILIARES DE DISEÑO ---
-
-  Widget _buildSummaryCard(
-    BuildContext context,
-    FundProvider provider,
-    AppLocalizations l10n,
-    GlobalMetrics globalMetrics,
-    NumberFormat smartFormat,
-    NumberFormat percentFormat,
-    Color globalProfitColor,
-  ) {
+  Widget _buildSummaryCard() {
     final bool hayInversion = globalMetrics.totalInvested > 0;
     return Container(
       padding: const EdgeInsets.all(24),
@@ -364,11 +344,7 @@ class PortfolioSummaryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionGrid(
-    BuildContext context,
-    AppLocalizations l10n,
-    FundProvider provider,
-  ) {
+  Widget _buildActionGrid(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     // Responsive: 2 columnas en móvil, 4 en escritorio (Linux/Windows)
     //final int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
@@ -441,7 +417,6 @@ class PortfolioSummaryPage extends StatelessWidget {
 
             if (!context.mounted) return;
             Navigator.pop(context); // Quitar loading
-
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const CorrelationMatrixPage()),
@@ -490,7 +465,6 @@ class PortfolioSummaryPage extends StatelessWidget {
               child: Text(
                 '✔️ Hoja de calculo de las operaciones (formato CSV)',
               ),
-              //child: TextButton(onPressed: onPressed, child: child),
             ),
             const SizedBox(height: 12),
             SimpleDialogOption(
@@ -570,11 +544,8 @@ class PortfolioSummaryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFundListItem(
-    BuildContext context,
-    FundProvider provider,
-    FundData fund,
-  ) {
+  Widget _buildFundListItem(BuildContext context, FundData fund) {
+    final metrics = FinancialCalculator.calculateFundMetrics(fund);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       color: Colors.white.withValues(alpha: 0.03),
@@ -631,8 +602,11 @@ class PortfolioSummaryPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (fund.operations.isNotEmpty) Icon(Icons.shopping_cart),
-                  //Icon(Icons.attach_money_outlined),
+                  if (fund.operations.isNotEmpty)
+                    Text(
+                      '${smartFormat.format(metrics.currentValue)} ${fund.currency}',
+                      style: TextStyle(fontSize: 12, color: Colors.white60),
+                    ),
                 ],
               ),
             ],
@@ -642,12 +616,7 @@ class PortfolioSummaryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentOperations(
-    BuildContext context,
-    List<FundData> funds,
-    NumberFormat smartFormat,
-    DateFormat smartDateFormat,
-  ) {
+  Widget _buildRecentOperations(BuildContext context) {
     // 1. Aplanar todas las operaciones de todos los fondos
     final List<FundOperation> allOps = [];
     for (final fund in funds) {
@@ -687,12 +656,7 @@ class PortfolioSummaryPage extends StatelessWidget {
             children: [
               for (int i = 0; i < recentOps.length; i++) ...[
                 if (i > 0) const Divider(height: 1, color: Colors.white12),
-                _buildOperationTile(
-                  funds,
-                  recentOps[i],
-                  smartFormat,
-                  smartDateFormat,
-                ),
+                _buildOperationTile(recentOps[i]),
               ],
             ],
           ),
@@ -701,20 +665,13 @@ class PortfolioSummaryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildOperationTile(
-    List<FundData> funds,
-    FundOperation op,
-    NumberFormat smartFormat,
-    DateFormat smartDateFormat,
-  ) {
+  Widget _buildOperationTile(FundOperation op) {
     final isBuy = op.type == OperationType.buy;
     final color = isBuy ? Colors.greenAccent : Colors.redAccent;
     final icon = isBuy ? Icons.add_circle_outline : Icons.remove_circle_outline;
-
     // En compra el dinero sale (-), en venta entra (+)
     //final sign = isBuy ? '-' : '+';
     final tooltip = isBuy ? 'Suscripción' : 'Reembolso';
-
     final fund = funds.firstWhere((fund) => fund.isin == op.isin);
 
     return ListTile(
@@ -772,7 +729,7 @@ class PortfolioSummaryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, dynamic l10n) {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

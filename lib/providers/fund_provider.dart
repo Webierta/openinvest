@@ -1567,28 +1567,6 @@ class FundProvider with ChangeNotifier {
   // PORTFOLIO CORRELATION MATRIX
   // =============================================================
 
-  // En tu Provider o ViewModel:
-  /* Future<PortfolioCorrelationMatrix?> loadCorrelationMatrix(
-    List<FundData> funds,
-  ) async {
-    if (funds.length < 2) return null; // No tiene sentido con 0 o 1 fondo
-
-    try {
-      // 'compute' ejecuta la función en un hilo secundario
-      return await compute(_calculateMatrixIsolate, funds);
-    } catch (e) {
-      //print('Error calculando matriz de correlación: $e');
-      return null;
-    }
-  }
-
-  // Esta función debe ser de nivel superior (top-level) o estática para 'compute'
-  static PortfolioCorrelationMatrix _calculateMatrixIsolate(
-    List<FundData> funds,
-  ) {
-    return calculatePortfolioCorrelationMatrix(funds, minDataPoints: 30);
-  } */
-
   /// Método optimizado para calcular la matriz en un isolate secundario
   Future<void> loadCorrelationMatrix() async {
     if (portfolio.length < 2) {
