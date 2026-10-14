@@ -17,8 +17,28 @@ class _FixedIsinResolver implements IsinResolver {
   }
 
   @override
+  void dispose() {}
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+/* class _FixedIsinResolver implements IsinResolver {
+  _FixedIsinResolver(this.resolution);
+
+  final IsinResult resolution;
+
+  @override
+  Future<IsinResult?> resolve({
+    required String ticker,
+    required String fundName,
+  }) async {
+    return resolution;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+} */
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -66,13 +86,17 @@ void main() {
           source: FundSource.financialTimes,
         ),
       );
-      if (result.error == null) {
-        expect(true, true);
+
+      if (result.error != null) {
+        // Diagnóstico temporal: muestra el error devuelto.
+        // Si AppError contiene stack trace o causa, muéstralos también.
+        // Sustituye estas propiedades por las que realmente tenga AppError.
+        // ignore: avoid_print
+        print('LF-30 error: ${result.error}');
       }
+      expect(result.error, isNull);
 
-      expect(true, true);
-
-      /* expect(result.error, isNull);
+      expect(result.error, isNull);
       expect(result.data, isNotNull);
 
       final resolvedFund = result.data!;
@@ -86,7 +110,7 @@ void main() {
       expect(resolvedFund.valuationSource, FundSource.yahoo);
 
       // La resolución del ISIN procede de Yahoo.
-      expect(result.source, FundSource.yahoo); */
+      expect(result.source, FundSource.yahoo);
     },
   );
 }
