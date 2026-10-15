@@ -1577,13 +1577,23 @@ class FundProvider with ChangeNotifier {
     if (_ipcHistory != null) return;
     // Ya está en caché, no volvemos a llamar a la API
 
+    debugPrint('Provider: Iniciando carga de historial IPC...');
     final service = IneIpcService();
     _ipcHistory = await service.getAllIpcHistory();
+
+    if (_ipcHistory!.isEmpty) {
+      debugPrint('Provider ADVERTENCIA: El historial IPC se cargó vacío.');
+    } else {
+      debugPrint(
+        'Provider: Historial IPC cargado en caché (${_ipcHistory!.length} registros).',
+      );
+    }
+
     notifyListeners();
   }
 
   // Método auxiliar para buscar el IPC de una fecha concreta desde la caché:
-  Future<IpcDataPoint?> _getIpcFromCache(int year, int month) async {
+  /* Future<IpcDataPoint?> _getIpcFromCache(int year, int month) async {
     if (_ipcHistory == null) return null;
     /* if (_ipcHistory == null) {
       final service = IneIpcService();
@@ -1600,7 +1610,7 @@ class FundProvider with ChangeNotifier {
     );
     //return match.year != 0 ? match.value : null;
     return match;
-  }
+  } */
 
   /// Calcula la variación porcentual del IPC entre dos fechas.
   ///
@@ -1629,23 +1639,58 @@ class FundProvider with ChangeNotifier {
         await loadIpcHistory();
       }
       final history = _ipcHistory;
-      if (history == null || history.isEmpty) return null;
+      if (history == null || history.isEmpty) {
+        debugPrint(
+          'IPC VARIATION: Fallo -> El historial está vacío o es null.',
+        );
+        return null;
+      }
 
       // 2. Buscamos los valores del índice para ambas fechas
-      final startData = await _getIpcFromCache(startYear, startMonth);
+      /* final startData = await _getIpcFromCache(startYear, startMonth);
       final endData = await _getIpcFromCache(endYear, endMonth);
-      if (startData == null || endData == null) return null;
+      if (startData == null || endData == null) return null; */
+
+      // Búsqueda directa en la lista (no necesita ser async)
+      final startData = history.firstWhere(
+        (data) => data.year == startYear && data.month == startMonth,
+        orElse: () =>
+            IpcDataPoint(year: 0, month: 0, value: 0, date: DateTime.now()),
+      );
+
+      final endData = history.firstWhere(
+        (data) => data.year == endYear && data.month == endMonth,
+        orElse: () =>
+            IpcDataPoint(year: 0, month: 0, value: 0, date: DateTime.now()),
+      );
 
       // 3. Validamos que ambas fechas tengan datos publicados
-      if (startData.year == 0 || endData.year == 0) return null;
+      //if (startData.year == 0 || endData.year == 0) return null;
+      if (startData.year == 0) {
+        debugPrint(
+          'IPC VARIATION: Fallo -> No hay datos para el inicio ($startYear-$startMonth).',
+        );
+        return null;
+      }
+      if (endData.year == 0) {
+        debugPrint(
+          'IPC VARIATION: Fallo -> No hay datos para el fin ($endYear-$endMonth).',
+        );
+        return null;
+      }
       // Una de las fechas no tiene datos (probablemente es un mes futuro)
 
       // 4. Calculamos la variación porcentual
       final variation =
           ((endData.value - startData.value) / startData.value) * 100;
+      debugPrint(
+        'IPC VARIATION: Éxito -> Variación calculada: ${variation.toStringAsFixed(2)}%',
+      );
       return variation;
-    } catch (e) {
+    } catch (e, stackTrace) {
       //print('Error al calcular la variación del IPC: $e');
+      debugPrint('IPC VARIATION: Excepción no controlada -> $e');
+      debugPrint(stackTrace.toString());
       return null;
     }
   }

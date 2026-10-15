@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Modelo de datos que representa un punto en la serie histórica del IPC.
@@ -89,7 +90,7 @@ class IneIpcService {
   /// Es mucho más eficiente llamar a este método una vez y cachear el resultado
   /// en tu FundProvider o en memoria, en lugar de llamar a getIpcValue()
   /// repetidamente para diferentes fechas.
-  Future<List<IpcDataPoint>> getAllIpcHistory() async {
+  /* Future<List<IpcDataPoint>> getAllIpcHistory() async {
     try {
       final response = await http.get(Uri.parse(_ipcTableUrl));
       if (response.statusCode == 200) {
@@ -110,6 +111,46 @@ class IneIpcService {
       }
     } catch (e) {
       //print('Error al obtener el historial del IPC: $e');
+      return [];
+    }
+  } */
+
+  Future<List<IpcDataPoint>> getAllIpcHistory() async {
+    try {
+      debugPrint('INE API: Solicitando historial del IPC...');
+      final response = await http.get(Uri.parse(_ipcTableUrl));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = jsonDecode(response.body);
+
+        // ✅ MEJORA CRÍTICA: Buscar por CÓDIGO oficial es 100% fiable, el nombre puede cambiar.
+        // IPC251852 es el código del "IPC general nacional"
+        final generalIndexSeries = jsonData.firstWhere(
+          (item) => item['COD'] == 'IPC251852',
+          orElse: () => null,
+        );
+
+        if (generalIndexSeries == null || generalIndexSeries['Data'] == null) {
+          debugPrint(
+            'INE API ERROR: No se encontró la serie con COD "IPC251852" o está vacía.',
+          );
+          return [];
+        }
+
+        final List<dynamic> dataSeries = generalIndexSeries['Data'] as List;
+        debugPrint(
+          'INE API: Éxito. Se encontraron ${dataSeries.length} registros.',
+        );
+
+        return dataSeries.map((data) => IpcDataPoint.fromJson(data)).toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
+      } else {
+        debugPrint('INE API ERROR: Código de estado ${response.statusCode}');
+        return [];
+      }
+    } catch (e, stackTrace) {
+      debugPrint('INE API EXCEPTION: $e');
+      debugPrint(stackTrace.toString());
       return [];
     }
   }
