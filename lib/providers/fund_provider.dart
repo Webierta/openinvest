@@ -12,6 +12,7 @@ import '../models/scraper_result.dart';
 import '../services/database_service.dart';
 import '../services/financialtimes_scraper.dart';
 import '../services/fund_scraper.dart';
+import '../services/ine_ipc_service.dart';
 import '../services/isin_providers/ecb_ifs_provider.dart';
 import '../services/isin_resolver.dart';
 import '../services/morningstar_rating.dart';
@@ -1564,6 +1565,89 @@ class FundProvider with ChangeNotifier {
       return null;
     }
     return date;
+  }
+
+  // =============================================================
+  // IPC
+  // =============================================================
+  List<IpcDataPoint>? _ipcHistory;
+
+  // Ejecutar la primera vez que se vaya a calcular
+  Future<void> loadIpcHistory() async {
+    if (_ipcHistory != null) return;
+    // Ya está en caché, no volvemos a llamar a la API
+
+    final service = IneIpcService();
+    _ipcHistory = await service.getAllIpcHistory();
+    notifyListeners();
+  }
+
+  // Método auxiliar para buscar el IPC de una fecha concreta desde la caché:
+  Future<IpcDataPoint?> _getIpcFromCache(int year, int month) async {
+    if (_ipcHistory == null) return null;
+    /* if (_ipcHistory == null) {
+      final service = IneIpcService();
+      final ipc = await service.getIpcValue(year, month);
+      //if (ipc != null) return ipc;
+      if (ipc != null) return ipc;
+      return null;
+    } */
+
+    final match = _ipcHistory!.firstWhere(
+      (data) => data.year == year && data.month == month,
+      orElse: () =>
+          IpcDataPoint(year: 0, month: 0, value: 0, date: DateTime.now()),
+    );
+    //return match.year != 0 ? match.value : null;
+    return match;
+  }
+
+  /// Calcula la variación porcentual del IPC entre dos fechas.
+  ///
+  /// [startYear], [startMonth]: Fecha inicial (ej. 2021, 3 para Marzo 2021).
+  /// [endYear], [endMonth]: Fecha final (ej. 2023, 10 para Octubre 2023).
+  ///
+  /// Devuelve la variación en porcentaje (ej. 5.5 significa un 5.5% de inflación).
+  /// Devuelve `null` si falta el dato de alguna de las dos fechas (ej. mes futuro no publicado).
+  Future<double?> getIpcVariation(
+    int startYear,
+    int startMonth,
+    int endYear,
+    int endMonth,
+  ) async {
+    if (startMonth < 1 || startMonth > 12 || endMonth < 1 || endMonth > 12) {
+      throw ArgumentError(
+        'Los meses deben estar entre 1 (Enero) y 12 (Diciembre).',
+      );
+    }
+
+    try {
+      // 1. Obtenemos toda la serie histórica (la API la cacheará a nivel de red,
+      // y si ya la tienes en tu Provider, es instantáneo).
+      //final history = await getAllIpcHistory();
+      if (_ipcHistory == null) {
+        await loadIpcHistory();
+      }
+      final history = _ipcHistory;
+      if (history == null || history.isEmpty) return null;
+
+      // 2. Buscamos los valores del índice para ambas fechas
+      final startData = await _getIpcFromCache(startYear, startMonth);
+      final endData = await _getIpcFromCache(endYear, endMonth);
+      if (startData == null || endData == null) return null;
+
+      // 3. Validamos que ambas fechas tengan datos publicados
+      if (startData.year == 0 || endData.year == 0) return null;
+      // Una de las fechas no tiene datos (probablemente es un mes futuro)
+
+      // 4. Calculamos la variación porcentual
+      final variation =
+          ((endData.value - startData.value) / startData.value) * 100;
+      return variation;
+    } catch (e) {
+      //print('Error al calcular la variación del IPC: $e');
+      return null;
+    }
   }
 
   // =============================================================

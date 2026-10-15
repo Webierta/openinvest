@@ -21,6 +21,8 @@ class FundMetrics {
   final double? twrAnnualized;
   final double? mwrTotal;
   final double? mwrAnnualized;
+  final double? twrAnnualizedIpc;
+  final double? mwrAnnualizedIpc;
   final int days;
 
   FundMetrics({
@@ -41,6 +43,8 @@ class FundMetrics {
     this.twrAnnualized,
     this.mwrTotal,
     this.mwrAnnualized,
+    this.twrAnnualizedIpc,
+    this.mwrAnnualizedIpc,
     required this.days,
   });
 }
@@ -276,7 +280,33 @@ class FinancialCalculator {
     return units * quote.price - invested;
   }
 
-  static FundMetrics calculateFundMetrics(FundData fund) {
+  /// Calcula la rentabilidad real de una inversión descontando la inflación
+  /// utilizando la Ecuación de Fisher (estándar financiero).
+  ///
+  /// [nominalReturnPercent]: Rentabilidad del fondo en porcentaje (ej. 15.5 para 15.5%): TWR /MWR
+  /// [inflationPercent]: Variación del IPC en porcentaje (ej. 4.2 para 4.2%).
+  ///
+  /// Devuelve la rentabilidad real en porcentaje (ej. 10.84).
+
+  static double calculateRealReturn(
+    double nominalReturnPercent,
+    double inflationPercent,
+  ) {
+    // 1. Convertir porcentajes a decimales (ej. 15.5 -> 0.155)
+    final double r = nominalReturnPercent / 100;
+    final double i = inflationPercent / 100;
+
+    // 2. Aplicar la Ecuación de Fisher: (1 + r) / (1 + i) - 1
+    final double realReturnDecimal = ((1 + r) / (1 + i)) - 1;
+
+    // 3. Devolver el resultado de nuevo en formato porcentaje
+    return realReturnDecimal * 100;
+  }
+
+  static FundMetrics calculateFundMetrics(
+    FundData fund, {
+    double? inflationPercent,
+  }) {
     double totalUnits = 0;
     double totalInvested = 0;
     DateTime? firstOpDate;
@@ -312,6 +342,8 @@ class FinancialCalculator {
     double? mwrTotal;
     double? mwrAnnualized;
     int days = 0;
+    double? twrAnnualizedIpc;
+    double? mwrAnnualizedIpc;
 
     if (totalInvested > 0 && firstOpDate != null) {
       // days = DateTime.now().difference(firstOpDate).inDays;
@@ -422,7 +454,6 @@ class FinancialCalculator {
             : 0.0;
 
         // 3. MWR (Money-Weighted Return / IRR)
-
         final flows = fund.operations
             .map(
               (op) => <String, Object>{
@@ -460,6 +491,21 @@ class FinancialCalculator {
           mwrAnnualized = irr;
           mwrTotal = (pow(1 + irr, years) - 1);
         } */
+
+        // 4. TWR-IPC y MWR-IPC (Rentabilidades reales descontando inflacción)
+
+        if (inflationPercent != null) {
+          twrAnnualizedIpc = calculateRealReturn(
+            twrAnnualized,
+            inflationPercent,
+          );
+          if (mwrAnnualized != null) {
+            mwrAnnualizedIpc = calculateRealReturn(
+              mwrAnnualized,
+              inflationPercent,
+            );
+          }
+        }
       } else {
         tae = profitRel;
       }
@@ -509,6 +555,8 @@ class FinancialCalculator {
       twrAnnualized: twrAnnualized,
       mwrTotal: mwrTotal,
       mwrAnnualized: mwrAnnualized,
+      twrAnnualizedIpc: twrAnnualizedIpc,
+      mwrAnnualizedIpc: mwrAnnualizedIpc,
       days: days,
     );
   }

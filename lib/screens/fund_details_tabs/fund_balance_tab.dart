@@ -24,18 +24,70 @@ class FundBalanceTab extends StatefulWidget {
 }
 
 class _FundBalanceTabState extends State<FundBalanceTab> {
+  late FundMetrics metrics;
+  String twrAnnualizedIpcStr = '-';
+  String mwrAnnualizedIpcStr = '-';
+
+  @override
+  void initState() {
+    metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
+    /* if (widget.fund.operations.isEmpty) {
+      metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
+    } */
+    super.initState();
+  }
+
+  Future<void> loadIpcHistory(FundProvider provider) async {
+    await provider.loadIpcHistory();
+    // obtener fecha de primera operación
+    final dateFirstOp = widget.fund.operations.first.date;
+    // obtener fecha de último precio actualizado
+    final dateLastPrice = widget.fund.history.last.date;
+    final ipcVariation = await provider.getIpcVariation(
+      dateFirstOp.year,
+      dateFirstOp.month,
+      dateLastPrice.year,
+      dateLastPrice.month,
+    );
+    if (ipcVariation != null) {
+      setState(() {
+        metrics = FinancialCalculator.calculateFundMetrics(
+          widget.fund,
+          inflationPercent: ipcVariation,
+        );
+        twrAnnualizedIpcStr = metrics.twrAnnualizedIpc != null
+            ? '${widget.percentFormat.format(metrics.mwrAnnualizedIpc! * 100)}%'
+            : '-';
+        mwrAnnualizedIpcStr = metrics.mwrAnnualizedIpc != null
+            ? '${widget.percentFormat.format(metrics.mwrAnnualizedIpc! * 100)}%'
+            : '-';
+      });
+    } else {
+      setState(() {
+        metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    context.watch<FundProvider>();
+    //context.watch<FundProvider>();
+    final provider = context.watch<FundProvider>();
     final locale = Localizations.localeOf(context).toString();
     final smartFormat = NumberFormat('#,##0.##', locale);
     final unitsFormat = NumberFormat('#,##0.####', locale);
-    final metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
+    //final metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
 
     final profitColor = metrics.profitAbs >= 0
         ? Colors.greenAccent[400]!
         : Colors.redAccent[200]!;
+
+    if (widget.fund.operations.isNotEmpty) {
+      loadIpcHistory(provider);
+    } else {
+      metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
+    }
 
     String annualizedReturnStr = '-';
     if (metrics.tae != 0 || metrics.days > 0) {
@@ -54,6 +106,14 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     String mwrAnnualizedStr = metrics.mwrAnnualized != null
         ? '${widget.percentFormat.format(metrics.mwrAnnualized! * 100)}%'
         : '-';
+
+    /* String twrAnnualizedIpcStr = metrics.twrAnnualizedIpc != null
+        ? '${widget.percentFormat.format(metrics.mwrAnnualizedIpc! * 100)}%'
+        : '-';
+
+    String mwrAnnualizedIpcStr = metrics.mwrAnnualizedIpc != null
+        ? '${widget.percentFormat.format(metrics.mwrAnnualizedIpc! * 100)}%'
+        : '-'; */
 
     String ageStr = '-';
     if (metrics.days > 0) {
@@ -250,6 +310,14 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
                 mwrAnnualizedStr,
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildSimpleStat('TWR-IPC', twrAnnualizedIpcStr)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildSimpleStat('MWR-IPC', mwrAnnualizedIpcStr)),
           ],
         ),
         const SizedBox(height: 12),
