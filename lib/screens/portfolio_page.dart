@@ -203,13 +203,17 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                 ),
                                 textColor: Colors.white,
                                 textStyle: TextStyle(fontSize: 14),
-                                alignment: AlignmentDirectional(0.7, -1),
+                                alignment: Alignment.topRight,
+                                //largeSize: 130,
+                                //alignment: AlignmentDirectional(0.7, -1),
+                                offset: Offset(-120, -6),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 4,
                                 ),
                                 backgroundColor: Colors.blueGrey,
                                 child: Card(
+                                  //clipBehavior: Clip.none,
                                   margin: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 6,

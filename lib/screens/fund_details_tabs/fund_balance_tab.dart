@@ -27,7 +27,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
   late FundMetrics metrics;
   String twrAnnualizedIpcStr = '-';
   String mwrAnnualizedIpcStr = '-';
-  double ineIpcVariation = 0;
+  String ineIpcVariationStr = 'ND';
   bool _isIpcLoading = false;
 
   @override
@@ -72,37 +72,36 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     }
 
     // Obtener fecha de primera operación
-    final dateFirstOp = widget.fund.operations.first.date;
+    // Ordenar las operaciones para asegurar que .first sea realmente el más antiguo
+    final sortedOp = List.of(widget.fund.operations)
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final dateFirstOp = sortedOp.first.date;
 
+    // Obtener fecha de último precio
     // Ordenar el historial para asegurar que .last sea realmente el más reciente
     final sortedHistory = List.of(widget.fund.history)
       ..sort((a, b) => a.date.compareTo(b.date));
     final dateLastPrice = sortedHistory.last.date;
 
-    // TODO: REVISAR YEAR -1
+    // restar un mes para obtener el último ipc publicado
     final ipcVariation = await provider.getIpcVariation(
-      dateFirstOp.year - 1,
+      dateFirstOp.year,
       dateFirstOp.month,
-      dateLastPrice.year - 1,
-      dateLastPrice.month,
+      dateLastPrice.year,
+      dateLastPrice.month - 1,
     );
-    print('##################################');
-    print(ipcVariation);
 
     if (mounted) {
       setState(() {
         _isIpcLoading = false;
         if (ipcVariation != null) {
-          // NOTA: Asumo que has añadido el parámetro 'inflationPercent' a tu
-          // método FinancialCalculator.calculateFundMetrics. Si no es así,
-          // deberás añadirlo o calcularlo manualmente aquí.
           metrics = FinancialCalculator.calculateFundMetrics(
             widget.fund,
             inflationPercent: ipcVariation,
           );
-          ineIpcVariation = ipcVariation;
 
-          // ✅ CORRECCIÓN DEL TYPO: Usar la variable correcta para cada uno
+          ineIpcVariationStr = '${widget.percentFormat.format(ipcVariation)}%';
+
           twrAnnualizedIpcStr = metrics.twrAnnualizedIpc != null
               ? '${widget.percentFormat.format(metrics.twrAnnualizedIpc!)}%'
               : '-';
@@ -131,12 +130,6 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     final profitColor = metrics.profitAbs >= 0
         ? Colors.greenAccent[400]!
         : Colors.redAccent[200]!;
-
-    /* if (widget.fund.operations.isNotEmpty) {
-      loadIpcHistory(provider);
-    } else {
-      metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
-    } */
 
     String annualizedReturnStr = '-';
     if (metrics.tae != 0 || metrics.days > 0) {
@@ -358,8 +351,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           children: [
             Expanded(
               child: _buildSimpleStat(
-                'TWR Real (vs IPC: ${widget.percentFormat.format(ineIpcVariation)}%)',
-                // ${widget.percentFormat.format(metrics.twrAnnualizedIpc!)}%
+                'TWR Real (vs IPC: $ineIpcVariationStr)',
                 _isIpcLoading ? '...' : twrAnnualizedIpcStr,
                 color: _getIpcColor(metrics.twrAnnualizedIpc),
               ),
@@ -367,7 +359,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildSimpleStat(
-                'MWR Real (vs IPC: ${widget.percentFormat.format(ineIpcVariation)}%)',
+                'MWR Real (vs IPC: $ineIpcVariationStr)',
                 _isIpcLoading ? '...' : mwrAnnualizedIpcStr,
                 color: _getIpcColor(metrics.mwrAnnualizedIpc),
               ),

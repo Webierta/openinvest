@@ -22,7 +22,7 @@ class AppDrawer extends StatelessWidget {
 
     return Drawer(
       backgroundColor: const Color(0xFF0F172A),
-      child: Column(
+      child: ListView(
         children: [
           DrawerHeader(
             decoration: const BoxDecoration(
@@ -136,7 +136,7 @@ class AppDrawer extends StatelessWidget {
               await SystemNavigator.pop();
             },
           ),
-          const Spacer(),
+          //const Spacer(),
           FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
             builder: (context, snapshot) {

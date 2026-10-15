@@ -288,22 +288,19 @@ class FinancialCalculator {
   ///
   /// Devuelve la rentabilidad real en porcentaje (ej. 10.84).
 
+  // ECUACIÓN DE FISHER
   static double calculateRealReturn(
     double nominalReturnAnnualized,
     double inflationPercent,
   ) {
     // 1. Convertir porcentajes a decimales (ej. 15.5 -> 0.155)
-    print('NOMINAl + INFLATION');
-    print(nominalReturnAnnualized);
-    print(inflationPercent);
-
-    final double r = nominalReturnAnnualized; // / 100;
+    final double r = nominalReturnAnnualized; // / 100  (NO NECESARIO);
     final double i = inflationPercent / 100;
 
     // 2. Aplicar la Ecuación de Fisher: (1 + r) / (1 + i) - 1
     final double realReturnDecimal = ((1 + r) / (1 + i)) - 1;
 
-    // 3. Devolver el resultado de nuevo en formato porcentaje
+    // 3. Devolver el resultado en formato porcentaje
     return realReturnDecimal * 100;
   }
 

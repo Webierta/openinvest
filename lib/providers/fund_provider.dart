@@ -1577,7 +1577,6 @@ class FundProvider with ChangeNotifier {
     if (_ipcHistory != null) return;
     // Ya está en caché, no volvemos a llamar a la API
 
-    debugPrint('Provider: Iniciando carga de historial IPC...');
     final service = IneIpcService();
     _ipcHistory = await service.getAllIpcHistory();
 
@@ -1591,26 +1590,6 @@ class FundProvider with ChangeNotifier {
 
     notifyListeners();
   }
-
-  // Método auxiliar para buscar el IPC de una fecha concreta desde la caché:
-  /* Future<IpcDataPoint?> _getIpcFromCache(int year, int month) async {
-    if (_ipcHistory == null) return null;
-    /* if (_ipcHistory == null) {
-      final service = IneIpcService();
-      final ipc = await service.getIpcValue(year, month);
-      //if (ipc != null) return ipc;
-      if (ipc != null) return ipc;
-      return null;
-    } */
-
-    final match = _ipcHistory!.firstWhere(
-      (data) => data.year == year && data.month == month,
-      orElse: () =>
-          IpcDataPoint(year: 0, month: 0, value: 0, date: DateTime.now()),
-    );
-    //return match.year != 0 ? match.value : null;
-    return match;
-  } */
 
   /// Calcula la variación porcentual del IPC entre dos fechas.
   ///
@@ -1626,14 +1605,15 @@ class FundProvider with ChangeNotifier {
     int endMonth,
   ) async {
     if (startMonth < 1 || startMonth > 12 || endMonth < 1 || endMonth > 12) {
-      throw ArgumentError(
+      /* throw ArgumentError(
         'Los meses deben estar entre 1 (Enero) y 12 (Diciembre).',
-      );
+      ); */
+      return null;
     }
 
     try {
       // 1. Obtenemos toda la serie histórica (la API la cacheará a nivel de red,
-      // y si ya la tienes en tu Provider, es instantáneo).
+      // y si está en Provider, es instantáneo).
       //final history = await getAllIpcHistory();
       if (_ipcHistory == null) {
         await loadIpcHistory();
@@ -1647,17 +1627,12 @@ class FundProvider with ChangeNotifier {
       }
 
       // 2. Buscamos los valores del índice para ambas fechas
-      /* final startData = await _getIpcFromCache(startYear, startMonth);
-      final endData = await _getIpcFromCache(endYear, endMonth);
-      if (startData == null || endData == null) return null; */
-
       // Búsqueda directa en la lista (no necesita ser async)
       final startData = history.firstWhere(
         (data) => data.year == startYear && data.month == startMonth,
         orElse: () =>
             IpcDataPoint(year: 0, month: 0, value: 0, date: DateTime.now()),
       );
-
       final endData = history.firstWhere(
         (data) => data.year == endYear && data.month == endMonth,
         orElse: () =>
@@ -1665,32 +1640,17 @@ class FundProvider with ChangeNotifier {
       );
 
       // 3. Validamos que ambas fechas tengan datos publicados
-      //if (startData.year == 0 || endData.year == 0) return null;
-      if (startData.year == 0) {
-        debugPrint(
-          'IPC VARIATION: Fallo -> No hay datos para el inicio ($startYear-$startMonth).',
-        );
-        return null;
-      }
-      if (endData.year == 0) {
-        debugPrint(
-          'IPC VARIATION: Fallo -> No hay datos para el fin ($endYear-$endMonth).',
-        );
-        return null;
-      }
+      if (startData.year == 0 || endData.year == 0) return null;
       // Una de las fechas no tiene datos (probablemente es un mes futuro)
 
       // 4. Calculamos la variación porcentual
-      final variation =
-          ((endData.value - startData.value) / startData.value) * 100;
-      debugPrint(
-        'IPC VARIATION: Éxito -> Variación calculada: ${variation.toStringAsFixed(2)}%',
-      );
+      // final variation = ((endData.value - startData.value) / startData.value) * 100;
+      final variation = ((endData.value / startData.value) - 1) * 100;
+
       return variation;
-    } catch (e, stackTrace) {
-      //print('Error al calcular la variación del IPC: $e');
-      debugPrint('IPC VARIATION: Excepción no controlada -> $e');
-      debugPrint(stackTrace.toString());
+    } catch (e) {
+      //debugPrint('IPC VARIATION: Excepción no controlada -> $e');
+      //debugPrint(stackTrace.toString());
       return null;
     }
   }
