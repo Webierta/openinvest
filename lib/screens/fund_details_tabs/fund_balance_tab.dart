@@ -379,7 +379,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           Align(
             alignment: Alignment.topRight,
             child: Text(
-              l10n.inflationTotal,
+              l10n.inflationTotal(ineIpcVariationStr),
               style: TextStyle(fontSize: 11, color: Colors.white54),
             ),
           ),

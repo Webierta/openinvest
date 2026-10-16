@@ -357,7 +357,7 @@
   "mwrInfoTitle": "MWR (Cumulative / Annualized)",
   "twrRealvsInflation": "Real TWR vs. Inflation",
   "mwrRealvsInflation": "Real MWR vs Inflation",
-  "inflationTotal": "Cumulative inflation since the initial subscription:",
+  "inflationTotal": "Cumulative inflation since the initial subscription: {inflation}",
   "inflationTitle" : "Real TWR and MWR vs. Inflation",
   "inflationDesc": "Annualized returns, accounting for cash flows and inflation (Spain's official IPC) based on the Fisher equation. Real TWR represents the fund’s effective return, while real MWR represents the actual return on the invested capital.",
   "daysCount": "{count, plural, =1{1 day} other{{count} days}}",
@@ -522,5 +522,35 @@
   "specifyUnitsOrAmountError": "Specify the number of units or the total amount.",
   "allNumericFieldsGreaterThanZeroError": "All numeric fields must be greater than zero.",
   "cannotSellMoreThanOwnedError": "You cannot sell more units than you own.",
-  "saleAmountExceedsCurrentValueError": "The sale amount cannot exceed the current fund value."
+  "saleAmountExceedsCurrentValueError": "The sale amount cannot exceed the current fund value.",
+    "portfolioTitle": "Portfolio",
+    "actionsLabel": "Actions",
+    "yourFundsTitle": "Your Funds ({count})",
+    "@yourFundsTitle": {
+      "placeholders": {
+        "count": { "type": "String" }
+      }
+    },
+    "currentPortfolioValue": "Current Portfolio Value",
+    "absoluteReturnLabel": "Absolute Return",
+    "relativeReturnLabel": "Relative Return",
+    "weightsLabel": "Weights",
+    "addAction": "Add",
+    "newFundSubtitle": "New Fund",
+    "twoFundsSubtitle": "2 Funds",
+    "correlationAction": "Correlation",
+    "riskMatrixSubtitle": "Risk Matrix",
+    "reportsAction": "Reports",
+    "pdfCsvSubtitle": "PDF / CSV",
+    "needAtLeastTwoFundsForCorrelation": "You need at least 2 funds to view the matrix.",
+    "generatePortfolioFilesTitle": "Generate Portfolio Files",
+    "csvSpreadsheetOption": "✔️ Spreadsheet of transactions (CSV format)",
+    "annualPdfReportOption": "✔️ Annual report in PDF format",
+    "recentOperationsTitle": "Recent Transactions",
+    "unitsPartsFormat": "{count} units",
+    "@unitsPartsFormat": {
+      "placeholders": {
+        "count": { "type": "String" }
+      }
+    }
 }

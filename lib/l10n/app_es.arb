@@ -357,9 +357,9 @@
   "mwrInfoTitle": "MWR (Acumulado / Anualizada)",
   "twrRealvsInflation": "TWR Real vs Inflación",
   "mwrRealvsInflation": "MWR Real vs Inflación",
-  "inflationTotal": "Inflación acumulada desde la suscripción inicial:",
+  "inflationTotal": "Inflación acumulada desde la suscripción inicial: {inflation}",
   "inflationTitle" : "TWR y MWR reales vs Inflación",
-  "inflationDesc": "Rentabilidades anualizadas considerando los flujos de caja y la inflacción (IPC oficial de España) en base a la ecuación de Fisher. TWR Real representa el rendimiento efectivo del fondo y MWR real el rendimiento real del dinero invertido.",
+  "inflationDesc": "Rentabilidades anualizadas considerando los flujos de caja y la inflacción (IPC oficial de España) en base a la ecuación de Fisher. TWR Real representa el rendimiento efectivo del fondo y MWR real el rendimiento real del dinero invertido.",  
   "daysCount": "{count, plural, =1{1 día} other{{count} días}}",
   "monthsCount": "{count, plural, =1{1 mes} other{{count} meses}}",
   "yearsCount": "{count, plural, =1{1 año} other{{count} años}}",
@@ -522,5 +522,35 @@
   "specifyUnitsOrAmountError": "Indica el número de participaciones o el valor total.",
   "allNumericFieldsGreaterThanZeroError": "Todos los campos numéricos deben ser mayores que cero.",
   "cannotSellMoreThanOwnedError": "No puedes vender más participaciones de las que posees.",
-  "saleAmountExceedsCurrentValueError": "El importe de venta no puede superar el valor actual del fondo."
+  "saleAmountExceedsCurrentValueError": "El importe de venta no puede superar el valor actual del fondo.",
+  "portfolioTitle": "Cartera",
+  "actionsLabel": "Acciones",
+  "yourFundsTitle": "Tus Fondos ({count})",
+  "@yourFundsTitle": {
+    "placeholders": {
+      "count": { "type": "String" }
+    }
+  },
+  "currentPortfolioValue": "Valor actual de la Cartera",
+  "absoluteReturnLabel": "Rendimiento absoluto",
+  "relativeReturnLabel": "Rendimiento relativo",
+  "weightsLabel": "Pesos",
+  "addAction": "Añadir",
+  "newFundSubtitle": "Nuevo Fondo",
+  "twoFundsSubtitle": "2 Fondos",
+  "correlationAction": "Correlación",
+  "riskMatrixSubtitle": "Matriz de Riesgo",
+  "reportsAction": "Informes",
+  "pdfCsvSubtitle": "PDF / CSV",
+  "needAtLeastTwoFundsForCorrelation": "Necesitas al menos 2 fondos para ver la matriz.",
+  "generatePortfolioFilesTitle": "Genera archivos de tu Cartera",
+  "csvSpreadsheetOption": "✔️ Hoja de calculo de las operaciones (formato CSV)",
+  "annualPdfReportOption": "✔️ Informe anual en formato PDF",
+  "recentOperationsTitle": "Últimas operaciones",
+  "unitsPartsFormat": "{count} partes",
+  "@unitsPartsFormat": {
+    "placeholders": {
+      "count": { "type": "String" }
+    }
+  }
 }

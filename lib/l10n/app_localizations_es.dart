@@ -1071,8 +1071,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mwrRealvsInflation => 'MWR Real vs Inflación';
 
   @override
-  String get inflationTotal =>
-      'Inflación acumulada desde la suscripción inicial:';
+  String inflationTotal(Object inflation) {
+    return 'Inflación acumulada desde la suscripción inicial: $inflation';
+  }
 
   @override
   String get inflationTitle => 'TWR y MWR reales vs Inflación';
@@ -1481,4 +1482,70 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get saleAmountExceedsCurrentValueError =>
       'El importe de venta no puede superar el valor actual del fondo.';
+
+  @override
+  String get portfolioTitle => 'Cartera';
+
+  @override
+  String get actionsLabel => 'Acciones';
+
+  @override
+  String yourFundsTitle(String count) {
+    return 'Tus Fondos ($count)';
+  }
+
+  @override
+  String get currentPortfolioValue => 'Valor actual de la Cartera';
+
+  @override
+  String get absoluteReturnLabel => 'Rendimiento absoluto';
+
+  @override
+  String get relativeReturnLabel => 'Rendimiento relativo';
+
+  @override
+  String get weightsLabel => 'Pesos';
+
+  @override
+  String get addAction => 'Añadir';
+
+  @override
+  String get newFundSubtitle => 'Nuevo Fondo';
+
+  @override
+  String get twoFundsSubtitle => '2 Fondos';
+
+  @override
+  String get correlationAction => 'Correlación';
+
+  @override
+  String get riskMatrixSubtitle => 'Matriz de Riesgo';
+
+  @override
+  String get reportsAction => 'Informes';
+
+  @override
+  String get pdfCsvSubtitle => 'PDF / CSV';
+
+  @override
+  String get needAtLeastTwoFundsForCorrelation =>
+      'Necesitas al menos 2 fondos para ver la matriz.';
+
+  @override
+  String get generatePortfolioFilesTitle => 'Genera archivos de tu Cartera';
+
+  @override
+  String get csvSpreadsheetOption =>
+      '✔️ Hoja de calculo de las operaciones (formato CSV)';
+
+  @override
+  String get annualPdfReportOption => '✔️ Informe anual en formato PDF';
+
+  @override
+  String get recentOperationsTitle => 'Últimas operaciones';
+
+  @override
+  String unitsPartsFormat(String count) {
+    return '$count partes';
+  }
 }

@@ -2057,8 +2057,8 @@ abstract class AppLocalizations {
   /// No description provided for @inflationTotal.
   ///
   /// In es, this message translates to:
-  /// **'Inflación acumulada desde la suscripción inicial:'**
-  String get inflationTotal;
+  /// **'Inflación acumulada desde la suscripción inicial: {inflation}'**
+  String inflationTotal(Object inflation);
 
   /// No description provided for @inflationTitle.
   ///
@@ -2761,6 +2761,126 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'El importe de venta no puede superar el valor actual del fondo.'**
   String get saleAmountExceedsCurrentValueError;
+
+  /// No description provided for @portfolioTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Cartera'**
+  String get portfolioTitle;
+
+  /// No description provided for @actionsLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Acciones'**
+  String get actionsLabel;
+
+  /// No description provided for @yourFundsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus Fondos ({count})'**
+  String yourFundsTitle(String count);
+
+  /// No description provided for @currentPortfolioValue.
+  ///
+  /// In es, this message translates to:
+  /// **'Valor actual de la Cartera'**
+  String get currentPortfolioValue;
+
+  /// No description provided for @absoluteReturnLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Rendimiento absoluto'**
+  String get absoluteReturnLabel;
+
+  /// No description provided for @relativeReturnLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Rendimiento relativo'**
+  String get relativeReturnLabel;
+
+  /// No description provided for @weightsLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Pesos'**
+  String get weightsLabel;
+
+  /// No description provided for @addAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir'**
+  String get addAction;
+
+  /// No description provided for @newFundSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Nuevo Fondo'**
+  String get newFundSubtitle;
+
+  /// No description provided for @twoFundsSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'2 Fondos'**
+  String get twoFundsSubtitle;
+
+  /// No description provided for @correlationAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Correlación'**
+  String get correlationAction;
+
+  /// No description provided for @riskMatrixSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Matriz de Riesgo'**
+  String get riskMatrixSubtitle;
+
+  /// No description provided for @reportsAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Informes'**
+  String get reportsAction;
+
+  /// No description provided for @pdfCsvSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'PDF / CSV'**
+  String get pdfCsvSubtitle;
+
+  /// No description provided for @needAtLeastTwoFundsForCorrelation.
+  ///
+  /// In es, this message translates to:
+  /// **'Necesitas al menos 2 fondos para ver la matriz.'**
+  String get needAtLeastTwoFundsForCorrelation;
+
+  /// No description provided for @generatePortfolioFilesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Genera archivos de tu Cartera'**
+  String get generatePortfolioFilesTitle;
+
+  /// No description provided for @csvSpreadsheetOption.
+  ///
+  /// In es, this message translates to:
+  /// **'✔️ Hoja de calculo de las operaciones (formato CSV)'**
+  String get csvSpreadsheetOption;
+
+  /// No description provided for @annualPdfReportOption.
+  ///
+  /// In es, this message translates to:
+  /// **'✔️ Informe anual en formato PDF'**
+  String get annualPdfReportOption;
+
+  /// No description provided for @recentOperationsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Últimas operaciones'**
+  String get recentOperationsTitle;
+
+  /// No description provided for @unitsPartsFormat.
+  ///
+  /// In es, this message translates to:
+  /// **'{count} partes'**
+  String unitsPartsFormat(String count);
 }
 
 class _AppLocalizationsDelegate

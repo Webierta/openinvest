@@ -60,26 +60,6 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   NumberFormat get smartFormat => NumberFormat('#,##0.##', locale);
   DateFormat get dateFormat => DateFormat.yMMMd(locale);
 
-  /* String fechaFormato(DateTime date) {
-    final full = DateFormat.yMd(locale).format(date);
-
-    final dayStr = date.day.toString();
-    final day = dayStr.length == 1 ? '0$dayStr' : dayStr;
-
-    final monthStr = date.month.toString();
-    final month = monthStr.length == 1 ? '0$monthStr' : monthStr;
-
-    final yearStr = date.year.toString();
-    final shortYear = yearStr.length >= 2
-        ? yearStr.substring(yearStr.length - 2)
-        : yearStr;
-
-    return full
-        .replaceAll(dayStr, day)
-        .replaceAll(monthStr, month)
-        .replaceAll(yearStr, shortYear);
-  } */
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<FundProvider>();
@@ -144,14 +124,14 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                     ? Center(
                         child: Text(
                           l10n.portfolioLoadError,
-                          textAlign: TextAlign.center,
+                          textAlign: .center,
                           style: const TextStyle(color: Colors.white70),
                         ),
                       )
                     : provider.portfolio.isEmpty
                     ? Center(
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment: .center,
                           children: [
                             const Icon(
                               Icons.account_balance_wallet_outlined,
@@ -176,7 +156,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                     : RefreshIndicator(
                         onRefresh: provider.loadPortfolio,
                         child: ListView.builder(
-                          padding: const EdgeInsets.only(bottom: 100, top: 12),
+                          padding: const .only(bottom: 100, top: 12),
                           itemCount:
                               provider.portfolio.length +
                               (showPortfolioSummary ? 1 : 0),
@@ -218,25 +198,25 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               child: Badge(
                                 label: Text(dateFormat.format(item.date)),
                                 textColor: Colors.white,
-                                textStyle: TextStyle(fontSize: 14),
-                                alignment: Alignment.topRight,
+                                textStyle: TextStyle(fontSize: 12),
+                                alignment: .topRight,
                                 //largeSize: 130,
                                 //alignment: AlignmentDirectional(0.7, -1),
                                 offset: Offset(-120, -6),
-                                padding: const EdgeInsets.symmetric(
+                                padding: const .symmetric(
                                   horizontal: 10,
                                   vertical: 4,
                                 ),
                                 backgroundColor: Colors.blueGrey,
                                 child: Card(
                                   //clipBehavior: Clip.none,
-                                  margin: const EdgeInsets.symmetric(
+                                  margin: const .symmetric(
                                     horizontal: 12,
                                     vertical: 6,
                                   ),
                                   color: Colors.white.withValues(alpha: 0.03),
                                   child: InkWell(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: .circular(16),
                                     onTap: () {
                                       provider.selectFund(item);
                                       Navigator.push(
@@ -252,6 +232,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                       child: Column(
                                         children: [
                                           Row(
+                                            crossAxisAlignment: .end,
                                             children: [
                                               Hero(
                                                 tag: 'avatar_${item.isin}',
@@ -262,8 +243,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                               const SizedBox(width: 12),
                                               Expanded(
                                                 child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
+                                                  crossAxisAlignment: .start,
                                                   children: [
                                                     Hero(
                                                       tag: 'name_${item.isin}',
@@ -276,12 +256,10 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                               child: Text(
                                                                 item.name,
                                                                 overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
+                                                                    .ellipsis,
                                                                 style: const TextStyle(
                                                                   fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
+                                                                      .bold,
                                                                   fontSize: 15,
                                                                   color: Colors
                                                                       .white,
@@ -326,15 +304,13 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                 ),
                                               ),
                                               Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
+                                                crossAxisAlignment: .end,
                                                 children: [
                                                   Text(
                                                     '${priceFormat.format(item.lastValue)} ${item.currency}',
                                                     style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 15,
+                                                      //fontWeight: FontWeight.bold,
+                                                      fontSize: 16,
                                                       height: 1.1,
                                                       color: Colors.white,
                                                     ),
@@ -346,9 +322,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                       '${dailyVariation > 0 ? '+' : ''}${percentFormat.format(dailyVariation)}%',
                                                       style: TextStyle(
                                                         color: dailyVarColor,
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                                        fontSize: 14,
+                                                        fontWeight: .bold,
                                                         height: 1.0,
                                                       ),
                                                     ),
@@ -363,23 +338,18 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                               color: Colors.white10,
                                             ),
                                             Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                              mainAxisAlignment: .spaceBetween,
+                                              crossAxisAlignment: .end,
                                               children: [
                                                 Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
+                                                  crossAxisAlignment: .start,
                                                   children: [
                                                     Text(
                                                       l10n.valueLabel,
                                                       style: const TextStyle(
                                                         fontSize: 9,
                                                         color: Colors.white38,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                                        fontWeight: .bold,
                                                         letterSpacing: 0.5,
                                                       ),
                                                     ),
@@ -387,8 +357,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                       '${smartFormat.format(metrics.currentValue)} ${item.currency}',
                                                       style: const TextStyle(
                                                         fontSize: 13,
-                                                        fontWeight:
-                                                            FontWeight.w500,
+                                                        fontWeight: .w500,
                                                         color: Colors.white70,
                                                       ),
                                                     ),
@@ -398,8 +367,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                       style: const TextStyle(
                                                         fontSize: 9,
                                                         color: Colors.white38,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                                        fontWeight: .bold,
                                                         letterSpacing: 0.5,
                                                       ),
                                                     ),
@@ -407,16 +375,14 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                       '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${item.currency}',
                                                       style: TextStyle(
                                                         fontSize: 13,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                                        fontWeight: .bold,
                                                         color: profitColor,
                                                       ),
                                                     ),
                                                   ],
                                                 ),
                                                 Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.end,
+                                                  crossAxisAlignment: .end,
                                                   children: [
                                                     Text(
                                                       metrics.isAnnualized
@@ -425,27 +391,24 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                       style: const TextStyle(
                                                         fontSize: 9,
                                                         color: Colors.white38,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                                        fontWeight: .bold,
                                                         letterSpacing: 0.5,
                                                       ),
                                                     ),
                                                     Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 10,
-                                                            vertical: 4,
-                                                          ),
+                                                      padding: const .symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 4,
+                                                      ),
                                                       decoration: BoxDecoration(
                                                         color: profitColor
                                                             .withValues(
                                                               alpha: 0.15,
                                                             ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
-                                                        border: Border.all(
+                                                        borderRadius: .circular(
+                                                          6,
+                                                        ),
+                                                        border: .all(
                                                           color: profitColor
                                                               .withValues(
                                                                 alpha: 0.3,
@@ -458,9 +421,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                         '${(metrics.twrAnnualized != null && metrics.twrAnnualized! > 0) ? '+' : ''}'
                                                         '${(metrics.twrAnnualized != null) ? '${percentFormat.format(metrics.twrAnnualized! * 100)}%' : ''}',
                                                         style: TextStyle(
-                                                          fontSize: 14,
-                                                          fontWeight:
-                                                              FontWeight.bold,
+                                                          //fontSize: 14,
+                                                          //fontWeight: FontWeight.bold,
                                                           color: profitColor,
                                                         ),
                                                       ),

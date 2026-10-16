@@ -25,10 +25,14 @@ class PortfolioSummaryPage extends StatefulWidget {
 class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
   // GETTERS
   AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   String get locale => Localizations.localeOf(context).toString();
+
   //NumberFormat get priceFormat => NumberFormat('#,##0.0000', locale);
   NumberFormat get percentFormat => NumberFormat('#,##0.00', locale);
+
   NumberFormat get smartFormat => NumberFormat('#,##0.##', locale);
+
   //DateFormat get smartDateFormat => DateFormat('dd/MM/yy', locale);
   DateFormat get dateFormat => DateFormat.yMMMd(locale);
 
@@ -44,7 +48,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cartera'), // Ajusta a tu clave de localización
+        title: Text(l10n.portfolioTitle),
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
       ),
@@ -77,7 +81,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           child: Text(
-                            'Acciones',
+                            l10n.actionsLabel,
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: Colors.white70,
@@ -102,7 +106,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           child: Text(
-                            'Tus Fondos (${funds.length})',
+                            l10n.yourFundsTitle('${funds.length}'),
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: Colors.white70,
@@ -153,9 +157,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                           ),
                         ),
                       ),
-                      const SliverToBoxAdapter(
-                        child: SizedBox(height: 32), // Espacio final para que el FAB no tape el último elemento
-                      ),
+                      // Espacio final para que el FAB no tape el último elemento
+                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
                     ],
                   ),
                 ),
@@ -189,7 +192,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Valor actual de la Cartera',
+            l10n.currentPortfolioValue,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14,
@@ -248,7 +251,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Rendimiento absoluto',
+                  l10n.absoluteReturnLabel,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 13,
@@ -269,10 +272,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  /* globalMetrics.isAnnualized
-                      ? l10n.sortByPerformance
-                      : l10n.gain, */
-                  'Rendimiento relativo',
+                  l10n.relativeReturnLabel,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 13,
@@ -291,7 +291,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
             if (globalMetrics.totalValue > 0) ...[
               const SizedBox(height: 10),
               Text(
-                'Pesos',
+                l10n.weightsLabel,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 13,
@@ -362,8 +362,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           context,
           provider,
           icon: Icons.add_chart,
-          title: 'Añadir',
-          subtitle: 'Nuevo Fondo',
+          title: l10n.addAction,
+          subtitle: l10n.newFundSubtitle,
           color: Colors.blue,
           onTap: () => Navigator.push(
             context,
@@ -374,8 +374,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           context,
           provider,
           icon: Icons.compare_arrows,
-          title: 'Comparar',
-          subtitle: '2 Fondos',
+          title: l10n.compareLabel,
+          subtitle: l10n.twoFundsSubtitle,
           color: Colors.purple,
           onTap: () {
             Navigator.push(
@@ -388,17 +388,13 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           context,
           provider,
           icon: Icons.grid_4x4,
-          title: 'Correlación',
-          subtitle: 'Matriz de Riesgo',
+          title: l10n.correlationAction,
+          subtitle: l10n.riskMatrixSubtitle,
           color: Colors.orange,
           onTap: () async {
             if (provider.portfolio.length < 2) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Necesitas al menos 2 fondos para ver la matriz.',
-                  ),
-                ),
+                SnackBar(content: Text(l10n.needAtLeastTwoFundsForCorrelation)),
               );
               return;
             }
@@ -423,7 +419,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           context,
           provider,
           icon: Icons.description,
-          title: 'Informes',
+          title: l10n.reportsAction,
           subtitle: 'PDF / CSV',
           color: Colors.teal,
           onTap: () async {
@@ -453,22 +449,20 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         return SimpleDialog(
           contentPadding: EdgeInsets.all(24),
           //titlePadding: EdgeInsets.all(24),
-          title: Center(child: Text('Genera archivos de tu Cartera')),
+          title: Center(child: Text(l10n.generatePortfolioFilesTitle)),
           children: <Widget>[
             SimpleDialogOption(
               onPressed: () {
                 Navigator.pop(context, 'CSV');
               },
-              child: Text(
-                '✔️ Hoja de calculo de las operaciones (formato CSV)',
-              ),
+              child: Text(l10n.csvSpreadsheetOption),
             ),
             const SizedBox(height: 12),
             SimpleDialogOption(
               onPressed: () {
                 Navigator.pop(context, 'PDF');
               },
-              child: Text('✔️ Informe anual en formato PDF'),
+              child: Text(l10n.annualPdfReportOption),
             ),
           ],
         );
@@ -641,7 +635,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            'Últimas operaciones',
+            l10n.recentOperationsTitle,
             style: Theme.of(context).textTheme.titleMedium
                 ?.copyWith(color: Colors.white70, fontWeight: FontWeight.bold),
           ),
@@ -673,7 +667,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     final icon = isBuy ? Icons.add_circle_outline : Icons.remove_circle_outline;
     // En compra el dinero sale (-), en venta entra (+)
     //final sign = isBuy ? '-' : '+';
-    final tooltip = isBuy ? 'Suscripción' : 'Reembolso';
+    final tooltip = isBuy ? l10n.subscription : l10n.redemption;
     //final fund = funds.firstWhere((fund) => fund.isin == op.isin);
     final fundIsin = funds.where((fund) => fund.isin == op.isin).toList();
     if (fundIsin.isEmpty) return SizedBox.shrink();
@@ -724,7 +718,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               ),
             ),
             Text(
-              '${op.units.toStringAsFixed(3)} partes',
+              //'${op.units.toStringAsFixed(3)} partes',
+              l10n.unitsPartsFormat(op.units.toStringAsFixed(3)),
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 12,

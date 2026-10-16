@@ -1063,8 +1063,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mwrRealvsInflation => 'Real MWR vs Inflation';
 
   @override
-  String get inflationTotal =>
-      'Cumulative inflation since the initial subscription:';
+  String inflationTotal(Object inflation) {
+    return 'Cumulative inflation since the initial subscription: $inflation';
+  }
 
   @override
   String get inflationTitle => 'Real TWR and MWR vs. Inflation';
@@ -1471,4 +1472,70 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get saleAmountExceedsCurrentValueError =>
       'The sale amount cannot exceed the current fund value.';
+
+  @override
+  String get portfolioTitle => 'Portfolio';
+
+  @override
+  String get actionsLabel => 'Actions';
+
+  @override
+  String yourFundsTitle(String count) {
+    return 'Your Funds ($count)';
+  }
+
+  @override
+  String get currentPortfolioValue => 'Current Portfolio Value';
+
+  @override
+  String get absoluteReturnLabel => 'Absolute Return';
+
+  @override
+  String get relativeReturnLabel => 'Relative Return';
+
+  @override
+  String get weightsLabel => 'Weights';
+
+  @override
+  String get addAction => 'Add';
+
+  @override
+  String get newFundSubtitle => 'New Fund';
+
+  @override
+  String get twoFundsSubtitle => '2 Funds';
+
+  @override
+  String get correlationAction => 'Correlation';
+
+  @override
+  String get riskMatrixSubtitle => 'Risk Matrix';
+
+  @override
+  String get reportsAction => 'Reports';
+
+  @override
+  String get pdfCsvSubtitle => 'PDF / CSV';
+
+  @override
+  String get needAtLeastTwoFundsForCorrelation =>
+      'You need at least 2 funds to view the matrix.';
+
+  @override
+  String get generatePortfolioFilesTitle => 'Generate Portfolio Files';
+
+  @override
+  String get csvSpreadsheetOption =>
+      '✔️ Spreadsheet of transactions (CSV format)';
+
+  @override
+  String get annualPdfReportOption => '✔️ Annual report in PDF format';
+
+  @override
+  String get recentOperationsTitle => 'Recent Transactions';
+
+  @override
+  String unitsPartsFormat(String count) {
+    return '$count units';
+  }
 }
