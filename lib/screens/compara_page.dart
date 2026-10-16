@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:investing/services/ine_ipc_service.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
@@ -248,17 +249,46 @@ class _ComparaPageState extends State<ComparaPage> {
   }
 }
 
-class _ComparisonResultsIntro extends StatelessWidget {
+class _ComparisonResultsIntro extends StatefulWidget {
   final FundData first;
   final FundData second;
 
   const _ComparisonResultsIntro({required this.first, required this.second});
 
   @override
+  State<_ComparisonResultsIntro> createState() =>
+      _ComparisonResultsIntroState();
+}
+
+class _ComparisonResultsIntroState extends State<_ComparisonResultsIntro> {
+  List<IpcDataPoint>? ipcHistory;
+
+  @override
+  void initState() {
+    _loadIpcData();
+    super.initState();
+  }
+
+  Future<void> _loadIpcData() async {
+    if (widget.first.operations.isEmpty && widget.second.operations.isEmpty) {
+      return;
+    }
+    final provider = context.read<FundProvider>();
+    if (provider.ipcHistory == null) {
+      await provider.loadIpcHistory();
+    }
+    setState(() => ipcHistory = provider.ipcHistory);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
-    final result = FundComparisonCalculator.calculate(first, second);
+    final result = FundComparisonCalculator.calculate(
+      widget.first,
+      widget.second,
+      ipcHistory: ipcHistory,
+    );
     final dateFormat = DateFormat.yMMMd(locale);
 
     return Column(
@@ -370,25 +400,53 @@ class _ComparisonFundName extends StatelessWidget {
   }
 }
 
-class _ComparisonResults extends StatelessWidget {
+class _ComparisonResults extends StatefulWidget {
   final FundData first;
   final FundData second;
 
   const _ComparisonResults({required this.first, required this.second});
 
   @override
+  State<_ComparisonResults> createState() => _ComparisonResultsState();
+}
+
+class _ComparisonResultsState extends State<_ComparisonResults> {
+  List<IpcDataPoint>? ipcHistory;
+
+  @override
+  void initState() {
+    _loadIpcData();
+    super.initState();
+  }
+
+  Future<void> _loadIpcData() async {
+    if (widget.first.operations.isEmpty && widget.second.operations.isEmpty) {
+      return;
+    }
+    final provider = context.read<FundProvider>();
+    if (provider.ipcHistory == null) {
+      await provider.loadIpcHistory();
+    }
+    setState(() => ipcHistory = provider.ipcHistory);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
-    final result = FundComparisonCalculator.calculate(first, second);
+    final result = FundComparisonCalculator.calculate(
+      widget.first,
+      widget.second,
+      ipcHistory: ipcHistory,
+    );
     final dateFormat = DateFormat.yMMMd(locale);
     final navFormat = NumberFormat('#,##0.0000', locale);
     final amountFormat = NumberFormat('#,##0.##', locale);
     final percentFormat = NumberFormat('#,##0.00', locale);
 
     final correlation = FundComparisonCalculator.calculateFundCorrelation(
-      first,
-      second,
+      widget.first,
+      widget.second,
     );
 
     return Column(
@@ -495,7 +553,7 @@ class _ComparisonResults extends StatelessWidget {
         //_buildCorrelationIndicator(result.calculateFundCorrelation),
         if (correlation != null) _buildCorrelationIndicator(correlation),
         const SizedBox(height: 24),
-        ComparisonFundChart(first: first, second: second),
+        ComparisonFundChart(first: widget.first, second: widget.second),
       ],
     );
   }
@@ -703,6 +761,20 @@ class _ComparisonResults extends StatelessWidget {
           _fraction(secondMetrics.mwrAnnualized, percentFormat),
           firstColor: _variationColor(firstMetrics.mwrAnnualized),
           secondColor: _variationColor(secondMetrics.mwrAnnualized),
+        ),
+        _ComparisonRow(
+          l10n.twrRealvsInflation,
+          _fraction(firstMetrics.twrRealAnnualized, percentFormat),
+          _fraction(secondMetrics.twrRealAnnualized, percentFormat),
+          firstColor: _variationColor(firstMetrics.twrRealAnnualized),
+          secondColor: _variationColor(secondMetrics.twrRealAnnualized),
+        ),
+        _ComparisonRow(
+          l10n.mwrRealvsInflation,
+          _fraction(firstMetrics.mwrRealAnnualized, percentFormat),
+          _fraction(secondMetrics.mwrRealAnnualized, percentFormat),
+          firstColor: _variationColor(firstMetrics.mwrRealAnnualized),
+          secondColor: _variationColor(secondMetrics.mwrRealAnnualized),
         ),
         _ComparisonRow(
           l10n.compareMoic,

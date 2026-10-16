@@ -248,7 +248,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Rendimiento',
+                  'Rendimiento absoluto',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 13,
@@ -269,9 +269,10 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  globalMetrics.isAnnualized
+                  /* globalMetrics.isAnnualized
                       ? l10n.sortByPerformance
-                      : l10n.gain,
+                      : l10n.gain, */
+                  'Rendimiento relativo',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 13,

@@ -1065,6 +1065,23 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mwrInfoTitle => 'MWR (Acumulado / Anualizada)';
 
   @override
+  String get twrRealvsInflation => 'TWR Real vs Inflación';
+
+  @override
+  String get mwrRealvsInflation => 'MWR Real vs Inflación';
+
+  @override
+  String get inflationTotal =>
+      'Inflación acumulada desde la suscripción inicial:';
+
+  @override
+  String get inflationTitle => 'TWR y MWR reales vs Inflación';
+
+  @override
+  String get inflationDesc =>
+      'Rentabilidades anualizadas considerando los flujos de caja y la inflacción (IPC oficial de España) en base a la ecuación de Fisher. TWR Real representa el rendimiento efectivo del fondo y MWR real el rendimiento real del dinero invertido.';
+
+  @override
   String monthsCount(num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

@@ -25,9 +25,9 @@ class FundBalanceTab extends StatefulWidget {
 
 class _FundBalanceTabState extends State<FundBalanceTab> {
   late FundMetrics metrics;
-  String twrAnnualizedIpcStr = '-';
-  String mwrAnnualizedIpcStr = '-';
-  String ineIpcVariationStr = 'ND';
+  String twrRealAnnualizedStr = '-';
+  String mwrRealAnnualizedStr = '-';
+  String ineIpcVariationStr = '';
   bool _isIpcLoading = false;
 
   @override
@@ -43,8 +43,9 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     // Si el fondo cambia (ej. el usuario selecciona otro fondo en el TabBar)
     if (oldWidget.fund.isin != widget.fund.isin) {
       metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
-      twrAnnualizedIpcStr = '-';
-      mwrAnnualizedIpcStr = '-';
+      twrRealAnnualizedStr = '-';
+      mwrRealAnnualizedStr = '-';
+      ineIpcVariationStr = '';
       _isIpcLoading = false;
       _loadIpcData();
     }
@@ -52,11 +53,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
 
   Future<void> _loadIpcData() async {
     if (widget.fund.operations.isEmpty) return;
-
-    setState(() {
-      _isIpcLoading = true;
-    });
-
+    setState(() => _isIpcLoading = true);
     final provider = context.read<FundProvider>();
     if (provider.ipcHistory == null) {
       await provider.loadIpcHistory();
@@ -80,13 +77,11 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     final sortedOp = List.of(widget.fund.operations)
       ..sort((a, b) => a.date.compareTo(b.date));
     final dateFirstOp = sortedOp.first.date;
-
     // Obtener fecha de último precio
     // Ordenar el historial para asegurar que .last sea realmente el más reciente
     final sortedHistory = List.of(widget.fund.history)
       ..sort((a, b) => a.date.compareTo(b.date));
     final dateLastPrice = sortedHistory.last.date;
-
     // restar un mes para obtener el último ipc publicado
     final ipcVariation = FinancialCalculator.calculateIpcVariation(
       dateFirstOp.year,
@@ -96,36 +91,23 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
       ipcHistory,
     );
 
-    /* // restar un mes para obtener el último ipc publicado
-    final ipcVariation = await provider.getIpcVariation(
-      dateFirstOp.year,
-      dateFirstOp.month,
-      dateLastPrice.year,
-      dateLastPrice.month - 1,
-    ); */
-
     if (mounted) {
       setState(() {
         _isIpcLoading = false;
-        if (ipcVariation != null) {
-          metrics = FinancialCalculator.calculateFundMetrics(
-            widget.fund,
-            inflationPercent: ipcVariation,
-          );
 
-          ineIpcVariationStr = '${widget.percentFormat.format(ipcVariation)}%';
-
-          twrAnnualizedIpcStr = metrics.twrAnnualizedIpc != null
-              ? '${widget.percentFormat.format(metrics.twrAnnualizedIpc!)}%'
-              : '-';
-
-          mwrAnnualizedIpcStr = metrics.mwrAnnualizedIpc != null
-              ? '${widget.percentFormat.format(metrics.mwrAnnualizedIpc!)}%'
-              : '-';
-        } else {
-          // Si no hay datos de IPC, mostramos las métricas normales
-          metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
-        }
+        metrics = FinancialCalculator.calculateFundMetrics(
+          widget.fund,
+          ipcHistory: ipcHistory,
+        );
+        twrRealAnnualizedStr = metrics.twrRealAnnualized != null
+            ? '${widget.percentFormat.format(metrics.twrRealAnnualized! * 100)}%'
+            : '-';
+        mwrRealAnnualizedStr = metrics.mwrRealAnnualized != null
+            ? '${widget.percentFormat.format(metrics.mwrRealAnnualized! * 100)}%'
+            : '-';
+        ineIpcVariationStr = ipcVariation != null
+            ? '${widget.percentFormat.format(ipcVariation)}%'
+            : '';
       });
     }
   }
@@ -364,17 +346,17 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           children: [
             Expanded(
               child: _buildSimpleStat(
-                'TWR Real (vs IPC: $ineIpcVariationStr)',
-                _isIpcLoading ? '...' : twrAnnualizedIpcStr,
-                color: _getIpcColor(metrics.twrAnnualizedIpc),
+                l10n.twrRealvsInflation,
+                _isIpcLoading ? '...' : twrRealAnnualizedStr,
+                color: _getIpcColor(metrics.twrRealAnnualized),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildSimpleStat(
-                'MWR Real (vs IPC: $ineIpcVariationStr)',
-                _isIpcLoading ? '...' : mwrAnnualizedIpcStr,
-                color: _getIpcColor(metrics.mwrAnnualizedIpc),
+                l10n.mwrRealvsInflation,
+                _isIpcLoading ? '...' : mwrRealAnnualizedStr,
+                color: _getIpcColor(metrics.mwrRealAnnualized),
               ),
             ),
           ],
@@ -392,6 +374,15 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        if (ineIpcVariationStr.isNotEmpty)
+          Align(
+            alignment: Alignment.topRight,
+            child: Text(
+              l10n.inflationTotal,
+              style: TextStyle(fontSize: 11, color: Colors.white54),
+            ),
+          ),
       ],
     );
   }
@@ -504,12 +495,8 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
                       description: l10n.mwrIrrDesc,
                     ),
                     _IndexInfoRow(
-                      title: 'TWR y MWR reales (vs IPC)',
-                      description:
-                          'Rentabilidades anualizadas considerando la inflacción (IPC de España) en base a la ecuación de Fisher. '
-                          'TWR-IPC representa el rendimiento efectivo del fondo y MWR-IPC el rendimiento real del dinero invertido. '
-                          'La aplicación calcula la variación del IPC desde la fecha de la primera suscripción hasta un mes antes del último precio liquidativo, '
-                          'sin tener en cuenta posteriores suscripciones o reembolsos.',
+                      title: l10n.inflationTitle,
+                      description: l10n.inflationDesc,
                     ),
                     _IndexInfoRow(
                       title: l10n.moicLabel,

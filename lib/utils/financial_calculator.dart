@@ -22,8 +22,10 @@ class FundMetrics {
   final double? twrAnnualized;
   final double? mwrTotal;
   final double? mwrAnnualized;
-  final double? twrAnnualizedIpc;
-  final double? mwrAnnualizedIpc;
+  final double? twrRealTotal;
+  final double? twrRealAnnualized;
+  final double? mwrRealAnnualized;
+  final double? mwrRealTotal;
   final int days;
 
   FundMetrics({
@@ -44,8 +46,10 @@ class FundMetrics {
     this.twrAnnualized,
     this.mwrTotal,
     this.mwrAnnualized,
-    this.twrAnnualizedIpc,
-    this.mwrAnnualizedIpc,
+    this.twrRealAnnualized,
+    this.twrRealTotal,
+    this.mwrRealAnnualized,
+    this.mwrRealTotal,
     required this.days,
   });
 }
@@ -290,7 +294,7 @@ class FinancialCalculator {
   /// Devuelve la rentabilidad real en porcentaje (ej. 10.84).
 
   // ECUACIÓN DE FISHER
-  static double calculateRealReturn(
+  /* static double calculateRealReturn(
     double nominalReturnAnnualized,
     double inflationPercent,
   ) {
@@ -303,7 +307,7 @@ class FinancialCalculator {
 
     // 3. Devolver el resultado en formato porcentaje
     return realReturnDecimal * 100;
-  }
+  } */
 
   static double? calculateIpcVariation(
     int startYear,
@@ -345,6 +349,7 @@ class FinancialCalculator {
   static FundMetrics calculateFundMetrics(
     FundData fund, {
     double? inflationPercent,
+    List<IpcDataPoint>? ipcHistory,
   }) {
     double totalUnits = 0;
     double totalInvested = 0;
@@ -381,8 +386,12 @@ class FinancialCalculator {
     double? mwrTotal;
     double? mwrAnnualized;
     int days = 0;
-    double? twrAnnualizedIpc;
-    double? mwrAnnualizedIpc;
+    //double? twrAnnualizedIpc;
+    //double? mwrAnnualizedIpc;
+    double? twrRealTotal;
+    double? twrRealAnnualized;
+    double? mwrRealAnnualized;
+    double? mwrRealTotal;
 
     if (totalInvested > 0 && firstOpDate != null) {
       // days = DateTime.now().difference(firstOpDate).inDays;
@@ -512,37 +521,81 @@ class FinancialCalculator {
           mwrTotal = (pow(1 + irr, years) - 1);
         }
 
-        /* final flows = fund.operations
-            .map(
-              (op) => <String, Object>{
-                'amount': op.type == OperationType.buy ? -op.amount : op.amount,
-                'date': op.date,
-              },
-            )
-            .toList();
-        flows.add(<String, Object>{
-          'amount': currentValue,
-          'date': DateTime.now(),
-        });
+        // ---------------------------------------------------------------------
+        // 1. TWR REAL (Time-Weighted Return Real)
+        // ---------------------------------------------------------------------
+        // El TWR mide el crecimiento de 1 unidad monetaria desde el inicio hasta el final,
+        // ignorando los flujos intermedios. Por tanto, se ajusta el multiplicador total
+        // del TWR por la inflación total acumulada en ese mismo periodo.
 
-        final double irr = _calculateIRR(flows);
-        if (!irr.isNaN) {
-          mwrAnnualized = irr;
-          mwrTotal = (pow(1 + irr, years) - 1);
-        } */
+        //double? _twrRealTotal;
+        //double? _twrRealAnnualized;
+        final DateTime endDate = fund.date; // Fecha final de valoración
 
-        // 4. TWR-IPC y MWR-IPC (Rentabilidades reales descontando inflacción)
+        final double? startIpc = _getIpcValueForDate(firstOpDate, ipcHistory);
+        final double? endIpc = _getIpcValueForDate(endDate, ipcHistory);
 
-        if (inflationPercent != null) {
-          twrAnnualizedIpc = calculateRealReturn(
-            twrAnnualized,
-            inflationPercent,
-          );
-          if (mwrAnnualized != null) {
-            mwrAnnualizedIpc = calculateRealReturn(
-              mwrAnnualized,
-              inflationPercent,
-            );
+        if (startIpc != null && endIpc != null && startIpc > 0) {
+          // Inflación total en decimal (ej. 0.05 para 5%)
+          final double totalInflationDecimal = (endIpc / startIpc) - 1.0;
+
+          // Ecuación de Fisher aplicada al multiplicador total del TWR
+          final double realTwrDecimal =
+              ((1.0 + calculatedTwr) / (1.0 + totalInflationDecimal)) - 1.0;
+
+          twrRealTotal = realTwrDecimal;
+          twrRealAnnualized = years > 0
+              ? (pow(1.0 + realTwrDecimal, 1.0 / years) - 1.0).toDouble()
+              : realTwrDecimal;
+        }
+
+        // ---------------------------------------------------------------------
+        // 2. MWR REAL (Money-Weighted Return Real / TIR Real)
+        // ---------------------------------------------------------------------
+        // Para el MWR, la inflación afecta de forma distinta a cada euro invertido
+        // (un euro de 2021 ha sufrido más inflación que uno de 2025).
+        // La solución profesional es "deflactar" cada flujo a una moneda constante
+        // (la de la primera inversión) y luego calcular la TIR sobre esos flujos reales.
+
+        //double? mwrRealAnnualized;
+        //double? mwrRealTotal;
+        final double? baseIpc = _getIpcValueForDate(firstOpDate, ipcHistory);
+
+        if (baseIpc != null && baseIpc > 0) {
+          final List<Map<String, Object>> realFlows = [];
+
+          // Ajustamos cada operación histórica
+          for (var op in sortedOps) {
+            final double? flowIpc = _getIpcValueForDate(op.date, ipcHistory);
+            if (flowIpc != null && flowIpc > 0) {
+              // Flujo nominal: negativo para compra (salida de dinero), positivo para reembolso (entrada)
+              final double nominalFlow = op.type == OperationType.buy
+                  ? -op.amount
+                  : op.amount;
+
+              // Ajustamos el flujo a la capacidad adquisitiva de la fecha base
+              final double realFlow = nominalFlow * (baseIpc / flowIpc);
+
+              realFlows.add({'amount': realFlow, 'date': op.date});
+            }
+          }
+
+          // Ajustamos el valor final de la cartera como un flujo positivo en la fecha final
+          final double? finalIpc = _getIpcValueForDate(endDate, ipcHistory);
+          if (finalIpc != null && finalIpc > 0) {
+            final double realFinalValue = currentValue * (baseIpc / finalIpc);
+            realFlows.add({'amount': realFinalValue, 'date': endDate});
+          }
+
+          // Calculamos la TIR sobre los flujos ya ajustados por inflación
+          if (realFlows.isNotEmpty) {
+            final double realIrr = _calculateIRR(realFlows);
+            if (!realIrr.isNaN) {
+              mwrRealAnnualized = realIrr;
+              mwrRealTotal = years > 0
+                  ? (pow(1.0 + realIrr, years) - 1.0).toDouble()
+                  : 0.0;
+            }
           }
         }
       } else {
@@ -594,10 +647,39 @@ class FinancialCalculator {
       twrAnnualized: twrAnnualized,
       mwrTotal: mwrTotal,
       mwrAnnualized: mwrAnnualized,
-      twrAnnualizedIpc: twrAnnualizedIpc,
-      mwrAnnualizedIpc: mwrAnnualizedIpc,
+      twrRealTotal: twrRealTotal,
+      twrRealAnnualized: twrRealAnnualized,
+      mwrRealTotal: mwrRealTotal,
+      mwrRealAnnualized: mwrRealAnnualized,
       days: days,
     );
+  }
+
+  // =====================================================================
+  // CÁLCULOS DE RENTABILIDAD REAL (AJUSTADA POR INFLACIÓN)
+  // =====================================================================
+
+  /// Obtiene el valor del IPC más reciente disponible hasta la fecha dada.
+  /// Es más robusto que la coincidencia exacta: si falta el mes exacto (ej. desfase
+  /// de publicación del INE), toma el último dato disponible anterior a esa fecha.
+  /// Asume que `ipcHistory` está ordenado de más reciente a más antiguo.
+  static double? _getIpcValueForDate(
+    DateTime targetDate,
+    List<IpcDataPoint>? ipcHistory,
+  ) {
+    final targetYearMonth = DateTime(targetDate.year, targetDate.month);
+
+    if (ipcHistory == null) return null;
+
+    for (final ipc in ipcHistory) {
+      final ipcYearMonth = DateTime(ipc.year, ipc.month);
+      // Buscamos el primer dato del IPC que sea igual o anterior a la fecha objetivo
+      if (ipcYearMonth.isBefore(targetYearMonth) ||
+          ipcYearMonth.isAtSameMomentAs(targetYearMonth)) {
+        return ipc.value;
+      }
+    }
+    return null; // La fecha objetivo es anterior a cualquier dato de IPC disponible
   }
 
   static GlobalMetrics calculateGlobalMetrics(

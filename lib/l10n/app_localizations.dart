@@ -2042,6 +2042,36 @@ abstract class AppLocalizations {
   /// **'MWR (Acumulado / Anualizada)'**
   String get mwrInfoTitle;
 
+  /// No description provided for @twrRealvsInflation.
+  ///
+  /// In es, this message translates to:
+  /// **'TWR Real vs Inflación'**
+  String get twrRealvsInflation;
+
+  /// No description provided for @mwrRealvsInflation.
+  ///
+  /// In es, this message translates to:
+  /// **'MWR Real vs Inflación'**
+  String get mwrRealvsInflation;
+
+  /// No description provided for @inflationTotal.
+  ///
+  /// In es, this message translates to:
+  /// **'Inflación acumulada desde la suscripción inicial:'**
+  String get inflationTotal;
+
+  /// No description provided for @inflationTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'TWR y MWR reales vs Inflación'**
+  String get inflationTitle;
+
+  /// No description provided for @inflationDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Rentabilidades anualizadas considerando los flujos de caja y la inflacción (IPC oficial de España) en base a la ecuación de Fisher. TWR Real representa el rendimiento efectivo del fondo y MWR real el rendimiento real del dinero invertido.'**
+  String get inflationDesc;
+
   /// No description provided for @monthsCount.
   ///
   /// In es, this message translates to:

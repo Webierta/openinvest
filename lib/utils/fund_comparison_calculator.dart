@@ -3,6 +3,7 @@ import 'dart:math';
 
 import '../models/fund_cost.dart';
 import '../models/fund_data.dart';
+import '../services/ine_ipc_service.dart';
 import 'financial_calculator.dart';
 
 class FundComparisonResult {
@@ -146,22 +147,33 @@ class FundComparisonCalculator {
   static DateTime _later(DateTime first, DateTime second) =>
       first.isAfter(second) ? first : second;
 
-  static FundComparisonResult calculate(FundData first, FundData second) {
+  static FundComparisonResult calculate(
+    FundData first,
+    FundData second, {
+    List<IpcDataPoint>? ipcHistory,
+  }) {
     final asOf = first.date.isBefore(second.date) ? first.date : second.date;
     return FundComparisonResult(
       asOf: asOf,
-      first: _calculateFund(first, asOf),
-      second: _calculateFund(second, asOf),
+      first: _calculateFund(first, asOf, ipcHistory),
+      second: _calculateFund(second, asOf, ipcHistory),
     );
   }
 
-  static FundComparisonMetrics _calculateFund(FundData fund, DateTime asOf) {
+  static FundComparisonMetrics _calculateFund(
+    FundData fund,
+    DateTime asOf,
+    List<IpcDataPoint>? ipcHistory,
+  ) {
     final history = fund.history
         .where((point) => !point.date.isAfter(asOf))
         .toList(growable: false);
     final latest = history.isEmpty ? null : history.last;
     final previous = history.length < 2 ? null : history[history.length - 2];
-    final investment = FinancialCalculator.calculateFundMetrics(fund);
+    final investment = FinancialCalculator.calculateFundMetrics(
+      fund,
+      ipcHistory: ipcHistory,
+    );
 
     return FundComparisonMetrics(
       fund: fund,
