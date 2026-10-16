@@ -1572,12 +1572,14 @@ class FundProvider with ChangeNotifier {
   // =============================================================
   List<IpcDataPoint>? _ipcHistory;
 
+  List<IpcDataPoint>? get ipcHistory => _ipcHistory;
+
   // Ejecutar la primera vez que se vaya a calcular
   Future<void> loadIpcHistory() async {
     if (_ipcHistory != null) return;
     // Ya está en caché, no volvemos a llamar a la API
 
-    final service = IneIpcService();
+    final service = IneIpcService(client: _getHttpClient());
     _ipcHistory = await service.getAllIpcHistory();
 
     if (_ipcHistory!.isEmpty) {
@@ -1587,7 +1589,6 @@ class FundProvider with ChangeNotifier {
         'Provider: Historial IPC cargado en caché (${_ipcHistory!.length} registros).',
       );
     }
-
     notifyListeners();
   }
 
@@ -1598,16 +1599,14 @@ class FundProvider with ChangeNotifier {
   ///
   /// Devuelve la variación en porcentaje (ej. 5.5 significa un 5.5% de inflación).
   /// Devuelve `null` si falta el dato de alguna de las dos fechas (ej. mes futuro no publicado).
-  Future<double?> getIpcVariation(
+  /* Future<double?> getIpcVariation(
     int startYear,
     int startMonth,
     int endYear,
     int endMonth,
   ) async {
+    // 'Los meses deben estar entre 1 (Enero) y 12 (Diciembre).',
     if (startMonth < 1 || startMonth > 12 || endMonth < 1 || endMonth > 12) {
-      /* throw ArgumentError(
-        'Los meses deben estar entre 1 (Enero) y 12 (Diciembre).',
-      ); */
       return null;
     }
 
@@ -1653,7 +1652,7 @@ class FundProvider with ChangeNotifier {
       //debugPrint(stackTrace.toString());
       return null;
     }
-  }
+  } */
 
   // =============================================================
   // PORTFOLIO CORRELATION MATRIX

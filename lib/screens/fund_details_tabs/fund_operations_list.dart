@@ -12,11 +12,13 @@ import '../../utils/financial_calculator.dart';
 class FundOperationsList extends StatefulWidget {
   final FundData fund;
   final NumberFormat priceFormat;
+  final DateFormat dateFormat;
 
   const FundOperationsList({
     super.key,
     required this.fund,
     required this.priceFormat,
+    required this.dateFormat,
   });
 
   @override
@@ -104,7 +106,8 @@ class _FundOperationsListState extends State<FundOperationsList> {
                         ),
                       ),
                       subtitle: Text(
-                        DateFormat('dd/MM/yyyy').format(operation.date),
+                        //DateFormat('dd/MM/yyyy').format(operation.date),
+                        widget.dateFormat.format(operation.date),
                         style: const TextStyle(
                           color: Colors.white38,
                           fontSize: 12,

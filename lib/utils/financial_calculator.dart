@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../models/fund_cost.dart';
 import '../models/fund_data.dart';
+import '../services/ine_ipc_service.dart';
 
 class FundMetrics {
   final double totalUnits;
@@ -302,6 +303,43 @@ class FinancialCalculator {
 
     // 3. Devolver el resultado en formato porcentaje
     return realReturnDecimal * 100;
+  }
+
+  static double? calculateIpcVariation(
+    int startYear,
+    int startMonth,
+    int endYear,
+    int endMonth,
+    List<IpcDataPoint> ipcHistory,
+  ) {
+    // Los meses deben estar entre 1 (Enero) y 12 (Diciembre)
+    if (startMonth < 1 || startMonth > 12 || endMonth < 1 || endMonth > 12) {
+      return null;
+    }
+    // IPC VARIATION: Fallo -> El historial está vacío
+    if (ipcHistory.isEmpty) return null;
+
+    try {
+      // Buscamos los valores del índice para ambas fechas
+      final startData = ipcHistory.firstWhere(
+        (data) => data.year == startYear && data.month == startMonth,
+        orElse: () =>
+            IpcDataPoint(year: 0, month: 0, value: 0, date: DateTime.now()),
+      );
+      final endData = ipcHistory.firstWhere(
+        (data) => data.year == endYear && data.month == endMonth,
+        orElse: () =>
+            IpcDataPoint(year: 0, month: 0, value: 0, date: DateTime.now()),
+      );
+      // Validamos que ambas fechas tengan datos publicados
+      if (startData.year == 0 || endData.year == 0) return null;
+      // Calculamos la variación porcentual
+      // final variation = ((endData.value - startData.value) / startData.value) * 100;
+      final variation = ((endData.value / startData.value) - 1) * 100;
+      return variation;
+    } catch (e) {
+      return null;
+    }
   }
 
   static FundMetrics calculateFundMetrics(

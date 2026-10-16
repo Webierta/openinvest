@@ -11,6 +11,7 @@ class PriceHistoryTable extends StatefulWidget {
   final FundData fund;
   final NumberFormat priceFormat;
   final NumberFormat percentFormat;
+  final DateFormat dateFormat;
   final VoidCallback? onExported;
 
   const PriceHistoryTable({
@@ -18,6 +19,7 @@ class PriceHistoryTable extends StatefulWidget {
     required this.fund,
     required this.priceFormat,
     required this.percentFormat,
+    required this.dateFormat,
     this.onExported,
   });
 
@@ -315,7 +317,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Text(
-                  DateFormat('dd/MM/yy').format(date),
+                  widget.dateFormat.format(date),
+                  //DateFormat('dd/MM/yy').format(date),
                   style: const TextStyle(fontSize: 11, color: Colors.white70),
                 ),
               ),

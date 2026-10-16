@@ -35,6 +35,9 @@ class IpcDataPoint {
 
 /// Servicio para consultar el IPC utilizando la API pública del INE.
 class IneIpcService {
+  final http.Client _client;
+  IneIpcService({required this._client});
+
   // URL de la API del INE para la tabla 50902: IPC general nacional (Base 2021)
   // CORREGIDO la tabla 50902 no está actualizada
   // TABLA 76125 PARA VALORES POSTERIORES A 2002:
@@ -119,7 +122,7 @@ class IneIpcService {
     String cod,
   ) async {
     try {
-      final response = await http.get(Uri.parse(ipcTableUrl));
+      final response = await _client.get(Uri.parse(ipcTableUrl));
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = jsonDecode(response.body);
 

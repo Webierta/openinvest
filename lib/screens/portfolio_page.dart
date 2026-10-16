@@ -58,8 +58,27 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   NumberFormat get priceFormat => NumberFormat('#,##0.0000', locale);
   NumberFormat get percentFormat => NumberFormat('#,##0.00', locale);
   NumberFormat get smartFormat => NumberFormat('#,##0.##', locale);
-  //DateFormat get smartDateFormat => DateFormat('dd/MM/yy', locale);
   DateFormat get dateFormat => DateFormat.yMMMd(locale);
+
+  /* String fechaFormato(DateTime date) {
+    final full = DateFormat.yMd(locale).format(date);
+
+    final dayStr = date.day.toString();
+    final day = dayStr.length == 1 ? '0$dayStr' : dayStr;
+
+    final monthStr = date.month.toString();
+    final month = monthStr.length == 1 ? '0$monthStr' : monthStr;
+
+    final yearStr = date.year.toString();
+    final shortYear = yearStr.length >= 2
+        ? yearStr.substring(yearStr.length - 2)
+        : yearStr;
+
+    return full
+        .replaceAll(dayStr, day)
+        .replaceAll(monthStr, month)
+        .replaceAll(yearStr, shortYear);
+  } */
 
   @override
   Widget build(BuildContext context) {
@@ -197,10 +216,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             return Padding(
                               padding: const EdgeInsets.only(top: 15),
                               child: Badge(
-                                label: Text(
-                                  //DateFormat.yMd(locale).format(item.date),
-                                  dateFormat.format(item.date),
-                                ),
+                                label: Text(dateFormat.format(item.date)),
                                 textColor: Colors.white,
                                 textStyle: TextStyle(fontSize: 14),
                                 alignment: Alignment.topRight,
@@ -208,7 +224,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                 //alignment: AlignmentDirectional(0.7, -1),
                                 offset: Offset(-120, -6),
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                                  horizontal: 10,
                                   vertical: 4,
                                 ),
                                 backgroundColor: Colors.blueGrey,
@@ -437,10 +453,12 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                         ),
                                                       ),
                                                       child: Text(
-                                                        '${(metrics.isAnnualized ? metrics.tae : metrics.profitRel) > 0 ? '+' : ''}'
-                                                        '${percentFormat.format(metrics.isAnnualized ? metrics.tae : metrics.profitRel)}%',
+                                                        //'${(metrics.isAnnualized ? metrics.tae : metrics.profitRel) > 0 ? '+' : ''}'
+                                                        //'${percentFormat.format(metrics.isAnnualized ? metrics.tae : metrics.profitRel)}%',
+                                                        '${(metrics.twrAnnualized != null && metrics.twrAnnualized! > 0) ? '+' : ''}'
+                                                        '${(metrics.twrAnnualized != null) ? '${percentFormat.format(metrics.twrAnnualized! * 100)}%' : ''}',
                                                         style: TextStyle(
-                                                          fontSize: 12,
+                                                          fontSize: 14,
                                                           fontWeight:
                                                               FontWeight.bold,
                                                           color: profitColor,

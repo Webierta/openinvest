@@ -25,9 +25,13 @@ class FundMarketTab extends StatefulWidget {
 class _FundMarketTabState extends State<FundMarketTab> {
   _MarketSection _section = _MarketSection.operations;
 
+  String get locale => Localizations.localeOf(context).toString();
+  //DateFormat get dateFormat => DateFormat.yMMMd(locale);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
     return Column(
       children: [
         Padding(
@@ -73,6 +77,7 @@ class _FundMarketTabState extends State<FundMarketTab> {
             _MarketSection.operations => FundOperationsList(
               fund: widget.fund,
               priceFormat: widget.priceFormat,
+              dateFormat: DateFormat.yMMMd(locale),
             ),
             _MarketSection.costs => FundCostsTab(fund: widget.fund),
           },

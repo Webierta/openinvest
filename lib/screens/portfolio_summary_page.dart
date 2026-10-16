@@ -693,9 +693,11 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       ),
       title: Text(
         fund.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.w600,
+          //fontWeight: FontWeight.w600,
           fontSize: 15,
         ),
       ),

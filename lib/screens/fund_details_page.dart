@@ -287,6 +287,8 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                                   fund: fund,
                                   priceFormat: priceFormat,
                                   percentFormat: percentFormat,
+                                  //dateFormat: DateFormat.yMMMd(locale),
+                                  dateFormat: DateFormat.yMd(locale),
                                   onExported: () => setState(() {}),
                                 ),
                               ),

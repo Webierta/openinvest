@@ -58,7 +58,11 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     });
 
     final provider = context.read<FundProvider>();
-    await provider.loadIpcHistory();
+    if (provider.ipcHistory == null) {
+      await provider.loadIpcHistory();
+    }
+    final ipcHistory = provider.ipcHistory;
+    if (ipcHistory == null) return;
 
     // Protección: asegurar que haya historial de precios
     if (widget.fund.history.isEmpty) {
@@ -84,12 +88,21 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     final dateLastPrice = sortedHistory.last.date;
 
     // restar un mes para obtener el último ipc publicado
+    final ipcVariation = FinancialCalculator.calculateIpcVariation(
+      dateFirstOp.year,
+      dateFirstOp.month,
+      dateLastPrice.year,
+      dateLastPrice.month - 1,
+      ipcHistory,
+    );
+
+    /* // restar un mes para obtener el último ipc publicado
     final ipcVariation = await provider.getIpcVariation(
       dateFirstOp.year,
       dateFirstOp.month,
       dateLastPrice.year,
       dateLastPrice.month - 1,
-    );
+    ); */
 
     if (mounted) {
       setState(() {
@@ -457,7 +470,82 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog.fullscreen(
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          color: Color(0xFF38BDF8),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          l10n.financialIndicesTitle,
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ],
+                    ),
+                    _IndexInfoRow(
+                      title: l10n.annualizedReturnLabel,
+                      description: l10n.aprTaeDesc,
+                    ),
+                    _IndexInfoRow(
+                      title: l10n.twrInfoTitle,
+                      description: l10n.twrDesc,
+                    ),
+                    _IndexInfoRow(
+                      title: l10n.mwrInfoTitle,
+                      description: l10n.mwrIrrDesc,
+                    ),
+                    _IndexInfoRow(
+                      title: 'TWR y MWR reales (vs IPC)',
+                      description:
+                          'Rentabilidades anualizadas considerando la inflacción (IPC de España) en base a la ecuación de Fisher. '
+                          'TWR-IPC representa el rendimiento efectivo del fondo y MWR-IPC el rendimiento real del dinero invertido. '
+                          'La aplicación calcula la variación del IPC desde la fecha de la primera suscripción hasta un mes antes del último precio liquidativo, '
+                          'sin tener en cuenta posteriores suscripciones o reembolsos.',
+                    ),
+                    _IndexInfoRow(
+                      title: l10n.moicLabel,
+                      description: l10n.moicDesc,
+                    ),
+                    _IndexInfoRow(
+                      title: l10n.ageLabel,
+                      description: l10n.ageDesc,
+                    ),
+                    _IndexInfoRow(
+                      title: l10n.breakEvenLabel,
+                      description: l10n.breakEvenDesc,
+                    ),
+                    Text(
+                      l10n.bruteReturnsNote,
+                      style: TextStyle(fontSize: 12, color: Colors.white30),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: CircleAvatar(
+                  child: CloseButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      /* builder: (context) => AlertDialog(
         title: Row(
           children: [
             const Icon(Icons.info_outline, color: Color(0xFF38BDF8)),
@@ -498,7 +586,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             child: Text(l10n.close),
           ),
         ],
-      ),
+      ), */
     );
   }
 }
