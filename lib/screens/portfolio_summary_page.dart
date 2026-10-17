@@ -79,7 +79,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       // 2. CUADRÍCULA DE ACCIONES RÁPIDAS
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          padding: const .symmetric(horizontal: 16.0),
                           child: Text(
                             l10n.actionsLabel,
                             style: Theme.of(context).textTheme.titleMedium
@@ -92,25 +92,20 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            16.0,
-                            8.0,
-                            16.0,
-                            24.0,
-                          ),
+                          padding: const .fromLTRB(16, 8, 16, 16),
                           child: _buildActionGrid(context, provider),
                         ),
                       ),
                       // 3. LISTADO DE FONDOS
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          padding: const .symmetric(horizontal: 16.0),
                           child: Text(
                             l10n.yourFundsTitle('${funds.length}'),
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: Colors.white70,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: .bold,
                                 ),
                           ),
                         ),
@@ -127,12 +122,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                         Center(child: Text(l10n.emptyPortfolio))
                       else
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(
-                            16.0,
-                            8.0,
-                            16.0,
-                            32.0,
-                          ),
+                          padding: .fromLTRB(16, 8, 16, 16),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate((
                               context,
@@ -525,7 +515,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 12,
+                    fontSize: 14,
                   ),
                 ),
               ],

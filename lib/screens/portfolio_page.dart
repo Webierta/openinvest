@@ -189,6 +189,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             }
 
                             final hasOps = item.operations.isNotEmpty;
+                            //final hasPrices30Days = item.history.length > 30;
                             final Color profitColor = metrics.profitAbs >= 0
                                 ? Colors.greenAccent[400]!
                                 : Colors.redAccent[200]!;
@@ -361,74 +362,80 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                         color: Colors.white70,
                                                       ),
                                                     ),
-                                                    const SizedBox(height: 10),
-                                                    Text(
-                                                      l10n.performanceLabel,
-                                                      style: const TextStyle(
-                                                        fontSize: 9,
-                                                        color: Colors.white38,
-                                                        fontWeight: .bold,
-                                                        letterSpacing: 0.5,
+                                                    if (item.history.length >
+                                                        30) ...[
+                                                      const SizedBox(
+                                                        height: 10,
                                                       ),
-                                                    ),
-                                                    Text(
-                                                      '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${item.currency}',
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight: .bold,
-                                                        color: profitColor,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                Column(
-                                                  crossAxisAlignment: .end,
-                                                  children: [
-                                                    Text(
-                                                      metrics.isAnnualized
-                                                          ? l10n.sortByPerformance
-                                                          : l10n.totalGain,
-                                                      style: const TextStyle(
-                                                        fontSize: 9,
-                                                        color: Colors.white38,
-                                                        fontWeight: .bold,
-                                                        letterSpacing: 0.5,
-                                                      ),
-                                                    ),
-                                                    Container(
-                                                      padding: const .symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 4,
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        color: profitColor
-                                                            .withValues(
-                                                              alpha: 0.15,
-                                                            ),
-                                                        borderRadius: .circular(
-                                                          6,
-                                                        ),
-                                                        border: .all(
-                                                          color: profitColor
-                                                              .withValues(
-                                                                alpha: 0.3,
-                                                              ),
+                                                      Text(
+                                                        l10n.performanceLabel,
+                                                        style: const TextStyle(
+                                                          fontSize: 9,
+                                                          color: Colors.white38,
+                                                          fontWeight: .bold,
+                                                          letterSpacing: 0.5,
                                                         ),
                                                       ),
-                                                      child: Text(
-                                                        //'${(metrics.isAnnualized ? metrics.tae : metrics.profitRel) > 0 ? '+' : ''}'
-                                                        //'${percentFormat.format(metrics.isAnnualized ? metrics.tae : metrics.profitRel)}%',
-                                                        '${(metrics.twrAnnualized != null && metrics.twrAnnualized! > 0) ? '+' : ''}'
-                                                        '${(metrics.twrAnnualized != null) ? '${percentFormat.format(metrics.twrAnnualized! * 100)}%' : ''}',
+                                                      Text(
+                                                        '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${item.currency}',
                                                         style: TextStyle(
-                                                          //fontSize: 14,
-                                                          //fontWeight: FontWeight.bold,
+                                                          fontSize: 13,
+                                                          fontWeight: .bold,
                                                           color: profitColor,
                                                         ),
                                                       ),
-                                                    ),
+                                                    ],
                                                   ],
                                                 ),
+                                                if (item.history.length > 30)
+                                                  Column(
+                                                    crossAxisAlignment: .end,
+                                                    children: [
+                                                      Text(
+                                                        metrics.isAnnualized
+                                                            ? l10n.sortByPerformance
+                                                            : l10n.totalGain,
+                                                        style: const TextStyle(
+                                                          fontSize: 9,
+                                                          color: Colors.white38,
+                                                          fontWeight: .bold,
+                                                          letterSpacing: 0.5,
+                                                        ),
+                                                      ),
+                                                      Container(
+                                                        padding:
+                                                            const .symmetric(
+                                                              horizontal: 10,
+                                                              vertical: 4,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color: profitColor
+                                                              .withValues(
+                                                                alpha: 0.15,
+                                                              ),
+                                                          borderRadius:
+                                                              .circular(6),
+                                                          border: .all(
+                                                            color: profitColor
+                                                                .withValues(
+                                                                  alpha: 0.3,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        child: Text(
+                                                          //'${(metrics.isAnnualized ? metrics.tae : metrics.profitRel) > 0 ? '+' : ''}'
+                                                          //'${percentFormat.format(metrics.isAnnualized ? metrics.tae : metrics.profitRel)}%',
+                                                          '${(metrics.twrAnnualized != null && metrics.twrAnnualized! > 0) ? '+' : ''}'
+                                                          '${(metrics.twrAnnualized != null) ? '${percentFormat.format(metrics.twrAnnualized! * 100)}%' : ''}',
+                                                          style: TextStyle(
+                                                            //fontSize: 14,
+                                                            //fontWeight: FontWeight.bold,
+                                                            color: profitColor,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                               ],
                                             ),
                                           ],

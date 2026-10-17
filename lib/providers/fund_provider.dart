@@ -928,7 +928,8 @@ class FundProvider with ChangeNotifier {
           morningstarRating: fund.morningstarRating,
           morningstarCheckedAt: fund.morningstarCheckedAt,
           morningstarLastAttemptAt: fund.morningstarLastAttemptAt,
-          source: fund.source,
+          //source: fund.source,
+          source: fund.source ?? fundSourceFromIsinSource(resolution.source),
           valuationSource: fund.valuationSource,
         );
         return ScrapeResult(

@@ -29,12 +29,30 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
   String mwrRealAnnualizedStr = '-';
   String ineIpcVariationStr = '';
   bool _isIpcLoading = false;
+  String warningHistory = '';
 
   @override
   void initState() {
     metrics = FinancialCalculator.calculateFundMetrics(widget.fund);
     _loadIpcData();
+    updateWarningHistory();
     super.initState();
+  }
+
+  void updateWarningHistory() {
+    final warningHistoryStr = switch (widget.fund.history.length) {
+      // menos de 1 mes de precios
+      < 30 => 'Insuficiente historial de precios para calcular los índices de rentabilidad',
+      // menos de 6 meses de precios
+      < 180 =>
+        'Historial de precios inferior a 6 meses: fiabilidad comprometida',
+      // menos de 1 año de precios
+      < 360 => 'Historial de precios inferior a 1 año: fiabilidad limitada',
+      _ => '',
+    };
+    setState(() {
+      warningHistory = warningHistoryStr;
+    });
   }
 
   @override
@@ -48,6 +66,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
       ineIpcVariationStr = '';
       _isIpcLoading = false;
       _loadIpcData();
+      updateWarningHistory();
     }
   }
 
@@ -94,7 +113,6 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     if (mounted) {
       setState(() {
         _isIpcLoading = false;
-
         metrics = FinancialCalculator.calculateFundMetrics(
           widget.fund,
           ipcHistory: ipcHistory,
@@ -293,6 +311,19 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
             ),
           ],
         ),
+        if (warningHistory != '')
+          Row(
+            children: [
+              Icon(Icons.warning, color: Colors.amber, size: 16),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  warningHistory,
+                  style: TextStyle(fontSize: 11, color: Colors.white38),
+                ),
+              ),
+            ],
+          ),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -532,48 +563,6 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
           ],
         ),
       ),
-      /* builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.info_outline, color: Color(0xFF38BDF8)),
-            const SizedBox(width: 10),
-            Text(l10n.financialIndicesTitle),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.bruteReturnsNote),
-              _IndexInfoRow(
-                title: l10n.annualizedReturnLabel,
-                description: l10n.aprTaeDesc,
-              ),
-              _IndexInfoRow(
-                title: l10n.twrInfoTitle,
-                description: l10n.twrDesc,
-              ),
-              _IndexInfoRow(
-                title: l10n.mwrInfoTitle,
-                description: l10n.mwrIrrDesc,
-              ),
-              _IndexInfoRow(title: l10n.moicLabel, description: l10n.moicDesc),
-              _IndexInfoRow(title: l10n.ageLabel, description: l10n.ageDesc),
-              _IndexInfoRow(
-                title: l10n.breakEvenLabel,
-                description: l10n.breakEvenDesc,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.close),
-          ),
-        ],
-      ), */
     );
   }
 }
