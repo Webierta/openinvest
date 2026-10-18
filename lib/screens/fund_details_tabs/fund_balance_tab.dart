@@ -496,7 +496,7 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
         child: Stack(
           children: [
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const .all(14),
               child: SingleChildScrollView(
                 child: Column(
                   children: [

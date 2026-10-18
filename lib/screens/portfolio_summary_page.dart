@@ -92,7 +92,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const .fromLTRB(16, 8, 16, 16),
+                          padding: const .fromLTRB(16, 8, 16, 0),
                           child: _buildActionGrid(context, provider),
                         ),
                       ),

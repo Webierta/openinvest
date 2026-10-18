@@ -185,11 +185,14 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
     final fundB = funds[col - 1];
     final correlation = matrix.getCorrelation(fundA.isin, fundB.isin);
 
-    return _buildDataCell(context, fundA, fundB, correlation, row == col);
+    return SafeArea(
+      child: _buildDataCell(context, fundA, fundB, correlation, row == col),
+    );
   }
 
   Widget _buildHeaderAvatar(FundData fund, {bool isRow = false}) {
     return Tooltip(
+      triggerMode: TooltipTriggerMode.tap,
       message: fund.name,
       child: CircleAvatarFund(fund: fund, fontSize: 40),
     );
@@ -234,7 +237,7 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
           '1.00',
           style: TextStyle(
             color: Colors.white54,
-            fontSize: 12,
+            fontSize: 18,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -276,7 +279,7 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 13,
+              fontSize: 18,
             ),
           ),
         ),
@@ -402,59 +405,78 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
   void _showLegend(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text(
-          'Matriz de Correlación',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: .start,
+      builder: (ctx) => Dialog.fullscreen(
+        child: Stack(
           children: [
-            Text(
-              'Valores cercanos a 1 indican que los fondos se mueven juntos, '
-              'mientras que los valores cercanos a 0 o negativos indican buena diversificación.\n'
-              'Pulsa sobre una celda de la matriz para ver más detalles.',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+            Padding(
+              padding: .all(14),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: .start,
+                  children: [
+                    Text(
+                      'Matriz de correlaciones',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Ayuda a visualizar el nivel riesgo por convergencia / divergencia de las tendencias de '
+                      'los fondos, y la diversificación de la cartera para distintas coberturas o escenarios.',
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Valores cercanos a 1 indican que los fondos se mueven juntos, '
+                      'mientras que los valores cercanos a 0 o negativos indican buena diversificación.\n\n'
+                      'Pulsa sobre una celda de la matriz para ver más detalles.',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('Leyenda de colores', style: TextStyle(fontSize: 16)),
+                    _legendItem(
+                      Colors.redAccent,
+                      '0.80 a 1.00',
+                      'Movimiento casi idéntico. Poca diversificación real.',
+                    ),
+                    _legendItem(
+                      Colors.orange,
+                      '0.50 a 0.79',
+                      'Tendencia a subir y bajar juntos.',
+                    ),
+                    _legendItem(
+                      Colors.blueGrey,
+                      '-0.20 a 0.49',
+                      'Movimientos independientes. Buena diversificación.',
+                    ),
+                    _legendItem(
+                      Colors.green,
+                      '-1.00 a -0.21',
+                      'Movimientos opuestos. Excelente cobertura de riesgo.',
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
-            Text('Leyenda de colores', style: TextStyle(fontSize: 16)),
-            _legendItem(
-              Colors.redAccent,
-              '0.80 a 1.00',
-              'Movimiento casi idéntico. Poca diversificación real.',
-            ),
-            _legendItem(
-              Colors.orange,
-              '0.50 a 0.79',
-              'Tendencia a subir y bajar juntos.',
-            ),
-            _legendItem(
-              Colors.blueGrey,
-              '-0.20 a 0.49',
-              'Movimientos independientes. Buena diversificación.',
-            ),
-            _legendItem(
-              Colors.green,
-              '-1.00 a -0.21',
-              'Movimientos opuestos. Excelente cobertura de riesgo.',
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: CircleAvatar(
+                  child: CloseButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: Navigator.of(ctx).pop,
-            child: const Text('Cerrar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
 
   Widget _legendItem(Color color, String range, String description) {
     return ListTile(
-      titleAlignment: ListTileTitleAlignment.titleHeight,
+      contentPadding: .all(0),
+      titleAlignment: ListTileTitleAlignment.center,
       leading: Container(
         width: 26,
         height: 26,

@@ -135,7 +135,7 @@ jobs:
         run: flutter config --enable-linux-desktop
 
       - name: Instalar dependencias del proyecto
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Análisis estático
         run: flutter analyze
