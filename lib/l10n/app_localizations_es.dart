@@ -1080,7 +1080,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inflationDesc =>
-      'Rentabilidades anualizadas considerando los flujos de caja y la inflacción (IPC oficial de España) en base a la ecuación de Fisher. TWR Real representa el rendimiento efectivo del fondo y MWR real el rendimiento real del dinero invertido.';
+      'Rentabilidades anualizadas considerando los flujos de caja y la inflación (IPC oficial de España) en base a la ecuación de Fisher. TWR Real representa el rendimiento efectivo del fondo y MWR real el rendimiento real del dinero invertido.';
 
   @override
   String monthsCount(num count) {

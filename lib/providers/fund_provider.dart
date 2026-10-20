@@ -1157,7 +1157,8 @@ class FundProvider with ChangeNotifier {
       morningstarRating: metadata?.morningstarRating,
       morningstarCheckedAt: metadata?.morningstarCheckedAt,
       morningstarLastAttemptAt: metadata?.morningstarLastAttemptAt,
-      source: existingFund?.source ?? primaryFund?.source ?? valuationSource,
+      //source: existingFund?.source ?? primaryFund?.source ?? valuationSource,
+      source: existingFund?.source ?? primaryFund?.source,
       valuationSource: valuationSource,
     );
   }

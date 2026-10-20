@@ -164,31 +164,44 @@ class FundCostsTab extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.costHelpTitle),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.costHelpNav),
-              const SizedBox(height: 12),
-              Text(l10n.costHelpTer),
-              const SizedBox(height: 12),
-              Text(l10n.costHelpRates),
-              const SizedBox(height: 12),
-              Text(l10n.costHelpExternal),
-              const SizedBox(height: 12),
-              Text(l10n.costHelpNet),
-            ],
-          ),
+      builder: (dialogContext) => Dialog.fullscreen(
+        child: Stack(
+          children: [
+            Padding(
+              padding: const .all(14),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.costHelpTitle, style: TextStyle(fontSize: 18)),
+                    const SizedBox(height: 12),
+                    Text(l10n.costHelpNav),
+                    const SizedBox(height: 12),
+                    Text(l10n.costHelpTer),
+                    const SizedBox(height: 12),
+                    Text(l10n.costHelpRates),
+                    const SizedBox(height: 12),
+                    Text(l10n.costHelpExternal),
+                    const SizedBox(height: 12),
+                    Text(l10n.costHelpNet),
+                  ],
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: CircleAvatar(
+                  child: CloseButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.close),
-          ),
-        ],
       ),
     );
   }

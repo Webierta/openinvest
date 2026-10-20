@@ -120,7 +120,8 @@ void main() {
     expect(find.text(l10n.costHelpNet), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text(l10n.close));
+    //await tester.tap(find.text(l10n.close));
+    await tester.tap(find.closeButton());
     await tester.pumpAndSettle();
   });
 
