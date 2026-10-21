@@ -16,7 +16,7 @@ void main() {
 
   late Directory temporaryDirectory;
   late FundCostPeriod period;
-  late FundCostCharge charge;
+  //late FundCostCharge charge;
   late FundData fund;
 
   setUp(() async {
@@ -37,7 +37,7 @@ void main() {
       description: 'Coste de gestión LF-71',
     );
 
-    charge = FundCostCharge(
+    /* charge = FundCostCharge(
       uid: 'lf71-charge-001',
       concept: FundCostConcept.performance,
       date: DateTime(2025, 12, 31),
@@ -45,7 +45,7 @@ void main() {
       description: 'Cargo de prueba LF-71',
       performancePeriodUid: period.uid,
       settledThrough: DateTime(2025, 12, 31),
-    );
+    ); */
 
     fund = FundData(
       isin: isin,
@@ -62,8 +62,10 @@ void main() {
       valuationSource: FundSource.yahoo,
       ter: 0.50,
       performanceFee: 10,
+      //costPeriods: [period],
+      //costCharges: [charge],
       costPeriods: [period],
-      costCharges: [charge],
+      costCharges: [],
     );
   });
 
@@ -97,26 +99,76 @@ void main() {
   test(
     'LF-71.2: SQLite conserva costCharges y su relación con el periodo',
     () async {
-      await DatabaseService.saveFund(fund);
+      final performancePeriod = FundCostPeriod(
+        uid: 'lf71-performance-period-001',
+        concept: FundCostConcept.performance,
+        ratePercent: 10,
+        basis: FundCostRateBasis.positiveProfit,
+        treatment: FundCostTreatment.chargedSeparately,
+        validFrom: DateTime(2025, 1, 1),
+        validTo: DateTime(2025, 12, 31),
+        description: 'Comisión de éxito LF-71',
+      );
+
+      final charge = FundCostCharge(
+        uid: 'lf71-charge-001',
+        concept: FundCostConcept.performance,
+        date: DateTime(2025, 12, 31),
+        amount: 12.75,
+        description: 'Cargo de prueba LF-71',
+        performancePeriodUid: performancePeriod.uid,
+        settledThrough: DateTime(2025, 12, 31),
+      );
+
+      final fundWithPerformanceCost = FundData(
+        isin: isin,
+        symbol: 'TEST',
+        name: 'Test Fund',
+        lastValue: 112,
+        currency: 'EUR',
+        date: DateTime(2026, 10, 4),
+        history: [
+          PricePoint(DateTime(2026, 10, 3), 110),
+          PricePoint(DateTime(2026, 10, 4), 112),
+        ],
+        source: FundSource.cnmv,
+        valuationSource: FundSource.yahoo,
+        ter: 0.50,
+        performanceFee: 10,
+        costPeriods: [performancePeriod],
+        costCharges: [charge],
+      );
+
+      await DatabaseService.saveFund(fundWithPerformanceCost);
 
       final loaded = await DatabaseService.getFund(isin);
 
       expect(loaded, isNotNull);
       final saved = loaded!;
 
+      expect(saved.costPeriods, hasLength(1));
       expect(saved.costCharges, hasLength(1));
 
+      final savedPeriod = saved.costPeriods.single;
       final savedCharge = saved.costCharges.single;
+
+      expect(savedPeriod.uid, performancePeriod.uid);
+      expect(savedPeriod.concept, FundCostConcept.performance);
+      expect(savedPeriod.ratePercent, 10);
+      expect(savedPeriod.basis, FundCostRateBasis.positiveProfit);
+      expect(savedPeriod.treatment, FundCostTreatment.chargedSeparately);
+      expect(savedPeriod.validFrom, DateTime(2025, 1, 1));
+      expect(savedPeriod.validTo, DateTime(2025, 12, 31));
+      expect(savedPeriod.description, 'Comisión de éxito LF-71');
 
       expect(savedCharge.uid, 'lf71-charge-001');
       expect(savedCharge.concept, FundCostConcept.performance);
       expect(savedCharge.date, DateTime(2025, 12, 31));
       expect(savedCharge.amount, 12.75);
       expect(savedCharge.description, 'Cargo de prueba LF-71');
-      expect(savedCharge.performancePeriodUid, 'lf71-period-001');
+      expect(savedCharge.performancePeriodUid, performancePeriod.uid);
       expect(savedCharge.settledThrough, DateTime(2025, 12, 31));
 
-      // La relación sigue apuntando al periodo persistido.
       expect(saved.costPeriods.single.uid, savedCharge.performancePeriodUid);
     },
   );

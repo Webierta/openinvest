@@ -28,10 +28,13 @@ void main() {
 
     period = FundCostPeriod(
       uid: 'lf71-period-001',
-      concept: FundCostConcept.management,
+      concept: FundCostConcept.performance,
+      basis: FundCostRateBasis.positiveProfit,
+      treatment: FundCostTreatment.chargedSeparately,
+      //concept: FundCostConcept.management,
       ratePercent: 0.65,
-      basis: FundCostRateBasis.annualBalance,
-      treatment: FundCostTreatment.includedInNav,
+      //basis: FundCostRateBasis.annualBalance,
+      //treatment: FundCostTreatment.includedInNav,
       validFrom: DateTime(2025, 1, 1),
       validTo: DateTime(2025, 12, 31),
       description: 'Coste de gestión LF-71',

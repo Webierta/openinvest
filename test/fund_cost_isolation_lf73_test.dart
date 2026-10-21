@@ -32,10 +32,13 @@ void main() {
 
     final firstPeriod = FundCostPeriod(
       uid: 'lf73-period-first',
-      concept: FundCostConcept.management,
+      concept: FundCostConcept.performance,
+      basis: FundCostRateBasis.positiveProfit,
+      treatment: FundCostTreatment.chargedSeparately,
+      //concept: FundCostConcept.management,
       ratePercent: 0.65,
-      basis: FundCostRateBasis.annualBalance,
-      treatment: FundCostTreatment.includedInNav,
+      //basis: FundCostRateBasis.annualBalance,
+      //treatment: FundCostTreatment.includedInNav,
       validFrom: DateTime(2025, 1, 1),
       validTo: DateTime(2025, 12, 31),
       description: 'Coste del primer fondo',
@@ -52,10 +55,13 @@ void main() {
 
     final secondPeriod = FundCostPeriod(
       uid: 'lf73-period-second',
-      concept: FundCostConcept.management,
+      concept: FundCostConcept.performance,
+      basis: FundCostRateBasis.positiveProfit,
+      treatment: FundCostTreatment.chargedSeparately,
+      //concept: FundCostConcept.management,
       ratePercent: 0.30,
-      basis: FundCostRateBasis.annualBalance,
-      treatment: FundCostTreatment.includedInNav,
+      //basis: FundCostRateBasis.annualBalance,
+      //treatment: FundCostTreatment.includedInNav,
       validFrom: DateTime(2026, 1, 1),
       validTo: DateTime(2026, 10, 4),
       description: 'Coste del segundo fondo',

@@ -30,10 +30,13 @@ void main() {
 
     costPeriod = FundCostPeriod(
       uid: 'lf68-period-001',
-      concept: FundCostConcept.management,
+      concept: FundCostConcept.performance,
+      basis: FundCostRateBasis.positiveProfit,
+      treatment: FundCostTreatment.chargedSeparately,
+      //concept: FundCostConcept.management,
       ratePercent: 0.65,
-      basis: FundCostRateBasis.annualBalance,
-      treatment: FundCostTreatment.includedInNav,
+      //basis: FundCostRateBasis.annualBalance,
+      //treatment: FundCostTreatment.includedInNav,
       validFrom: DateTime(2025, 1, 1),
       validTo: DateTime(2025, 12, 31),
       description: 'Coste de gestión LF-68',
@@ -114,10 +117,10 @@ void main() {
     final savedPeriod = fund.costPeriods.single;
 
     expect(savedPeriod.uid, 'lf68-period-001');
-    expect(savedPeriod.concept, FundCostConcept.management);
+    expect(savedPeriod.concept, FundCostConcept.performance);
     expect(savedPeriod.ratePercent, 0.65);
-    expect(savedPeriod.basis, FundCostRateBasis.annualBalance);
-    expect(savedPeriod.treatment, FundCostTreatment.includedInNav);
+    expect(savedPeriod.basis, FundCostRateBasis.positiveProfit);
+    expect(savedPeriod.treatment, FundCostTreatment.chargedSeparately);
     expect(savedPeriod.validFrom, DateTime(2025, 1, 1));
     expect(savedPeriod.validTo, DateTime(2025, 12, 31));
     expect(savedPeriod.description, 'Coste de gestión LF-68');
