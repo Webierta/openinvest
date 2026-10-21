@@ -441,6 +441,7 @@ class FundProvider with ChangeNotifier {
 
       final service = MorningstarRating(isin);
       late final MorningstarRatingResult result;
+
       try {
         result = await service.fetchRating();
       } finally {
@@ -672,8 +673,14 @@ class FundProvider with ChangeNotifier {
             ? fetchedFund
             : FundData(
                 isin: fetchedFund.isin,
-                symbol: fetchedFund.symbol,
-                name: fetchedFund.name,
+                //symbol: fetchedFund.symbol,
+                //name: fetchedFund.name,
+                symbol: fetchedFund.symbol.trim().isNotEmpty
+                    ? fetchedFund.symbol
+                    : existingFund.symbol,
+                name: fetchedFund.name.trim().isNotEmpty
+                    ? fetchedFund.name
+                    : existingFund.name,
                 lastValue: fetchedFund.lastValue,
                 currency: fetchedFund.currency,
                 date: fetchedFund.date,
@@ -681,8 +688,11 @@ class FundProvider with ChangeNotifier {
                 operations: existingFund.operations,
                 alertMin: existingFund.alertMin,
                 alertMax: existingFund.alertMax,
-                ter: existingFund.ter,
-                performanceFee: existingFund.performanceFee,
+                //ter: existingFund.ter,
+                ter: fetchedFund.ter ?? existingFund.ter,
+                //performanceFee: existingFund.performanceFee,
+                performanceFee:
+                    fetchedFund.performanceFee ?? existingFund.performanceFee,
                 costPeriods: existingFund.costPeriods,
                 costCharges: existingFund.costCharges,
                 morningstarRating: existingFund.morningstarRating,
@@ -818,8 +828,14 @@ class FundProvider with ChangeNotifier {
             hasChanges = true;
             final updatedFund = FundData(
               isin: result.data!.isin,
-              symbol: result.data!.symbol,
-              name: result.data!.name,
+              //symbol: result.data!.symbol,
+              //name: result.data!.name,
+              symbol: result.data!.symbol.trim().isNotEmpty
+                  ? result.data!.symbol
+                  : existing.symbol,
+              name: result.data!.name.trim().isNotEmpty
+                  ? result.data!.name
+                  : existing.name,
               lastValue: result.data!.lastValue,
               currency: result.data!.currency,
               date: result.data!.date,
@@ -827,8 +843,11 @@ class FundProvider with ChangeNotifier {
               operations: existing.operations,
               alertMin: existing.alertMin,
               alertMax: existing.alertMax,
-              ter: existing.ter,
-              performanceFee: existing.performanceFee,
+              //ter: existing.ter,
+              //performanceFee: existing.performanceFee,
+              ter: result.data!.ter ?? existing.ter,
+              performanceFee:
+                  result.data!.performanceFee ?? existing.performanceFee,
               costPeriods: existing.costPeriods,
               costCharges: existing.costCharges,
               morningstarRating: existing.morningstarRating,

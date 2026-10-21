@@ -1,25 +1,32 @@
 import 'dart:convert';
 
+import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
 import '../models/scraper_result.dart';
 
-// Obtiene nombre, VL, fecha y divisa a partir de ISIN
+// scrape: Obtiene nombre, VL, fecha y divisa a partir de ISIN
+// scrapeVdos: Obtiene categoria y rating VDOS a partir de ISIN
 class QueFondosScraper {
   final http.Client _client;
-  QueFondosScraper({required this._client});
+  final bool _ownsClient;
+
+  QueFondosScraper({http.Client? client})
+    : _client = client ?? http.Client(),
+      _ownsClient = client == null;
+
+  void close() {
+    if (_ownsClient) _client.close();
+  }
 
   static const String _baseUrl =
       'https://www1.quefondos.com/m/es/fondos/ficha/index.html';
 
-  Future<ScraperResult?> scrape(String isin) async {
-    if (isin.trim().isEmpty) {
-      return null;
-    }
+  Future<http.Response?> _getResponse(String isin) async {
+    if (isin.trim().isEmpty) return null;
 
     try {
       final uri = Uri.parse(_baseUrl).replace(queryParameters: {'isin': isin});
-
       final response = await _client.get(
         uri,
         headers: {
@@ -30,15 +37,24 @@ class QueFondosScraper {
               'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
       );
-
       if (response.statusCode == 200) {
-        final html = utf8.decode(response.bodyBytes);
-        return _parseHtml(html);
+        return response;
       } else {
-        throw Exception('QueFondos respondió con HTTP ${response.statusCode}');
+        return null;
       }
     } catch (e) {
-      throw Exception('Error durante el scraping: $e');
+      return null;
+    }
+  }
+
+  Future<ScraperResult?> scrape(String isin) async {
+    final response = await _getResponse(isin);
+    if (response == null) return null;
+    try {
+      final html = utf8.decode(response.bodyBytes);
+      return _parseHtml(html);
+    } catch (e) {
+      return null;
     }
   }
 
@@ -74,13 +90,9 @@ class QueFondosScraper {
     // Fecha
     //
     // Hay dos fechas en la página:
-    //
     //   Fecha 20/06/2024
-    //
     // y posteriormente:
-    //
     //   Fecha: 20/06/2024
-    //
     // Nos interesa la fecha de la última valoración.
     // ------------------------------------------------------------
     final fecha =
@@ -131,21 +143,13 @@ class QueFondosScraper {
 
   String? _extract(String text, RegExp pattern) {
     final match = pattern.firstMatch(text);
-
-    if (match == null) {
-      return null;
-    }
-
+    if (match == null) return null;
     return _clean(match.group(1));
   }
 
   String? _clean(String? value) {
-    if (value == null) {
-      return null;
-    }
-
+    if (value == null) return null;
     var result = value;
-
     // Entidades HTML básicas.
     result = result
         .replaceAll('&nbsp;', ' ')
@@ -157,13 +161,64 @@ class QueFondosScraper {
 
     // Elimina cualquier etiqueta HTML residual.
     result = result.replaceAll(RegExp(r'<[^>]*>'), '');
-
     result = result.replaceAll(RegExp(r'\s+'), ' ').trim();
-
-    if (result.isEmpty) {
-      return null;
-    }
-
+    if (result.isEmpty) return null;
     return result;
+  }
+
+  Future<({String? category, int? rating})> scrapeVdos(String isin) async {
+    final response = await _getResponse(isin);
+    if (response == null) return (category: null, rating: null);
+    String? categoryName;
+    int? ratingNumber;
+
+    try {
+      // 1. Parsear el HTML
+      final document = html_parser.parse(response.body);
+
+      // 2. Extraer Categoría VDOS
+      final labelCategory = document
+          .querySelectorAll('*')
+          .where((e) => e.children.isEmpty)
+          .where((e) => e.text.trim().toLowerCase() == 'categoría vdos:')
+          .firstOrNull;
+      categoryName = labelCategory?.nextElementSibling?.nextElementSibling?.text
+          .trim();
+
+      // 3. Extraer Rating VDOS
+      final sub = document.querySelector('sub.print.star');
+      String? rating = sub?.text.trim();
+      if (rating != null && rating.isNotEmpty) {
+        ratingNumber = int.tryParse(rating);
+      }
+
+      if (ratingNumber == null) {
+        final labelRating = document
+            .querySelectorAll('*')
+            .where((e) => e.children.isEmpty)
+            .where((e) => e.text.trim().toLowerCase() == 'rating vdos:')
+            .firstOrNull;
+        String? ratingVdos = labelRating?.nextElementSibling?.text.trim();
+
+        if (ratingVdos != null && ratingVdos.isNotEmpty) {
+          ratingNumber = int.tryParse(ratingVdos);
+        }
+
+        if (ratingNumber == null) {
+          String? ratingImg = labelRating?.nextElementSibling
+              ?.querySelector('img')
+              ?.classes
+              .first;
+          if (ratingImg != null && ratingImg.isNotEmpty) {
+            String rating = ratingImg[ratingImg.length - 1];
+            ratingNumber = int.tryParse(rating);
+          }
+        }
+      }
+
+      return (category: categoryName, rating: ratingNumber);
+    } catch (e) {
+      return (category: categoryName, rating: ratingNumber);
+    }
   }
 }
