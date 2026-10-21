@@ -367,6 +367,14 @@ class DatabaseService {
       if (!chargeUids.add(charge.uid)) {
         throw ArgumentError('Identificador de cargo duplicado.');
       }
+
+      if (charge.performancePeriodUid != null &&
+          !periodUids.contains(charge.performancePeriodUid)) {
+        throw ArgumentError(
+          'El cargo referencia un periodo de comisión de éxito inexistente.',
+        );
+      }
+
       if (charge.settledThrough != null &&
           charge.settledThrough!.isAfter(charge.date)) {
         throw ArgumentError(

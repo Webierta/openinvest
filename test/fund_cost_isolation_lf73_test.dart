@@ -12,59 +12,14 @@ void main() {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  //const isin = 'IE00B4L5Y983';
-
   late Directory temporaryDirectory;
-  //late FundCostPeriod period;
-  //late FundCostCharge charge;
-  //late FundData fund;
 
   setUp(() async {
-    temporaryDirectory = await Directory.systemTemp.createTemp('lf71_test_');
+    temporaryDirectory = await Directory.systemTemp.createTemp('lf73_test_');
 
     await DatabaseService.useDatabasePathForTesting(
       path.join(temporaryDirectory.path, 'test.db'),
     );
-
-    /* period = FundCostPeriod(
-      uid: 'lf71-period-001',
-      concept: FundCostConcept.management,
-      ratePercent: 0.65,
-      basis: FundCostRateBasis.annualBalance,
-      treatment: FundCostTreatment.includedInNav,
-      validFrom: DateTime(2025, 1, 1),
-      validTo: DateTime(2025, 12, 31),
-      description: 'Coste de gestión LF-71',
-    ); */
-
-    /* charge = FundCostCharge(
-      uid: 'lf71-charge-001',
-      concept: FundCostConcept.performance,
-      date: DateTime(2025, 12, 31),
-      amount: 12.75,
-      description: 'Cargo de prueba LF-71',
-      performancePeriodUid: period.uid,
-      settledThrough: DateTime(2026, 10, 4),
-    ); */
-
-    /* fund = FundData(
-      isin: isin,
-      symbol: 'TEST',
-      name: 'Test Fund',
-      lastValue: 112,
-      currency: 'EUR',
-      date: DateTime(2026, 10, 4),
-      history: [
-        PricePoint(DateTime(2026, 10, 3), 110),
-        PricePoint(DateTime(2026, 10, 4), 112),
-      ],
-      source: FundSource.cnmv,
-      valuationSource: FundSource.yahoo,
-      ter: 0.50,
-      performanceFee: 10,
-      costPeriods: [period],
-      costCharges: [charge],
-    ); */
   });
 
   tearDown(() async {
@@ -81,7 +36,6 @@ void main() {
       ratePercent: 0.65,
       basis: FundCostRateBasis.annualBalance,
       treatment: FundCostTreatment.includedInNav,
-      //validFrom: DateTime(2025, 1, 1),
       validFrom: DateTime(2025, 1, 1),
       validTo: DateTime(2025, 12, 31),
       description: 'Coste del primer fondo',
@@ -102,7 +56,6 @@ void main() {
       ratePercent: 0.30,
       basis: FundCostRateBasis.annualBalance,
       treatment: FundCostTreatment.includedInNav,
-      //validFrom: DateTime(2026, 1, 1),
       validFrom: DateTime(2026, 1, 1),
       validTo: DateTime(2026, 10, 4),
       description: 'Coste del segundo fondo',
@@ -111,7 +64,6 @@ void main() {
     final secondCharge = FundCostCharge(
       uid: 'lf73-charge-second',
       concept: FundCostConcept.performance,
-      //date: DateTime(2026, 12, 31),
       date: DateTime(2026, 10, 4),
       amount: 4.50,
       performancePeriodUid: secondPeriod.uid,

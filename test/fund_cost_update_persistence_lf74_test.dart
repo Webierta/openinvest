@@ -102,7 +102,7 @@ void main() {
     );
   }
 
-  void expectStructuredCostsPreserved(FundData fund) {
+  void expectUpdatedFundAndStructuredCostsPreserved(FundData fund) {
     expect(fund.lastValue, 112);
     expect(fund.date, DateTime(2026, 10, 4));
     expect(fund.ter, 0.50);
@@ -145,25 +145,7 @@ void main() {
       expect(savedFund, isNotNull);
       final saved = savedFund!;
 
-      /* expect(saved.lastValue, 112);
-      expect(saved.date, DateTime(2026, 10, 4));
-      expect(saved.ter, 0.50);
-      expect(saved.performanceFee, 10);
-
-      expect(saved.costPeriods, hasLength(1));
-      final period = saved.costPeriods.single;
-      expect(period.uid, 'lf68-period-001');
-      expect(period.ratePercent, 0.65);
-      expect(period.description, 'Coste de gestión LF-68');
-
-      expect(saved.costCharges, hasLength(1));
-      final charge = saved.costCharges.single;
-      expect(charge.uid, 'lf68-charge-001');
-      expect(charge.amount, 12.75);
-      expect(charge.performancePeriodUid, period.uid);
-      expect(charge.settledThrough, DateTime(2025, 12, 31)); */
-
-      expectStructuredCostsPreserved(saved);
+      expectUpdatedFundAndStructuredCostsPreserved(saved);
     },
   );
 
@@ -178,24 +160,6 @@ void main() {
     expect(savedFund, isNotNull);
     final saved = savedFund!;
 
-    /* expect(saved.lastValue, 112);
-    expect(saved.date, DateTime(2026, 10, 4));
-    expect(saved.ter, 0.50);
-    expect(saved.performanceFee, 10);
-
-    expect(saved.costPeriods, hasLength(1));
-    final period = saved.costPeriods.single;
-    expect(period.uid, 'lf68-period-001');
-    expect(period.ratePercent, 0.65);
-    expect(period.description, 'Coste de gestión LF-68');
-
-    expect(saved.costCharges, hasLength(1));
-    final charge = saved.costCharges.single;
-    expect(charge.uid, 'lf68-charge-001');
-    expect(charge.amount, 12.75);
-    expect(charge.performancePeriodUid, period.uid);
-    expect(charge.settledThrough, DateTime(2025, 12, 31)); */
-
-    expectStructuredCostsPreserved(saved);
+    expectUpdatedFundAndStructuredCostsPreserved(saved);
   });
 }
