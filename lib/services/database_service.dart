@@ -300,8 +300,15 @@ class DatabaseService {
 
   static void _validateFundCosts(FundData fund) {
     final periodUids = <String>{};
+
     for (var index = 0; index < fund.costPeriods.length; index++) {
       final period = fund.costPeriods[index];
+
+      if (period.uid.trim().isEmpty) {
+        throw ArgumentError(
+          'El identificador del periodo de coste no puede estar vacío.',
+        );
+      }
       if (!period.ratePercent.isFinite || period.ratePercent < 0) {
         throw ArgumentError('La tasa de coste debe ser finita y no negativa.');
       }
@@ -360,7 +367,14 @@ class DatabaseService {
           (earliest, date) =>
               earliest == null || date.isBefore(earliest) ? date : earliest,
         );
+
     for (final charge in fund.costCharges) {
+      if (charge.uid.trim().isEmpty) {
+        throw ArgumentError(
+          'El identificador del cargo de coste no puede estar vacío.',
+        );
+      }
+
       if (!charge.amount.isFinite || charge.amount <= 0) {
         throw ArgumentError('El importe del cargo debe ser finito y positivo.');
       }
@@ -542,6 +556,7 @@ class DatabaseService {
           'price': fund.lastValue,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
+
       if (existingFund.isEmpty) {
         for (final operation in fund.operations) {
           batch.insert('operations', {
@@ -554,12 +569,92 @@ class DatabaseService {
           });
         }
       }
+
+      /* for (final operation in fund.operations) {
+        if (operation.isin != fund.isin) {
+          throw ArgumentError(
+            'La operación ${operation.id} pertenece al ISIN '
+            '${operation.isin}, no al fondo ${fund.isin}.',
+          );
+        }
+
+        final values = {
+          'isin': operation.isin,
+          'date': operation.date.toIso8601String(),
+          'type': operation.type.name,
+          'units': operation.units,
+          'price': operation.price,
+          'amount': operation.amount,
+        };
+
+        if (operation.id == null) {
+          await txn.insert('operations', values);
+        } else {
+          final updatedRows = await txn.update(
+            'operations',
+            values,
+            where: 'id = ? AND isin = ?',
+            whereArgs: [operation.id, fund.isin],
+          );
+
+          if (updatedRows == 0) {
+            throw StateError(
+              'No existe la operación ${operation.id} '
+              'para el fondo ${fund.isin}.',
+            );
+          }
+        }
+      } */
+
       await _replaceFundCosts(txn, fund);
       await batch.commit(noResult: true);
     });
   }
 
   static Future<void> saveOperation(FundOperation op) async {
+    final db = await database;
+
+    if (op.id != null) {
+      // Verify that the operation exists and belongs to the same fund.
+      final existing = await db.query(
+        'operations',
+        columns: ['isin'],
+        where: 'id = ?',
+        whereArgs: [op.id],
+        limit: 1,
+      );
+
+      if (existing.isEmpty || existing.first['isin'] != op.isin) {
+        return;
+      }
+
+      // Update only an existing operation belonging to this fund.
+      await db.update(
+        'operations',
+        {
+          'date': op.date.toIso8601String(),
+          'type': op.type.name,
+          'units': op.units,
+          'price': op.price,
+          'amount': op.amount,
+        },
+        where: 'id = ? AND isin = ?',
+        whereArgs: [op.id, op.isin],
+      );
+    } else {
+      // Insert new operation.
+      await db.insert('operations', {
+        'isin': op.isin,
+        'date': op.date.toIso8601String(),
+        'type': op.type.name,
+        'units': op.units,
+        'price': op.price,
+        'amount': op.amount,
+      });
+    }
+  }
+
+  /* static Future<void> saveOperation(FundOperation op) async {
     final db = await database;
     if (op.id != null) {
       // Update existing operation
@@ -586,7 +681,7 @@ class DatabaseService {
         'amount': op.amount,
       });
     }
-  }
+  } */
 
   static Future<void> replaceFund(FundData fund) async {
     final db = await database;
@@ -885,7 +980,8 @@ class DatabaseService {
       'operations',
       where: 'isin = ?',
       whereArgs: [isin],
-      orderBy: 'date DESC',
+      //orderBy: 'date DESC',
+      orderBy: 'date ASC, id ASC',
     );
 
     final operations = opMaps

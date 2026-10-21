@@ -56,25 +56,45 @@ class FundCostPeriod {
     'description': description,
   };
 
-  factory FundCostPeriod.fromJson(Map<String, dynamic> json) => FundCostPeriod(
-    uid: json['uid'] as String?,
-    concept: FundCostConcept.values.firstWhere(
-      (value) => value.name == json['concept'],
-      orElse: () => FundCostConcept.other,
-    ),
-    ratePercent: (json['ratePercent'] as num).toDouble(),
-    basis: FundCostRateBasis.values.firstWhere(
-      (value) => value.name == json['basis'],
-      orElse: () => FundCostRateBasis.annualBalance,
-    ),
-    treatment: FundCostTreatment.values.firstWhere(
-      (value) => value.name == json['treatment'],
-      orElse: () => FundCostTreatment.unknown,
-    ),
-    validFrom: DateTime.tryParse(json['validFrom'] as String? ?? ''),
-    validTo: DateTime.tryParse(json['validTo'] as String? ?? ''),
-    description: json['description'] as String?,
-  );
+  factory FundCostPeriod.fromJson(Map<String, dynamic> json) {
+    final ratePercent = (json['ratePercent'] as num).toDouble();
+    final validFrom = DateTime.tryParse(json['validFrom'] as String? ?? '');
+    final validTo = DateTime.tryParse(json['validTo'] as String? ?? '');
+
+    if (!ratePercent.isFinite) {
+      throw ArgumentError.value(
+        ratePercent,
+        'ratePercent',
+        'La tasa debe ser un número finito.',
+      );
+    }
+
+    if (validFrom != null && validTo != null && validTo.isBefore(validFrom)) {
+      throw ArgumentError(
+        'La fecha final del periodo no puede preceder a la inicial.',
+      );
+    }
+
+    return FundCostPeriod(
+      uid: json['uid'] as String?,
+      concept: FundCostConcept.values.firstWhere(
+        (value) => value.name == json['concept'],
+        orElse: () => FundCostConcept.other,
+      ),
+      ratePercent: ratePercent,
+      basis: FundCostRateBasis.values.firstWhere(
+        (value) => value.name == json['basis'],
+        orElse: () => FundCostRateBasis.annualBalance,
+      ),
+      treatment: FundCostTreatment.values.firstWhere(
+        (value) => value.name == json['treatment'],
+        orElse: () => FundCostTreatment.unknown,
+      ),
+      validFrom: validFrom,
+      validTo: validTo,
+      description: json['description'] as String?,
+    );
+  }
 }
 
 class FundCostCharge {
@@ -108,16 +128,30 @@ class FundCostCharge {
     'settledThrough': settledThrough?.toIso8601String(),
   };
 
-  factory FundCostCharge.fromJson(Map<String, dynamic> json) => FundCostCharge(
-    uid: json['uid'] as String?,
-    concept: FundCostConcept.values.firstWhere(
-      (value) => value.name == json['concept'],
-      orElse: () => FundCostConcept.other,
-    ),
-    date: DateTime.parse(json['date'] as String),
-    amount: (json['amount'] as num).toDouble(),
-    description: json['description'] as String?,
-    performancePeriodUid: json['performancePeriodUid'] as String?,
-    settledThrough: DateTime.tryParse(json['settledThrough'] as String? ?? ''),
-  );
+  factory FundCostCharge.fromJson(Map<String, dynamic> json) {
+    final amount = (json['amount'] as num).toDouble();
+
+    if (!amount.isFinite) {
+      throw ArgumentError.value(
+        amount,
+        'amount',
+        'El importe debe ser un número finito.',
+      );
+    }
+
+    return FundCostCharge(
+      uid: json['uid'] as String?,
+      concept: FundCostConcept.values.firstWhere(
+        (value) => value.name == json['concept'],
+        orElse: () => FundCostConcept.other,
+      ),
+      date: DateTime.parse(json['date'] as String),
+      amount: amount,
+      description: json['description'] as String?,
+      performancePeriodUid: json['performancePeriodUid'] as String?,
+      settledThrough: DateTime.tryParse(
+        json['settledThrough'] as String? ?? '',
+      ),
+    );
+  }
 }

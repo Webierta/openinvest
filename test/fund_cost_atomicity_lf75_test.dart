@@ -3729,4 +3729,77 @@ void main() {
       expect(saved.costCharges.single.performancePeriodUid, period.uid);
     },
   );
+
+  test('LF-93.1: rechaza un periodo con UID vacío', () async {
+    final invalidPeriod = FundCostPeriod(
+      uid: '',
+      concept: FundCostConcept.management,
+      ratePercent: 0.65,
+      basis: FundCostRateBasis.annualBalance,
+      treatment: FundCostTreatment.includedInNav,
+    );
+
+    await expectLater(
+      DatabaseService.saveFund(
+        makeFund(
+          fundIsin: isin,
+          symbol: 'LF93-1',
+          costPeriods: [invalidPeriod],
+        ),
+      ),
+      throwsArgumentError,
+    );
+
+    expect(await DatabaseService.getFund(isin), isNull);
+  });
+
+  test('LF-93.2: rechaza un cargo con UID vacío', () async {
+    final period = makePerformancePeriod('lf93-2-period');
+
+    final invalidCharge = FundCostCharge(
+      uid: '',
+      concept: FundCostConcept.performance,
+      date: DateTime(2026, 10, 20),
+      amount: 12.50,
+      performancePeriodUid: period.uid,
+      settledThrough: DateTime(2026, 10, 19),
+    );
+
+    await expectLater(
+      DatabaseService.saveFund(
+        makeFund(
+          fundIsin: isin,
+          symbol: 'LF93-2',
+          costPeriods: [period],
+          costCharges: [invalidCharge],
+        ),
+      ),
+      throwsArgumentError,
+    );
+
+    expect(await DatabaseService.getFund(isin), isNull);
+  });
+
+  test('LF-93.3: rechaza UID de periodo compuesto por espacios', () async {
+    final invalidPeriod = FundCostPeriod(
+      uid: '   ',
+      concept: FundCostConcept.management,
+      ratePercent: 0.65,
+      basis: FundCostRateBasis.annualBalance,
+      treatment: FundCostTreatment.includedInNav,
+    );
+
+    await expectLater(
+      DatabaseService.saveFund(
+        makeFund(
+          fundIsin: isin,
+          symbol: 'LF93-3',
+          costPeriods: [invalidPeriod],
+        ),
+      ),
+      throwsArgumentError,
+    );
+
+    expect(await DatabaseService.getFund(isin), isNull);
+  });
 }
