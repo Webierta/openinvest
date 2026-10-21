@@ -368,11 +368,55 @@ class DatabaseService {
         throw ArgumentError('Identificador de cargo duplicado.');
       }
 
-      if (charge.performancePeriodUid != null &&
-          !periodUids.contains(charge.performancePeriodUid)) {
-        throw ArgumentError(
-          'El cargo referencia un periodo de comisión de éxito inexistente.',
-        );
+      if (charge.performancePeriodUid != null) {
+        if (charge.concept != FundCostConcept.performance) {
+          throw ArgumentError(
+            'Solo los cargos de comisión de éxito pueden referenciar '
+            'un periodo de comisión de éxito.',
+          );
+        }
+
+        final referencedPeriod = fund.costPeriods
+            .where((period) => period.uid == charge.performancePeriodUid)
+            .firstOrNull;
+
+        if (referencedPeriod == null) {
+          throw ArgumentError(
+            'El cargo referencia un periodo de comisión de éxito inexistente.',
+          );
+        }
+
+        if (referencedPeriod.concept != FundCostConcept.performance) {
+          throw ArgumentError(
+            'El cargo debe referenciar un periodo de comisión de éxito.',
+          );
+        }
+
+        final periodStart = referencedPeriod.validFrom;
+        final periodEnd = referencedPeriod.validTo;
+
+        if (periodStart != null && charge.date.isBefore(periodStart)) {
+          throw ArgumentError(
+            'La fecha del cargo es anterior al inicio del periodo '
+            'de comisión de éxito.',
+          );
+        }
+
+        if (periodEnd != null && charge.date.isAfter(periodEnd)) {
+          throw ArgumentError(
+            'La fecha del cargo es posterior al final del periodo '
+            'de comisión de éxito.',
+          );
+        }
+
+        if (charge.settledThrough != null &&
+            periodStart != null &&
+            charge.settledThrough!.isBefore(periodStart)) {
+          throw ArgumentError(
+            'La fecha liquidada es anterior al inicio del periodo '
+            'de comisión de éxito.',
+          );
+        }
       }
 
       if (charge.settledThrough != null &&
