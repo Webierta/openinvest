@@ -5099,4 +5099,2035 @@ void main() {
       expect(inserted.amount, 360);
     });
   });
+
+  group('LF-129', () {
+    test('LF-129.1: actualizar un fondo conserva el rowid de SQLite', () async {
+      final fundAInitial = fundA();
+      final fundBInitial = fundB();
+
+      await DatabaseService.saveFund(fundAInitial);
+      await DatabaseService.saveFund(fundBInitial);
+
+      final db = await DatabaseService.database;
+
+      final beforeRows = await db.rawQuery(
+        'SELECT rowid FROM funds WHERE isin = ?',
+        ['ES0123456789'],
+      );
+
+      expect(beforeRows, hasLength(1));
+
+      final rowIdBefore = beforeRows.single['rowid'];
+
+      await DatabaseService.saveFund(fundAInitial.copyWith(lastValue: 115));
+
+      final afterRows = await db.rawQuery(
+        'SELECT rowid FROM funds WHERE isin = ?',
+        ['ES0123456789'],
+      );
+
+      expect(afterRows, hasLength(1));
+      expect(afterRows.single['rowid'], rowIdBefore);
+
+      final persisted = await DatabaseService.getFund('ES0123456789');
+
+      expect(persisted, isNotNull);
+      expect(persisted!.lastValue, 115);
+
+      // La actualización tampoco debe afectar a la identidad de B.
+      final persistedB = await DatabaseService.getFund('ES9876543210');
+
+      expect(persistedB, isNotNull);
+      expect(persistedB!.lastValue, fundBInitial.lastValue);
+    });
+
+    test('LF-129.2: guardar de nuevo un fondo conserva los IDs internos de sus costes', () async {
+      final fund = fundA();
+
+      await DatabaseService.saveFund(fund);
+
+      final db = await DatabaseService.database;
+
+      Future<List<Map<String, Object?>>> readRows(String table) {
+        return db.query(
+          table,
+          columns: ['id', 'uid', 'isin'],
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+          orderBy: 'id ASC',
+        );
+      }
+
+      final periodsBefore = await readRows('fund_cost_periods');
+      final chargesBefore = await readRows('fund_cost_charges');
+
+      expect(periodsBefore, isNotEmpty);
+      expect(chargesBefore, isNotEmpty);
+
+      await DatabaseService.saveFund(fund);
+
+      final periodsAfter = await readRows('fund_cost_periods');
+      final chargesAfter = await readRows('fund_cost_charges');
+
+      expect(periodsAfter, hasLength(periodsBefore.length));
+      expect(chargesAfter, hasLength(chargesBefore.length));
+
+      expect(
+        periodsAfter.map((row) => row['id']).toList(),
+        periodsBefore.map((row) => row['id']).toList(),
+      );
+      expect(
+        periodsAfter.map((row) => row['uid']).toList(),
+        periodsBefore.map((row) => row['uid']).toList(),
+      );
+
+      expect(
+        chargesAfter.map((row) => row['id']).toList(),
+        chargesBefore.map((row) => row['id']).toList(),
+      );
+      expect(
+        chargesAfter.map((row) => row['uid']).toList(),
+        chargesBefore.map((row) => row['uid']).toList(),
+      );
+    });
+
+    test(
+      'LF-129.3: actualizar los datos de los costes conserva sus IDs internos',
+      () async {
+        final fund = fundA();
+
+        await DatabaseService.saveFund(fund);
+
+        final db = await DatabaseService.database;
+
+        final periodsBefore = await db.query(
+          'fund_cost_periods',
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+          orderBy: 'id ASC',
+        );
+
+        final chargesBefore = await db.query(
+          'fund_cost_charges',
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+          orderBy: 'id ASC',
+        );
+
+        expect(periodsBefore, isNotEmpty);
+        expect(chargesBefore, isNotEmpty);
+
+        final periodBefore = periodsBefore.first;
+        final chargeBefore = chargesBefore.first;
+
+        final updatedPeriods = fund.costPeriods.map((period) {
+          if (period.uid != periodBefore['uid']) return period;
+
+          return FundCostPeriod(
+            id: period.id,
+            uid: period.uid,
+            concept: period.concept,
+            ratePercent: period.ratePercent + 0.25,
+            basis: period.basis,
+            treatment: period.treatment,
+            validFrom: period.validFrom,
+            validTo: period.validTo,
+            description: period.description,
+          );
+        }).toList();
+
+        final updatedCharges = fund.costCharges.map((charge) {
+          if (charge.uid != chargeBefore['uid']) return charge;
+
+          return FundCostCharge(
+            id: charge.id,
+            uid: charge.uid,
+            concept: charge.concept,
+            date: charge.date,
+            amount: charge.amount + 1.0,
+            description: charge.description,
+            performancePeriodUid: charge.performancePeriodUid,
+            settledThrough: charge.settledThrough,
+          );
+        }).toList();
+
+        final updatedFund = fund.copyWith(
+          costPeriods: updatedPeriods,
+          costCharges: updatedCharges,
+        );
+
+        await DatabaseService.saveFund(updatedFund);
+
+        final periodsAfter = await db.query(
+          'fund_cost_periods',
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+          orderBy: 'id ASC',
+        );
+
+        final chargesAfter = await db.query(
+          'fund_cost_charges',
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+          orderBy: 'id ASC',
+        );
+
+        final updatedPeriod = periodsAfter.firstWhere(
+          (row) => row['uid'] == periodBefore['uid'],
+        );
+
+        final updatedCharge = chargesAfter.firstWhere(
+          (row) => row['uid'] == chargeBefore['uid'],
+        );
+
+        expect(updatedPeriod['id'], periodBefore['id']);
+        expect(
+          (updatedPeriod['rate_percent'] as num).toDouble(),
+          closeTo(
+            (periodBefore['rate_percent'] as num).toDouble() + 0.25,
+            0.000001,
+          ),
+        );
+
+        expect(updatedCharge['id'], chargeBefore['id']);
+        expect(
+          (updatedCharge['amount'] as num).toDouble(),
+          closeTo((chargeBefore['amount'] as num).toDouble() + 1.0, 0.000001),
+        );
+      },
+    );
+
+    test('LF-129.4: eliminar costes del modelo elimina solo sus registros en SQLite', () async {
+      final base = fundA();
+
+      final period1 = FundCostPeriod(
+        uid: 'lf129-4-period-1',
+        concept: FundCostConcept.performance,
+        ratePercent: 0.5,
+        basis: FundCostRateBasis.positiveProfit,
+        treatment: FundCostTreatment.chargedSeparately,
+        validFrom: DateTime(2026, 10, 1),
+        validTo: DateTime(2026, 10, 14),
+      );
+
+      final period2 = FundCostPeriod(
+        uid: 'lf129-4-period-2',
+        concept: FundCostConcept.performance,
+        ratePercent: 0.2,
+        basis: FundCostRateBasis.positiveProfit,
+        treatment: FundCostTreatment.chargedSeparately,
+        validFrom: DateTime(2026, 10, 15),
+        validTo: DateTime(2026, 12, 31),
+      );
+
+      final charge1 = FundCostCharge(
+        uid: 'lf129-4-charge-1',
+        concept: FundCostConcept.performance,
+        date: DateTime(2026, 10, 10),
+        amount: 2.0,
+        performancePeriodUid: period1.uid,
+      );
+
+      final charge2 = FundCostCharge(
+        uid: 'lf129-4-charge-2',
+        concept: FundCostConcept.performance,
+        date: DateTime(2026, 10, 20),
+        amount: 3.0,
+        performancePeriodUid: period2.uid,
+      );
+
+      final fund = base.copyWith(
+        costPeriods: [period1, period2],
+        costCharges: [charge1, charge2],
+      );
+
+      await DatabaseService.saveFund(fund);
+
+      final db = await DatabaseService.database;
+
+      final periodsBefore = await db.query(
+        'fund_cost_periods',
+        columns: ['id', 'uid'],
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+        orderBy: 'id ASC',
+      );
+
+      final chargesBefore = await db.query(
+        'fund_cost_charges',
+        columns: ['id', 'uid'],
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+        orderBy: 'id ASC',
+      );
+
+      expect(periodsBefore, hasLength(2));
+      expect(chargesBefore, hasLength(2));
+
+      const removedPeriodUid = 'lf129-4-period-1';
+      const removedChargeUid = 'lf129-4-charge-1';
+
+      final retainedPeriod = periodsBefore.singleWhere(
+        (row) => row['uid'] == 'lf129-4-period-2',
+      );
+      final retainedCharge = chargesBefore.singleWhere(
+        (row) => row['uid'] == 'lf129-4-charge-2',
+      );
+
+      final updatedFund = fund.copyWith(
+        costPeriods: [period2],
+        costCharges: [charge2],
+      );
+
+      await DatabaseService.saveFund(updatedFund);
+
+      final periodsAfter = await db.query(
+        'fund_cost_periods',
+        columns: ['id', 'uid'],
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+        orderBy: 'id ASC',
+      );
+
+      final chargesAfter = await db.query(
+        'fund_cost_charges',
+        columns: ['id', 'uid'],
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+        orderBy: 'id ASC',
+      );
+
+      expect(periodsAfter, hasLength(1));
+      expect(chargesAfter, hasLength(1));
+
+      expect(
+        periodsAfter.any((row) => row['uid'] == removedPeriodUid),
+        isFalse,
+      );
+      expect(
+        chargesAfter.any((row) => row['uid'] == removedChargeUid),
+        isFalse,
+      );
+
+      expect(periodsAfter.single['uid'], 'lf129-4-period-2');
+      expect(periodsAfter.single['id'], retainedPeriod['id']);
+
+      expect(chargesAfter.single['uid'], 'lf129-4-charge-2');
+      expect(chargesAfter.single['id'], retainedCharge['id']);
+    });
+
+    test('LF-129.5: modificar los costes de A no altera los costes ni los IDs de B', () async {
+      final fundAOriginal = fundA();
+      final fundBOriginal = fundB();
+
+      await DatabaseService.saveFund(fundAOriginal);
+      await DatabaseService.saveFund(fundBOriginal);
+
+      final db = await DatabaseService.database;
+
+      Future<List<Map<String, Object?>>> readCosts(
+        String table,
+        String isin,
+      ) async {
+        final columns = table == 'fund_cost_periods'
+            ? <String>[
+                'id',
+                'uid',
+                'isin',
+                'concept',
+                'rate_percent',
+                'valid_from',
+                'valid_to',
+              ]
+            : <String>['id', 'uid', 'isin', 'concept', 'date', 'amount'];
+
+        return db.query(
+          table,
+          columns: columns,
+          where: 'isin = ?',
+          whereArgs: [isin],
+          orderBy: 'id ASC',
+        );
+      }
+
+      final bPeriodsBefore = await readCosts(
+        'fund_cost_periods',
+        fundBOriginal.isin,
+      );
+      final bChargesBefore = await readCosts(
+        'fund_cost_charges',
+        fundBOriginal.isin,
+      );
+
+      expect(bPeriodsBefore, isNotEmpty);
+      expect(bChargesBefore, isNotEmpty);
+
+      // Actualizamos el periodo de A y eliminamos sus cargos.
+      final updatedPeriodA = performancePeriod(uid: 'LF129-5-A-P2', rate: 12);
+
+      final updatedFundA = fundA(periods: [updatedPeriodA], charges: const []);
+
+      await DatabaseService.saveFund(updatedFundA);
+
+      final bPeriodsAfter = await readCosts(
+        'fund_cost_periods',
+        fundBOriginal.isin,
+      );
+      final bChargesAfter = await readCosts(
+        'fund_cost_charges',
+        fundBOriginal.isin,
+      );
+
+      expect(bPeriodsAfter, hasLength(bPeriodsBefore.length));
+      expect(bChargesAfter, hasLength(bChargesBefore.length));
+
+      expect(
+        bPeriodsAfter.map((row) => row['id']).toList(),
+        bPeriodsBefore.map((row) => row['id']).toList(),
+      );
+      expect(
+        bPeriodsAfter.map((row) => row['uid']).toList(),
+        bPeriodsBefore.map((row) => row['uid']).toList(),
+      );
+      expect(
+        bPeriodsAfter.map((row) => row['rate_percent']).toList(),
+        bPeriodsBefore.map((row) => row['rate_percent']).toList(),
+      );
+
+      expect(
+        bChargesAfter.map((row) => row['id']).toList(),
+        bChargesBefore.map((row) => row['id']).toList(),
+      );
+      expect(
+        bChargesAfter.map((row) => row['uid']).toList(),
+        bChargesBefore.map((row) => row['uid']).toList(),
+      );
+      expect(
+        bChargesAfter.map((row) => row['amount']).toList(),
+        bChargesBefore.map((row) => row['amount']).toList(),
+      );
+    });
+
+    test('LF-129.6: vaciar los costes conserva el fondo, las operaciones y el historial', () async {
+      final fund = fundA();
+
+      await DatabaseService.saveFund(fund);
+
+      final db = await DatabaseService.database;
+
+      final operationsBefore = await db.query(
+        'operations',
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+        orderBy: 'id ASC',
+      );
+
+      final pricesBefore = await db.query(
+        'prices',
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+        orderBy: 'date ASC',
+      );
+
+      expect(operationsBefore, isNotEmpty);
+      expect(pricesBefore, isNotEmpty);
+
+      expect(
+        await db.query(
+          'fund_cost_periods',
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+        ),
+        isNotEmpty,
+      );
+      expect(
+        await db.query(
+          'fund_cost_charges',
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+        ),
+        isNotEmpty,
+      );
+
+      final updatedFund = fund.copyWith(
+        costPeriods: const [],
+        costCharges: const [],
+      );
+
+      await DatabaseService.saveFund(updatedFund);
+
+      final savedFund = await DatabaseService.getFund(fund.isin);
+
+      expect(savedFund, isNotNull);
+      expect(savedFund!.isin, fund.isin);
+
+      expect(
+        await db.query(
+          'fund_cost_periods',
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+        ),
+        isEmpty,
+      );
+      expect(
+        await db.query(
+          'fund_cost_charges',
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+        ),
+        isEmpty,
+      );
+
+      final operationsAfter = await db.query(
+        'operations',
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+        orderBy: 'id ASC',
+      );
+
+      final pricesAfter = await db.query(
+        'prices',
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+        orderBy: 'date ASC',
+      );
+
+      expect(operationsAfter, hasLength(operationsBefore.length));
+      expect(pricesAfter, hasLength(pricesBefore.length));
+
+      expect(
+        operationsAfter.map((row) => row['id']).toList(),
+        operationsBefore.map((row) => row['id']).toList(),
+      );
+      expect(
+        pricesAfter.map((row) => row['date']).toList(),
+        pricesBefore.map((row) => row['date']).toList(),
+      );
+      expect(
+        pricesAfter.map((row) => row['value']).toList(),
+        pricesBefore.map((row) => row['value']).toList(),
+      );
+    });
+
+    test('LF-129.7: un error de validación conserva íntegramente los datos persistidos', () async {
+      final originalFund = fundA();
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      final fundBefore = await db.query(
+        'funds',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+      );
+      final periodsBefore = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+      final chargesBefore = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+      final operationsBefore = await db.query(
+        'operations',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+      final pricesBefore = await db.query(
+        'prices',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'date ASC',
+      );
+
+      expect(periodsBefore, isNotEmpty);
+      expect(chargesBefore, isNotEmpty);
+
+      // El UID del cargo referencia un periodo que no existe.
+      final invalidCharge = FundCostCharge(
+        uid: 'LF129-7-invalid-charge',
+        concept: FundCostConcept.performance,
+        date: chargeDate,
+        amount: 99,
+        performancePeriodUid: 'LF129-7-missing-period',
+      );
+
+      final invalidFund = originalFund.copyWith(
+        name: 'Nombre que no debe persistirse',
+        costPeriods: const [],
+        costCharges: [invalidCharge],
+      );
+
+      await expectLater(
+        DatabaseService.saveFund(invalidFund),
+        throwsA(anything),
+      );
+
+      final fundAfter = await db.query(
+        'funds',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+      );
+      final periodsAfter = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+      final chargesAfter = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+      final operationsAfter = await db.query(
+        'operations',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+      final pricesAfter = await db.query(
+        'prices',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'date ASC',
+      );
+
+      expect(fundAfter, equals(fundBefore));
+      expect(periodsAfter, equals(periodsBefore));
+      expect(chargesAfter, equals(chargesBefore));
+      expect(operationsAfter, equals(operationsBefore));
+      expect(pricesAfter, equals(pricesBefore));
+    });
+
+    test(
+      'LF-129.8: un fallo de SQLite revierte todas las escrituras del guardado',
+      () async {
+        final originalFund = fundA();
+        await DatabaseService.saveFund(originalFund);
+
+        final db = await DatabaseService.database;
+
+        Future<List<Map<String, Object?>>> readTable(
+          String table,
+          String isin,
+        ) {
+          return db.query(
+            table,
+            where: 'isin = ?',
+            whereArgs: [isin],
+            orderBy: 'id ASC',
+          );
+        }
+
+        final fundBefore = await db.query(
+          'funds',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+        );
+        final periodsBefore = await readTable(
+          'fund_cost_periods',
+          originalFund.isin,
+        );
+        final chargesBefore = await readTable(
+          'fund_cost_charges',
+          originalFund.isin,
+        );
+        final operationsBefore = await readTable(
+          'operations',
+          originalFund.isin,
+        );
+        final pricesBefore = await db.query(
+          'prices',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+          orderBy: 'date ASC',
+        );
+
+        await db.execute('''
+      CREATE TEMP TRIGGER lf129_8_fail_cost_charge_insert
+      BEFORE INSERT ON fund_cost_charges
+      BEGIN
+        SELECT RAISE(ABORT, 'LF-129.8 forced SQLite failure');
+      END
+    ''');
+
+        try {
+          final updatedFund = originalFund.copyWith(
+            name: 'Nombre que no debe persistirse',
+            lastValue: 999.0,
+            costPeriods: [
+              performancePeriod(uid: 'LF129-8-new-period', rate: 25),
+            ],
+            costCharges: [
+              performanceCharge(
+                uid: 'LF129-8-new-charge',
+                periodUid: 'LF129-8-new-period',
+                amount: 77,
+              ),
+            ],
+          );
+
+          await expectLater(
+            DatabaseService.saveFund(updatedFund),
+            throwsA(anything),
+          );
+        } finally {
+          await db.execute(
+            'DROP TRIGGER IF EXISTS lf129_8_fail_cost_charge_insert',
+          );
+        }
+
+        final fundAfter = await db.query(
+          'funds',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+        );
+        final periodsAfter = await readTable(
+          'fund_cost_periods',
+          originalFund.isin,
+        );
+        final chargesAfter = await readTable(
+          'fund_cost_charges',
+          originalFund.isin,
+        );
+        final operationsAfter = await readTable(
+          'operations',
+          originalFund.isin,
+        );
+        final pricesAfter = await db.query(
+          'prices',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+          orderBy: 'date ASC',
+        );
+
+        expect(fundAfter, equals(fundBefore));
+        expect(periodsAfter, equals(periodsBefore));
+        expect(chargesAfter, equals(chargesBefore));
+        expect(operationsAfter, equals(operationsBefore));
+        expect(pricesAfter, equals(pricesBefore));
+      },
+    );
+
+    test('LF-129.9: un fallo al guardar costes revierte cambios de operaciones y valoración', () async {
+      final originalFund = fundA();
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      Future<List<Map<String, Object?>>> readTable(String table, String isin) {
+        return db.query(
+          table,
+          where: 'isin = ?',
+          whereArgs: [isin],
+          orderBy: 'id ASC',
+        );
+      }
+
+      final fundBefore = await db.query(
+        'funds',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+      );
+      final periodsBefore = await readTable(
+        'fund_cost_periods',
+        originalFund.isin,
+      );
+      final chargesBefore = await readTable(
+        'fund_cost_charges',
+        originalFund.isin,
+      );
+      final operationsBefore = await readTable('operations', originalFund.isin);
+      final pricesBefore = await db.query(
+        'prices',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'date ASC',
+      );
+
+      await db.execute('''
+      CREATE TEMP TRIGGER lf129_9_fail_cost_charge_insert
+      BEFORE INSERT ON fund_cost_charges
+      BEGIN
+        SELECT RAISE(ABORT, 'LF-129.9 forced SQLite failure');
+      END
+    ''');
+
+      try {
+        final updatedFund = originalFund.copyWith(
+          name: 'Nombre temporal',
+          lastValue: 999.0,
+          date: DateTime(2026, 10, 21),
+          history: [
+            ...originalFund.history,
+            PricePoint(DateTime(2026, 10, 21), 999.0),
+          ],
+          operations: [
+            ...originalFund.operations,
+            purchase(isin: originalFund.isin, units: 2, price: 150),
+          ],
+          costPeriods: [performancePeriod(uid: 'LF129-9-new-period', rate: 25)],
+          costCharges: [
+            performanceCharge(
+              uid: 'LF129-9-new-charge',
+              periodUid: 'LF129-9-new-period',
+              amount: 77,
+            ),
+          ],
+        );
+
+        await expectLater(
+          DatabaseService.saveFund(updatedFund),
+          throwsA(anything),
+        );
+      } finally {
+        await db.execute(
+          'DROP TRIGGER IF EXISTS lf129_9_fail_cost_charge_insert',
+        );
+      }
+
+      expect(
+        await db.query(
+          'funds',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+        ),
+        equals(fundBefore),
+      );
+      expect(
+        await readTable('fund_cost_periods', originalFund.isin),
+        equals(periodsBefore),
+      );
+      expect(
+        await readTable('fund_cost_charges', originalFund.isin),
+        equals(chargesBefore),
+      );
+      expect(
+        await readTable('operations', originalFund.isin),
+        equals(operationsBefore),
+      );
+      expect(
+        await db.query(
+          'prices',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+          orderBy: 'date ASC',
+        ),
+        equals(pricesBefore),
+      );
+    });
+
+    test(
+      'LF-129.10: un fallo posterior conserva el último estado confirmado',
+      () async {
+        final originalFund = fundA();
+        await DatabaseService.saveFund(originalFund);
+
+        final db = await DatabaseService.database;
+
+        Future<List<Map<String, Object?>>> readTable(
+          String table,
+          String isin,
+        ) {
+          return db.query(
+            table,
+            where: 'isin = ?',
+            whereArgs: [isin],
+            orderBy: 'id ASC',
+          );
+        }
+
+        // Primera actualización válida: debe quedar confirmada.
+        final confirmedFund = originalFund.copyWith(
+          name: 'Estado confirmado LF-129.10',
+          lastValue: 125.0,
+          costPeriods: [
+            performancePeriod(uid: 'LF129-10-confirmed-period', rate: 12),
+          ],
+          costCharges: [
+            performanceCharge(
+              uid: 'LF129-10-confirmed-charge',
+              periodUid: 'LF129-10-confirmed-period',
+              amount: 8,
+            ),
+          ],
+        );
+
+        await DatabaseService.saveFund(confirmedFund);
+
+        final fundConfirmed = await db.query(
+          'funds',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+        );
+        final periodsConfirmed = await readTable(
+          'fund_cost_periods',
+          originalFund.isin,
+        );
+        final chargesConfirmed = await readTable(
+          'fund_cost_charges',
+          originalFund.isin,
+        );
+        final operationsConfirmed = await readTable(
+          'operations',
+          originalFund.isin,
+        );
+        final pricesConfirmed = await db.query(
+          'prices',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+          orderBy: 'date ASC',
+        );
+
+        await db.execute('''
+      CREATE TEMP TRIGGER lf129_10_fail_cost_charge_insert
+      BEFORE INSERT ON fund_cost_charges
+      BEGIN
+        SELECT RAISE(ABORT, 'LF-129.10 forced SQLite failure');
+      END
+    ''');
+
+        try {
+          final rejectedFund = confirmedFund.copyWith(
+            name: 'Estado que debe rechazarse',
+            lastValue: 999.0,
+            costPeriods: [
+              performancePeriod(uid: 'LF129-10-rejected-period', rate: 30),
+            ],
+            costCharges: [
+              performanceCharge(
+                uid: 'LF129-10-rejected-charge',
+                periodUid: 'LF129-10-rejected-period',
+                amount: 99,
+              ),
+            ],
+          );
+
+          await expectLater(
+            DatabaseService.saveFund(rejectedFund),
+            throwsA(anything),
+          );
+        } finally {
+          await db.execute(
+            'DROP TRIGGER IF EXISTS lf129_10_fail_cost_charge_insert',
+          );
+        }
+
+        // La segunda actualización debe haberse revertido al estado confirmado.
+        expect(
+          await db.query(
+            'funds',
+            where: 'isin = ?',
+            whereArgs: [originalFund.isin],
+          ),
+          equals(fundConfirmed),
+        );
+        expect(
+          await readTable('fund_cost_periods', originalFund.isin),
+          equals(periodsConfirmed),
+        );
+        expect(
+          await readTable('fund_cost_charges', originalFund.isin),
+          equals(chargesConfirmed),
+        );
+        expect(
+          await readTable('operations', originalFund.isin),
+          equals(operationsConfirmed),
+        );
+        expect(
+          await db.query(
+            'prices',
+            where: 'isin = ?',
+            whereArgs: [originalFund.isin],
+            orderBy: 'date ASC',
+          ),
+          equals(pricesConfirmed),
+        );
+
+        final savedFund = await DatabaseService.getFund(originalFund.isin);
+
+        expect(savedFund, isNotNull);
+        expect(savedFund!.name, 'Estado confirmado LF-129.10');
+        expect(savedFund.lastValue, 125.0);
+        expect(savedFund.costPeriods.map((period) => period.uid).toList(), [
+          'LF129-10-confirmed-period',
+        ]);
+        expect(savedFund.costCharges.map((charge) => charge.uid).toList(), [
+          'LF129-10-confirmed-charge',
+        ]);
+      },
+    );
+  });
+
+  group('LF-130', () {
+    test('LF-130.1: rechaza UID duplicados de periodos sin alterar los datos persistidos', () async {
+      final originalFund = fundA();
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      final fundBefore = await db.query(
+        'funds',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+      );
+      final periodsBefore = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+      final chargesBefore = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+
+      final duplicatedUid = 'LF130-1-duplicate-period';
+
+      final invalidFund = originalFund.copyWith(
+        name: 'Nombre que no debe persistirse',
+        costPeriods: [
+          performancePeriod(uid: duplicatedUid, rate: 10),
+          performancePeriod(uid: duplicatedUid, rate: 20),
+        ],
+      );
+
+      await expectLater(
+        DatabaseService.saveFund(invalidFund),
+        throwsA(anything),
+      );
+
+      expect(
+        await db.query(
+          'funds',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+        ),
+        equals(fundBefore),
+      );
+      expect(
+        await db.query(
+          'fund_cost_periods',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+          orderBy: 'id ASC',
+        ),
+        equals(periodsBefore),
+      );
+      expect(
+        await db.query(
+          'fund_cost_charges',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+          orderBy: 'id ASC',
+        ),
+        equals(chargesBefore),
+      );
+    });
+
+    test('LF-130.2: rechaza UID duplicados de cargos sin alterar los datos persistidos', () async {
+      final originalFund = fundA();
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      final fundBefore = await db.query(
+        'funds',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+      );
+      final periodsBefore = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+      final chargesBefore = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [originalFund.isin],
+        orderBy: 'id ASC',
+      );
+
+      final duplicatedUid = 'LF130-2-duplicate-charge';
+
+      final invalidFund = originalFund.copyWith(
+        name: 'Nombre que no debe persistirse',
+        costCharges: [
+          performanceCharge(uid: duplicatedUid, periodUid: 'A-P1', amount: 5),
+          performanceCharge(uid: duplicatedUid, periodUid: 'A-P1', amount: 15),
+        ],
+      );
+
+      await expectLater(
+        DatabaseService.saveFund(invalidFund),
+        throwsA(anything),
+      );
+
+      expect(
+        await db.query(
+          'funds',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+        ),
+        equals(fundBefore),
+      );
+      expect(
+        await db.query(
+          'fund_cost_periods',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+          orderBy: 'id ASC',
+        ),
+        equals(periodsBefore),
+      );
+      expect(
+        await db.query(
+          'fund_cost_charges',
+          where: 'isin = ?',
+          whereArgs: [originalFund.isin],
+          orderBy: 'id ASC',
+        ),
+        equals(chargesBefore),
+      );
+    });
+
+    test('LF-130.3: un periodo y un cargo pueden compartir UID', () async {
+      final sharedUid = 'LF130-3-shared-uid';
+
+      final fund = fundA().copyWith(
+        costPeriods: [performancePeriod(uid: sharedUid, rate: 12)],
+        costCharges: [
+          performanceCharge(uid: sharedUid, periodUid: sharedUid, amount: 7),
+        ],
+      );
+
+      await DatabaseService.saveFund(fund);
+
+      final db = await DatabaseService.database;
+
+      final periods = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+      );
+      final charges = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [fund.isin],
+      );
+
+      expect(periods, hasLength(1));
+      expect(charges, hasLength(1));
+      expect(periods.single['uid'], sharedUid);
+      expect(charges.single['uid'], sharedUid);
+      expect(charges.single['performance_period_uid'], sharedUid);
+
+      final restoredFund = await DatabaseService.getFund(fund.isin);
+
+      expect(restoredFund, isNotNull);
+      expect(restoredFund!.costPeriods, hasLength(1));
+      expect(restoredFund.costCharges, hasLength(1));
+      expect(restoredFund.costPeriods.single.uid, sharedUid);
+      expect(restoredFund.costCharges.single.uid, sharedUid);
+      expect(restoredFund.costCharges.single.performancePeriodUid, sharedUid);
+    });
+
+    test('LF-130.4: los UID de costes iguales en fondos distintos son independientes', () async {
+      const sharedPeriodUid = 'LF130-4-shared-period';
+      const sharedChargeUid = 'LF130-4-shared-charge';
+
+      final fundAData = fundA().copyWith(
+        costPeriods: [performancePeriod(uid: sharedPeriodUid, rate: 10)],
+        costCharges: [
+          performanceCharge(
+            uid: sharedChargeUid,
+            periodUid: sharedPeriodUid,
+            amount: 5,
+          ),
+        ],
+      );
+
+      final fundBData = fundB().copyWith(
+        costPeriods: [performancePeriod(uid: sharedPeriodUid, rate: 20)],
+        costCharges: [
+          performanceCharge(
+            uid: sharedChargeUid,
+            periodUid: sharedPeriodUid,
+            amount: 15,
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(fundAData);
+      await DatabaseService.saveFund(fundBData);
+
+      final db = await DatabaseService.database;
+
+      Future<List<Map<String, Object?>>> readRows(String table, String isin) {
+        return db.query(
+          table,
+          where: 'isin = ?',
+          whereArgs: [isin],
+          orderBy: 'id ASC',
+        );
+      }
+
+      final periodsBBefore = await readRows(
+        'fund_cost_periods',
+        fundBData.isin,
+      );
+      final chargesBBefore = await readRows(
+        'fund_cost_charges',
+        fundBData.isin,
+      );
+
+      final updatedFundA = fundAData.copyWith(
+        costPeriods: [performancePeriod(uid: sharedPeriodUid, rate: 12)],
+        costCharges: [
+          performanceCharge(
+            uid: sharedChargeUid,
+            periodUid: sharedPeriodUid,
+            amount: 8,
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(updatedFundA);
+
+      final periodsAAfter = await readRows('fund_cost_periods', fundAData.isin);
+      final chargesAAfter = await readRows('fund_cost_charges', fundAData.isin);
+      final periodsBAfter = await readRows('fund_cost_periods', fundBData.isin);
+      final chargesBAfter = await readRows('fund_cost_charges', fundBData.isin);
+
+      expect(periodsAAfter, hasLength(1));
+      expect(chargesAAfter, hasLength(1));
+      expect(periodsAAfter.single['uid'], sharedPeriodUid);
+      expect(chargesAAfter.single['uid'], sharedChargeUid);
+      expect(periodsAAfter.single['rate_percent'], 12.0);
+      expect(chargesAAfter.single['amount'], 8.0);
+
+      expect(periodsBAfter, equals(periodsBBefore));
+      expect(chargesBAfter, equals(chargesBBefore));
+      expect(periodsBAfter.single['uid'], sharedPeriodUid);
+      expect(chargesBAfter.single['uid'], sharedChargeUid);
+      expect(periodsBAfter.single['rate_percent'], 20.0);
+      expect(chargesBAfter.single['amount'], 15.0);
+    });
+
+    test('LF-130.5: cambiar un UID crea una identidad nueva y conserva las restantes', () async {
+      final isin = 'ES0123456789';
+
+      final originalFund = fundA().copyWith(
+        operations: [
+          FundOperation(
+            isin: isin,
+            date: DateTime(2026, 1, 1),
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+        costPeriods: [
+          FundCostPeriod(
+            uid: 'LF130-5-period-keep',
+            concept: FundCostConcept.performance,
+            ratePercent: 10,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 10, 1),
+            validTo: DateTime(2026, 10, 14),
+          ),
+          FundCostPeriod(
+            uid: 'LF130-5-period-old',
+            concept: FundCostConcept.performance,
+            ratePercent: 20,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 10, 15),
+            validTo: DateTime(2026, 12, 31),
+          ),
+        ],
+        costCharges: [
+          FundCostCharge(
+            uid: 'LF130-5-charge-keep',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 10, 10),
+            amount: 5,
+            performancePeriodUid: 'LF130-5-period-keep',
+          ),
+          FundCostCharge(
+            uid: 'LF130-5-charge-old',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 10, 20),
+            amount: 15,
+            performancePeriodUid: 'LF130-5-period-old',
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      Future<List<Map<String, Object?>>> readRows(String table) {
+        return db.query(
+          table,
+          where: 'isin = ?',
+          whereArgs: [isin],
+          orderBy: 'id ASC',
+        );
+      }
+
+      int idForUid(List<Map<String, Object?>> rows, String uid) {
+        return rows.singleWhere((row) => row['uid'] == uid)['id']! as int;
+      }
+
+      final periodsBefore = await readRows('fund_cost_periods');
+      final chargesBefore = await readRows('fund_cost_charges');
+
+      final keptPeriodId = idForUid(periodsBefore, 'LF130-5-period-keep');
+      final oldPeriodId = idForUid(periodsBefore, 'LF130-5-period-old');
+      final keptChargeId = idForUid(chargesBefore, 'LF130-5-charge-keep');
+      final oldChargeId = idForUid(chargesBefore, 'LF130-5-charge-old');
+
+      final updatedFund = originalFund.copyWith(
+        costPeriods: [
+          FundCostPeriod(
+            uid: 'LF130-5-period-keep',
+            concept: FundCostConcept.performance,
+            ratePercent: 11,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 10, 1),
+            validTo: DateTime(2026, 10, 14),
+          ),
+          FundCostPeriod(
+            uid: 'LF130-5-period-new',
+            concept: FundCostConcept.performance,
+            ratePercent: 25,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 10, 15),
+            validTo: DateTime(2026, 12, 31),
+          ),
+        ],
+        costCharges: [
+          FundCostCharge(
+            uid: 'LF130-5-charge-keep',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 10, 10),
+            amount: 6,
+            performancePeriodUid: 'LF130-5-period-keep',
+          ),
+          FundCostCharge(
+            uid: 'LF130-5-charge-new',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 10, 20),
+            amount: 22,
+            performancePeriodUid: 'LF130-5-period-new',
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(updatedFund);
+
+      final periodsAfter = await readRows('fund_cost_periods');
+      final chargesAfter = await readRows('fund_cost_charges');
+
+      expect(periodsAfter, hasLength(2));
+      expect(chargesAfter, hasLength(2));
+
+      // Los UID conservados mantienen sus IDs internos.
+      expect(idForUid(periodsAfter, 'LF130-5-period-keep'), keptPeriodId);
+      expect(idForUid(chargesAfter, 'LF130-5-charge-keep'), keptChargeId);
+
+      // Las identidades anteriores han desaparecido.
+      expect(
+        periodsAfter.any((row) => row['uid'] == 'LF130-5-period-old'),
+        isFalse,
+      );
+      expect(
+        chargesAfter.any((row) => row['uid'] == 'LF130-5-charge-old'),
+        isFalse,
+      );
+
+      // Las identidades nuevas reciben IDs distintos de los sustituidos.
+      expect(idForUid(periodsAfter, 'LF130-5-period-new'), isNot(oldPeriodId));
+      expect(idForUid(chargesAfter, 'LF130-5-charge-new'), isNot(oldChargeId));
+
+      // Los valores de las identidades conservadas se han actualizado.
+      expect(
+        periodsAfter.singleWhere(
+          (row) => row['uid'] == 'LF130-5-period-keep',
+        )['rate_percent'],
+        11.0,
+      );
+      expect(
+        chargesAfter.singleWhere(
+          (row) => row['uid'] == 'LF130-5-charge-keep',
+        )['amount'],
+        6.0,
+      );
+    });
+  });
+
+  group('LF-131', () {
+    test('LF-131.1: cambiar el UID de un periodo sin actualizar su cargo '
+        'rechaza la operación y conserva el estado persistido', () async {
+      final originalFund = fundA();
+      final isin = originalFund.isin;
+
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      Future<List<Map<String, Object?>>> readRows(String table) {
+        return db.query(
+          table,
+          where: 'isin = ?',
+          whereArgs: [isin],
+          orderBy: 'id ASC',
+        );
+      }
+
+      final periodsBefore = await readRows('fund_cost_periods');
+      final chargesBefore = await readRows('fund_cost_charges');
+
+      expect(periodsBefore, hasLength(1));
+      expect(chargesBefore, hasLength(1));
+
+      final periodBefore = periodsBefore.single;
+      final chargeBefore = chargesBefore.single;
+
+      expect(periodBefore['uid'], 'A-P1');
+      expect(chargeBefore['uid'], 'A-C1');
+      expect(chargeBefore['performance_period_uid'], 'A-P1');
+
+      // Cambia la identidad del periodo, pero conserva el cargo
+      // apuntando al UID anterior.
+      final updatedFund = originalFund.copyWith(
+        costPeriods: [
+          FundCostPeriod(
+            uid: 'A-P2',
+            concept: FundCostConcept.performance,
+            ratePercent: 20,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 1, 1),
+            validTo: DateTime(2026, 12, 31),
+          ),
+        ],
+        costCharges: originalFund.costCharges,
+      );
+
+      await expectLater(
+        DatabaseService.saveFund(updatedFund),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      // La operación fallida no debe alterar los periodos ni los cargos.
+      final periodsAfter = await readRows('fund_cost_periods');
+      final chargesAfter = await readRows('fund_cost_charges');
+
+      expect(periodsAfter, hasLength(1));
+      expect(chargesAfter, hasLength(1));
+
+      expect(periodsAfter.single['id'], periodBefore['id']);
+      expect(periodsAfter.single['uid'], 'A-P1');
+      expect(periodsAfter.single['rate_percent'], periodBefore['rate_percent']);
+
+      expect(chargesAfter.single['id'], chargeBefore['id']);
+      expect(chargesAfter.single['uid'], 'A-C1');
+      expect(chargesAfter.single['performance_period_uid'], 'A-P1');
+      expect(chargesAfter.single['amount'], chargeBefore['amount']);
+    });
+
+    test('LF-131.2: cambiar el UID de un periodo tras eliminar su cargo '
+        'actualiza los costes correctamente', () async {
+      final originalFund = fundA();
+      final isin = originalFund.isin;
+
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      Future<List<Map<String, Object?>>> readRows(String table) {
+        return db.query(
+          table,
+          where: 'isin = ?',
+          whereArgs: [isin],
+          orderBy: 'id ASC',
+        );
+      }
+
+      final periodsBefore = await readRows('fund_cost_periods');
+      final chargesBefore = await readRows('fund_cost_charges');
+
+      expect(periodsBefore, hasLength(1));
+      expect(chargesBefore, hasLength(1));
+
+      final oldPeriodId = periodsBefore.single['id'];
+
+      final updatedFund = originalFund.copyWith(
+        costPeriods: [
+          FundCostPeriod(
+            uid: 'A-P2',
+            concept: FundCostConcept.performance,
+            ratePercent: 20,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 1, 1),
+            validTo: DateTime(2026, 12, 31),
+          ),
+        ],
+        costCharges: const [],
+      );
+
+      await DatabaseService.saveFund(updatedFund);
+
+      final periodsAfter = await readRows('fund_cost_periods');
+      final chargesAfter = await readRows('fund_cost_charges');
+
+      expect(periodsAfter, hasLength(1));
+      expect(chargesAfter, isEmpty);
+
+      expect(periodsAfter.single['uid'], 'A-P2');
+      expect(periodsAfter.single['rate_percent'], 20.0);
+      expect(periodsAfter.single['id'], isNot(oldPeriodId));
+    });
+
+    test('LF-131.3: cambiar la identidad de un periodo no altera '
+        'los demás periodos ni sus cargos', () async {
+      final isin = 'ES0123456789';
+
+      final originalFund = fundA().copyWith(
+        operations: [
+          FundOperation(
+            isin: isin,
+            date: DateTime(2026, 1, 1),
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+        costPeriods: [
+          FundCostPeriod(
+            uid: 'LF131-3-period-A',
+            concept: FundCostConcept.performance,
+            ratePercent: 10,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 1, 1),
+            validTo: DateTime(2026, 6, 30),
+          ),
+          FundCostPeriod(
+            uid: 'LF131-3-period-B',
+            concept: FundCostConcept.performance,
+            ratePercent: 15,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 7, 1),
+            validTo: DateTime(2026, 12, 31),
+          ),
+        ],
+        costCharges: [
+          FundCostCharge(
+            uid: 'LF131-3-charge-A',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 3, 10),
+            amount: 5,
+            performancePeriodUid: 'LF131-3-period-A',
+          ),
+          FundCostCharge(
+            uid: 'LF131-3-charge-B',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 9, 10),
+            amount: 12,
+            performancePeriodUid: 'LF131-3-period-B',
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      Future<List<Map<String, Object?>>> readRows(String table) {
+        return db.query(
+          table,
+          where: 'isin = ?',
+          whereArgs: [isin],
+          orderBy: 'id ASC',
+        );
+      }
+
+      final periodsBefore = await readRows('fund_cost_periods');
+      final chargesBefore = await readRows('fund_cost_charges');
+
+      final periodBId = periodsBefore.singleWhere(
+        (row) => row['uid'] == 'LF131-3-period-B',
+      )['id'];
+
+      final chargeBId = chargesBefore.singleWhere(
+        (row) => row['uid'] == 'LF131-3-charge-B',
+      )['id'];
+
+      final updatedFund = originalFund.copyWith(
+        costPeriods: [
+          FundCostPeriod(
+            uid: 'LF131-3-period-A-new',
+            concept: FundCostConcept.performance,
+            ratePercent: 20,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 1, 1),
+            validTo: DateTime(2026, 6, 30),
+          ),
+          originalFund.costPeriods.singleWhere(
+            (period) => period.uid == 'LF131-3-period-B',
+          ),
+        ],
+        costCharges: [
+          FundCostCharge(
+            uid: 'LF131-3-charge-A-new',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 3, 10),
+            amount: 7,
+            performancePeriodUid: 'LF131-3-period-A-new',
+          ),
+          originalFund.costCharges.singleWhere(
+            (charge) => charge.uid == 'LF131-3-charge-B',
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(updatedFund);
+
+      final periodsAfter = await readRows('fund_cost_periods');
+      final chargesAfter = await readRows('fund_cost_charges');
+
+      expect(periodsAfter, hasLength(2));
+      expect(chargesAfter, hasLength(2));
+
+      final periodBAfter = periodsAfter.singleWhere(
+        (row) => row['uid'] == 'LF131-3-period-B',
+      );
+      final chargeBAfter = chargesAfter.singleWhere(
+        (row) => row['uid'] == 'LF131-3-charge-B',
+      );
+
+      expect(periodBAfter['id'], periodBId);
+      expect(periodBAfter['rate_percent'], 15.0);
+
+      expect(chargeBAfter['id'], chargeBId);
+      expect(chargeBAfter['amount'], 12.0);
+      expect(chargeBAfter['performance_period_uid'], 'LF131-3-period-B');
+
+      expect(
+        periodsAfter.any((row) => row['uid'] == 'LF131-3-period-A'),
+        isFalse,
+      );
+      expect(
+        chargesAfter.any((row) => row['uid'] == 'LF131-3-charge-A'),
+        isFalse,
+      );
+
+      expect(
+        periodsAfter.any((row) => row['uid'] == 'LF131-3-period-A-new'),
+        isTrue,
+      );
+      expect(
+        chargesAfter.any((row) => row['uid'] == 'LF131-3-charge-A-new'),
+        isTrue,
+      );
+    });
+
+    test('LF-131.4: un error al insertar el nuevo cargo revierte '
+        'el cambio de identidad completo', () async {
+      final isin = 'ES0123456789';
+      const triggerName = 'lf131_4_fail_new_charge';
+
+      final originalFund = fundA().copyWith(
+        name: 'Fondo original LF-131.4',
+        lastValue: 110,
+        operations: [
+          FundOperation(
+            isin: isin,
+            date: DateTime(2026, 1, 1),
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+        costPeriods: [
+          performancePeriod(uid: 'LF131-4-period-A', rate: 10),
+          performancePeriod(uid: 'LF131-4-period-B', rate: 15),
+        ],
+        costCharges: [
+          FundCostCharge(
+            uid: 'LF131-4-charge-A',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 3, 10),
+            amount: 5,
+            performancePeriodUid: 'LF131-4-period-A',
+          ),
+          FundCostCharge(
+            uid: 'LF131-4-charge-B',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 9, 10),
+            amount: 12,
+            performancePeriodUid: 'LF131-4-period-B',
+          ),
+        ],
+      );
+
+      // Los periodos de la factoría abarcan todo el año y se solapan.
+      // Usamos periodos consecutivos para cumplir la validación del fondo.
+      final validOriginalFund = originalFund.copyWith(
+        costPeriods: [
+          FundCostPeriod(
+            uid: 'LF131-4-period-A',
+            concept: FundCostConcept.performance,
+            ratePercent: 10,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 1, 1),
+            validTo: DateTime(2026, 6, 30),
+          ),
+          FundCostPeriod(
+            uid: 'LF131-4-period-B',
+            concept: FundCostConcept.performance,
+            ratePercent: 15,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 7, 1),
+            validTo: DateTime(2026, 12, 31),
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(validOriginalFund);
+
+      final db = await DatabaseService.database;
+
+      Future<List<Map<String, Object?>>> readRows(String table) {
+        return db.query(
+          table,
+          where: 'isin = ?',
+          whereArgs: [isin],
+          orderBy: 'id ASC',
+        );
+      }
+
+      final savedBefore = await DatabaseService.getFund(isin);
+      final periodsBefore = await readRows('fund_cost_periods');
+      final chargesBefore = await readRows('fund_cost_charges');
+
+      expect(savedBefore, isNotNull);
+      expect(periodsBefore, hasLength(2));
+      expect(chargesBefore, hasLength(2));
+
+      // Forzamos un error exclusivamente al insertar el nuevo cargo A.
+      await db.execute('''
+      CREATE TRIGGER $triggerName
+      BEFORE INSERT ON fund_cost_charges
+      WHEN NEW.uid = 'LF131-4-charge-A-new'
+      BEGIN
+        SELECT RAISE(ABORT, 'LF-131.4 forced insert failure');
+      END
+    ''');
+
+      try {
+        final updatedFund = validOriginalFund.copyWith(
+          name: 'Fondo modificado LF-131.4',
+          lastValue: 125,
+          costPeriods: [
+            FundCostPeriod(
+              uid: 'LF131-4-period-A-new',
+              concept: FundCostConcept.performance,
+              ratePercent: 20,
+              basis: FundCostRateBasis.positiveProfit,
+              treatment: FundCostTreatment.chargedSeparately,
+              validFrom: DateTime(2026, 1, 1),
+              validTo: DateTime(2026, 6, 30),
+            ),
+            validOriginalFund.costPeriods.singleWhere(
+              (period) => period.uid == 'LF131-4-period-B',
+            ),
+          ],
+          costCharges: [
+            FundCostCharge(
+              uid: 'LF131-4-charge-A-new',
+              concept: FundCostConcept.performance,
+              //date: chargeDate,
+              date: DateTime(2026, 3, 10),
+              amount: 7,
+              performancePeriodUid: 'LF131-4-period-A-new',
+            ),
+            validOriginalFund.costCharges.singleWhere(
+              (charge) => charge.uid == 'LF131-4-charge-B',
+            ),
+          ],
+        );
+
+        await expectLater(
+          DatabaseService.saveFund(updatedFund),
+          throwsA(anything),
+        );
+
+        final savedAfter = await DatabaseService.getFund(isin);
+        final periodsAfter = await readRows('fund_cost_periods');
+        final chargesAfter = await readRows('fund_cost_charges');
+
+        // También deben revertirse los cambios en el fondo principal.
+        expect(savedAfter, isNotNull);
+        expect(savedAfter!.name, savedBefore!.name);
+        expect(savedAfter.lastValue, savedBefore.lastValue);
+
+        // Los periodos anteriores deben seguir intactos.
+        expect(periodsAfter, hasLength(2));
+        expect(periodsAfter.map((row) => row['uid']).toSet(), {
+          'LF131-4-period-A',
+          'LF131-4-period-B',
+        });
+        expect(
+          periodsAfter.map((row) => row['id']).toSet(),
+          periodsBefore.map((row) => row['id']).toSet(),
+        );
+
+        // Los cargos anteriores deben seguir intactos, con sus referencias.
+        expect(chargesAfter, hasLength(2));
+        expect(chargesAfter.map((row) => row['uid']).toSet(), {
+          'LF131-4-charge-A',
+          'LF131-4-charge-B',
+        });
+        expect(
+          chargesAfter.map((row) => row['id']).toSet(),
+          chargesBefore.map((row) => row['id']).toSet(),
+        );
+        expect(
+          chargesAfter.singleWhere(
+            (row) => row['uid'] == 'LF131-4-charge-A',
+          )['performance_period_uid'],
+          'LF131-4-period-A',
+        );
+
+        expect(
+          periodsAfter.any((row) => row['uid'] == 'LF131-4-period-A-new'),
+          isFalse,
+        );
+        expect(
+          chargesAfter.any((row) => row['uid'] == 'LF131-4-charge-A-new'),
+          isFalse,
+        );
+      } finally {
+        await db.execute('DROP TRIGGER IF EXISTS $triggerName');
+      }
+    });
+
+    test('LF-131.5: rechaza UID duplicados de periodos sin alterar '
+        'los datos persistidos', () async {
+      const isin = 'ES0123456789';
+
+      final originalFund = fundA().copyWith(
+        name: 'Fondo original LF-131.5',
+        lastValue: 110,
+        costPeriods: [performancePeriod(uid: 'LF131-5-period-A', rate: 10)],
+        costCharges: [
+          performanceCharge(
+            uid: 'LF131-5-charge-A',
+            periodUid: 'LF131-5-period-A',
+            amount: 5,
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      final savedBefore = await DatabaseService.getFund(isin);
+      final periodsBefore = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+      final chargesBefore = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+
+      final duplicateUidFund = originalFund.copyWith(
+        name: 'Fondo modificado LF-131.5',
+        lastValue: 125,
+        costPeriods: [
+          performancePeriod(uid: 'LF131-5-period-DUP', rate: 10),
+          performancePeriod(uid: 'LF131-5-period-DUP', rate: 15),
+        ],
+        costCharges: [],
+      );
+
+      await expectLater(
+        DatabaseService.saveFund(duplicateUidFund),
+        throwsA(anything),
+      );
+
+      final savedAfter = await DatabaseService.getFund(isin);
+      final periodsAfter = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+      final chargesAfter = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+
+      expect(savedBefore, isNotNull);
+      expect(savedAfter, isNotNull);
+      expect(savedAfter!.name, savedBefore!.name);
+      expect(savedAfter.lastValue, savedBefore.lastValue);
+
+      expect(
+        periodsAfter.map((row) => row['uid']).toList(),
+        periodsBefore.map((row) => row['uid']).toList(),
+      );
+      expect(
+        periodsAfter.map((row) => row['id']).toList(),
+        periodsBefore.map((row) => row['id']).toList(),
+      );
+      expect(
+        chargesAfter.map((row) => row['uid']).toList(),
+        chargesBefore.map((row) => row['uid']).toList(),
+      );
+      expect(
+        chargesAfter.map((row) => row['id']).toList(),
+        chargesBefore.map((row) => row['id']).toList(),
+      );
+    });
+
+    test('LF-131.6: Aislar la validación de UID duplicados ', () async {
+      const isin = 'ES0123456789';
+
+      final originalFund = fundA().copyWith(
+        name: 'Fondo original LF-131.5',
+        lastValue: 110,
+        costPeriods: [performancePeriod(uid: 'LF131-5-period-A', rate: 10)],
+        costCharges: [
+          performanceCharge(
+            uid: 'LF131-5-charge-A',
+            periodUid: 'LF131-5-period-A',
+            amount: 5,
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      final savedBefore = await DatabaseService.getFund(isin);
+      final periodsBefore = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+      final chargesBefore = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+
+      final duplicateUidFund = originalFund.copyWith(
+        name: 'Fondo modificado LF-131.5',
+        lastValue: 125,
+        /* costPeriods: [
+          performancePeriod(uid: 'LF131-5-period-DUP', rate: 10),
+          performancePeriod(uid: 'LF131-5-period-DUP', rate: 15),
+        ], */
+        costPeriods: [
+          FundCostPeriod(
+            uid: 'LF131-5-period-DUP',
+            concept: FundCostConcept.performance,
+            ratePercent: 10,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 1, 1),
+            validTo: DateTime(2026, 6, 30),
+          ),
+          FundCostPeriod(
+            uid: 'LF131-5-period-DUP',
+            concept: FundCostConcept.performance,
+            ratePercent: 15,
+            basis: FundCostRateBasis.positiveProfit,
+            treatment: FundCostTreatment.chargedSeparately,
+            validFrom: DateTime(2026, 7, 1),
+            validTo: DateTime(2026, 12, 31),
+          ),
+        ],
+        costCharges: [],
+      );
+
+      await expectLater(
+        DatabaseService.saveFund(duplicateUidFund),
+        throwsA(anything),
+      );
+
+      final savedAfter = await DatabaseService.getFund(isin);
+      final periodsAfter = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+      final chargesAfter = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+
+      expect(savedBefore, isNotNull);
+      expect(savedAfter, isNotNull);
+      expect(savedAfter!.name, savedBefore!.name);
+      expect(savedAfter.lastValue, savedBefore.lastValue);
+
+      expect(
+        periodsAfter.map((row) => row['uid']).toList(),
+        periodsBefore.map((row) => row['uid']).toList(),
+      );
+      expect(
+        periodsAfter.map((row) => row['id']).toList(),
+        periodsBefore.map((row) => row['id']).toList(),
+      );
+      expect(
+        chargesAfter.map((row) => row['uid']).toList(),
+        chargesBefore.map((row) => row['uid']).toList(),
+      );
+      expect(
+        chargesAfter.map((row) => row['id']).toList(),
+        chargesBefore.map((row) => row['id']).toList(),
+      );
+    });
+  });
 }

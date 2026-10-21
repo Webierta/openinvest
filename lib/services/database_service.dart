@@ -261,18 +261,47 @@ class DatabaseService {
     FundData fund,
   ) async {
     _validateFundCosts(fund);
-    await executor.delete(
+
+    // Sincronizar periodos conservando el ID interno de los existentes.
+    final existingPeriods = await executor.query(
       'fund_cost_periods',
+      columns: ['id', 'uid'],
       where: 'isin = ?',
       whereArgs: [fund.isin],
     );
-    await executor.delete(
-      'fund_cost_charges',
-      where: 'isin = ?',
-      whereArgs: [fund.isin],
-    );
+
+    final periodIdsByUid = <String, int>{};
+
+    for (final row in existingPeriods) {
+      final uid = row['uid'] as String?;
+
+      if (uid == null || uid.trim().isEmpty) continue;
+
+      if (periodIdsByUid.containsKey(uid)) {
+        throw StateError('Hay varios periodos de coste con el mismo UID: $uid');
+      }
+
+      periodIdsByUid[uid] = row['id'] as int;
+    }
+
+    final desiredPeriodUids = fund.costPeriods
+        .map((period) => period.uid)
+        .toSet();
+
+    for (final row in existingPeriods) {
+      final uid = row['uid'] as String?;
+
+      if (uid == null || !desiredPeriodUids.contains(uid)) {
+        await executor.delete(
+          'fund_cost_periods',
+          where: 'id = ? AND isin = ?',
+          whereArgs: [row['id'], fund.isin],
+        );
+      }
+    }
+
     for (final period in fund.costPeriods) {
-      await executor.insert('fund_cost_periods', {
+      final values = <String, Object?>{
         'uid': period.uid,
         'isin': fund.isin,
         'concept': period.concept.name,
@@ -282,10 +311,62 @@ class DatabaseService {
         'valid_from': period.validFrom?.toIso8601String(),
         'valid_to': period.validTo?.toIso8601String(),
         'description': period.description,
-      });
+      };
+
+      final existingId = periodIdsByUid[period.uid];
+
+      if (existingId == null) {
+        await executor.insert('fund_cost_periods', values);
+      } else {
+        await executor.update(
+          'fund_cost_periods',
+          values,
+          where: 'id = ? AND isin = ?',
+          whereArgs: [existingId, fund.isin],
+        );
+      }
     }
+
+    // Sincronizar cargos conservando el ID interno de los existentes.
+    final existingCharges = await executor.query(
+      'fund_cost_charges',
+      columns: ['id', 'uid'],
+      where: 'isin = ?',
+      whereArgs: [fund.isin],
+    );
+
+    final chargeIdsByUid = <String, int>{};
+
+    for (final row in existingCharges) {
+      final uid = row['uid'] as String?;
+
+      if (uid == null || uid.trim().isEmpty) continue;
+
+      if (chargeIdsByUid.containsKey(uid)) {
+        throw StateError('Hay varios cargos de coste con el mismo UID: $uid');
+      }
+
+      chargeIdsByUid[uid] = row['id'] as int;
+    }
+
+    final desiredChargeUids = fund.costCharges
+        .map((charge) => charge.uid)
+        .toSet();
+
+    for (final row in existingCharges) {
+      final uid = row['uid'] as String?;
+
+      if (uid == null || !desiredChargeUids.contains(uid)) {
+        await executor.delete(
+          'fund_cost_charges',
+          where: 'id = ? AND isin = ?',
+          whereArgs: [row['id'], fund.isin],
+        );
+      }
+    }
+
     for (final charge in fund.costCharges) {
-      await executor.insert('fund_cost_charges', {
+      final values = <String, Object?>{
         'uid': charge.uid,
         'isin': fund.isin,
         'concept': charge.concept.name,
@@ -294,7 +375,20 @@ class DatabaseService {
         'description': charge.description,
         'performance_period_uid': charge.performancePeriodUid,
         'settled_through': charge.settledThrough?.toIso8601String(),
-      });
+      };
+
+      final existingId = chargeIdsByUid[charge.uid];
+
+      if (existingId == null) {
+        await executor.insert('fund_cost_charges', values);
+      } else {
+        await executor.update(
+          'fund_cost_charges',
+          values,
+          where: 'id = ? AND isin = ?',
+          whereArgs: [existingId, fund.isin],
+        );
+      }
     }
   }
 
@@ -516,7 +610,8 @@ class DatabaseService {
         whereArgs: [fund.isin],
         limit: 1,
       );
-      await txn.insert('funds', {
+
+      /* await txn.insert('funds', {
         'isin': fund.isin,
         'symbol': fund.symbol,
         'name': fund.name,
@@ -533,7 +628,37 @@ class DatabaseService {
             ?.toIso8601String(),
         'source': fund.source?.name,
         'valuation_source': fund.valuationSource?.name,
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }, conflictAlgorithm: ConflictAlgorithm.replace); */
+
+      final fundValues = <String, Object?>{
+        'isin': fund.isin,
+        'symbol': fund.symbol,
+        'name': fund.name,
+        'currency': fund.currency,
+        'last_value': fund.lastValue,
+        'last_update': normalizedDate,
+        'alert_min': fund.alertMin,
+        'alert_max': fund.alertMax,
+        'ter': fund.ter,
+        'performance_fee': fund.performanceFee,
+        'morningstar_rating': fund.morningstarRating,
+        'morningstar_checked_at': fund.morningstarCheckedAt?.toIso8601String(),
+        'morningstar_last_attempt_at': fund.morningstarLastAttemptAt
+            ?.toIso8601String(),
+        'source': fund.source?.name,
+        'valuation_source': fund.valuationSource?.name,
+      };
+
+      if (existingFund.isEmpty) {
+        await txn.insert('funds', fundValues);
+      } else {
+        await txn.update(
+          'funds',
+          fundValues,
+          where: 'isin = ?',
+          whereArgs: [fund.isin],
+        );
+      }
 
       final batch = txn.batch();
       for (final point in fund.history) {
@@ -570,42 +695,6 @@ class DatabaseService {
         }
       }
 
-      /* for (final operation in fund.operations) {
-        if (operation.isin != fund.isin) {
-          throw ArgumentError(
-            'La operación ${operation.id} pertenece al ISIN '
-            '${operation.isin}, no al fondo ${fund.isin}.',
-          );
-        }
-
-        final values = {
-          'isin': operation.isin,
-          'date': operation.date.toIso8601String(),
-          'type': operation.type.name,
-          'units': operation.units,
-          'price': operation.price,
-          'amount': operation.amount,
-        };
-
-        if (operation.id == null) {
-          await txn.insert('operations', values);
-        } else {
-          final updatedRows = await txn.update(
-            'operations',
-            values,
-            where: 'id = ? AND isin = ?',
-            whereArgs: [operation.id, fund.isin],
-          );
-
-          if (updatedRows == 0) {
-            throw StateError(
-              'No existe la operación ${operation.id} '
-              'para el fondo ${fund.isin}.',
-            );
-          }
-        }
-      } */
-
       await _replaceFundCosts(txn, fund);
       await batch.commit(noResult: true);
     });
@@ -614,36 +703,39 @@ class DatabaseService {
   static Future<void> saveOperation(FundOperation op) async {
     final db = await database;
 
-    if (op.id != null) {
-      // Verify that the operation exists and belongs to the same fund.
-      final existing = await db.query(
-        'operations',
-        columns: ['isin'],
-        where: 'id = ?',
-        whereArgs: [op.id],
-        limit: 1,
-      );
+    await db.transaction((txn) async {
+      if (op.id != null) {
+        // Una actualización solo puede afectar a una operación existente
+        // cuyo ISIN coincida con el de la operación recibida.
+        final existing = await txn.query(
+          'operations',
+          columns: ['isin'],
+          where: 'id = ?',
+          whereArgs: [op.id],
+          limit: 1,
+        );
 
-      if (existing.isEmpty || existing.first['isin'] != op.isin) {
+        if (existing.isEmpty || existing.first['isin'] != op.isin) {
+          return;
+        }
+
+        await txn.update(
+          'operations',
+          {
+            'date': op.date.toIso8601String(),
+            'type': op.type.name,
+            'units': op.units,
+            'price': op.price,
+            'amount': op.amount,
+          },
+          where: 'id = ? AND isin = ?',
+          whereArgs: [op.id, op.isin],
+        );
         return;
       }
 
-      // Update only an existing operation belonging to this fund.
-      await db.update(
-        'operations',
-        {
-          'date': op.date.toIso8601String(),
-          'type': op.type.name,
-          'units': op.units,
-          'price': op.price,
-          'amount': op.amount,
-        },
-        where: 'id = ? AND isin = ?',
-        whereArgs: [op.id, op.isin],
-      );
-    } else {
-      // Insert new operation.
-      await db.insert('operations', {
+      // Sin ID, se trata de una inserción nueva.
+      await txn.insert('operations', {
         'isin': op.isin,
         'date': op.date.toIso8601String(),
         'type': op.type.name,
@@ -651,37 +743,8 @@ class DatabaseService {
         'price': op.price,
         'amount': op.amount,
       });
-    }
+    });
   }
-
-  /* static Future<void> saveOperation(FundOperation op) async {
-    final db = await database;
-    if (op.id != null) {
-      // Update existing operation
-      await db.update(
-        'operations',
-        {
-          'date': op.date.toIso8601String(),
-          'type': op.type.name,
-          'units': op.units,
-          'price': op.price,
-          'amount': op.amount,
-        },
-        where: 'id = ?',
-        whereArgs: [op.id],
-      );
-    } else {
-      // Insert new operation
-      await db.insert('operations', {
-        'isin': op.isin,
-        'date': op.date.toIso8601String(),
-        'type': op.type.name,
-        'units': op.units,
-        'price': op.price,
-        'amount': op.amount,
-      });
-    }
-  } */
 
   static Future<void> replaceFund(FundData fund) async {
     final db = await database;
