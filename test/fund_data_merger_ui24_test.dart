@@ -6,7 +6,7 @@ void main() {
   group('LF-UI-24: Orden e independencia de las fusiones', () {
     final day20 = DateTime(2026, 10, 20);
     final day21 = DateTime(2026, 10, 21);
-    final day22 = DateTime(2026, 10, 22);
+    //final day22 = DateTime(2026, 10, 22);
 
     FundData fund({
       required String symbol,
@@ -47,22 +47,6 @@ void main() {
         price: price,
         amount: amount,
       );
-    }
-
-    List<String> operationSnapshot(FundData fund) {
-      final result = fund.operations.map((op) {
-        return [
-          op.id,
-          op.isin,
-          op.date.toIso8601String(),
-          op.type.name,
-          op.units,
-          op.price,
-          op.amount,
-        ].join('|');
-      }).toList()..sort();
-
-      return result;
     }
 
     test(

@@ -317,13 +317,16 @@ class ScrapeResult {
 }
 
 enum FundSource {
-  cnmv,
-  local,
-  ecb,
-  morningstar,
-  yahoo,
-  queFondos,
-  financialTimes,
+  cnmv(name: 'CNMV'),
+  local(name: 'Local'),
+  ecb(name: 'ECB'),
+  morningstar(name: 'Morningstar'),
+  yahoo(name: 'Yahoo'),
+  queFondos(name: 'QueFondos'),
+  financialTimes(name: 'Financial Times');
+
+  const FundSource({required this.name});
+  final String name;
 }
 
 FundSource fundSourceFromIsinSource(String source) {

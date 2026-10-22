@@ -128,11 +128,11 @@ class FundSummaryTab extends StatelessWidget {
                                 //color: Colors.red,
                                 decoration: const BoxDecoration(
                                   color: Colors.red,
+                                  //color: Colors.blueGrey,
                                   // borderRadius: BorderRadius.vertical(
                                   //   top: Radius.circular(8),
                                   // ),
                                 ),
-
                                 child: Text(
                                   () {
                                     final full = DateFormat.yMMM(locale)
@@ -148,7 +148,7 @@ class FundSummaryTab extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 11,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 0.5,
                                   ),
@@ -230,6 +230,32 @@ class FundSummaryTab extends StatelessWidget {
                                 ),
                               ),
                             ],
+                          ),
+                        ],
+                        if (fund.valuationSource != null) ...[
+                          const SizedBox(height: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12),
+                              ),
+                            ),
+                            child: Text(
+                              //_valuationSourceLabel(fund.valuationSource!),
+                              fund.valuationSource!.name,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.72),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
                           ),
                         ],
                       ],
