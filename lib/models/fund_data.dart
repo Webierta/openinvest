@@ -89,7 +89,8 @@ class FundData {
     required this.currency,
     required this.date,
     required List<PricePoint> history,
-    this.operations = const [],
+    //this.operations = const [],
+    List<FundOperation> operations = const [],
     this.alertMin,
     this.alertMax,
     this.ter,
@@ -102,6 +103,7 @@ class FundData {
     this.source,
     this.valuationSource,
   }) : history = _syncHistory(history, lastValue, date),
+       operations = List.unmodifiable(operations),
        costPeriods = List.unmodifiable(
          costPeriods ?? _legacyCostPeriods(ter, performanceFee),
        ),
