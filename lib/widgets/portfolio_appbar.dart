@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
-import '../models/fund_cost.dart';
-import '../models/fund_data.dart';
 import '../providers/fund_provider.dart';
 import '../services/export_service.dart';
 import '../tools/files_generator.dart';
+import '../utils/fund_data_merger.dart';
 
 class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
   final FundProvider provider;
@@ -132,7 +131,8 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
           } else {
             // Fusión inteligente: combinar operaciones sin duplicados
             final existing = provider.portfolio[existingIndex];
-            final merged = _mergeFunds(existing, importedFund);
+            //final merged = _mergeFunds(existing, importedFund);
+            final merged = FundDataMerger.merge(existing, importedFund);
             await provider.replaceFund(merged);
           }
         }
@@ -149,65 +149,6 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
         }
       }
     }
-  }
-
-  FundData _mergeFunds(FundData existing, FundData incoming) {
-    final Map<String, FundOperation> uniqueOps = {};
-    for (final op in existing.operations) {
-      final key =
-          '${op.date.toIso8601String()}_${op.type}_${op.units}_${op.price}';
-      uniqueOps[key] = op;
-    }
-    for (final op in incoming.operations) {
-      final key =
-          '${op.date.toIso8601String()}_${op.type}_${op.units}_${op.price}';
-      uniqueOps[key] = op;
-    }
-    final mergedOps = uniqueOps.values.toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
-
-    final uniquePeriods = <String, FundCostPeriod>{};
-    for (final period in [...existing.costPeriods, ...incoming.costPeriods]) {
-      uniquePeriods[period.uid] = period;
-    }
-    final uniqueCharges = <String, FundCostCharge>{};
-    for (final charge in [...existing.costCharges, ...incoming.costCharges]) {
-      uniqueCharges[charge.uid] = charge;
-    }
-
-    return FundData(
-      isin: existing.isin,
-      symbol: incoming.symbol.isNotEmpty ? incoming.symbol : existing.symbol,
-      name: incoming.name.isNotEmpty ? incoming.name : existing.name,
-      currency: incoming.currency.isNotEmpty
-          ? incoming.currency
-          : existing.currency,
-      lastValue: incoming.lastValue != 0.0
-          ? incoming.lastValue
-          : existing.lastValue,
-      date: incoming.date.isAfter(existing.date)
-          ? incoming.date
-          : existing.date,
-      history: incoming.history.isNotEmpty
-          ? incoming.history
-          : existing.history,
-      operations: mergedOps,
-      costPeriods: uniquePeriods.values.toList(),
-      costCharges: uniqueCharges.values.toList(),
-      alertMin: incoming.alertMin ?? existing.alertMin,
-      alertMax: incoming.alertMax ?? existing.alertMax,
-      ter: incoming.ter ?? existing.ter,
-      performanceFee: incoming.performanceFee ?? existing.performanceFee,
-      morningstarRating:
-          incoming.morningstarRating ?? existing.morningstarRating,
-      morningstarCheckedAt:
-          incoming.morningstarCheckedAt ?? existing.morningstarCheckedAt,
-      morningstarLastAttemptAt:
-          incoming.morningstarLastAttemptAt ??
-          existing.morningstarLastAttemptAt,
-      source: incoming.source ?? existing.source,
-      valuationSource: incoming.valuationSource ?? existing.valuationSource,
-    );
   }
 
   void _onClearPortfolio(BuildContext context) {

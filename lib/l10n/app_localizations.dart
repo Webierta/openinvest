@@ -2881,6 +2881,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'{count} partes'**
   String unitsPartsFormat(String count);
+
+  /// No description provided for @fundIdentityLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Identidad'**
+  String get fundIdentityLabel;
+
+  /// No description provided for @fundValuationLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Valoración'**
+  String get fundValuationLabel;
 }
 
 class _AppLocalizationsDelegate

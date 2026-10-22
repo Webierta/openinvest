@@ -7130,4 +7130,104 @@ void main() {
       );
     });
   });
+
+  group('LF-132', () {
+    test('LF-132.1: rechaza UID duplicados de cargos sin alterar '
+        'los datos persistidos', () async {
+      const isin = 'ES0123456789';
+
+      final originalFund = fundA().copyWith(
+        name: 'Fondo original LF-132.1',
+        lastValue: 110,
+        costPeriods: [performancePeriod(uid: 'LF132-1-period-A', rate: 10)],
+        costCharges: [
+          performanceCharge(
+            uid: 'LF132-1-charge-A',
+            periodUid: 'LF132-1-period-A',
+            amount: 5,
+          ),
+        ],
+      );
+
+      await DatabaseService.saveFund(originalFund);
+
+      final db = await DatabaseService.database;
+
+      final savedBefore = await DatabaseService.getFund(isin);
+      final periodsBefore = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+      final chargesBefore = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+
+      final duplicateUidFund = originalFund.copyWith(
+        name: 'Fondo modificado LF-132.1',
+        lastValue: 125,
+        costCharges: [
+          performanceCharge(
+            uid: 'LF132-1-charge-DUP',
+            periodUid: 'LF132-1-period-A',
+            amount: 7,
+          ),
+          performanceCharge(
+            uid: 'LF132-1-charge-DUP',
+            periodUid: 'LF132-1-period-A',
+            amount: 9,
+          ),
+        ],
+      );
+
+      await expectLater(
+        DatabaseService.saveFund(duplicateUidFund),
+        throwsA(anything),
+      );
+
+      final savedAfter = await DatabaseService.getFund(isin);
+      final periodsAfter = await db.query(
+        'fund_cost_periods',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+      final chargesAfter = await db.query(
+        'fund_cost_charges',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'id ASC',
+      );
+
+      expect(savedBefore, isNotNull);
+      expect(savedAfter, isNotNull);
+      expect(savedAfter!.name, savedBefore!.name);
+      expect(savedAfter.lastValue, savedBefore.lastValue);
+
+      expect(
+        periodsAfter.map((row) => row['uid']).toList(),
+        periodsBefore.map((row) => row['uid']).toList(),
+      );
+      expect(
+        periodsAfter.map((row) => row['id']).toList(),
+        periodsBefore.map((row) => row['id']).toList(),
+      );
+
+      expect(
+        chargesAfter.map((row) => row['uid']).toList(),
+        chargesBefore.map((row) => row['uid']).toList(),
+      );
+      expect(
+        chargesAfter.map((row) => row['id']).toList(),
+        chargesBefore.map((row) => row['id']).toList(),
+      );
+      expect(chargesAfter, hasLength(1));
+      expect(chargesAfter.single['uid'], 'LF132-1-charge-A');
+      expect(chargesAfter.single['amount'], 5);
+    });
+  });
 }

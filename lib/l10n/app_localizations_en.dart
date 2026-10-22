@@ -1538,4 +1538,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String unitsPartsFormat(String count) {
     return '$count units';
   }
+
+  @override
+  String get fundIdentityLabel => 'Identity';
+
+  @override
+  String get fundValuationLabel => 'Valuation';
 }

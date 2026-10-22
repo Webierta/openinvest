@@ -118,6 +118,12 @@ class _FundSearchPageState extends State<FundSearchPage> {
       final bool isResolved = result.isResolved;
       final bool isValid = fund.hasValidIsin;
 
+      debugPrint(
+        '[LF-UI-1] fund=${fund.name}, '
+        'source=${fund.source}, '
+        'valuationSource=${fund.valuationSource}',
+      );
+
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -166,6 +172,29 @@ class _FundSearchPageState extends State<FundSearchPage> {
                   ],
                 ],
               ),
+              if (fund.source != null || fund.valuationSource != null) ...[
+                const SizedBox(height: 12),
+                if (fund.source != null)
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      Text(l10n.fundIdentityLabel),
+                      _buildSourceBadge(fund.source!),
+                    ],
+                  ),
+                if (fund.valuationSource != null) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      Text(l10n.fundValuationLabel),
+                      _buildSourceBadge(fund.valuationSource!),
+                    ],
+                  ),
+                ],
+              ],
               if (isValid) ...[
                 const SizedBox(height: 16),
                 Text(l10n.addToPortfolioPrompt),

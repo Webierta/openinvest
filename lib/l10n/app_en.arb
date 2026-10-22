@@ -552,5 +552,7 @@
       "placeholders": {
         "count": { "type": "String" }
       }
-    }
+    },
+    "fundIdentityLabel": "Identity",
+    "fundValuationLabel": "Valuation"
 }
