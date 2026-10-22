@@ -56,7 +56,8 @@ class FTFundScraper {
       currency: scrapeIsin.divisa!,
       date: fecha,
       history: history,
-      source: FundSource.financialTimes,
+      //source: FundSource.financialTimes,
+      source: null,
       valuationSource: FundSource.financialTimes,
     );
 

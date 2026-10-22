@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../services/isin_resolver.dart';
 import '../utils/app_error.dart';
 import 'fund_cost.dart';
@@ -317,16 +319,31 @@ class ScrapeResult {
 }
 
 enum FundSource {
-  cnmv(name: 'CNMV'),
-  local(name: 'Local'),
-  ecb(name: 'ECB'),
-  morningstar(name: 'Morningstar'),
-  yahoo(name: 'Yahoo'),
-  queFondos(name: 'QueFondos'),
-  financialTimes(name: 'Financial Times');
+  cnmv(name: 'CNMV', badgeLabel: 'CNMV', color: Color(0xFFA50A37)),
+  local(name: 'Local', badgeLabel: 'LOCAL', color: Colors.teal),
+  ecb(name: 'ECB', badgeLabel: 'ECB', color: Colors.deepPurpleAccent),
+  morningstar(
+    name: 'Morningstar',
+    badgeLabel: 'MORNINGSTAR',
+    color: Colors.orangeAccent,
+  ),
+  yahoo(name: 'Yahoo', badgeLabel: 'YAHOO', color: Colors.blueAccent),
+  queFondos(name: 'QueFondos', badgeLabel: 'QUEFONDOS', color: Colors.green),
+  financialTimes(
+    name: 'Financial Times',
+    badgeLabel: 'FT',
+    color: Colors.brown,
+  );
 
-  const FundSource({required this.name});
+  const FundSource({
+    required this.name,
+    required this.badgeLabel,
+    required this.color,
+  });
+
   final String name;
+  final String badgeLabel;
+  final Color color;
 }
 
 FundSource fundSourceFromIsinSource(String source) {

@@ -92,7 +92,7 @@ void main() {
         isTrue,
       );
 
-      expect(fund.source, FundSource.financialTimes);
+      expect(fund.source, isNull);
       expect(fund.valuationSource, FundSource.financialTimes);
     },
   );

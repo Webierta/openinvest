@@ -619,37 +619,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
   }
 
   Widget _buildSourceBadge(FundSource source) {
-    Color color;
-    String label;
-    switch (source) {
-      case FundSource.cnmv:
-        color = const Color(0xFFA50A37);
-        label = 'CNMV';
-        break;
-      case FundSource.local:
-        color = Colors.teal;
-        label = 'LOCAL';
-        break;
-      case FundSource.ecb:
-        color = Colors.deepPurpleAccent;
-        label = 'ECB';
-        break;
-      case FundSource.morningstar:
-        color = Colors.orangeAccent;
-        label = 'MORNINGSTAR';
-        break;
-      case FundSource.yahoo:
-        color = Colors.blueAccent;
-        label = 'YAHOO';
-        break;
-      case FundSource.queFondos:
-        color = Colors.green;
-        label = 'QUEFONDOS';
-      case FundSource.financialTimes:
-        color = Colors.brown;
-        label = 'FT';
-        break;
-    }
+    final color = source.color;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -659,7 +629,7 @@ class _FundSearchPageState extends State<FundSearchPage> {
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
-        label,
+        source.badgeLabel,
         style: TextStyle(
           color: color,
           fontSize: 9,
