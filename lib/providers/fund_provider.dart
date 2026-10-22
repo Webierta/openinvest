@@ -1068,8 +1068,40 @@ class FundProvider with ChangeNotifier {
       }
     }
 
+    /* // Evaluar Yahoo también cuando no haya un fallback válido.
+    if (primaryImprovesExisting) return primaryResult;
+
+    if (fallbackFund == null && !primaryResult.isResolved) {
+      fallbackError ??= AppError.data(
+        'QueFondos y Financial Times no devolvieron una valoración válida.',
+      );
+    } */
+
     // Evaluar Yahoo también cuando no haya un fallback válido.
     if (primaryImprovesExisting) return primaryResult;
+
+    // LF-65: aceptar cambios de metadatos aunque la valoración
+    // y el historial no hayan cambiado.
+    final primaryMetadataChanged =
+        existingFund != null &&
+        primaryFund != null &&
+        ((existingFund.source == null && primaryFund.source != null) ||
+            (primaryFund.valuationSource != null &&
+                primaryFund.valuationSource != existingFund.valuationSource));
+
+    final primaryIsNotOlderThanExisting =
+        primaryDate != null &&
+        (existingDate == null || !primaryDate.isBefore(existingDate));
+
+    if (primaryIsUsable &&
+        primaryMetadataChanged &&
+        primaryIsNotOlderThanExisting) {
+      return ScrapeResult(
+        data: primaryFund,
+        isResolved: primaryResult.isResolved,
+        source: primaryResult.source,
+      );
+    }
 
     if (fallbackFund == null && !primaryResult.isResolved) {
       fallbackError ??= AppError.data(
@@ -1182,7 +1214,7 @@ class FundProvider with ChangeNotifier {
     );
   }
 
-  bool _hasNewData(FundData existing, FundData fetched) {
+  /* bool _hasNewData(FundData existing, FundData fetched) {
     if (existing.lastValue != fetched.lastValue ||
         existing.date != fetched.date) {
       return true;
@@ -1193,6 +1225,36 @@ class FundProvider with ChangeNotifier {
         DateTime(point.date.year, point.date.month, point.date.day):
             point.price,
     };
+    return fetched.history.any((point) {
+      final date = DateTime(point.date.year, point.date.month, point.date.day);
+      return existingPrices[date] != point.price;
+    });
+  } */
+
+  bool _hasNewData(FundData existing, FundData fetched) {
+    if (existing.lastValue != fetched.lastValue ||
+        existing.date != fetched.date) {
+      return true;
+    }
+
+    // Completar la identidad solo si aún no tiene una fuente.
+    if (existing.source == null && fetched.source != null) {
+      return true;
+    }
+
+    // Una nueva fuente de valoración es un cambio aunque el precio
+    // y la fecha de valoración sean idénticos.
+    if (fetched.valuationSource != null &&
+        existing.valuationSource != fetched.valuationSource) {
+      return true;
+    }
+
+    final existingPrices = <DateTime, double>{
+      for (final point in existing.history)
+        DateTime(point.date.year, point.date.month, point.date.day):
+            point.price,
+    };
+
     return fetched.history.any((point) {
       final date = DateTime(point.date.year, point.date.month, point.date.day);
       return existingPrices[date] != point.price;
