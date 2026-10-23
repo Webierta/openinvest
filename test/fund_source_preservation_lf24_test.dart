@@ -96,6 +96,7 @@ void main() {
 
       // La consulta de rango sustituye el historial, no la valoración vigente.
       expect(saved.lastValue, 100);
+
       expect(saved.date, previousDate);
       expect(
         saved.history,

@@ -99,7 +99,7 @@ class FundSummaryTab extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: .start,
                     children: [
                       Container(
                         width: 76.0,
@@ -116,41 +116,49 @@ class FundSummaryTab extends StatelessWidget {
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Column(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisSize: .min,
                           children: [
                             SizedBox(
                               width: double.infinity,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
+                                padding: const .symmetric(
                                   horizontal: 4,
-                                  vertical: 5,
+                                  vertical: 6,
                                 ),
                                 //color: Colors.red,
-                                decoration: const BoxDecoration(
+                                decoration: BoxDecoration(
                                   color: Colors.red,
                                   //color: Colors.blueGrey,
                                   // borderRadius: BorderRadius.vertical(
                                   //   top: Radius.circular(8),
                                   // ),
                                 ),
-                                child: Text(
-                                  () {
-                                    final full = DateFormat.yMMM(locale)
-                                        .format(fund.date);
-                                    final yearStr = fund.date.year.toString();
-                                    final shortYear = yearStr.length >= 2
-                                        ? yearStr.substring(yearStr.length - 2)
-                                        : yearStr;
-                                    return full.replaceAll(yearStr, shortYear);
-                                  }(),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.5,
+                                child: Container(
+                                  padding: .symmetric(vertical: 4),
+                                  child: Text(
+                                    () {
+                                      final full = DateFormat.yMMM(locale)
+                                          .format(fund.date);
+                                      final yearStr = fund.date.year.toString();
+                                      final shortYear = yearStr.length >= 2
+                                          ? yearStr.substring(
+                                              yearStr.length - 2,
+                                            )
+                                          : yearStr;
+                                      return full.replaceAll(
+                                        yearStr,
+                                        shortYear,
+                                      );
+                                    }(),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -158,15 +166,13 @@ class FundSummaryTab extends StatelessWidget {
                             SizedBox(
                               width: double.infinity,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 6,
-                                ),
+                                padding: const .symmetric(vertical: 6),
                                 child: Text(
                                   DateFormat.d(locale).format(fund.date),
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: Colors.black87,
-                                    fontSize: 32,
+                                    fontSize: 34,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -180,10 +186,10 @@ class FundSummaryTab extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
+                      /* Text(
                         l10n.navLabel,
                         style: Theme.of(context).textTheme.labelLarge,
-                      ),
+                      ), */
                       Text(
                         '${priceFormat.format(fund.lastValue)} ${fund.currency}',
                         style: Theme.of(context).textTheme.displaySmall

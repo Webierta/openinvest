@@ -40,9 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _toggleAutoRefresh(bool value) async {
     await SettingsService.setAutoRefreshEnabled(value);
     if (!mounted) return;
-    setState(() {
-      _autoRefresh = value;
-    });
+    setState(() => _autoRefresh = value);
   }
 
   Future<void> _toggleAuth(bool value) async {
@@ -154,8 +152,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                 ),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: provider.locale?.languageCode ?? 'es',
@@ -178,7 +178,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                       onChanged: (code) {
                         if (code != null) {
-                          provider.setLocale(Locale(code));
+                          setState(() {
+                            provider.setLocale(Locale(code));
+                          });
                         }
                       },
                     ),
@@ -222,7 +224,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       ListTile(
                         title: Text(
                           l10n.changePassword,
-                          style: const TextStyle(color: Colors.white70, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
                         ),
                         trailing: const Icon(
                           Icons.chevron_right,

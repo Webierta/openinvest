@@ -178,7 +178,6 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
     return AppBar(
       title: Text.rich(
         TextSpan(

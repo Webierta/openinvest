@@ -72,10 +72,11 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       // 1. TARJETA DE RESUMEN GLOBAL (HERO)
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const .all(16.0),
                           child: _buildSummaryCard(provider, globalMetrics),
                         ),
                       ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
                       // 2. CUADRÍCULA DE ACCIONES RÁPIDAS
                       SliverToBoxAdapter(
                         child: Padding(
@@ -92,11 +93,12 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const .fromLTRB(16, 8, 16, 0),
+                          padding: const .fromLTRB(16, 8, 16, 16),
                           child: _buildActionGrid(context, provider),
                         ),
                       ),
                       // 3. LISTADO DE FONDOS
+                      //const SliverToBoxAdapter(child: SizedBox(height: 8)),
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .symmetric(horizontal: 16.0),
@@ -122,7 +124,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                         Center(child: Text(l10n.emptyPortfolio))
                       else
                         SliverPadding(
-                          padding: .fromLTRB(16, 8, 16, 16),
+                          padding: .fromLTRB(8, 0, 8, 16),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate((
                               context,
@@ -140,7 +142,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       // Listado de Operaciones recientes
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: _buildRecentOperations(
                             context,
                             provider.portfolio,
@@ -623,16 +625,15 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: const .symmetric(horizontal: 16.0),
           child: Text(
             l10n.recentOperationsTitle,
             style: Theme.of(context).textTheme.titleMedium
                 ?.copyWith(color: Colors.white70, fontWeight: FontWeight.bold),
           ),
         ),
-        const SizedBox(height: 8),
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          margin: const .symmetric(horizontal: 16.0, vertical: 8.0),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),

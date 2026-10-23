@@ -732,57 +732,141 @@ class FundProvider with ChangeNotifier {
       _setError(AppError.busy());
       return false;
     }
+
     isLoading = true;
     _clearError();
     notifyListeners();
+
     try {
-      /* final result = await FundScraper.getFundByIsin(
-        isin.toUpperCase(),
-        startDate: range.start,
-        endDate: range.end,
-      ); */
       final result = await _fundRangeFetcher(isin.toUpperCase(), range);
-      if (result.data != null) {
-        final fetchedFund = result.data!;
-        final existingFund = await DatabaseService.getFund(fetchedFund.isin);
-        final fundToSave = existingFund == null
-            ? fetchedFund
-            : FundData(
-                isin: fetchedFund.isin,
-                symbol: fetchedFund.symbol,
-                name: fetchedFund.name,
-                lastValue: existingFund.lastValue,
-                currency: fetchedFund.currency,
-                date: existingFund.date,
-                history: fetchedFund.history,
-                operations: existingFund.operations,
-                alertMin: existingFund.alertMin,
-                alertMax: existingFund.alertMax,
-                ter: existingFund.ter,
-                performanceFee: existingFund.performanceFee,
-                costPeriods: existingFund.costPeriods,
-                costCharges: existingFund.costCharges,
-                morningstarRating: existingFund.morningstarRating,
-                morningstarCheckedAt: existingFund.morningstarCheckedAt,
-                morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
-                source: existingFund.source,
-                valuationSource: existingFund.valuationSource,
-              );
-        /* await _runDatabaseOperation(() async {
-          await DatabaseService.saveFund(fundToSave);
-          currentFund = fundToSave;
-          await _syncFundState(fundToSave.isin);
-          await loadPortfolio();
-        }); */
-        // Ya no usa _runDatabaseOperation
-        await DatabaseService.saveFund(fundToSave);
-        currentFund = fundToSave;
-        await _syncFundState(fundToSave.isin);
-        await loadPortfolio();
-        return true;
+      final fetchedFund = result.data;
+
+      if (fetchedFund == null) {
+        lastError = result.error;
+        return false;
       }
-      lastError = result.error;
-      return false;
+
+      final validFetchedHistory =
+          fetchedFund.history
+              .where(
+                (point) =>
+                    point.price.isFinite &&
+                    point.price > 0 &&
+                    !point.date.isBefore(range.start) &&
+                    !point.date.isAfter(range.end),
+              )
+              .toList()
+            ..sort((a, b) => a.date.compareTo(b.date));
+
+      if (validFetchedHistory.isEmpty) {
+        final existingFund = await DatabaseService.getFund(fetchedFund.isin);
+
+        if (existingFund == null) {
+          return false;
+        }
+
+        // Compatibilidad con una respuesta que contiene un único precio cero:
+        // se considera procesada, pero no se modifica el fondo persistido.
+        if (fetchedFund.history.length == 1 &&
+            fetchedFund.history.single.price == 0.0) {
+          return true;
+        }
+
+        return false;
+      }
+
+      final existingFund = await DatabaseService.getFund(fetchedFund.isin);
+
+      final fetchedLatestPoint = validFetchedHistory.fold<PricePoint?>(
+        null,
+        (latest, point) =>
+            latest == null || point.date.isAfter(latest.date) ? point : latest,
+      );
+
+      final hasExistingHistory =
+          existingFund?.history.any(
+            (point) => point.price.isFinite && point.price > 0,
+          ) ??
+          false;
+
+      final shouldAdoptFetchedValuation =
+          fetchedLatestPoint != null &&
+          (existingFund == null ||
+              !hasExistingHistory ||
+              fetchedLatestPoint.date.isAfter(existingFund.date));
+
+      final mergedHistory = <DateTime, PricePoint>{};
+
+      for (final point in existingFund?.history ?? <PricePoint>[]) {
+        final key = DateTime(point.date.year, point.date.month, point.date.day);
+        if (point.price.isFinite && point.price > 0) {
+          mergedHistory[key] = point;
+        }
+      }
+
+      for (final point in validFetchedHistory) {
+        final key = DateTime(point.date.year, point.date.month, point.date.day);
+
+        // No permitimos que una valoración de igual fecha sustituya
+        // el precio histórico asociado a la valoración vigente.
+        final isCurrentValuationDate =
+            existingFund != null &&
+            key.year == existingFund.date.year &&
+            key.month == existingFund.date.month &&
+            key.day == existingFund.date.day;
+
+        if (!isCurrentValuationDate || shouldAdoptFetchedValuation) {
+          mergedHistory[key] = point;
+        }
+      }
+
+      final historyToSave = mergedHistory.values.toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
+
+      final fundToSave = existingFund == null
+          ? fetchedFund
+          : FundData(
+              isin: fetchedFund.isin,
+              symbol: shouldAdoptFetchedValuation
+                  ? fetchedFund.symbol
+                  : existingFund.symbol,
+              name: shouldAdoptFetchedValuation
+                  ? fetchedFund.name
+                  : existingFund.name,
+              currency: shouldAdoptFetchedValuation
+                  ? fetchedFund.currency
+                  : existingFund.currency,
+              lastValue: shouldAdoptFetchedValuation
+                  ? fetchedLatestPoint.price
+                  : existingFund.lastValue,
+              date: shouldAdoptFetchedValuation
+                  ? fetchedLatestPoint.date
+                  : existingFund.date,
+              //history: validFetchedHistory,
+              history: historyToSave,
+              operations: existingFund.operations,
+              alertMin: existingFund.alertMin,
+              alertMax: existingFund.alertMax,
+              ter: existingFund.ter,
+              performanceFee: existingFund.performanceFee,
+              costPeriods: existingFund.costPeriods,
+              costCharges: existingFund.costCharges,
+              morningstarRating: existingFund.morningstarRating,
+              morningstarCheckedAt: existingFund.morningstarCheckedAt,
+              morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
+              source: existingFund.source,
+              valuationSource: shouldAdoptFetchedValuation
+                  ? (fetchedFund.valuationSource ??
+                        existingFund.valuationSource)
+                  : existingFund.valuationSource,
+            );
+
+      await DatabaseService.saveFund(fundToSave);
+      currentFund = fundToSave;
+      await _syncFundState(fundToSave.isin);
+      await loadPortfolio();
+
+      return true;
     } catch (error, stackTrace) {
       lastError = _asError(error, stackTrace);
       return false;

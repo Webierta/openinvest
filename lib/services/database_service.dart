@@ -611,25 +611,6 @@ class DatabaseService {
         limit: 1,
       );
 
-      /* await txn.insert('funds', {
-        'isin': fund.isin,
-        'symbol': fund.symbol,
-        'name': fund.name,
-        'currency': fund.currency,
-        'last_value': fund.lastValue,
-        'last_update': normalizedDate,
-        'alert_min': fund.alertMin,
-        'alert_max': fund.alertMax,
-        'ter': fund.ter,
-        'performance_fee': fund.performanceFee,
-        'morningstar_rating': fund.morningstarRating,
-        'morningstar_checked_at': fund.morningstarCheckedAt?.toIso8601String(),
-        'morningstar_last_attempt_at': fund.morningstarLastAttemptAt
-            ?.toIso8601String(),
-        'source': fund.source?.name,
-        'valuation_source': fund.valuationSource?.name,
-      }, conflictAlgorithm: ConflictAlgorithm.replace); */
-
       final fundValues = <String, Object?>{
         'isin': fund.isin,
         'symbol': fund.symbol,
@@ -674,7 +655,14 @@ class DatabaseService {
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
 
-      if (fund.lastValue > 0) {
+      final hasHistoryPointOnValuationDate = fund.history.any(
+        (point) =>
+            point.date.year == fund.date.year &&
+            point.date.month == fund.date.month &&
+            point.date.day == fund.date.day,
+      );
+
+      if (fund.lastValue > 0 && !hasHistoryPointOnValuationDate) {
         batch.insert('prices', {
           'isin': fund.isin,
           'date': normalizedDate,
@@ -790,13 +778,22 @@ class DatabaseService {
           'price': point.price,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
-      if (fund.lastValue > 0) {
+
+      final hasHistoryPointOnValuationDate = fund.history.any(
+        (point) =>
+            point.date.year == fund.date.year &&
+            point.date.month == fund.date.month &&
+            point.date.day == fund.date.day,
+      );
+
+      if (fund.lastValue > 0 && !hasHistoryPointOnValuationDate) {
         batch.insert('prices', {
           'isin': fund.isin,
           'date': normalizedDate,
           'price': fund.lastValue,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
+
       for (final operation in fund.operations) {
         batch.insert('operations', {
           'isin': operation.isin,

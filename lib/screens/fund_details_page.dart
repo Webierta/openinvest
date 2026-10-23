@@ -327,11 +327,43 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
     );
   }
 
+  Future<bool> _showConfirmDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmación'),
+          content: const Text(
+            'Este fondo ha obtenido su valor desde una fuente que no admite actualización '
+            'por rango de fechas. ¿Quieres continuar?',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }
+
   Future<void> _selectDateRange(
     BuildContext context,
     FundProvider provider,
     FundData fund,
   ) async {
+    if (fund.valuationSource == FundSource.queFondos) {
+      bool confirmed = await _showConfirmDialog(context);
+      if (confirmed == false) return;
+    }
+    if (!context.mounted) return;
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2000),

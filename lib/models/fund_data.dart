@@ -91,7 +91,6 @@ class FundData {
     required this.currency,
     required this.date,
     required List<PricePoint> history,
-    //this.operations = const [],
     List<FundOperation> operations = const [],
     this.alertMin,
     this.alertMax,
@@ -125,7 +124,7 @@ class FundData {
       return synced;
     }
 
-    final int existingIdx = synced.indexWhere(
+    /* final int existingIdx = synced.indexWhere(
       (p) =>
           p.date.year == normalizedDate.year &&
           p.date.month == normalizedDate.month &&
@@ -137,6 +136,18 @@ class FundData {
       synced[existingIdx] = PricePoint(normalizedDate, lastValue);
     } else {
       // Si no existe el día en el historial (ej: es hoy), lo añadimos
+      synced.add(PricePoint(normalizedDate, lastValue));
+    } */
+
+    final int existingIdx = synced.indexWhere(
+      (p) =>
+          p.date.year == normalizedDate.year &&
+          p.date.month == normalizedDate.month &&
+          p.date.day == normalizedDate.day,
+    );
+
+    if (existingIdx == -1) {
+      // Si no hay precio histórico para ese día, añadimos la valoración.
       synced.add(PricePoint(normalizedDate, lastValue));
     }
 
