@@ -39,6 +39,7 @@ class FundDataMerger {
 
     // Fusiona ambos historiales por día. Si hay dos valores para el mismo
     // día, prevalece el del fondo entrante.
+
     final historyByDay = <String, PricePoint>{};
 
     String dayKey(DateTime date) =>
@@ -54,12 +55,24 @@ class FundDataMerger {
       historyByDay[dayKey(point.date)] = point;
     }
 
-    final mergedHistory = historyByDay.values.toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
-
-    // La valoración vigente corresponde al fondo con fecha más reciente.
     final incomingIsNewer = incoming.date.isAfter(existing.date);
     final valuationFund = incomingIsNewer ? incoming : existing;
+
+    // En el día de valoración prevalece la valoración seleccionada.
+    // Para el resto de las fechas se conserva la política de fusión
+    // del historial: el punto entrante sustituye al existente.
+    final valuationDayKey = dayKey(valuationFund.date);
+    final valuationPoint = historyByDay[valuationDayKey];
+
+    if (valuationPoint != null) {
+      historyByDay[valuationDayKey] = PricePoint(
+        valuationPoint.date,
+        valuationFund.lastValue,
+      );
+    }
+
+    final mergedHistory = historyByDay.values.toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
 
     return FundData(
       isin: existing.isin,

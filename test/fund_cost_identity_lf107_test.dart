@@ -582,10 +582,10 @@ void main() {
         ],
       );
 
-      // La construcción inicial sincroniza el último punto con 120.
+      // La construcción inicial conserva el punto histórico explícito.
       expect(fund.history, hasLength(3));
       expect(fund.history.last.date, DateTime(2026, 10, 20));
-      expect(fund.history.last.price, 120);
+      expect(fund.history.last.price, 118);
 
       final updated = fund.copyWith(
         lastValue: 123,
