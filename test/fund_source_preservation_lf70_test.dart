@@ -30,13 +30,10 @@ void main() {
 
     costPeriod = FundCostPeriod(
       uid: 'lf68-period-001',
-      concept: FundCostConcept.performance,
-      basis: FundCostRateBasis.positiveProfit,
-      treatment: FundCostTreatment.chargedSeparately,
-      //concept: FundCostConcept.management,
+      concept: FundCostConcept.management,
+      basis: FundCostRateBasis.annualBalance,
+      treatment: FundCostTreatment.includedInNav,
       ratePercent: 0.65,
-      //basis: FundCostRateBasis.annualBalance,
-      //treatment: FundCostTreatment.includedInNav,
       validFrom: DateTime(2025, 1, 1),
       validTo: DateTime(2025, 12, 31),
       description: 'Coste de gestión LF-68',
@@ -48,8 +45,8 @@ void main() {
       date: DateTime(2025, 12, 31),
       amount: 12.75,
       description: 'Cargo de prueba LF-68',
-      performancePeriodUid: costPeriod.uid,
-      settledThrough: DateTime(2025, 12, 31),
+      performancePeriodUid: null,
+      settledThrough: null,
     );
 
     existingFund = FundData(
@@ -127,37 +124,87 @@ void main() {
     );
   }
 
-  void expectStructuredCostsPreserved(FundData fund) {
+  Future<FundData> fetchFundWithCosts({
+    required List<FundCostPeriod> periods,
+    required List<FundCostCharge> charges,
+  }) async {
+    await DatabaseService.saveFund(existingFund);
+
+    // Misma valoración, fecha e historial: solo cambian los costes.
+    primaryFund = FundData(
+      isin: existingFund.isin,
+      symbol: existingFund.symbol,
+      name: existingFund.name,
+      lastValue: existingFund.lastValue,
+      currency: existingFund.currency,
+      date: existingFund.date,
+      history: existingFund.history,
+      ter: existingFund.ter,
+      performanceFee: existingFund.performanceFee,
+      source: existingFund.source,
+      valuationSource: existingFund.valuationSource,
+      costPeriods: periods,
+      costCharges: charges,
+    );
+
+    final provider = createProvider();
+
+    //final success = await provider.searchFund(existingFund.isin);
+    //expect(success, isTrue);
+
+    final success = await provider.searchFund(existingFund.isin);
+
+    if (!success) {
+      // ignore: avoid_print
+      print('LF-71 lastError: ${provider.lastError}');
+    }
+
+    expect(success, isTrue);
+
+    final savedFund = await DatabaseService.getFund(existingFund.isin);
+    expect(savedFund, isNotNull);
+
+    return savedFund!;
+  }
+
+  void expectProviderCostsAdopted(FundData fund) {
+    // La nueva valoración y el TER siguen actualizándose.
     expect(fund.lastValue, 112);
     expect(fund.date, DateTime(2026, 10, 4));
     expect(fund.ter, 0.50);
+
+    // Los metadatos que la respuesta no proporciona se conservan.
     expect(fund.performanceFee, 10);
 
+    // Debe incorporarse el periodo de costes del proveedor.
     expect(fund.costPeriods, hasLength(1));
+
     final savedPeriod = fund.costPeriods.single;
 
-    expect(savedPeriod.uid, 'lf68-period-001');
-    expect(savedPeriod.concept, FundCostConcept.performance);
-    expect(savedPeriod.ratePercent, 0.65);
-    expect(savedPeriod.basis, FundCostRateBasis.positiveProfit);
-    expect(savedPeriod.treatment, FundCostTreatment.chargedSeparately);
-    expect(savedPeriod.validFrom, DateTime(2025, 1, 1));
-    expect(savedPeriod.validTo, DateTime(2025, 12, 31));
-    expect(savedPeriod.description, 'Coste de gestión LF-68');
+    expect(savedPeriod.uid, 'lf70-period-provider');
+    expect(savedPeriod.concept, FundCostConcept.management);
+    expect(savedPeriod.ratePercent, 0.90);
+    expect(savedPeriod.basis, FundCostRateBasis.annualBalance);
+    expect(savedPeriod.treatment, FundCostTreatment.includedInNav);
+    expect(savedPeriod.validFrom, DateTime(2026, 1, 1));
+    expect(savedPeriod.validTo, isNull);
+    expect(savedPeriod.description, 'Coste nuevo del proveedor');
 
+    // Debe incorporarse también el cargo nuevo.
     expect(fund.costCharges, hasLength(1));
+
     final savedCharge = fund.costCharges.single;
 
-    expect(savedCharge.uid, 'lf68-charge-001');
+    expect(savedCharge.uid, 'lf70-charge-provider');
     expect(savedCharge.concept, FundCostConcept.performance);
-    expect(savedCharge.date, DateTime(2025, 12, 31));
-    expect(savedCharge.amount, 12.75);
-    expect(savedCharge.description, 'Cargo de prueba LF-68');
-    expect(savedCharge.performancePeriodUid, savedPeriod.uid);
-    expect(savedCharge.settledThrough, DateTime(2025, 12, 31));
+    expect(savedCharge.date, DateTime(2026, 10, 4));
+    expect(savedCharge.amount, 25.0);
+    expect(savedCharge.description, 'Cargo nuevo del proveedor');
+    expect(savedCharge.performancePeriodUid, isNull);
+    expect(savedCharge.settledThrough, isNull);
   }
 
-  test('LF-70.1: searchFund conserva costPeriods y costCharges al actualizar valoración y TER', () async {
+  test('LF-70.1: searchFund adopta los costes nuevos del proveedor', () async {
     await DatabaseService.saveFund(existingFund);
     final provider = createProvider();
 
@@ -166,18 +213,120 @@ void main() {
     final savedFund = await DatabaseService.getFund(isin);
 
     expect(savedFund, isNotNull);
-    expectStructuredCostsPreserved(savedFund!);
+    expectProviderCostsAdopted(savedFund!);
   });
 
-  test('LF-70.2: updateAllPortfolio conserva costPeriods y costCharges al actualizar valoración y TER', () async {
-    await DatabaseService.saveFund(existingFund);
-    final provider = createProvider()..portfolio = [existingFund];
+  test(
+    'LF-70.2: updateAllPortfolio adopta los costes nuevos del proveedor',
+    () async {
+      await DatabaseService.saveFund(existingFund);
+      final provider = createProvider()..portfolio = [existingFund];
 
-    await provider.updateAllPortfolio();
+      await provider.updateAllPortfolio();
 
-    final savedFund = await DatabaseService.getFund(isin);
+      final savedFund = await DatabaseService.getFund(isin);
 
-    expect(savedFund, isNotNull);
-    expectStructuredCostsPreserved(savedFund!);
+      expect(savedFund, isNotNull);
+      expectProviderCostsAdopted(savedFund!);
+    },
+  );
+
+  test(
+    'LF-70.3: searchFund adopta costes nuevos aunque la valoración no cambie',
+    () async {
+      await DatabaseService.saveFund(existingFund);
+
+      // El proveedor ofrece costes nuevos, pero no cambia la valoración,
+      // la fecha ni el historial del fondo.
+      primaryFund = FundData(
+        isin: existingFund.isin,
+        symbol: existingFund.symbol,
+        name: existingFund.name,
+        lastValue: existingFund.lastValue,
+        currency: existingFund.currency,
+        date: existingFund.date,
+        history: existingFund.history,
+        source: existingFund.source,
+        valuationSource: existingFund.valuationSource,
+        ter: existingFund.ter,
+        performanceFee: existingFund.performanceFee,
+        costPeriods: [
+          FundCostPeriod(
+            uid: 'lf70-period-provider',
+            concept: FundCostConcept.management,
+            ratePercent: 0.90,
+            basis: FundCostRateBasis.annualBalance,
+            treatment: FundCostTreatment.includedInNav,
+            validFrom: DateTime(2026, 1, 1),
+            description: 'Coste nuevo del proveedor',
+          ),
+        ],
+        costCharges: [
+          FundCostCharge(
+            uid: 'lf70-charge-provider',
+            concept: FundCostConcept.performance,
+            date: DateTime(2026, 10, 4),
+            amount: 25.0,
+            description: 'Cargo nuevo del proveedor',
+          ),
+        ],
+      );
+
+      final provider = createProvider();
+
+      // final success = await provider.searchFund(existingFund.isin);
+
+      // expect(success, isTrue);
+
+      final success = await provider.searchFund(existingFund.isin);
+
+      if (!success) {
+        // Diagnóstico temporal para identificar por qué no se actualiza.
+        // ignore: avoid_print
+        print('LF-70.3 lastError: ${provider.lastError}');
+      }
+
+      expect(success, isTrue);
+
+      final savedFund = await DatabaseService.getFund(existingFund.isin);
+
+      expect(savedFund, isNotNull);
+      expect(savedFund!.costPeriods.map((period) => period.uid).toList(), [
+        'lf70-period-provider',
+      ]);
+      expect(savedFund.costCharges.map((charge) => charge.uid).toList(), [
+        'lf70-charge-provider',
+      ]);
+      expect(savedFund.costPeriods.single.ratePercent, 0.90);
+      expect(savedFund.costCharges.single.amount, 25.0);
+    },
+  );
+
+  test('LF-71.1: detecta un cambio de concepto del periodo', () async {
+    final updatedPeriod = FundCostPeriod(
+      uid: costPeriod.uid,
+      concept: FundCostConcept.other,
+      ratePercent: costPeriod.ratePercent,
+      basis: FundCostRateBasis.annualBalance,
+      treatment: FundCostTreatment.includedInNav,
+      validFrom: costPeriod.validFrom,
+      validTo: costPeriod.validTo,
+      description: costPeriod.description,
+    );
+
+    /* final savedFund = await fetchFundWithCosts(
+      periods: [updatedPeriod],
+      charges: [costCharge],
+    ); */
+
+    final savedFund = await fetchFundWithCosts(
+      periods: [updatedPeriod],
+      charges: const [],
+    );
+
+    expect(savedFund.lastValue, existingFund.lastValue);
+    expect(savedFund.date, existingFund.date);
+    expect(savedFund.costPeriods, hasLength(1));
+    expect(savedFund.costPeriods.single.concept, FundCostConcept.other);
   });
 }

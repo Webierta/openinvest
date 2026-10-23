@@ -335,8 +335,8 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
         return AlertDialog(
           title: const Text('Confirmación'),
           content: const Text(
-            'Este fondo ha obtenido su valor desde una fuente que no admite actualización '
-            'por rango de fechas. ¿Quieres continuar?',
+            'Este fondo ha obtenido su valor desde una fuente que no admite actualización por rango de fechas, '
+            'por lo que es posible que el proceso no obtenga ningún resultado. ¿Quieres continuar?',
           ),
           actions: <Widget>[
             TextButton(

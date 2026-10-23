@@ -673,8 +673,6 @@ class FundProvider with ChangeNotifier {
             ? fetchedFund
             : FundData(
                 isin: fetchedFund.isin,
-                //symbol: fetchedFund.symbol,
-                //name: fetchedFund.name,
                 symbol: fetchedFund.symbol.trim().isNotEmpty
                     ? fetchedFund.symbol
                     : existingFund.symbol,
@@ -688,13 +686,21 @@ class FundProvider with ChangeNotifier {
                 operations: existingFund.operations,
                 alertMin: existingFund.alertMin,
                 alertMax: existingFund.alertMax,
-                //ter: existingFund.ter,
                 ter: fetchedFund.ter ?? existingFund.ter,
-                //performanceFee: existingFund.performanceFee,
                 performanceFee:
                     fetchedFund.performanceFee ?? existingFund.performanceFee,
-                costPeriods: existingFund.costPeriods,
-                costCharges: existingFund.costCharges,
+                // Los costes estructurados se adoptan como un conjunto coherente.
+                // Si el proveedor no aporta cargos, conservamos los costes existentes
+                // para evitar eliminar periodos que todavía tienen cargos asociados.
+                // costPeriods: fetchedFund.costCharges.isNotEmpty
+                //     ? fetchedFund.costPeriods
+                //     : existingFund.costPeriods,
+                costPeriods: _canAdoptCostPeriods(existingFund, fetchedFund)
+                    ? fetchedFund.costPeriods
+                    : existingFund.costPeriods,
+                costCharges: fetchedFund.costCharges.isNotEmpty
+                    ? fetchedFund.costCharges
+                    : existingFund.costCharges,
                 morningstarRating: existingFund.morningstarRating,
                 morningstarCheckedAt: existingFund.morningstarCheckedAt,
                 morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
@@ -702,14 +708,7 @@ class FundProvider with ChangeNotifier {
                 valuationSource:
                     fetchedFund.valuationSource ?? existingFund.valuationSource,
               );
-        /* await _runDatabaseOperation(() async {
-          await DatabaseService.saveFund(fundToSave);
-          currentFund = fundToSave;
-          await _syncFundState(fundToSave.isin);
-          await loadPortfolio();
-        }); */
-        // Ya no usa _runDatabaseOperation. DatabaseService.saveFund
-        // ya usa db.transaction() internamente.
+
         await DatabaseService.saveFund(fundToSave);
         currentFund = fundToSave;
         await _syncFundState(fundToSave.isin);
@@ -719,6 +718,11 @@ class FundProvider with ChangeNotifier {
       lastError = result.error;
       return false;
     } catch (error, stackTrace) {
+      // ignore: avoid_print
+      print('LF-71 searchFund exception: $error');
+      // ignore: avoid_print
+      print(stackTrace);
+
       lastError = _asError(error, stackTrace);
       return false;
     } finally {
@@ -912,8 +916,6 @@ class FundProvider with ChangeNotifier {
             hasChanges = true;
             final updatedFund = FundData(
               isin: result.data!.isin,
-              //symbol: result.data!.symbol,
-              //name: result.data!.name,
               symbol: result.data!.symbol.trim().isNotEmpty
                   ? result.data!.symbol
                   : existing.symbol,
@@ -927,13 +929,21 @@ class FundProvider with ChangeNotifier {
               operations: existing.operations,
               alertMin: existing.alertMin,
               alertMax: existing.alertMax,
-              //ter: existing.ter,
-              //performanceFee: existing.performanceFee,
               ter: result.data!.ter ?? existing.ter,
               performanceFee:
                   result.data!.performanceFee ?? existing.performanceFee,
-              costPeriods: existing.costPeriods,
-              costCharges: existing.costCharges,
+              // Mantener periodos y cargos existentes cuando el proveedor
+              // no aporta cargos estructurados, evitando referencias rotas.
+              // costPeriods: result.data!.costCharges.isNotEmpty
+              //     ? result.data!.costPeriods
+              //     : existing.costPeriods,
+
+              costPeriods: _canAdoptCostPeriods(existing, result.data!)
+                  ? result.data!.costPeriods
+                  : existing.costPeriods,
+              costCharges: result.data!.costCharges.isNotEmpty
+                  ? result.data!.costCharges
+                  : existing.costCharges,
               morningstarRating: existing.morningstarRating,
               morningstarCheckedAt: existing.morningstarCheckedAt,
               morningstarLastAttemptAt: existing.morningstarLastAttemptAt,
@@ -1054,6 +1064,28 @@ class FundProvider with ChangeNotifier {
   // =============================================================
   // FUND FETCHING CORE LOGIC (private helpers)
   // =============================================================
+
+  bool _canAdoptCostPeriods(FundData existing, FundData fetched) {
+    if (fetched.costPeriods.isEmpty) return false;
+
+    final fetchedUids = fetched.costPeriods.map((p) => p.uid).toSet();
+
+    final referencesRemainValid = existing.costCharges.every((charge) {
+      final periodUid = charge.performancePeriodUid;
+      return periodUid == null || fetchedUids.contains(periodUid);
+    });
+
+    if (!referencesRemainValid) return false;
+
+    // Los periodos TER generados automáticamente no deben sustituir
+    // costes estructurados existentes.
+    final containsNonLegacyPeriod = fetched.costPeriods.any(
+      (period) => period.concept != FundCostConcept.ter,
+    );
+
+    return containsNonLegacyPeriod || existing.costPeriods.isEmpty;
+  }
+
   Future<ScrapeResult> _fetchLatestFundWithFallback(
     String isin, {
     FundData? existingFund,
@@ -1173,12 +1205,24 @@ class FundProvider with ChangeNotifier {
             (primaryFund.valuationSource != null &&
                 primaryFund.valuationSource != existingFund.valuationSource));
 
+    final primaryCostsChanged =
+        existingFund != null &&
+        primaryFund != null &&
+        (_hasDifferentCostPeriods(
+              existingFund.costPeriods,
+              primaryFund.costPeriods,
+            ) ||
+            _hasDifferentCostCharges(
+              existingFund.costCharges,
+              primaryFund.costCharges,
+            ));
+
     final primaryIsNotOlderThanExisting =
         primaryDate != null &&
         (existingDate == null || !primaryDate.isBefore(existingDate));
 
     if (primaryIsUsable &&
-        primaryMetadataChanged &&
+        (primaryMetadataChanged || primaryCostsChanged) &&
         primaryIsNotOlderThanExisting) {
       return ScrapeResult(
         data: primaryFund,
@@ -1298,23 +1342,6 @@ class FundProvider with ChangeNotifier {
     );
   }
 
-  /* bool _hasNewData(FundData existing, FundData fetched) {
-    if (existing.lastValue != fetched.lastValue ||
-        existing.date != fetched.date) {
-      return true;
-    }
-
-    final existingPrices = <DateTime, double>{
-      for (final point in existing.history)
-        DateTime(point.date.year, point.date.month, point.date.day):
-            point.price,
-    };
-    return fetched.history.any((point) {
-      final date = DateTime(point.date.year, point.date.month, point.date.day);
-      return existingPrices[date] != point.price;
-    });
-  } */
-
   bool _hasNewData(FundData existing, FundData fetched) {
     if (existing.lastValue != fetched.lastValue ||
         existing.date != fetched.date) {
@@ -1339,10 +1366,77 @@ class FundProvider with ChangeNotifier {
             point.price,
     };
 
-    return fetched.history.any((point) {
+    /* return fetched.history.any((point) {
+      final date = DateTime(point.date.year, point.date.month, point.date.day);
+      return existingPrices[date] != point.price;
+    }); */
+    final historyChanged = fetched.history.any((point) {
       final date = DateTime(point.date.year, point.date.month, point.date.day);
       return existingPrices[date] != point.price;
     });
+
+    return historyChanged ||
+        _hasDifferentCostPeriods(existing.costPeriods, fetched.costPeriods) ||
+        _hasDifferentCostCharges(existing.costCharges, fetched.costCharges);
+  }
+
+  bool _hasDifferentCostPeriods(
+    List<FundCostPeriod> existing,
+    List<FundCostPeriod> fetched,
+  ) {
+    if (existing.length != fetched.length) return true;
+
+    final existingByUid = {for (final item in existing) item.uid: item};
+    final fetchedByUid = {for (final item in fetched) item.uid: item};
+
+    if (!existingByUid.keys.toSet().containsAll(fetchedByUid.keys)) {
+      return true;
+    }
+
+    for (final item in fetched) {
+      final old = existingByUid[item.uid];
+      if (old == null ||
+          old.concept != item.concept ||
+          old.ratePercent != item.ratePercent ||
+          old.basis != item.basis ||
+          old.treatment != item.treatment ||
+          old.validFrom != item.validFrom ||
+          old.validTo != item.validTo ||
+          old.description != item.description) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool _hasDifferentCostCharges(
+    List<FundCostCharge> existing,
+    List<FundCostCharge> fetched,
+  ) {
+    if (existing.length != fetched.length) return true;
+
+    final existingByUid = {for (final item in existing) item.uid: item};
+    final fetchedByUid = {for (final item in fetched) item.uid: item};
+
+    if (!existingByUid.keys.toSet().containsAll(fetchedByUid.keys)) {
+      return true;
+    }
+
+    for (final item in fetched) {
+      final old = existingByUid[item.uid];
+      if (old == null ||
+          old.concept != item.concept ||
+          old.date != item.date ||
+          old.amount != item.amount ||
+          old.description != item.description ||
+          old.performancePeriodUid != item.performancePeriodUid ||
+          old.settledThrough != item.settledThrough) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // =============================================================

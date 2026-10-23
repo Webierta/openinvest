@@ -158,4 +158,55 @@ void main() {
     expect(savedFund, isNotNull);
     expectStructuredCostsPreserved(savedFund!);
   });
+
+  test('FundData distingue los periodos TER heredados de los explícitos', () {
+    final inherited = FundData(
+      isin: 'IE00B4L5Y983',
+      symbol: 'TEST',
+      name: 'Test Fund',
+      lastValue: 110,
+      currency: 'EUR',
+      date: DateTime(2026, 10, 3),
+      history: [PricePoint(DateTime(2026, 10, 3), 110)],
+      ter: 0.50,
+    );
+
+    final explicitEmpty = FundData(
+      isin: 'IE00B4L5Y983',
+      symbol: 'TEST',
+      name: 'Test Fund',
+      lastValue: 110,
+      currency: 'EUR',
+      date: DateTime(2026, 10, 3),
+      history: [PricePoint(DateTime(2026, 10, 3), 110)],
+      ter: 0.50,
+      costPeriods: const [],
+    );
+
+    final explicitStructured = FundData(
+      isin: 'IE00B4L5Y983',
+      symbol: 'TEST',
+      name: 'Test Fund',
+      lastValue: 110,
+      currency: 'EUR',
+      date: DateTime(2026, 10, 3),
+      history: [PricePoint(DateTime(2026, 10, 3), 110)],
+      ter: 0.50,
+      costPeriods: [
+        FundCostPeriod(
+          uid: 'explicit-ter',
+          concept: FundCostConcept.ter,
+          ratePercent: 0.50,
+          basis: FundCostRateBasis.annualBalance,
+          treatment: FundCostTreatment.includedInNav,
+        ),
+      ],
+    );
+
+    // Sustituiremos estas expectativas por la propiedad de procedencia
+    // cuando la añadamos al modelo.
+    expect(inherited.costPeriods, isNotEmpty);
+    expect(explicitEmpty.costPeriods, isEmpty);
+    expect(explicitStructured.costPeriods, hasLength(1));
+  });
 }

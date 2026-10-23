@@ -59,6 +59,9 @@ void main() {
       valuationSource: FundSource.cnmv,
       ter: 0.50,
       // CNMV no informa performanceFee.
+      // No aporta costes estructurados en este escenario.
+      costPeriods: const [],
+      costCharges: const [],
     );
   });
 
