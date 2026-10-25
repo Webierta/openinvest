@@ -692,6 +692,34 @@ class DatabaseService {
     });
   }
 
+  static Future<void> saveOperationsAtomically(
+    List<FundOperation> operations,
+  ) async {
+    if (operations.isEmpty) return;
+
+    final db = await database;
+
+    await db.transaction((txn) async {
+      for (final op in operations) {
+        if (op.id != null) {
+          throw ArgumentError(
+            'La operación ${op.id} ya tiene ID; '
+            'este método solo admite operaciones nuevas.',
+          );
+        }
+
+        await txn.insert('operations', {
+          'isin': op.isin,
+          'date': op.date.toIso8601String(),
+          'type': op.type.name,
+          'units': op.units,
+          'price': op.price,
+          'amount': op.amount,
+        });
+      }
+    });
+  }
+
   static Future<void> saveOperation(FundOperation op) async {
     final db = await database;
 

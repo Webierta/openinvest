@@ -168,7 +168,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
     );
   }
 
-  Future<void> _confirmDelete(
+  /* Future<void> _confirmDelete(
     BuildContext context,
     FundOperation operation,
   ) async {
@@ -189,6 +189,55 @@ class _FundOperationsListState extends State<FundOperationsList> {
         ],
       ),
     );
+    if (confirmed == true && operation.id != null) {
+      try {
+        await provider.deleteOperation(operation.id!);
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.deleteOperationFailed),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    }
+  } */
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    FundOperation operation,
+  ) async {
+    final isTransfer =
+        operation.type == OperationType.outTransfer ||
+        operation.type == OperationType.inTransfer;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.deleteOperationTitle),
+        content: Text(
+          isTransfer
+              ? '${l10n.areYouSure}\n\n'
+                    'Solo se eliminará esta mitad del traspaso. '
+                    'La operación del otro fondo permanecerá intacta.'
+              : l10n.areYouSure,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
     if (confirmed == true && operation.id != null) {
       try {
         await provider.deleteOperation(operation.id!);
@@ -235,40 +284,44 @@ class _FundOperationsListState extends State<FundOperationsList> {
       if (!dialogContext.mounted) return;
       Navigator.pop(dialogContext);
       if (!context.mounted) return;
-      final snackBarController = ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.operationDeletedSuccess),
           duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: l10n.undo,
-            onPressed: () async {
-              try {
-                await provider.restoreOperation(operation);
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.deletionUndone),
-                    duration: const Duration(seconds: 4),
-                  ),
-                );
-              } catch (_) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.restoreOperationError),
-                    backgroundColor: Colors.redAccent,
-                    duration: const Duration(seconds: 4),
-                  ),
-                );
-              }
-            },
-          ),
+          action:
+              (operation.type == OperationType.outTransfer ||
+                  operation.type == OperationType.inTransfer)
+              ? null
+              : SnackBarAction(
+                  label: l10n.undo,
+                  onPressed: () async {
+                    try {
+                      await provider.restoreOperation(operation);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.deletionUndone),
+                          duration: const Duration(seconds: 4),
+                        ),
+                      );
+                    } catch (_) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.restoreOperationError),
+                          backgroundColor: Colors.redAccent,
+                          duration: const Duration(seconds: 4),
+                        ),
+                      );
+                    }
+                  },
+                ),
         ),
       );
-      Future<void>.delayed(
+      /* Future<void>.delayed(
         const Duration(seconds: 4),
         snackBarController.close,
-      );
+      ); */
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -482,6 +535,10 @@ class _FundOperationsListState extends State<FundOperationsList> {
     BuildContext context, {
     FundOperation? operation,
   }) async {
+    final isTransfer =
+        operation?.type == OperationType.outTransfer ||
+        operation?.type == OperationType.inTransfer;
+
     DateTime selectedDate = operation?.date ?? DateTime.now();
     OperationType selectedType = operation?.type ?? OperationType.buy;
 
@@ -572,6 +629,9 @@ class _FundOperationsListState extends State<FundOperationsList> {
                     ? (isFiscalSimulation
                           ? l10n.fiscalSimulationTitle
                           : l10n.newOperation)
+                    : (operation.type == OperationType.outTransfer ||
+                          operation.type == OperationType.inTransfer)
+                    ? 'Los traspasos no admiten edición'
                     : l10n.editOperation,
               ),
             ),
@@ -622,16 +682,19 @@ class _FundOperationsListState extends State<FundOperationsList> {
                                 value: OperationType.buy,
                                 label: Text(l10n.buy),
                                 enabled: operation == null,
+                                //enabled: isTransfer,
                               ),
                               ButtonSegment(
                                 value: OperationType.sell,
                                 label: Text(l10n.sell),
                                 enabled: operation == null,
+                                //enabled: isTransfer,
                               ),
                               ButtonSegment(
                                 value: OperationType.outTransfer,
                                 label: Text(l10n.transfer),
                                 enabled: operation == null,
+                                //enabled: isTransfer,
                               ),
                             ],
                             selected: {selectedType},
@@ -695,36 +758,38 @@ class _FundOperationsListState extends State<FundOperationsList> {
                         DateFormat('dd/MM/yyyy').format(selectedDate),
                       ),
                       trailing: const Icon(Icons.calendar_today),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: formContext,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime.now(),
-                        );
-                        if (picked == null) return;
-                        if (!formContext.mounted) return;
-                        setState(() {
-                          selectedDate = picked;
-                          if (operation == null) {
-                            final historicalPoint = widget.fund.pointByDate(
-                              picked,
-                            );
-                            if (historicalPoint != null) {
-                              priceController.text = historicalPoint.price
-                                  .toString()
-                                  .replaceAll('.', ',');
-                              updateAmount();
-                            } else {
-                              priceController.text = '0';
-                              updateAmount();
-                            }
-                          }
-                        });
-                      },
+                      onTap: isTransfer
+                          ? null
+                          : () async {
+                              final picked = await showDatePicker(
+                                context: formContext,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime.now(),
+                              );
+                              if (picked == null) return;
+                              if (!formContext.mounted) return;
+                              setState(() {
+                                selectedDate = picked;
+                                if (operation == null) {
+                                  final historicalPoint = widget.fund
+                                      .pointByDate(picked);
+                                  if (historicalPoint != null) {
+                                    priceController.text = historicalPoint.price
+                                        .toString()
+                                        .replaceAll('.', ',');
+                                    updateAmount();
+                                  } else {
+                                    priceController.text = '0';
+                                    updateAmount();
+                                  }
+                                }
+                              });
+                            },
                     ),
 
                     TextField(
+                      readOnly: isTransfer,
                       controller: priceController,
                       decoration: InputDecoration(
                         labelText: l10n.priceNavLabel,
@@ -735,6 +800,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                       onChanged: (_) => updateAmount(),
                     ),
                     TextField(
+                      readOnly: isTransfer,
                       controller: unitsController,
                       decoration: InputDecoration(
                         labelText: l10n.unitsLabel,
@@ -756,6 +822,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                       onChanged: (_) => updateAmount(),
                     ),
                     TextField(
+                      readOnly: isTransfer,
                       controller: amountController,
                       decoration: InputDecoration(
                         labelText: l10n.totalAmountLabel,
@@ -901,157 +968,159 @@ class _FundOperationsListState extends State<FundOperationsList> {
                     onPressed: () => Navigator.pop(dialogContext),
                     child: Text(l10n.cancel),
                   ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final units =
-                          double.tryParse(
-                            unitsController.text.replaceAll(',', '.'),
-                          ) ??
-                          0;
-                      final price =
-                          double.tryParse(
-                            priceController.text.replaceAll(',', '.'),
-                          ) ??
-                          0;
-                      final amount =
-                          double.tryParse(
-                            amountController.text.replaceAll(',', '.'),
-                          ) ??
-                          0;
 
-                      // NOTE: ajustado a OperationType.outTransfer y inTransfer
-                      final units2 =
-                          double.tryParse(
-                            unitsController2.text.replaceAll(',', '.'),
-                          ) ??
-                          0;
-                      final price2 =
-                          double.tryParse(
-                            priceController2.text.replaceAll(',', '.'),
-                          ) ??
-                          0;
-                      final amount2 =
-                          double.tryParse(
-                            amountController2.text.replaceAll(',', '.'),
-                          ) ??
-                          0;
+                  if (operation != null && !isTransfer)
+                    ElevatedButton(
+                      onPressed: () async {
+                        final units =
+                            double.tryParse(
+                              unitsController.text.replaceAll(',', '.'),
+                            ) ??
+                            0;
+                        final price =
+                            double.tryParse(
+                              priceController.text.replaceAll(',', '.'),
+                            ) ??
+                            0;
+                        final amount =
+                            double.tryParse(
+                              amountController.text.replaceAll(',', '.'),
+                            ) ??
+                            0;
 
-                      if (selectedType == OperationType.sell ||
-                          selectedType == OperationType.outTransfer) {
-                        if (units <= 0 && amount <= 0) {
-                          setState(() {
-                            dialogError = l10n.specifyUnitsOrAmountError;
-                          });
-                          return;
+                        // NOTE: ajustado a OperationType.outTransfer y inTransfer
+                        final units2 =
+                            double.tryParse(
+                              unitsController2.text.replaceAll(',', '.'),
+                            ) ??
+                            0;
+                        final price2 =
+                            double.tryParse(
+                              priceController2.text.replaceAll(',', '.'),
+                            ) ??
+                            0;
+                        final amount2 =
+                            double.tryParse(
+                              amountController2.text.replaceAll(',', '.'),
+                            ) ??
+                            0;
+
+                        if (selectedType == OperationType.sell ||
+                            selectedType == OperationType.outTransfer) {
+                          if (units <= 0 && amount <= 0) {
+                            setState(() {
+                              dialogError = l10n.specifyUnitsOrAmountError;
+                            });
+                            return;
+                          }
                         }
-                      }
 
-                      if (units <= 0 || price <= 0 || amount <= 0) {
-                        setState(() {
-                          dialogError =
-                              l10n.allNumericFieldsGreaterThanZeroError;
-                        });
-                        return;
-                      }
-
-                      if (selectedType == OperationType.outTransfer) {
-                        if (units2 <= 0 || price2 <= 0 || amount2 <= 0) {
+                        if (units <= 0 || price <= 0 || amount <= 0) {
                           setState(() {
                             dialogError =
                                 l10n.allNumericFieldsGreaterThanZeroError;
                           });
                           return;
                         }
-                      }
 
-                      if (selectedType == OperationType.sell ||
-                          selectedType == OperationType.outTransfer) {
-                        if (units > metrics.totalUnits + 0.00001) {
-                          setState(() {
-                            dialogError = l10n.cannotSellMoreThanOwnedError;
-                          });
-                          return;
+                        if (selectedType == OperationType.outTransfer) {
+                          if (units2 <= 0 || price2 <= 0 || amount2 <= 0) {
+                            setState(() {
+                              dialogError =
+                                  l10n.allNumericFieldsGreaterThanZeroError;
+                            });
+                            return;
+                          }
                         }
-                        if (amount > metrics.currentValue + 0.01) {
+
+                        if (selectedType == OperationType.sell ||
+                            selectedType == OperationType.outTransfer) {
+                          if (units > metrics.totalUnits + 0.00001) {
+                            setState(() {
+                              dialogError = l10n.cannotSellMoreThanOwnedError;
+                            });
+                            return;
+                          }
+                          if (amount > metrics.currentValue + 0.01) {
+                            setState(() {
+                              dialogError =
+                                  l10n.saleAmountExceedsCurrentValueError;
+                            });
+                            return;
+                          }
+                        }
+
+                        if (selectedType == OperationType.outTransfer &&
+                            outFund == null) {
                           setState(() {
                             dialogError =
-                                l10n.saleAmountExceedsCurrentValueError;
+                                'Selecciona el fondo destino para el traspaso';
                           });
                           return;
                         }
-                      }
 
-                      if (selectedType == OperationType.outTransfer &&
-                          outFund == null) {
-                        setState(() {
-                          dialogError =
-                              'Selecciona el fondo destino para el traspaso';
-                        });
-                        return;
-                      }
-
-                      // Si es simulación, mostramos el resultado y salimos sin guardar
-                      if (isFiscalSimulation) {
-                        final taxRate =
-                            double.tryParse(
-                              taxRateController.text.replaceAll(',', '.'),
-                            ) ??
-                            19.0;
-                        _showFiscalSimulationResult(
-                          dialogContext,
-                          widget.fund,
-                          units,
-                          price,
-                          taxRate,
-                          selectedDate,
-                        );
-                        return;
-                      }
-                      // Lógica de guardado (solo se ejecuta si NO es simulación)
-                      if (outFund == null) {
-                        await _saveOperation(
-                          dialogContext,
-                          FundOperation(
-                            id: operation?.id,
-                            isin: widget.fund.isin,
-                            date: selectedDate,
-                            type: selectedType,
-                            units: units,
-                            price: price,
-                            amount: amount,
-                          ),
-                        );
-                      } else if (outFund != null && context.mounted) {
-                        await _saveOperation(
-                          dialogContext,
-                          FundOperation(
-                            id: operation?.id,
-                            isin: widget.fund.isin,
-                            date: selectedDate,
-                            type: selectedType,
-                            units: units,
-                            price: price,
-                            amount: amount,
-                          ),
-                          operation2: FundOperation(
-                            id: operation?.id,
-                            isin: outFund!.isin,
-                            date: selectedDate2,
-                            type: OperationType.inTransfer,
-                            units: units2,
-                            price: price2,
-                            amount: amount2,
-                          ),
-                        );
-                      }
-                    },
-                    //child: Text(l10n.save),
-                    child: Text(
-                      isFiscalSimulation
-                          ? l10n.calculateEstimationAction
-                          : l10n.save,
+                        // Si es simulación, mostramos el resultado y salimos sin guardar
+                        if (isFiscalSimulation) {
+                          final taxRate =
+                              double.tryParse(
+                                taxRateController.text.replaceAll(',', '.'),
+                              ) ??
+                              19.0;
+                          _showFiscalSimulationResult(
+                            dialogContext,
+                            widget.fund,
+                            units,
+                            price,
+                            taxRate,
+                            selectedDate,
+                          );
+                          return;
+                        }
+                        // Lógica de guardado (solo se ejecuta si NO es simulación)
+                        if (outFund == null) {
+                          await _saveOperation(
+                            dialogContext,
+                            FundOperation(
+                              id: operation?.id,
+                              isin: widget.fund.isin,
+                              date: selectedDate,
+                              type: selectedType,
+                              units: units,
+                              price: price,
+                              amount: amount,
+                            ),
+                          );
+                        } else if (outFund != null && context.mounted) {
+                          await _saveOperation(
+                            dialogContext,
+                            FundOperation(
+                              id: operation?.id,
+                              isin: widget.fund.isin,
+                              date: selectedDate,
+                              type: selectedType,
+                              units: units,
+                              price: price,
+                              amount: amount,
+                            ),
+                            operation2: FundOperation(
+                              id: operation?.id,
+                              isin: outFund!.isin,
+                              date: selectedDate2,
+                              type: OperationType.inTransfer,
+                              units: units2,
+                              price: price2,
+                              amount: amount2,
+                            ),
+                          );
+                        }
+                      },
+                      //child: Text(l10n.save),
+                      child: Text(
+                        isFiscalSimulation
+                            ? l10n.calculateEstimationAction
+                            : l10n.save,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],

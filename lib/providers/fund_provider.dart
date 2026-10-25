@@ -1536,10 +1536,17 @@ class FundProvider with ChangeNotifier {
     _clearError();
     notifyListeners();
     try {
-      await DatabaseService.saveOperation(op);
+      /* await DatabaseService.saveOperation(op);
       if (op2 != null) {
         await DatabaseService.saveOperation(op2);
+      } */
+
+      if (op2 == null) {
+        await DatabaseService.saveOperation(op);
+      } else {
+        await DatabaseService.saveOperationsAtomically([op, op2]);
       }
+
       await loadPortfolio();
     } catch (error, stackTrace) {
       _setError(_asError(error, stackTrace, type: AppErrorType.database));
