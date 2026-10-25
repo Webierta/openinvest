@@ -697,6 +697,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get redemption => 'Reembolso';
 
   @override
+  String get transfer => 'Traspaso';
+
+  @override
+  String get outTransfer => 'Traspaso de salida';
+
+  @override
+  String get inTransfer => 'Traspaso de entrada';
+
+  @override
   String unitsAtPrice(String units, String price) {
     return '$units part. @ $price';
   }

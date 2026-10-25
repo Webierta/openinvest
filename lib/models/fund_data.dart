@@ -20,7 +20,8 @@ class PricePoint {
 }
 
 // TODO: Implementar nueva operación: traspaso entre fondos
-enum OperationType { buy, sell }
+// Añadir OperationType.outTransfer y OperationType.inTransfer
+enum OperationType { buy, sell, outTransfer, inTransfer }
 
 class FundOperation {
   final int? id;
@@ -53,7 +54,15 @@ class FundOperation {
   factory FundOperation.fromJson(Map<String, dynamic> json) => FundOperation(
     isin: json['isin'],
     date: DateTime.parse(json['date']),
-    type: json['type'] == 'buy' ? OperationType.buy : OperationType.sell,
+    // TODO: ajustar a OperationType.outTransfer y inTransfer
+    //type: json['type'] == 'buy' ? OperationType.buy : OperationType.sell,
+    type: switch (json['type'].toString()) {
+      'buy' => OperationType.buy,
+      'sell' => OperationType.sell,
+      'outTransfer' => OperationType.outTransfer,
+      'inTransfer' => OperationType.inTransfer,
+      _ => OperationType.buy,
+    },
     units: json['units'].toDouble(),
     price: json['price'].toDouble(),
     amount:

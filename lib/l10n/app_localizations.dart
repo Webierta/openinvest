@@ -1352,6 +1352,24 @@ abstract class AppLocalizations {
   /// **'Reembolso'**
   String get redemption;
 
+  /// No description provided for @transfer.
+  ///
+  /// In es, this message translates to:
+  /// **'Traspaso'**
+  String get transfer;
+
+  /// No description provided for @outTransfer.
+  ///
+  /// In es, this message translates to:
+  /// **'Traspaso de salida'**
+  String get outTransfer;
+
+  /// No description provided for @inTransfer.
+  ///
+  /// In es, this message translates to:
+  /// **'Traspaso de entrada'**
+  String get inTransfer;
+
   /// No description provided for @unitsAtPrice.
   ///
   /// In es, this message translates to:

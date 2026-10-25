@@ -454,7 +454,11 @@ class DatabaseService {
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
     final firstPurchase = fund.operations
-        .where((operation) => operation.type == OperationType.buy)
+        .where(
+          (operation) =>
+              operation.type == OperationType.buy ||
+              operation.type == OperationType.inTransfer,
+        )
         .map((operation) => operation.date)
         .fold<DateTime?>(
           null,
@@ -719,6 +723,7 @@ class DatabaseService {
           where: 'id = ? AND isin = ?',
           whereArgs: [op.id, op.isin],
         );
+        // TODO: Revisar no se actualiza el traspaso de entrada en el fondo destino
         return;
       }
 
@@ -943,9 +948,17 @@ class DatabaseService {
               id: om['id'],
               isin: isin,
               date: DateTime.parse(om['date']),
-              type: om['type'] == 'buy'
-                  ? OperationType.buy
-                  : OperationType.sell,
+              // TODO: ajustar a OperationType.outTransfer y inTransfer
+              // type: om['type'] == 'buy'
+              //     ? OperationType.buy
+              //     : OperationType.sell,
+              type: switch (om['type'].toString()) {
+                'buy' => OperationType.buy,
+                'sell' => OperationType.sell,
+                'outTransfer' => OperationType.outTransfer,
+                'inTransfer' => OperationType.inTransfer,
+                _ => OperationType.buy,
+              },
               units: om['units'],
               price: om['price'],
               amount: om['amount'] ?? (om['units'] * om['price']),
@@ -1050,7 +1063,15 @@ class DatabaseService {
             id: om['id'],
             isin: isin,
             date: DateTime.parse(om['date']),
-            type: om['type'] == 'buy' ? OperationType.buy : OperationType.sell,
+            // TODO: ajustar a OperationType.outTransfer y inTransfer
+            //type: om['type'] == 'buy' ? OperationType.buy : OperationType.sell,
+            type: switch (om['type'].toString()) {
+              'buy' => OperationType.buy,
+              'sell' => OperationType.sell,
+              'outTransfer' => OperationType.outTransfer,
+              'inTransfer' => OperationType.inTransfer,
+              _ => OperationType.buy,
+            },
             units: om['units'],
             price: om['price'],
             amount: om['amount'] ?? (om['units'] * om['price']),

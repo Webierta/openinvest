@@ -148,16 +148,24 @@ class PdfReportGenerator {
     double sales = 0.0;
 
     for (final op in sortedOperations) {
+      // TODO: ajustar a OperationType.outTransfer y inTransfer
       if (op.date.isBefore(startDate)) {
-        unitsAtStart += op.type == OperationType.buy ? op.units : -op.units;
+        unitsAtStart +=
+            op.type == OperationType.buy || op.type == OperationType.inTransfer
+            ? op.units
+            : -op.units;
       }
 
       if (!op.date.isAfter(endDate)) {
-        unitsAtEnd += op.type == OperationType.buy ? op.units : -op.units;
+        unitsAtEnd +=
+            op.type == OperationType.buy || op.type == OperationType.inTransfer
+            ? op.units
+            : -op.units;
       }
 
       if (!op.date.isBefore(startDate) && !op.date.isAfter(endDate)) {
-        if (op.type == OperationType.buy) {
+        if (op.type == OperationType.buy ||
+            op.type == OperationType.inTransfer) {
           purchases += op.amount;
         } else {
           sales += op.amount;

@@ -43,12 +43,12 @@ class _FundMarketTabState extends State<FundMarketTab> {
                   segments: [
                     ButtonSegment(
                       value: _MarketSection.operations,
-                      icon: const Icon(Icons.swap_vert),
+                      //icon: const Icon(Icons.swap_vert),
                       label: Text(l10n.marketOperations),
                     ),
                     ButtonSegment(
                       value: _MarketSection.costs,
-                      icon: const Icon(Icons.receipt_long_outlined),
+                      //icon: const Icon(Icons.receipt_long_outlined),
                       label: Text(l10n.marketCosts),
                     ),
                   ],

@@ -230,6 +230,9 @@
   "editOperation": "Edit Operation",
   "subscription": "Subscription",
   "redemption": "Redemption",
+  "transfer": "Transfer",
+  "outTransfer": "Outgoing transfer",
+  "inTransfer": "Incoming transfer",
   "unitsAtPrice": "{units} units @ {price}",
   "@unitsAtPrice": {
     "placeholders": {

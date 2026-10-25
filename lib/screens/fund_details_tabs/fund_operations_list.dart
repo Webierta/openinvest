@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+//import 'package:collection/collection.dart';
+
 import '../../models/fund_data.dart';
 import '../../models/tax_simulation.dart';
 import '../../providers/fund_provider.dart';
@@ -34,6 +36,8 @@ class _FundOperationsListState extends State<FundOperationsList> {
   late NumberFormat moneyFormat;
   late NumberFormat percentFormat;
   late FundMetrics metrics;
+
+  FundData? outFund;
 
   @override
   void initState() {
@@ -71,9 +75,9 @@ class _FundOperationsListState extends State<FundOperationsList> {
                 : () => _showOperationDialog(context),
             icon: const Icon(Icons.add),
             label: Text(l10n.newOperation),
-            style: ElevatedButton.styleFrom(
+            /* style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
-            ),
+            ), */
           ),
         ),
         Expanded(
@@ -90,16 +94,32 @@ class _FundOperationsListState extends State<FundOperationsList> {
                       const Divider(height: 1, color: Colors.white10),
                   itemBuilder: (context, index) {
                     final operation = widget.fund.operations[index];
-                    final isBuy = operation.type == OperationType.buy;
+                    // TODO: ajustar a OperationType.outTransfer y inTransfer
+                    //final isBuy = operation.type == OperationType.buy;
+                    IconData icon = Icons.add_circle;
+                    Color color = Colors.greenAccent;
+                    String title = l10n.subscription;
+                    String signo = '';
+                    if (operation.type == OperationType.sell) {
+                      icon = Icons.remove_circle;
+                      color = Colors.redAccent;
+                      title = l10n.redemption;
+                      signo = '-';
+                    } else if (operation.type == OperationType.outTransfer) {
+                      icon = Icons.output_outlined;
+                      color = Colors.redAccent;
+                      title = l10n.outTransfer;
+                      signo = '-';
+                    } else if (operation.type == OperationType.inTransfer) {
+                      icon = Icons.input_outlined;
+                      color = Colors.greenAccent;
+                      title = l10n.inTransfer;
+                      signo = '';
+                    }
                     return ListTile(
-                      leading: Icon(
-                        isBuy ? Icons.add_circle : Icons.remove_circle,
-                        color: isBuy
-                            ? Colors.greenAccent[400]
-                            : Colors.redAccent[200],
-                      ),
+                      leading: Icon(icon, color: color),
                       title: Text(
-                        isBuy ? l10n.subscription : l10n.redemption,
+                        title,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -118,12 +138,10 @@ class _FundOperationsListState extends State<FundOperationsList> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${isBuy ? '' : '-'}${smartFormat.format(operation.amount)} ${widget.fund.currency}',
+                            '$signo${smartFormat.format(operation.amount)} ${widget.fund.currency}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: isBuy
-                                  ? Colors.greenAccent[400]
-                                  : Colors.redAccent[200],
+                              color: color,
                               fontSize: 14,
                             ),
                           ),
@@ -265,11 +283,13 @@ class _FundOperationsListState extends State<FundOperationsList> {
 
   Future<void> _saveOperation(
     BuildContext dialogContext,
-    FundOperation operation,
-  ) async {
+    FundOperation operation, {
+    FundOperation? operation2,
+  }) async {
     if (provider.isBusy) return;
+
     try {
-      await provider.addOperation(operation);
+      await provider.addOperation(operation, op2: operation2);
       if (dialogContext.mounted) {
         Navigator.pop(dialogContext);
       }
@@ -465,6 +485,8 @@ class _FundOperationsListState extends State<FundOperationsList> {
     DateTime selectedDate = operation?.date ?? DateTime.now();
     OperationType selectedType = operation?.type ?? OperationType.buy;
 
+    DateTime selectedDate2 = selectedDate;
+
     // Estado para controlar la visibilidad y lógica de la simulación
     bool isFiscalSimulation = false;
     String? dialogError;
@@ -504,14 +526,476 @@ class _FundOperationsListState extends State<FundOperationsList> {
       }
     }
 
-    // Diálogo de Nueva Operación: Compra / Venta
+    // Diálogo de Nueva Operación: Compra / Venta / Traspaso
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (formContext, setState) => AlertDialog(
+        builder: (formContext, setState) => Dialog.fullscreen(
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(
+                operation == null
+                    ? (isFiscalSimulation
+                          ? l10n.fiscalSimulationTitle
+                          : l10n.newOperation)
+                    : l10n.editOperation,
+              ),
+            ),
+            body: SingleChildScrollView(
+              child: Padding(
+                padding: .all(14),
+                child: Column(
+                  children: [
+                    if (dialogError != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.redAccent,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                dialogError!,
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SegmentedButton<OperationType>(
+                            // TODO: ajustar a OperationType.outTransfer y inTransfer
+                            segments: [
+                              ButtonSegment(
+                                value: OperationType.buy,
+                                label: Text(l10n.buy),
+                              ),
+                              ButtonSegment(
+                                value: OperationType.sell,
+                                label: Text(l10n.sell),
+                              ),
+                              ButtonSegment(
+                                value: OperationType.outTransfer,
+                                label: Text(l10n.transfer),
+                              ),
+                            ],
+                            selected: {selectedType},
+                            onSelectionChanged: (selection) => setState(() {
+                              selectedType = selection.first;
+                              dialogError = null;
+                              // Si cambia a Compra, desactivamos la simulación fiscal
+                              if (selectedType == OperationType.buy ||
+                                  selectedType == OperationType.outTransfer) {
+                                isFiscalSimulation = false;
+                              }
+                            }),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Checkbox de simulación fiscal (solo visible en Venta y si es operación nueva)
+                    if (selectedType == OperationType.sell &&
+                        operation == null) ...[
+                      CheckboxListTile(
+                        title: Text(l10n.fiscalSimulationTitle),
+                        subtitle: Text(
+                          l10n.fiscalSimulationDesc,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        value: isFiscalSimulation,
+                        onChanged: (value) {
+                          setState(() {
+                            isFiscalSimulation = value ?? false;
+                          });
+                        },
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        secondary: isFiscalSimulation == true
+                            ? SizedBox(
+                                width: 75,
+                                child: TextField(
+                                  controller: taxRateController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Tax %',
+                                    isDense: true,
+                                  ),
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    if (selectedType == OperationType.outTransfer &&
+                        operation == null &&
+                        provider.portfolio.length > 1) ...[
+                      DropdownMenu<FundData>(
+                        label: const Text('Destino'),
+                        hintText: 'Selecciona un fondo',
+                        requestFocusOnTap: false,
+                        dropdownMenuEntries: provider.portfolio
+                            .map<DropdownMenuEntry<FundData>>((FundData fondo) {
+                              return DropdownMenuEntry<FundData>(
+                                value: fondo,
+                                label: fondo.name,
+                                enabled: fondo != widget.fund,
+                              );
+                            })
+                            .toList(),
+                        onSelected: (FundData? destino) {
+                          setState(() => outFund = destino);
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    ListTile(
+                      contentPadding: .all(0),
+                      title: Text(l10n.dateLabel),
+                      subtitle: Text(
+                        DateFormat('dd/MM/yyyy').format(selectedDate),
+                      ),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: formContext,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked == null) return;
+                        if (!formContext.mounted) return;
+                        setState(() {
+                          selectedDate = picked;
+                          if (operation == null) {
+                            final historicalPoint = widget.fund.history
+                                .cast<PricePoint?>()
+                                .firstWhere(
+                                  (point) =>
+                                      point!.date.year == picked.year &&
+                                      point.date.month == picked.month &&
+                                      point.date.day == picked.day,
+                                  orElse: () => null,
+                                );
+                            if (historicalPoint != null) {
+                              priceController.text = historicalPoint.price
+                                  .toString()
+                                  .replaceAll('.', ',');
+                              updateAmount();
+                            }
+                          }
+                        });
+                      },
+                    ),
+
+                    // Fecha op2
+                    if (selectedType == OperationType.outTransfer &&
+                        operation == null &&
+                        provider.portfolio.length > 1) ...[
+                      ListTile(
+                        contentPadding: .all(0),
+                        title: Text('Fecha Entrada'),
+                        subtitle: Text(
+                          DateFormat('dd/MM/yyyy').format(selectedDate2),
+                        ),
+                        trailing: const Icon(Icons.calendar_today),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: formContext,
+                            initialDate: selectedDate,
+                            firstDate: selectedDate,
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked == null) return;
+                          if (!formContext.mounted) return;
+                          setState(() {
+                            selectedDate2 = picked;
+                            if (operation == null) {
+                              final historicalPoint = outFund?.history
+                                  .cast<PricePoint?>()
+                                  .firstWhere(
+                                    (point) =>
+                                        point!.date.year == picked.year &&
+                                        point.date.month == picked.month &&
+                                        point.date.day == picked.day,
+                                    orElse: () => null,
+                                  );
+                              if (historicalPoint != null) {
+                                priceController.text = historicalPoint.price
+                                    .toString()
+                                    .replaceAll('.', ',');
+                                //updateAmount();
+                              }
+                            }
+                          });
+                        },
+                      ),
+                    ],
+
+                    TextField(
+                      controller: priceController,
+                      decoration: InputDecoration(
+                        labelText: l10n.priceNavLabel,
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      onChanged: (_) => updateAmount(),
+                    ),
+                    TextField(
+                      controller: unitsController,
+                      decoration: InputDecoration(
+                        labelText: l10n.unitsLabel,
+                        helper:
+                            selectedType == OperationType.sell ||
+                                selectedType == OperationType.outTransfer
+                            ? Text(
+                                'Max: ${unitsFormat.format(metrics.totalUnits)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              )
+                            : SizedBox.shrink(),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      onChanged: (_) => updateAmount(),
+                    ),
+                    TextField(
+                      controller: amountController,
+                      decoration: InputDecoration(
+                        labelText: l10n.totalAmountLabel,
+                        helper:
+                            selectedType == OperationType.sell ||
+                                selectedType == OperationType.outTransfer
+                            ? Text(
+                                'Max: ${smartFormat.format(metrics.currentValue)} ${widget.fund.currency}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              )
+                            : SizedBox.shrink(),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      onChanged: (_) => updateUnits(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            persistentFooterButtons: [
+              Row(
+                mainAxisAlignment: .spaceAround,
+                children: [
+                  if (operation != null)
+                    TextButton(
+                      onPressed: provider.isBusy
+                          ? null
+                          : () => _deleteEditedOperation(
+                              context,
+                              dialogContext,
+                              operation,
+                            ),
+                      child: Text(
+                        l10n.delete,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: Text(l10n.cancel),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final units =
+                          double.tryParse(
+                            unitsController.text.replaceAll(',', '.'),
+                          ) ??
+                          0;
+                      final price =
+                          double.tryParse(
+                            priceController.text.replaceAll(',', '.'),
+                          ) ??
+                          0;
+                      final amount =
+                          double.tryParse(
+                            amountController.text.replaceAll(',', '.'),
+                          ) ??
+                          0;
+
+                      // TODO: ajustar a OperationType.outTransfer y inTransfer
+                      double? units2;
+                      double? price2;
+                      //double? amount2;
+
+                      if (selectedType == OperationType.outTransfer &&
+                          outFund != null &&
+                          outFund!.history.isNotEmpty) {
+                        price2 = outFund!.history
+                            .cast<PricePoint?>()
+                            .firstWhere(
+                              (p) => p != null && p.date == selectedDate2,
+                              orElse: () => null,
+                              // orElse: () => outFund!.history.isNotEmpty
+                              //     ? outFund!.history.first
+                              //     : null,
+                            )
+                            ?.price;
+                        if (price2 != null) {
+                          units2 = price2 * amount;
+                        }
+                      }
+
+                      if (selectedType == OperationType.sell ||
+                          selectedType == OperationType.outTransfer) {
+                        if (units <= 0 && amount <= 0) {
+                          setState(() {
+                            dialogError = l10n.specifyUnitsOrAmountError;
+                          });
+                          return;
+                        }
+                      }
+
+                      if (units <= 0 || price <= 0 || amount <= 0) {
+                        setState(() {
+                          dialogError =
+                              l10n.allNumericFieldsGreaterThanZeroError;
+                        });
+                        return;
+                      }
+
+                      if (selectedType == OperationType.sell ||
+                          selectedType == OperationType.outTransfer) {
+                        if (units > metrics.totalUnits + 0.00001) {
+                          setState(() {
+                            dialogError = l10n.cannotSellMoreThanOwnedError;
+                          });
+                          return;
+                        }
+                        if (amount > metrics.currentValue + 0.01) {
+                          setState(() {
+                            dialogError =
+                                l10n.saleAmountExceedsCurrentValueError;
+                          });
+                          return;
+                        }
+                      }
+
+                      if (selectedType == OperationType.outTransfer &&
+                          outFund == null) {
+                        setState(() {
+                          dialogError =
+                              'Selecciona el fondo destino para el traspaso';
+                        });
+                        return;
+                      }
+
+                      // Si es simulación, mostramos el resultado y salimos sin guardar
+                      if (isFiscalSimulation) {
+                        final taxRate =
+                            double.tryParse(
+                              taxRateController.text.replaceAll(',', '.'),
+                            ) ??
+                            19.0;
+                        _showFiscalSimulationResult(
+                          dialogContext,
+                          widget.fund,
+                          units,
+                          price,
+                          taxRate,
+                          selectedDate,
+                        );
+                        return;
+                      }
+                      // Lógica de guardado (solo se ejecuta si NO es simulación)
+                      if (outFund == null) {
+                        await _saveOperation(
+                          dialogContext,
+                          FundOperation(
+                            id: operation?.id,
+                            isin: widget.fund.isin,
+                            date: selectedDate,
+                            type: selectedType,
+                            units: units,
+                            price: price,
+                            amount: amount,
+                          ),
+                        );
+                      } else if (outFund != null &&
+                          units2 != null &&
+                          price2 != null &&
+                          context.mounted) {
+                        await _saveOperation(
+                          dialogContext,
+                          FundOperation(
+                            id: operation?.id,
+                            isin: widget.fund.isin,
+                            date: selectedDate,
+                            type: selectedType,
+                            units: units,
+                            price: price,
+                            amount: amount,
+                          ),
+                          operation2: FundOperation(
+                            id: operation?.id,
+                            isin: outFund!.isin,
+                            date: selectedDate2,
+                            type: OperationType.inTransfer,
+                            units: units2,
+                            price: price2,
+                            amount: amount,
+                          ),
+                        );
+                      }
+                    },
+                    //child: Text(l10n.save),
+                    child: Text(
+                      isFiscalSimulation
+                          ? l10n.calculateEstimationAction
+                          : l10n.save,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        /* builder: (formContext, setState) => AlertDialog(
+          insetPadding: .all(0),
           constraints: BoxConstraints(
-            minWidth: MediaQuery.of(formContext).size.width - 40,
-            maxWidth: MediaQuery.of(formContext).size.width - 40,
+            minWidth: double.infinity,
+            maxWidth: double.infinity,
+            maxHeight: double.infinity,
+            minHeight: double.infinity,
           ),
           title: Text(
             operation == null
@@ -560,6 +1044,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                   children: [
                     Expanded(
                       child: SegmentedButton<OperationType>(
+                        // TODO: ajustar a OperationType.outTransfer y inTransfer
                         segments: [
                           ButtonSegment(
                             value: OperationType.buy,
@@ -569,13 +1054,18 @@ class _FundOperationsListState extends State<FundOperationsList> {
                             value: OperationType.sell,
                             label: Text(l10n.sell),
                           ),
+                          ButtonSegment(
+                            value: OperationType.outTransfer,
+                            label: Text(l10n.transfer),
+                          ),
                         ],
                         selected: {selectedType},
                         onSelectionChanged: (selection) => setState(() {
                           selectedType = selection.first;
                           dialogError = null;
                           // Si cambia a Compra, desactivamos la simulación fiscal
-                          if (selectedType == OperationType.buy) {
+                          if (selectedType == OperationType.buy ||
+                              selectedType == OperationType.outTransfer) {
                             isFiscalSimulation = false;
                           }
                         }),
@@ -621,7 +1111,32 @@ class _FundOperationsListState extends State<FundOperationsList> {
                   ),
                   const SizedBox(height: 8),
                 ],
+
+                if (selectedType == OperationType.outTransfer &&
+                    operation == null &&
+                    provider.portfolio.length > 1) ...[
+                  DropdownMenu<FundData>(
+                    label: const Text('Destino'),
+                    hintText: 'Selecciona un fondo',
+                    requestFocusOnTap: false,
+                    dropdownMenuEntries: provider.portfolio
+                        .map<DropdownMenuEntry<FundData>>((FundData fondo) {
+                          return DropdownMenuEntry<FundData>(
+                            value: fondo,
+                            label: fondo.name,
+                            enabled: fondo != widget.fund,
+                          );
+                        })
+                        .toList(),
+                    onSelected: (FundData? destino) {
+                      setState(() => outFund = destino);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
                 ListTile(
+                  contentPadding: .all(0),
                   title: Text(l10n.dateLabel),
                   subtitle: Text(DateFormat('dd/MM/yyyy').format(selectedDate)),
                   trailing: const Icon(Icons.calendar_today),
@@ -656,6 +1171,51 @@ class _FundOperationsListState extends State<FundOperationsList> {
                     });
                   },
                 ),
+
+                // Fecha op2
+                if (selectedType == OperationType.outTransfer &&
+                    operation == null &&
+                    provider.portfolio.length > 1) ...[
+                  ListTile(
+                    contentPadding: .all(0),
+                    title: Text('Fecha Entrada'),
+                    subtitle: Text(
+                      DateFormat('dd/MM/yyyy').format(selectedDate2),
+                    ),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: formContext,
+                        initialDate: selectedDate,
+                        firstDate: selectedDate,
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked == null) return;
+                      if (!formContext.mounted) return;
+                      setState(() {
+                        selectedDate2 = picked;
+                        if (operation == null) {
+                          final historicalPoint = outFund?.history
+                              .cast<PricePoint?>()
+                              .firstWhere(
+                                (point) =>
+                                    point!.date.year == picked.year &&
+                                    point.date.month == picked.month &&
+                                    point.date.day == picked.day,
+                                orElse: () => null,
+                              );
+                          if (historicalPoint != null) {
+                            priceController.text = historicalPoint.price
+                                .toString()
+                                .replaceAll('.', ',');
+                            //updateAmount();
+                          }
+                        }
+                      });
+                    },
+                  ),
+                ],
+
                 TextField(
                   controller: priceController,
                   decoration: InputDecoration(labelText: l10n.priceNavLabel),
@@ -668,7 +1228,9 @@ class _FundOperationsListState extends State<FundOperationsList> {
                   controller: unitsController,
                   decoration: InputDecoration(
                     labelText: l10n.unitsLabel,
-                    helper: selectedType == OperationType.sell
+                    helper:
+                        selectedType == OperationType.sell ||
+                            selectedType == OperationType.outTransfer
                         ? Text(
                             'Max: ${unitsFormat.format(metrics.totalUnits)}',
                             style: TextStyle(fontSize: 11, color: Colors.grey),
@@ -684,9 +1246,11 @@ class _FundOperationsListState extends State<FundOperationsList> {
                   controller: amountController,
                   decoration: InputDecoration(
                     labelText: l10n.totalAmountLabel,
-                    helper: selectedType == OperationType.sell
+                    helper:
+                        selectedType == OperationType.sell ||
+                            selectedType == OperationType.outTransfer
                         ? Text(
-                            'Max: ${smartFormat.format(metrics.profitAbs)} ${widget.fund.currency}',
+                            'Max: ${smartFormat.format(metrics.currentValue)} ${widget.fund.currency}',
                             style: TextStyle(fontSize: 11, color: Colors.grey),
                           )
                         : SizedBox.shrink(),
@@ -735,7 +1299,32 @@ class _FundOperationsListState extends State<FundOperationsList> {
                       amountController.text.replaceAll(',', '.'),
                     ) ??
                     0;
-                if (selectedType == OperationType.sell) {
+
+                // TODO: ajustar a OperationType.outTransfer y inTransfer
+                double? units2;
+                double? price2;
+                //double? amount2;
+
+                if (selectedType == OperationType.outTransfer &&
+                    outFund != null &&
+                    outFund!.history.isNotEmpty) {
+                  price2 = outFund!.history
+                      .cast<PricePoint?>()
+                      .firstWhere(
+                        (p) => p != null && p.date == selectedDate2,
+                        orElse: () => null,
+                        // orElse: () => outFund!.history.isNotEmpty
+                        //     ? outFund!.history.first
+                        //     : null,
+                      )
+                      ?.price;
+                  if (price2 != null) {
+                    units2 = price2 * amount;
+                  }
+                }
+
+                if (selectedType == OperationType.sell ||
+                    selectedType == OperationType.outTransfer) {
                   if (units <= 0 && amount <= 0) {
                     setState(() {
                       dialogError = l10n.specifyUnitsOrAmountError;
@@ -751,7 +1340,8 @@ class _FundOperationsListState extends State<FundOperationsList> {
                   return;
                 }
 
-                if (selectedType == OperationType.sell) {
+                if (selectedType == OperationType.sell ||
+                    selectedType == OperationType.outTransfer) {
                   if (units > metrics.totalUnits + 0.00001) {
                     setState(() {
                       dialogError = l10n.cannotSellMoreThanOwnedError;
@@ -765,6 +1355,16 @@ class _FundOperationsListState extends State<FundOperationsList> {
                     return;
                   }
                 }
+
+                if (selectedType == OperationType.outTransfer &&
+                    outFund == null) {
+                  setState(() {
+                    dialogError =
+                        'Selecciona el fondo destino para el traspaso';
+                  });
+                  return;
+                }
+
                 // Si es simulación, mostramos el resultado y salimos sin guardar
                 if (isFiscalSimulation) {
                   final taxRate =
@@ -783,18 +1383,45 @@ class _FundOperationsListState extends State<FundOperationsList> {
                   return;
                 }
                 // Lógica de guardado (solo se ejecuta si NO es simulación)
-                await _saveOperation(
-                  dialogContext,
-                  FundOperation(
-                    id: operation?.id,
-                    isin: widget.fund.isin,
-                    date: selectedDate,
-                    type: selectedType,
-                    units: units,
-                    price: price,
-                    amount: amount,
-                  ),
-                );
+                if (outFund == null) {
+                  await _saveOperation(
+                    dialogContext,
+                    FundOperation(
+                      id: operation?.id,
+                      isin: widget.fund.isin,
+                      date: selectedDate,
+                      type: selectedType,
+                      units: units,
+                      price: price,
+                      amount: amount,
+                    ),
+                  );
+                } else if (outFund != null &&
+                    units2 != null &&
+                    price2 != null &&
+                    context.mounted) {
+                  await _saveOperation(
+                    dialogContext,
+                    FundOperation(
+                      id: operation?.id,
+                      isin: widget.fund.isin,
+                      date: selectedDate,
+                      type: selectedType,
+                      units: units,
+                      price: price,
+                      amount: amount,
+                    ),
+                    operation2: FundOperation(
+                      id: operation?.id,
+                      isin: outFund!.isin,
+                      date: selectedDate2,
+                      type: OperationType.inTransfer,
+                      units: units2,
+                      price: price2,
+                      amount: amount,
+                    ),
+                  );
+                }
               },
               //child: Text(l10n.save),
               child: Text(
@@ -802,7 +1429,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
               ),
             ),
           ],
-        ),
+        ), */
       ),
     );
   }

@@ -93,6 +93,29 @@ class _MyAppState extends State<MyApp> {
             side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
           ),
         ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF0369A1),
+            foregroundColor: Colors.white,
+          ),
+        ),
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          style: SegmentedButton.styleFrom(
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius
+                  .zero, // Elimina por completo el redondeado externa
+            ),
+            // Opcional: Personaliza colores
+            selectedBackgroundColor: Color(0xFF0369A1),
+            selectedForegroundColor: Colors.white,
+            backgroundColor: Colors.grey[200],
+            foregroundColor: Colors.black87,
+            side: const BorderSide(
+              color: Colors.black,
+              width: 1.5,
+            ), // Borde perimetral rígido
+          ),
+        ),
       ),
       home: const AuthWrapper(),
     );

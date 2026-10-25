@@ -232,7 +232,9 @@ class FinancialCalculator {
     var units = 0.0;
     var invested = 0.0;
     for (final operation in fund.operations) {
-      if (operation.type == OperationType.buy) {
+      // TODO: ajustar a OperationType.outTransfer y inTransfer
+      if (operation.type == OperationType.buy ||
+          operation.type == OperationType.inTransfer) {
         units += operation.units;
         invested += operation.amount;
       } else {
@@ -274,7 +276,9 @@ class FinancialCalculator {
         operation.date.day,
       );
       if (operationDate.isAfter(target)) continue;
-      if (operation.type == OperationType.buy) {
+      // TODO: ajustar a OperationType.outTransfer y inTransfer
+      if (operation.type == OperationType.buy ||
+          operation.type == OperationType.inTransfer) {
         units += operation.units;
         invested += operation.amount;
       } else {
@@ -356,14 +360,16 @@ class FinancialCalculator {
     DateTime? firstOpDate;
 
     for (var op in fund.operations) {
-      if (op.type == OperationType.buy) {
+      // TODO: ajustar a OperationType.outTransfer y inTransfer
+      if (op.type == OperationType.buy || op.type == OperationType.inTransfer) {
         totalUnits += op.units;
         totalInvested += op.amount;
       } else {
         totalUnits -= op.units;
         totalInvested -= op.amount;
       }
-      if (op.type == OperationType.buy &&
+      if ((op.type == OperationType.buy ||
+              op.type == OperationType.inTransfer) &&
           (firstOpDate == null || op.date.isBefore(firstOpDate))) {
         firstOpDate = op.date;
       }
@@ -505,7 +511,11 @@ class FinancialCalculator {
         final flows = fund.operations
             .map(
               (op) => <String, Object>{
-                'amount': op.type == OperationType.buy ? -op.amount : op.amount,
+                'amount':
+                    op.type == OperationType.buy ||
+                        op.type == OperationType.inTransfer
+                    ? -op.amount
+                    : op.amount,
                 'date': op.date,
               },
             )
@@ -569,7 +579,9 @@ class FinancialCalculator {
             final double? flowIpc = _getIpcValueForDate(op.date, ipcHistory);
             if (flowIpc != null && flowIpc > 0) {
               // Flujo nominal: negativo para compra (salida de dinero), positivo para reembolso (entrada)
-              final double nominalFlow = op.type == OperationType.buy
+              final double nominalFlow =
+                  op.type == OperationType.buy ||
+                      op.type == OperationType.inTransfer
                   ? -op.amount
                   : op.amount;
 

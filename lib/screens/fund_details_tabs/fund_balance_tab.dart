@@ -493,74 +493,49 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     showDialog(
       context: context,
       builder: (context) => Dialog.fullscreen(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const .all(14),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.info_outline,
-                          color: Color(0xFF38BDF8),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          l10n.financialIndicesTitle,
-                          style: TextStyle(fontSize: 18),
-                        ),
-                      ],
-                    ),
-                    _IndexInfoRow(
-                      title: l10n.annualizedReturnLabel,
-                      description: l10n.aprTaeDesc,
-                    ),
-                    _IndexInfoRow(
-                      title: l10n.twrInfoTitle,
-                      description: l10n.twrDesc,
-                    ),
-                    _IndexInfoRow(
-                      title: l10n.mwrInfoTitle,
-                      description: l10n.mwrIrrDesc,
-                    ),
-                    _IndexInfoRow(
-                      title: l10n.inflationTitle,
-                      description: l10n.inflationDesc,
-                    ),
-                    _IndexInfoRow(
-                      title: l10n.moicLabel,
-                      description: l10n.moicDesc,
-                    ),
-                    _IndexInfoRow(
-                      title: l10n.ageLabel,
-                      description: l10n.ageDesc,
-                    ),
-                    _IndexInfoRow(
-                      title: l10n.breakEvenLabel,
-                      description: l10n.breakEvenDesc,
-                    ),
-                    Text(
-                      l10n.bruteReturnsNote,
-                      style: TextStyle(fontSize: 12, color: Colors.white30),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topRight,
-                child: CircleAvatar(
-                  child: CloseButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    color: Colors.white,
+        child: Scaffold(
+          appBar: AppBar(title: Text(l10n.financialIndicesTitle)),
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: .all(14),
+              child: Column(
+                children: [
+                  _IndexInfoRow(
+                    title: l10n.annualizedReturnLabel,
+                    description: l10n.aprTaeDesc,
                   ),
-                ),
+                  _IndexInfoRow(
+                    title: l10n.twrInfoTitle,
+                    description: l10n.twrDesc,
+                  ),
+                  _IndexInfoRow(
+                    title: l10n.mwrInfoTitle,
+                    description: l10n.mwrIrrDesc,
+                  ),
+                  _IndexInfoRow(
+                    title: l10n.inflationTitle,
+                    description: l10n.inflationDesc,
+                  ),
+                  _IndexInfoRow(
+                    title: l10n.moicLabel,
+                    description: l10n.moicDesc,
+                  ),
+                  _IndexInfoRow(
+                    title: l10n.ageLabel,
+                    description: l10n.ageDesc,
+                  ),
+                  _IndexInfoRow(
+                    title: l10n.breakEvenLabel,
+                    description: l10n.breakEvenDesc,
+                  ),
+                  Text(
+                    l10n.bruteReturnsNote,
+                    style: TextStyle(fontSize: 12, color: Colors.white30),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

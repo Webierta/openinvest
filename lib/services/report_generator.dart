@@ -28,7 +28,14 @@ class ReportGenerator {
             'fecha': op.date,
             'isin': fund.isin,
             'nombre_fondo': fund.name,
-            'tipo': op.type == OperationType.buy ? l10n.buy : l10n.sell,
+            // TODO: ajustar a OperationType.outTransfer y inTransfer
+            //'tipo': op.type == OperationType.buy ? l10n.buy : l10n.sell,
+            'tipo': switch (op.type) {
+              OperationType.buy => l10n.buy,
+              OperationType.sell => l10n.sell,
+              OperationType.outTransfer => l10n.outTransfer,
+              OperationType.inTransfer => l10n.inTransfer,
+            },
             'unidades': op.units,
             'precio_unitario': op.price,
             'importe_total': op.amount,

@@ -121,7 +121,8 @@ void main() {
     expect(tester.takeException(), isNull);
 
     //await tester.tap(find.text(l10n.close));
-    await tester.tap(find.closeButton());
+    //await tester.tap(find.closeButton());
+    await tester.tap(find.backButton());
     await tester.pumpAndSettle();
   });
 

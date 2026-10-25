@@ -113,9 +113,11 @@ class TaxEstimator {
   double _calculateTotalShares(List<FundOperation> operations) {
     double total = 0.0;
     for (final op in operations) {
-      if (op.type == OperationType.buy) {
+      // TODO: ajustar a OperationType.outTransfer y inTransfer
+      if (op.type == OperationType.buy || op.type == OperationType.inTransfer) {
         total += op.units;
-      } else if (op.type == OperationType.sell) {
+      } else if (op.type == OperationType.sell ||
+          op.type == OperationType.outTransfer) {
         total -= op.units;
       }
     }

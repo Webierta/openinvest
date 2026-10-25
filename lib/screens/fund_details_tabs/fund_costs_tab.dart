@@ -165,6 +165,30 @@ class FundCostsTab extends StatelessWidget {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog.fullscreen(
+        child: Scaffold(
+          appBar: AppBar(title: Text(l10n.costHelpTitle)),
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: .all(14),
+              child: Column(
+                children: [
+                  Text(l10n.costHelpNav),
+                  const SizedBox(height: 12),
+                  Text(l10n.costHelpTer),
+                  const SizedBox(height: 12),
+                  Text(l10n.costHelpRates),
+                  const SizedBox(height: 12),
+                  Text(l10n.costHelpExternal),
+                  const SizedBox(height: 12),
+                  Text(l10n.costHelpNet),
+                ],
+              ),
+            ),
+          ),
+          //persistentFooterButtons: [],
+        ),
+      ),
+      /* builder: (dialogContext) => Dialog.fullscreen(
         child: Stack(
           children: [
             Padding(
@@ -202,7 +226,7 @@ class FundCostsTab extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      ), */
     );
   }
 

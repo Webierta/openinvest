@@ -1529,14 +1529,17 @@ class FundProvider with ChangeNotifier {
   // =============================================================
   // OPERATIONS CRUD (COMPRA/VENTA)
   // =============================================================
-  // === OPERACIONES DE COMPRA/VENTA ===
+  // === OPERACIONES DE COMPRA/VENTA/TRASPASO ===
 
-  Future<void> addOperation(FundOperation op) async {
+  Future<void> addOperation(FundOperation op, {FundOperation? op2}) async {
     isLoading = true;
     _clearError();
     notifyListeners();
     try {
       await DatabaseService.saveOperation(op);
+      if (op2 != null) {
+        await DatabaseService.saveOperation(op2);
+      }
       await loadPortfolio();
     } catch (error, stackTrace) {
       _setError(_asError(error, stackTrace, type: AppErrorType.database));

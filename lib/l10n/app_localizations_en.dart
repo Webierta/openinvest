@@ -692,6 +692,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get redemption => 'Redemption';
 
   @override
+  String get transfer => 'Transfer';
+
+  @override
+  String get outTransfer => 'Outgoing transfer';
+
+  @override
+  String get inTransfer => 'Incoming transfer';
+
+  @override
   String unitsAtPrice(String units, String price) {
     return '$units units @ $price';
   }

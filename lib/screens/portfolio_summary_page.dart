@@ -653,12 +653,33 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
   }
 
   Widget _buildOperationTile(FundOperation op, List<FundData> funds) {
-    final isBuy = op.type == OperationType.buy;
+    // TODO: ajustar a OperationType.outTransfer y inTransfer
+    /* final isBuy = op.type == OperationType.buy;
     final color = isBuy ? Colors.greenAccent : Colors.redAccent;
     final icon = isBuy ? Icons.add_circle_outline : Icons.remove_circle_outline;
     // En compra el dinero sale (-), en venta entra (+)
     //final sign = isBuy ? '-' : '+';
-    final tooltip = isBuy ? l10n.subscription : l10n.redemption;
+    final tooltip = isBuy ? l10n.subscription : l10n.redemption; */
+
+    Color color = Colors.greenAccent;
+    IconData icon = Icons.add_box_outlined;
+    //add_circle_outline;
+    String tooltip = l10n.subscription;
+    if (op.type == OperationType.sell) {
+      color = Colors.redAccent;
+      icon = Icons.indeterminate_check_box_outlined;
+      //remove_circle_outline;
+      tooltip = l10n.redemption;
+    } else if (op.type == OperationType.outTransfer) {
+      color = Colors.redAccent.shade100;
+      icon = Icons.output_outlined;
+      tooltip = l10n.outTransfer;
+    } else if (op.type == OperationType.inTransfer) {
+      color = Colors.greenAccent.shade100;
+      icon = Icons.input_outlined;
+      tooltip = l10n.inTransfer;
+    }
+
     //final fund = funds.firstWhere((fund) => fund.isin == op.isin);
     final fundIsin = funds.where((fund) => fund.isin == op.isin).toList();
     if (fundIsin.isEmpty) return SizedBox.shrink();
