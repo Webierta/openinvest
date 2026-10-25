@@ -318,10 +318,6 @@ class _FundOperationsListState extends State<FundOperationsList> {
                 ),
         ),
       );
-      /* Future<void>.delayed(
-        const Duration(seconds: 4),
-        snackBarController.close,
-      ); */
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1081,7 +1077,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                           await _saveOperation(
                             dialogContext,
                             FundOperation(
-                              id: operation?.id,
+                              id: operation.id,
                               isin: widget.fund.isin,
                               date: selectedDate,
                               type: selectedType,
@@ -1094,7 +1090,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                           await _saveOperation(
                             dialogContext,
                             FundOperation(
-                              id: operation?.id,
+                              id: operation.id,
                               isin: widget.fund.isin,
                               date: selectedDate,
                               type: selectedType,
@@ -1103,7 +1099,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                               amount: amount,
                             ),
                             operation2: FundOperation(
-                              id: operation?.id,
+                              id: operation.id,
                               isin: outFund!.isin,
                               date: selectedDate2,
                               type: OperationType.inTransfer,
