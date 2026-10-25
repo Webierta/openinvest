@@ -494,11 +494,19 @@ class _FundOperationsListState extends State<FundOperationsList> {
     final unitsController = TextEditingController(
       text: operation?.units.toString().replaceAll('.', ',') ?? '',
     );
+
     final priceController = TextEditingController(
       text:
           operation?.price.toString().replaceAll('.', ',') ??
-          widget.fund.lastValue.toString().replaceAll('.', ','),
+          //widget.fund.lastValue.toString().replaceAll('.', ','),
+          widget.fund
+              .pointByDate(selectedDate)
+              ?.price
+              .toString()
+              .replaceAll('.', ',') ??
+          '0',
     );
+
     final amountController = TextEditingController(
       text: operation?.amount.toString().replaceAll('.', ',') ?? '',
     );
@@ -523,6 +531,32 @@ class _FundOperationsListState extends State<FundOperationsList> {
         unitsController.text = (amount / price)
             .toStringAsFixed(6)
             .replaceAll('.', ',');
+      }
+    }
+
+    final priceController2 = TextEditingController(text: '0');
+    final unitsController2 = TextEditingController(text: '0');
+    final amountController2 = TextEditingController(
+      text: amountController.text,
+    );
+    void updateTranfer() {
+      if (outFund == null) return;
+
+      amountController2.text = amountController.text;
+      double? price2 = outFund!.pointByDate(selectedDate2)?.price;
+
+      if (price2 != null) {
+        priceController2.text = price2.toString().replaceAll('.', ',');
+        final amount =
+            double.tryParse(amountController.text.replaceAll(',', '.')) ?? 0;
+        if (amount > 0 && price2 > 0) {
+          unitsController2.text = (amount / price2)
+              .toStringAsFixed(6)
+              .replaceAll('.', ',');
+        }
+      } else {
+        priceController2.text = '0';
+        unitsController2.text = '0';
       }
     }
 
@@ -587,14 +621,17 @@ class _FundOperationsListState extends State<FundOperationsList> {
                               ButtonSegment(
                                 value: OperationType.buy,
                                 label: Text(l10n.buy),
+                                enabled: operation == null,
                               ),
                               ButtonSegment(
                                 value: OperationType.sell,
                                 label: Text(l10n.sell),
+                                enabled: operation == null,
                               ),
                               ButtonSegment(
                                 value: OperationType.outTransfer,
                                 label: Text(l10n.transfer),
+                                enabled: operation == null,
                               ),
                             ],
                             selected: {selectedType},
@@ -650,29 +687,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                       const SizedBox(height: 8),
                     ],
 
-                    if (selectedType == OperationType.outTransfer &&
-                        operation == null &&
-                        provider.portfolio.length > 1) ...[
-                      DropdownMenu<FundData>(
-                        label: const Text('Destino'),
-                        hintText: 'Selecciona un fondo',
-                        requestFocusOnTap: false,
-                        dropdownMenuEntries: provider.portfolio
-                            .map<DropdownMenuEntry<FundData>>((FundData fondo) {
-                              return DropdownMenuEntry<FundData>(
-                                value: fondo,
-                                label: fondo.name,
-                                enabled: fondo != widget.fund,
-                              );
-                            })
-                            .toList(),
-                        onSelected: (FundData? destino) {
-                          setState(() => outFund = destino);
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-
+                    // FECHA 1
                     ListTile(
                       contentPadding: .all(0),
                       title: Text(l10n.dateLabel),
@@ -692,69 +707,22 @@ class _FundOperationsListState extends State<FundOperationsList> {
                         setState(() {
                           selectedDate = picked;
                           if (operation == null) {
-                            final historicalPoint = widget.fund.history
-                                .cast<PricePoint?>()
-                                .firstWhere(
-                                  (point) =>
-                                      point!.date.year == picked.year &&
-                                      point.date.month == picked.month &&
-                                      point.date.day == picked.day,
-                                  orElse: () => null,
-                                );
+                            final historicalPoint = widget.fund.pointByDate(
+                              picked,
+                            );
                             if (historicalPoint != null) {
                               priceController.text = historicalPoint.price
                                   .toString()
                                   .replaceAll('.', ',');
+                              updateAmount();
+                            } else {
+                              priceController.text = '0';
                               updateAmount();
                             }
                           }
                         });
                       },
                     ),
-
-                    // Fecha op2
-                    if (selectedType == OperationType.outTransfer &&
-                        operation == null &&
-                        provider.portfolio.length > 1) ...[
-                      ListTile(
-                        contentPadding: .all(0),
-                        title: Text('Fecha Entrada'),
-                        subtitle: Text(
-                          DateFormat('dd/MM/yyyy').format(selectedDate2),
-                        ),
-                        trailing: const Icon(Icons.calendar_today),
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: formContext,
-                            initialDate: selectedDate,
-                            firstDate: selectedDate,
-                            lastDate: DateTime.now(),
-                          );
-                          if (picked == null) return;
-                          if (!formContext.mounted) return;
-                          setState(() {
-                            selectedDate2 = picked;
-                            if (operation == null) {
-                              final historicalPoint = outFund?.history
-                                  .cast<PricePoint?>()
-                                  .firstWhere(
-                                    (point) =>
-                                        point!.date.year == picked.year &&
-                                        point.date.month == picked.month &&
-                                        point.date.day == picked.day,
-                                    orElse: () => null,
-                                  );
-                              if (historicalPoint != null) {
-                                priceController.text = historicalPoint.price
-                                    .toString()
-                                    .replaceAll('.', ',');
-                                //updateAmount();
-                              }
-                            }
-                          });
-                        },
-                      ),
-                    ],
 
                     TextField(
                       controller: priceController,
@@ -808,10 +776,109 @@ class _FundOperationsListState extends State<FundOperationsList> {
                       ),
                       onChanged: (_) => updateUnits(),
                     ),
+
+                    // DATOS TRASPASO DE ENTRADA
+                    if (selectedType == OperationType.outTransfer &&
+                        operation == null &&
+                        provider.portfolio.length > 1) ...[
+                      const SizedBox(height: 16),
+                      DropdownMenu<FundData>(
+                        width: double.infinity,
+                        label: const Text('Destino'),
+                        hintText: 'Selecciona un fondo',
+                        requestFocusOnTap: false,
+                        dropdownMenuEntries: provider.portfolio
+                            .map<DropdownMenuEntry<FundData>>((FundData fondo) {
+                              return DropdownMenuEntry<FundData>(
+                                value: fondo,
+                                label: fondo.name,
+                                enabled: fondo != widget.fund,
+                              );
+                            })
+                            .toList(),
+                        onSelected: (FundData? destino) {
+                          setState(() {
+                            outFund = destino;
+                            updateTranfer();
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      ListTile(
+                        contentPadding: .all(0),
+                        title: Text('Fecha Entrada'),
+                        subtitle: Text(
+                          DateFormat('dd/MM/yyyy').format(selectedDate2),
+                        ),
+                        trailing: const Icon(Icons.calendar_today),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: formContext,
+                            initialDate: selectedDate,
+                            firstDate: selectedDate,
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked == null) return;
+                          if (!formContext.mounted) return;
+                          setState(() {
+                            selectedDate2 = picked;
+                            if (operation == null) {
+                              final historicalPoint = widget.fund.pointByDate(
+                                picked,
+                              );
+                              if (historicalPoint != null) {
+                                priceController.text = historicalPoint.price
+                                    .toString()
+                                    .replaceAll('.', ',');
+                                //updateAmount();
+                                //updateTranfer();
+                              } else {
+                                priceController.text = '0';
+                              }
+                              updateTranfer();
+                            }
+                          });
+                        },
+                      ),
+                      TextField(
+                        controller: priceController2,
+                        decoration: InputDecoration(
+                          labelText: l10n.priceNavLabel,
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        //onChanged: (_) => updateAmount(),
+                        onChanged: (_) => updateTranfer(),
+                      ),
+
+                      TextField(
+                        controller: unitsController2,
+                        decoration: InputDecoration(labelText: l10n.unitsLabel),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        //onChanged: (_) => updateAmount(),
+                        onChanged: (_) => updateTranfer(),
+                      ),
+
+                      TextField(
+                        controller: amountController2,
+                        decoration: InputDecoration(
+                          labelText: l10n.totalAmountLabel,
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        //onChanged: (_) => updateUnits(),
+                        onChanged: (_) => updateTranfer(),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
+            persistentFooterDecoration: BoxDecoration(color: Colors.black54),
             persistentFooterButtons: [
               Row(
                 mainAxisAlignment: .spaceAround,
@@ -853,27 +920,21 @@ class _FundOperationsListState extends State<FundOperationsList> {
                           0;
 
                       // TODO: ajustar a OperationType.outTransfer y inTransfer
-                      double? units2;
-                      double? price2;
-                      //double? amount2;
-
-                      if (selectedType == OperationType.outTransfer &&
-                          outFund != null &&
-                          outFund!.history.isNotEmpty) {
-                        price2 = outFund!.history
-                            .cast<PricePoint?>()
-                            .firstWhere(
-                              (p) => p != null && p.date == selectedDate2,
-                              orElse: () => null,
-                              // orElse: () => outFund!.history.isNotEmpty
-                              //     ? outFund!.history.first
-                              //     : null,
-                            )
-                            ?.price;
-                        if (price2 != null) {
-                          units2 = price2 * amount;
-                        }
-                      }
+                      final units2 =
+                          double.tryParse(
+                            unitsController2.text.replaceAll(',', '.'),
+                          ) ??
+                          0;
+                      final price2 =
+                          double.tryParse(
+                            priceController2.text.replaceAll(',', '.'),
+                          ) ??
+                          0;
+                      final amount2 =
+                          double.tryParse(
+                            amountController2.text.replaceAll(',', '.'),
+                          ) ??
+                          0;
 
                       if (selectedType == OperationType.sell ||
                           selectedType == OperationType.outTransfer) {
@@ -891,6 +952,16 @@ class _FundOperationsListState extends State<FundOperationsList> {
                               l10n.allNumericFieldsGreaterThanZeroError;
                         });
                         return;
+                      }
+
+                      if (selectedType == OperationType.outTransfer) {
+                        if (units2 <= 0 || price2 <= 0 || amount2 <= 0) {
+                          setState(() {
+                            dialogError =
+                                l10n.allNumericFieldsGreaterThanZeroError;
+                          });
+                          return;
+                        }
                       }
 
                       if (selectedType == OperationType.sell ||
@@ -950,10 +1021,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                             amount: amount,
                           ),
                         );
-                      } else if (outFund != null &&
-                          units2 != null &&
-                          price2 != null &&
-                          context.mounted) {
+                      } else if (outFund != null && context.mounted) {
                         await _saveOperation(
                           dialogContext,
                           FundOperation(
@@ -972,7 +1040,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                             type: OperationType.inTransfer,
                             units: units2,
                             price: price2,
-                            amount: amount,
+                            amount: amount2,
                           ),
                         );
                       }

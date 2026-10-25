@@ -392,8 +392,6 @@ class FinancialCalculator {
     double? mwrTotal;
     double? mwrAnnualized;
     int days = 0;
-    //double? twrAnnualizedIpc;
-    //double? mwrAnnualizedIpc;
     double? twrRealTotal;
     double? twrRealAnnualized;
     double? mwrRealAnnualized;
@@ -472,7 +470,8 @@ class FinancialCalculator {
           }
 
           // 2. Actualizar el valor base para el siguiente periodo sumando/restando el flujo
-          if (op.type == OperationType.buy) {
+          if (op.type == OperationType.buy ||
+              op.type == OperationType.inTransfer) {
             lastPeriodValue += op.amount;
           } else {
             lastPeriodValue -= op.amount;

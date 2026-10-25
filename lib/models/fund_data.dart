@@ -249,6 +249,35 @@ class FundData {
   bool get hasValidIsin =>
       RegExp(r'^[A-Z]{2}[A-Z0-9]{9}[0-9]$').hasMatch(isin.toUpperCase());
 
+  PricePoint? pointByDate(DateTime fecha) {
+    if (history.isEmpty) return null;
+
+    return history.cast<PricePoint?>().firstWhere(
+      (point) =>
+          point != null &&
+          point.date.year == fecha.year &&
+          point.date.month == fecha.month &&
+          point.date.day == fecha.day,
+      orElse: () => null,
+    );
+  }
+
+  /* double? priceForDate(DateTime fecha) {
+    if (history.isEmpty) return null;
+
+    return history
+        .cast<PricePoint?>()
+        .firstWhere(
+          (point) =>
+              point != null &&
+              point.date.year == fecha.year &&
+              point.date.month == fecha.month &&
+              point.date.day == fecha.day,
+          orElse: () => null,
+        )
+        ?.price;
+  } */
+
   static FundSource? _fundSourceFromJson(String? value) {
     if (value == null || value.isEmpty) return null;
     for (final source in FundSource.values) {
