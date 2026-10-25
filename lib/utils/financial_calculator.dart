@@ -232,7 +232,7 @@ class FinancialCalculator {
     var units = 0.0;
     var invested = 0.0;
     for (final operation in fund.operations) {
-      // TODO: ajustar a OperationType.outTransfer y inTransfer
+      // NOTE: ajustado a OperationType.outTransfer y inTransfer
       if (operation.type == OperationType.buy ||
           operation.type == OperationType.inTransfer) {
         units += operation.units;
@@ -276,7 +276,7 @@ class FinancialCalculator {
         operation.date.day,
       );
       if (operationDate.isAfter(target)) continue;
-      // TODO: ajustar a OperationType.outTransfer y inTransfer
+      // NOTE: ajustado a OperationType.outTransfer y inTransfer
       if (operation.type == OperationType.buy ||
           operation.type == OperationType.inTransfer) {
         units += operation.units;
@@ -360,7 +360,7 @@ class FinancialCalculator {
     DateTime? firstOpDate;
 
     for (var op in fund.operations) {
-      // TODO: ajustar a OperationType.outTransfer y inTransfer
+      // NOTE: ajustado a OperationType.outTransfer y inTransfer
       if (op.type == OperationType.buy || op.type == OperationType.inTransfer) {
         totalUnits += op.units;
         totalInvested += op.amount;

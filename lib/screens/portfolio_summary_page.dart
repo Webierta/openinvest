@@ -653,13 +653,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
   }
 
   Widget _buildOperationTile(FundOperation op, List<FundData> funds) {
-    // TODO: ajustar a OperationType.outTransfer y inTransfer
-    /* final isBuy = op.type == OperationType.buy;
-    final color = isBuy ? Colors.greenAccent : Colors.redAccent;
-    final icon = isBuy ? Icons.add_circle_outline : Icons.remove_circle_outline;
+    // NOTE: ajustado a OperationType.outTransfer y inTransfer
     // En compra el dinero sale (-), en venta entra (+)
-    //final sign = isBuy ? '-' : '+';
-    final tooltip = isBuy ? l10n.subscription : l10n.redemption; */
 
     Color color = Colors.greenAccent;
     IconData icon = Icons.add_box_outlined;

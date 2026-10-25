@@ -98,7 +98,68 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
+
                 Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      const spacing = 4.0;
+                      final cellSize =
+                          ((constraints.maxWidth - spacing * (gridSize - 1)) /
+                                  gridSize)
+                              .clamp(56.0, 96.0);
+                      final gridWidth =
+                          gridSize * cellSize + spacing * (gridSize - 1);
+
+                      return Scrollbar(
+                        controller: _verticalScrollController,
+                        thumbVisibility: Platform.isLinux ? true : false,
+                        child: Scrollbar(
+                          controller: _horizontalScrollController,
+                          thumbVisibility: Platform.isLinux ? true : false,
+                          notificationPredicate: (notification) =>
+                              notification.depth == 1,
+                          child: SingleChildScrollView(
+                            controller: _verticalScrollController,
+                            scrollDirection: Axis.vertical,
+                            child: SingleChildScrollView(
+                              controller: _horizontalScrollController,
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: gridWidth,
+                                child: GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: gridSize,
+                                        childAspectRatio: 1,
+                                        crossAxisSpacing: spacing,
+                                        mainAxisSpacing: spacing,
+                                      ),
+                                  itemCount: gridSize * gridSize,
+                                  itemBuilder: (context, index) {
+                                    final row = index ~/ gridSize;
+                                    final col = index % gridSize;
+                                    return _buildGridCell(
+                                      context,
+                                      funds,
+                                      matrix,
+                                      row,
+                                      col,
+                                      gridSize,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                /* Expanded(
                   // 1. Asignamos el controlador vertical al Scrollbar
                   child: Scrollbar(
                     controller: _verticalScrollController,
@@ -129,7 +190,7 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: gridSize,
-                                    childAspectRatio: 1.0,
+                                    childAspectRatio: 1.2,
                                     crossAxisSpacing: 4,
                                     mainAxisSpacing: 4,
                                   ),
@@ -152,7 +213,7 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
                       ),
                     ),
                   ),
-                ),
+                ), */
               ],
             ),
           ),
@@ -194,7 +255,10 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
     return Tooltip(
       triggerMode: TooltipTriggerMode.tap,
       message: fund.name,
-      child: CircleAvatarFund(fund: fund, fontSize: 40),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: CircleAvatarFund(fund: fund, fontSize: 20),
+      ),
     );
   }
 
@@ -237,7 +301,7 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
           '1.00',
           style: TextStyle(
             color: Colors.white54,
-            fontSize: 18,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -279,7 +343,7 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 18,
+              fontSize: 14,
             ),
           ),
         ),
@@ -326,77 +390,79 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.insights, color: colorData.color, size: 28),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Correlación: ${correlation.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      color: colorData.color,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.insights, color: colorData.color, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Correlación: ${correlation.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: colorData.color,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '${fundA.name} (${fundA.isin})',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+                ],
               ),
-            ),
-            const Text(
-              'vs',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
-            ),
-            Text(
-              '${fundB.name} (${fundB.isin})',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colorData.color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: colorData.color.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Text(
-                colorData.message,
+              const SizedBox(height: 16),
+              Text(
+                '${fundA.name} (${fundA.isin})',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 15,
-                  height: 1.4,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: Navigator.of(ctx).pop,
-                child: const Text('Entendido'),
+              const Text(
+                'vs',
+                style: TextStyle(color: Colors.white54, fontSize: 14),
               ),
-            ),
-          ],
+              Text(
+                '${fundB.name} (${fundB.isin})',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorData.color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: colorData.color.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
+                  colorData.message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: Navigator.of(ctx).pop,
+                  child: const Text('Entendido'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -406,68 +472,50 @@ class _CorrelationMatrixPageState extends State<CorrelationMatrixPage> {
     showDialog(
       context: context,
       builder: (ctx) => Dialog.fullscreen(
-        child: Stack(
-          children: [
-            Padding(
-              padding: .all(14),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: .start,
-                  children: [
-                    Text(
-                      'Matriz de correlaciones',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Ayuda a visualizar el nivel riesgo por convergencia / divergencia de las tendencias de '
-                      'los fondos, y la diversificación de la cartera para distintas coberturas o escenarios.',
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Valores cercanos a 1 indican que los fondos se mueven juntos, '
-                      'mientras que los valores cercanos a 0 o negativos indican buena diversificación.\n\n'
-                      'Pulsa sobre una celda de la matriz para ver más detalles.',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                    const SizedBox(height: 20),
-                    Text('Leyenda de colores', style: TextStyle(fontSize: 16)),
-                    _legendItem(
-                      Colors.redAccent,
-                      '0.80 a 1.00',
-                      'Movimiento casi idéntico. Poca diversificación real.',
-                    ),
-                    _legendItem(
-                      Colors.orange,
-                      '0.50 a 0.79',
-                      'Tendencia a subir y bajar juntos.',
-                    ),
-                    _legendItem(
-                      Colors.blueGrey,
-                      '-0.20 a 0.49',
-                      'Movimientos independientes. Buena diversificación.',
-                    ),
-                    _legendItem(
-                      Colors.green,
-                      '-1.00 a -0.21',
-                      'Movimientos opuestos. Excelente cobertura de riesgo.',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topRight,
-                child: CircleAvatar(
-                  child: CloseButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    color: Colors.white,
+        child: Scaffold(
+          appBar: AppBar(title: Text('Matriz de correlaciones')),
+          body: Padding(
+            padding: .all(14),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Text(
+                    'Ayuda a visualizar el nivel riesgo por convergencia / divergencia de las tendencias de '
+                    'los fondos, y la diversificación de la cartera para distintas coberturas o escenarios.',
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Valores cercanos a 1 indican que los fondos se mueven juntos, '
+                    'mientras que los valores cercanos a 0 o negativos indican buena diversificación.\n\n'
+                    'Pulsa sobre una celda de la matriz para ver más detalles.',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 20),
+                  Text('Leyenda de colores', style: TextStyle(fontSize: 16)),
+                  _legendItem(
+                    Colors.redAccent,
+                    '0.80 a 1.00',
+                    'Movimiento casi idéntico. Poca diversificación real.',
+                  ),
+                  _legendItem(
+                    Colors.orange,
+                    '0.50 a 0.79',
+                    'Tendencia a subir y bajar juntos.',
+                  ),
+                  _legendItem(
+                    Colors.blueGrey,
+                    '-0.20 a 0.49',
+                    'Movimientos independientes. Buena diversificación.',
+                  ),
+                  _legendItem(
+                    Colors.green,
+                    '-1.00 a -0.21',
+                    'Movimientos opuestos. Excelente cobertura de riesgo.',
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

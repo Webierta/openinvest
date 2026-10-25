@@ -539,50 +539,55 @@ class _FundSearchPageState extends State<FundSearchPage> {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.dataSource),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildBadgeInfoItem(
-                source: FundSource.cnmv,
-                title: l10n.cnmvRegistry,
-                description: l10n.cnmvDesc,
+      builder: (context) => Dialog.fullscreen(
+        child: Scaffold(
+          appBar: AppBar(title: Text(l10n.dataSource)),
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: .all(14),
+              child: Column(
+                children: [
+                  _buildBadgeInfoItem(
+                    source: FundSource.cnmv,
+                    title: l10n.cnmvRegistry,
+                    description: l10n.cnmvDesc,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildBadgeInfoItem(
+                    source: FundSource.local,
+                    title: l10n.localCatalog,
+                    description: l10n.localCatalogDesc,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildBadgeInfoItem(
+                    source: FundSource.ecb,
+                    title: l10n.ecbSource,
+                    description: l10n.ecbSourceDesc,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildBadgeInfoItem(
+                    source: FundSource.morningstar,
+                    title: l10n.morningstarSource,
+                    description: l10n.morningstarSourceDesc,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildBadgeInfoItem(
+                    source: FundSource.yahoo,
+                    title: l10n.yahooSource,
+                    description: l10n.yahooSourceDesc,
+                  ),
+                  const Divider(height: 32, thickness: 0.1),
+                  Text(
+                    'Estas fuentes sirven para identificar los fondos, aparte de Yahoo que es el motor '
+                    'principal de las cotizaciones. Además, OpenInvest utiliza otras fuentes complementarias '
+                    'para obtener los últimos valores, como Que Fondos y Financial Times.',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildBadgeInfoItem(
-                source: FundSource.local,
-                title: l10n.localCatalog,
-                description: l10n.localCatalogDesc,
-              ),
-              const SizedBox(height: 16),
-              _buildBadgeInfoItem(
-                source: FundSource.ecb,
-                title: l10n.ecbSource,
-                description: l10n.ecbSourceDesc,
-              ),
-              const SizedBox(height: 16),
-              _buildBadgeInfoItem(
-                source: FundSource.morningstar,
-                title: l10n.morningstarSource,
-                description: l10n.morningstarSourceDesc,
-              ),
-              const SizedBox(height: 16),
-              _buildBadgeInfoItem(
-                source: FundSource.yahoo,
-                title: l10n.yahooSource,
-                description: l10n.yahooSourceDesc,
-              ),
-            ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.close),
-          ),
-        ],
       ),
     );
   }

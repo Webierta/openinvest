@@ -148,7 +148,7 @@ class PdfReportGenerator {
     double sales = 0.0;
 
     for (final op in sortedOperations) {
-      // TODO: ajustar a OperationType.outTransfer y inTransfer
+      // NOTE: ajustado a OperationType.outTransfer y inTransfer
       if (op.date.isBefore(startDate)) {
         unitsAtStart +=
             op.type == OperationType.buy || op.type == OperationType.inTransfer

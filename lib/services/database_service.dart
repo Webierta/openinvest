@@ -948,10 +948,7 @@ class DatabaseService {
               id: om['id'],
               isin: isin,
               date: DateTime.parse(om['date']),
-              // TODO: ajustar a OperationType.outTransfer y inTransfer
-              // type: om['type'] == 'buy'
-              //     ? OperationType.buy
-              //     : OperationType.sell,
+              // NOTE: ajustado a OperationType.outTransfer y inTransfer
               type: switch (om['type'].toString()) {
                 'buy' => OperationType.buy,
                 'sell' => OperationType.sell,
@@ -1063,8 +1060,7 @@ class DatabaseService {
             id: om['id'],
             isin: isin,
             date: DateTime.parse(om['date']),
-            // TODO: ajustar a OperationType.outTransfer y inTransfer
-            //type: om['type'] == 'buy' ? OperationType.buy : OperationType.sell,
+            // NOTE: ajustado a OperationType.outTransfer y inTransfer
             type: switch (om['type'].toString()) {
               'buy' => OperationType.buy,
               'sell' => OperationType.sell,

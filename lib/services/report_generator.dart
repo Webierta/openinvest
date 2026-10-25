@@ -28,8 +28,7 @@ class ReportGenerator {
             'fecha': op.date,
             'isin': fund.isin,
             'nombre_fondo': fund.name,
-            // TODO: ajustar a OperationType.outTransfer y inTransfer
-            //'tipo': op.type == OperationType.buy ? l10n.buy : l10n.sell,
+            // NOTE: ajustado a OperationType.outTransfer y inTransfer
             'tipo': switch (op.type) {
               OperationType.buy => l10n.buy,
               OperationType.sell => l10n.sell,
