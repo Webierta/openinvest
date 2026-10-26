@@ -63,6 +63,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
     final locale = Localizations.localeOf(context).toString();
     final priceFormat = NumberFormat('#,##0.0000', locale);
     final percentFormat = NumberFormat('#,##0.00', locale);
+    final smartFormat = NumberFormat('#,##0.##', locale);
     final dateFormat = DateFormat.yMd(locale).add_Hm();
 
     return DefaultTabController(
@@ -287,6 +288,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                                   fund: fund,
                                   priceFormat: priceFormat,
                                   percentFormat: percentFormat,
+                                  smartFormat: smartFormat,
                                   //dateFormat: DateFormat.yMMMd(locale),
                                   dateFormat: DateFormat.yMd(locale),
                                   onExported: () => setState(() {}),

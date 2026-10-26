@@ -39,6 +39,9 @@ class _FundOperationsListState extends State<FundOperationsList> {
 
   FundData? outFund;
 
+  double maxUnits = 0;
+  double maxAmount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -587,6 +590,26 @@ class _FundOperationsListState extends State<FundOperationsList> {
       }
     }
 
+    double? getPrice(DateTime fecha) {
+      final historicalPoint = widget.fund.pointByDate(fecha);
+      final price = historicalPoint?.price;
+      if (historicalPoint != null) {
+        priceController.text = price.toString().replaceAll('.', ',');
+      }
+      return price;
+    }
+
+    void updateMaxValues(DateTime fecha, double price) {
+      final partes = FinancialCalculator.calculateUnitsAt(widget.fund, fecha);
+      // unitsController.text = unitsFormat.format(partes);
+      final capital = partes * price;
+      // amountController.text = moneyFormat.format(capital);
+      setState(() {
+        maxUnits = partes;
+        maxAmount = capital;
+      });
+    }
+
     final priceController2 = TextEditingController(text: '0');
     final unitsController2 = TextEditingController(text: '0');
     final amountController2 = TextEditingController(
@@ -696,6 +719,8 @@ class _FundOperationsListState extends State<FundOperationsList> {
                             selected: {selectedType},
                             onSelectionChanged: (selection) => setState(() {
                               selectedType = selection.first;
+                              unitsController.text = '';
+                              amountController.text = '';
                               dialogError = null;
                               // Si cambia a Compra, desactivamos la simulación fiscal
                               if (selectedType == OperationType.buy ||
@@ -768,17 +793,14 @@ class _FundOperationsListState extends State<FundOperationsList> {
                               setState(() {
                                 selectedDate = picked;
                                 if (operation == null) {
-                                  final historicalPoint = widget.fund
-                                      .pointByDate(picked);
-                                  if (historicalPoint != null) {
-                                    priceController.text = historicalPoint.price
-                                        .toString()
-                                        .replaceAll('.', ',');
-                                    updateAmount();
+                                  final price = getPrice(picked);
+                                  if (price != null) {
+                                    updateMaxValues(picked, price);
                                   } else {
                                     priceController.text = '0';
-                                    updateAmount();
+                                    unitsController.text = '0';
                                   }
+                                  updateAmount();
                                 }
                               });
                             },
@@ -789,11 +811,34 @@ class _FundOperationsListState extends State<FundOperationsList> {
                       controller: priceController,
                       decoration: InputDecoration(
                         labelText: l10n.priceNavLabel,
+                        helper:
+                            priceController.text == '0' ||
+                                priceController.text.isEmpty
+                            ? Text(
+                                'Valor liquidativo no encontrado. Actualiza el fondo o '
+                                'introduce el precio manualmente.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              )
+                            : SizedBox.shrink(),
                       ),
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      onChanged: (_) => updateAmount(),
+                      onChanged: (_) {
+                        amountController.text.replaceAll('.', ',');
+                        updateMaxValues(
+                          selectedDate,
+                          double.tryParse(
+                                priceController.text.replaceAll(',', '.'),
+                              ) ??
+                              0,
+                        );
+                        updateAmount();
+                        setState(() {});
+                      },
                     ),
                     TextField(
                       readOnly: isTransfer,
@@ -804,7 +849,9 @@ class _FundOperationsListState extends State<FundOperationsList> {
                             selectedType == OperationType.sell ||
                                 selectedType == OperationType.outTransfer
                             ? Text(
-                                'Max: ${unitsFormat.format(metrics.totalUnits)}',
+                                'Max: ${unitsFormat.format(maxUnits)}',
+                                //'Max: ${unitsFormat.format(FinancialCalculator.calculateUnitsAt(widget.fund, selectedDate))}',
+                                //? Text('Max: ${unitsFormat.format(metrics.totalUnits)}',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey,
@@ -826,7 +873,9 @@ class _FundOperationsListState extends State<FundOperationsList> {
                             selectedType == OperationType.sell ||
                                 selectedType == OperationType.outTransfer
                             ? Text(
-                                'Max: ${smartFormat.format(metrics.currentValue)} ${widget.fund.currency}',
+                                'Max: ${moneyFormat.format(maxAmount)}',
+                                //'Max: ${unitsFormat.format(FinancialCalculator.calculateUnitsAt(widget.fund, selectedDate))}',
+                                //'Max: ${smartFormat.format(metrics.currentValue)} ${widget.fund.currency}',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey,
@@ -965,7 +1014,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                     child: Text(l10n.cancel),
                   ),
 
-                  if (operation != null && !isTransfer)
+                  if (!isTransfer)
                     ElevatedButton(
                       onPressed: () async {
                         final units =
@@ -1031,13 +1080,15 @@ class _FundOperationsListState extends State<FundOperationsList> {
 
                         if (selectedType == OperationType.sell ||
                             selectedType == OperationType.outTransfer) {
-                          if (units > metrics.totalUnits + 0.00001) {
+                          //if (units > metrics.totalUnits + 0.00001) {
+                          if (units > maxUnits + 0.00001) {
                             setState(() {
                               dialogError = l10n.cannotSellMoreThanOwnedError;
                             });
                             return;
                           }
-                          if (amount > metrics.currentValue + 0.01) {
+                          //if (amount > metrics.currentValue + 0.01) {
+                          if (amount > maxAmount + 0.01) {
                             setState(() {
                               dialogError =
                                   l10n.saleAmountExceedsCurrentValueError;
@@ -1077,7 +1128,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                           await _saveOperation(
                             dialogContext,
                             FundOperation(
-                              id: operation.id,
+                              id: operation?.id,
                               isin: widget.fund.isin,
                               date: selectedDate,
                               type: selectedType,
@@ -1090,7 +1141,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                           await _saveOperation(
                             dialogContext,
                             FundOperation(
-                              id: operation.id,
+                              id: operation?.id,
                               isin: widget.fund.isin,
                               date: selectedDate,
                               type: selectedType,
@@ -1099,7 +1150,7 @@ class _FundOperationsListState extends State<FundOperationsList> {
                               amount: amount,
                             ),
                             operation2: FundOperation(
-                              id: operation.id,
+                              id: operation?.id,
                               isin: outFund!.isin,
                               date: selectedDate2,
                               type: OperationType.inTransfer,

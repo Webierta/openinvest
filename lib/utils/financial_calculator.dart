@@ -350,6 +350,31 @@ class FinancialCalculator {
     }
   }
 
+  // Obtiene el numero de participaciones en una fecha
+  static double calculateUnitsAt(FundData fund, DateTime date) {
+    final targetDate = DateTime(date.year, date.month, date.day);
+    var units = 0.0;
+
+    for (final operation in fund.operations) {
+      final operationDate = DateTime(
+        operation.date.year,
+        operation.date.month,
+        operation.date.day,
+      );
+
+      if (operationDate.isAfter(targetDate)) continue;
+
+      if (operation.type == OperationType.buy ||
+          operation.type == OperationType.inTransfer) {
+        units += operation.units;
+      } else {
+        units -= operation.units;
+      }
+    }
+
+    return units;
+  }
+
   static FundMetrics calculateFundMetrics(
     FundData fund, {
     double? inflationPercent,

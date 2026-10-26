@@ -6,11 +6,13 @@ import 'package:provider/provider.dart';
 import '../../models/fund_data.dart';
 import '../../providers/fund_provider.dart';
 import '../../services/export_service.dart';
+import '../../utils/financial_calculator.dart';
 
 class PriceHistoryTable extends StatefulWidget {
   final FundData fund;
   final NumberFormat priceFormat;
   final NumberFormat percentFormat;
+  final NumberFormat smartFormat;
   final DateFormat dateFormat;
   final VoidCallback? onExported;
 
@@ -19,6 +21,7 @@ class PriceHistoryTable extends StatefulWidget {
     required this.fund,
     required this.priceFormat,
     required this.percentFormat,
+    required this.smartFormat,
     required this.dateFormat,
     this.onExported,
   });
@@ -68,6 +71,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tableData = <Map<String, dynamic>>[];
+    //provider = context.read<FundProvider>();
+
     for (int i = 0; i < widget.fund.history.length; i++) {
       final point = widget.fund.history[i];
       double? absVar;
@@ -77,12 +82,18 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         absVar = point.price - previous;
         if (previous != 0) variation = (absVar / previous) * 100;
       }
+      double partes = FinancialCalculator.calculateUnitsAt(
+        widget.fund,
+        point.date,
+      );
+      double capital = partes * point.price;
       tableData.add({
         'index': i + 1,
         'date': point.date,
         'price': point.price,
         'absVar': absVar,
         'variation': variation,
+        'capital': capital,
       });
     }
 
@@ -113,99 +124,131 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
             b['variation'] as double? ?? 0,
           );
           break;
+        case 5:
+          comparison = (a['capital'] as double? ?? 0).compareTo(
+            b['capital'] as double? ?? 0,
+          );
+          break;
         default:
           comparison = 0;
       }
       return _isAscending ? comparison : -comparison;
     });
 
-    return Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white10,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-            border: const Border(
-              top: BorderSide(color: Colors.white10, width: 0.5),
-              bottom: BorderSide(color: Colors.white10, width: 0.5),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const minTableWidth = 440.0; // 640
+        final tableWidth = constraints.maxWidth < minTableWidth
+            ? minTableWidth
+            : constraints.maxWidth;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: tableWidth,
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(8),
+                    ),
+                    border: const Border(
+                      top: BorderSide(color: Colors.white10, width: 0.5),
+                      bottom: BorderSide(color: Colors.white10, width: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 8,
+                        child: _SortableHeader(
+                          label: l10n.numberLabel,
+                          index: 0,
+                          selectedIndex: _sortColumnIndex,
+                          ascending: _isAscending,
+                          onSort: _onSort,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 14,
+                        child: _SortableHeader(
+                          label: l10n.dateLabel,
+                          index: 1,
+                          selectedIndex: _sortColumnIndex,
+                          ascending: _isAscending,
+                          onSort: _onSort,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 14,
+                        child: _SortableHeader(
+                          label: l10n.priceLabel,
+                          index: 2,
+                          selectedIndex: _sortColumnIndex,
+                          ascending: _isAscending,
+                          onSort: _onSort,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 14,
+                        child: _SortableHeader(
+                          label: l10n.diffLabel,
+                          index: 3,
+                          selectedIndex: _sortColumnIndex,
+                          ascending: _isAscending,
+                          onSort: _onSort,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 14,
+                        child: _SortableHeader(
+                          label: l10n.varLabel,
+                          index: 4,
+                          selectedIndex: _sortColumnIndex,
+                          ascending: _isAscending,
+                          onSort: _onSort,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 14,
+                        child: _SortableHeader(
+                          label: 'Capital',
+                          index: 5,
+                          selectedIndex: _sortColumnIndex,
+                          ascending: _isAscending,
+                          onSort: _onSort,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: const Border(
+                        bottom: BorderSide(color: Colors.white10, width: 0.5),
+                      ),
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(8),
+                      ),
+                    ),
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: tableData.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1, color: Colors.white10),
+                      itemBuilder: (context, index) =>
+                          _buildRow(context, tableData[index]),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 8,
-                child: _SortableHeader(
-                  label: l10n.numberLabel,
-                  index: 0,
-                  selectedIndex: _sortColumnIndex,
-                  ascending: _isAscending,
-                  onSort: _onSort,
-                ),
-              ),
-              Expanded(
-                flex: 20,
-                child: _SortableHeader(
-                  label: l10n.dateLabel,
-                  index: 1,
-                  selectedIndex: _sortColumnIndex,
-                  ascending: _isAscending,
-                  onSort: _onSort,
-                ),
-              ),
-              Expanded(
-                flex: 18,
-                child: _SortableHeader(
-                  label: l10n.priceLabel,
-                  index: 2,
-                  selectedIndex: _sortColumnIndex,
-                  ascending: _isAscending,
-                  onSort: _onSort,
-                ),
-              ),
-              Expanded(
-                flex: 15,
-                child: _SortableHeader(
-                  label: l10n.diffLabel,
-                  index: 3,
-                  selectedIndex: _sortColumnIndex,
-                  ascending: _isAscending,
-                  onSort: _onSort,
-                ),
-              ),
-              Expanded(
-                flex: 12,
-                child: _SortableHeader(
-                  label: l10n.varLabel,
-                  index: 4,
-                  selectedIndex: _sortColumnIndex,
-                  ascending: _isAscending,
-                  onSort: _onSort,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              border: const Border(
-                bottom: BorderSide(color: Colors.white10, width: 0.5),
-              ),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(8),
-              ),
-            ),
-            child: ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: tableData.length,
-              separatorBuilder: (context, index) =>
-                  const Divider(height: 1, color: Colors.white10),
-              itemBuilder: (context, index) =>
-                  _buildRow(context, tableData[index]),
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -221,6 +264,11 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         : absVar < 0
         ? Colors.redAccent[200]
         : null;
+    final fecha = widget.dateFormat.format(date);
+    double partes = FinancialCalculator.calculateUnitsAt(widget.fund, date);
+    final precio = row['price'] as double;
+    final capital = precio * partes;
+
     return Dismissible(
       key: ValueKey(date.toString()),
       direction: DismissDirection.endToStart,
@@ -313,18 +361,19 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               ),
             ),
             Expanded(
-              flex: 20,
+              flex: 14,
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Text(
-                  widget.dateFormat.format(date),
+                  fecha.substring(0, fecha.length - 3) +
+                      fecha.substring(fecha.length - 1),
                   //DateFormat('dd/MM/yy').format(date),
                   style: const TextStyle(fontSize: 11, color: Colors.white70),
                 ),
               ),
             ),
             Expanded(
-              flex: 18,
+              flex: 14,
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Text(
@@ -334,7 +383,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               ),
             ),
             Expanded(
-              flex: 15,
+              flex: 14,
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Text(
@@ -350,7 +399,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               ),
             ),
             Expanded(
-              flex: 12,
+              flex: 14,
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Text(
@@ -360,6 +409,20 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                   style: TextStyle(
                     color: color,
                     fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 14,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Text(
+                  widget.smartFormat.format(capital),
+                  style: TextStyle(
+                    //color: color,
+                    //fontWeight: FontWeight.bold,
                     fontSize: 10,
                   ),
                 ),
