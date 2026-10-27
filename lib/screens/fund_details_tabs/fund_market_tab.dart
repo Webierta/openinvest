@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/fund_data.dart';
@@ -10,12 +9,12 @@ enum _MarketSection { operations, costs }
 
 class FundMarketTab extends StatefulWidget {
   final FundData fund;
-  final NumberFormat priceFormat;
+  //final NumberFormat priceFormat;
 
   const FundMarketTab({
     super.key,
     required this.fund,
-    required this.priceFormat,
+    //required this.priceFormat,
   });
 
   @override
@@ -74,11 +73,7 @@ class _FundMarketTabState extends State<FundMarketTab> {
         ),
         Expanded(
           child: switch (_section) {
-            _MarketSection.operations => FundOperationsList(
-              fund: widget.fund,
-              priceFormat: widget.priceFormat,
-              dateFormat: DateFormat.yMMMd(locale),
-            ),
+            _MarketSection.operations => FundOperationsList(fund: widget.fund),
             _MarketSection.costs => FundCostsTab(fund: widget.fund),
           },
         ),

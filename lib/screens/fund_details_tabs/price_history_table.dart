@@ -86,14 +86,14 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         widget.fund,
         point.date,
       );
-      double capital = partes * point.price;
+      double rendimiento = partes * point.price;
       tableData.add({
         'index': i + 1,
         'date': point.date,
         'price': point.price,
         'absVar': absVar,
         'variation': variation,
-        'capital': capital,
+        'rendimiento': rendimiento,
       });
     }
 
@@ -125,8 +125,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
           );
           break;
         case 5:
-          comparison = (a['capital'] as double? ?? 0).compareTo(
-            b['capital'] as double? ?? 0,
+          comparison = (a['rendimiento'] as double? ?? 0).compareTo(
+            b['rendimiento'] as double? ?? 0,
           );
           break;
         default:
@@ -214,7 +214,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                       Expanded(
                         flex: 14,
                         child: _SortableHeader(
-                          label: 'Capital',
+                          label: 'Rendimiento',
                           index: 5,
                           selectedIndex: _sortColumnIndex,
                           ascending: _isAscending,
@@ -267,7 +267,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
     final fecha = widget.dateFormat.format(date);
     double partes = FinancialCalculator.calculateUnitsAt(widget.fund, date);
     final precio = row['price'] as double;
-    final capital = precio * partes;
+    final rendimiento = precio * partes;
 
     return Dismissible(
       key: ValueKey(date.toString()),
@@ -419,7 +419,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Text(
-                  widget.smartFormat.format(capital),
+                  widget.smartFormat.format(rendimiento),
                   style: TextStyle(
                     //color: color,
                     //fontWeight: FontWeight.bold,

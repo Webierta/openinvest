@@ -295,7 +295,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                                 ),
                               ),
                       ),
-                      FundMarketTab(fund: fund, priceFormat: priceFormat),
+                      FundMarketTab(fund: fund),
                     ],
                   ),
                 ),

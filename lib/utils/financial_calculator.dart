@@ -375,6 +375,79 @@ class FinancialCalculator {
     return units;
   }
 
+  /// Calcula el máximo de participaciones que se pueden retirar
+  /// en una fecha sin dejar ningún saldo cronológico posterior
+  /// en negativo.
+  ///
+  /// La nueva salida se considera posterior a todas las operaciones
+  /// ya registradas en la fecha seleccionada.
+  static double calculateMaxOutflowUnitsAt(FundData fund, DateTime date) {
+    final targetDate = DateTime(date.year, date.month, date.day);
+
+    DateTime dateOnly(DateTime value) =>
+        DateTime(value.year, value.month, value.day);
+
+    final operations = fund.operations.toList()
+      ..sort((a, b) {
+        final dateComparison = dateOnly(a.date).compareTo(dateOnly(b.date));
+        if (dateComparison != 0) return dateComparison;
+
+        // El orden de las operaciones del mismo día se conserva.
+        return fund.operations.indexOf(a).compareTo(fund.operations.indexOf(b));
+      });
+
+    var balance = 0.0;
+    var balanceAtTarget = 0.0;
+    var minimumFutureBalance = double.infinity;
+    var foundTarget = false;
+
+    for (final operation in operations) {
+      final operationDate = dateOnly(operation.date);
+
+      // El saldo disponible en la fecha seleccionada debe incluir
+      // las operaciones ya registradas para ese mismo día.
+      if (operationDate.isAfter(targetDate)) {
+        if (!foundTarget) {
+          balanceAtTarget = balance;
+          foundTarget = true;
+        }
+      }
+
+      if (operation.type == OperationType.buy ||
+          operation.type == OperationType.inTransfer) {
+        balance += operation.units;
+      } else {
+        balance -= operation.units;
+      }
+
+      if (!operationDate.isBefore(targetDate)) {
+        minimumFutureBalance = minimumFutureBalance < balance
+            ? minimumFutureBalance
+            : balance;
+      }
+    }
+
+    if (!foundTarget) {
+      balanceAtTarget = balance;
+    }
+
+    if (operations.every((op) => dateOnly(op.date).isBefore(targetDate))) {
+      balanceAtTarget = balance;
+    }
+
+    // Si no existen operaciones en la fecha o después, el saldo
+    // disponible es el saldo acumulado hasta esa fecha.
+    if (minimumFutureBalance == double.infinity) {
+      minimumFutureBalance = balanceAtTarget;
+    }
+
+    final maxUnits = balanceAtTarget < minimumFutureBalance
+        ? balanceAtTarget
+        : minimumFutureBalance;
+
+    return maxUnits > 0 ? maxUnits : 0.0;
+  }
+
   static FundMetrics calculateFundMetrics(
     FundData fund, {
     double? inflationPercent,

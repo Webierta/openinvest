@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
 import 'package:investing/l10n/app_localizations_es.dart';
 import 'package:investing/models/fund_cost.dart';
@@ -100,9 +99,7 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: FundMarketTab(fund: fund, priceFormat: NumberFormat('0.00')),
-          ),
+          home: Scaffold(body: FundMarketTab(fund: fund)),
         ),
       ),
     );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
 import 'package:investing/models/fund_data.dart';
 import 'package:investing/providers/fund_provider.dart';
@@ -49,15 +48,7 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: FundOperationsList(
-              fund: fund,
-              //priceFormat: NumberFormat('#,##0.00', 'es_ES'),
-              //dateFormat: DateFormat('dd/MM/yyyy', 'es_ES'),
-              priceFormat: NumberFormat('#,##0.00'),
-              dateFormat: DateFormat('dd/MM/yyyy'),
-            ),
-          ),
+          home: Scaffold(body: FundOperationsList(fund: fund)),
         ),
       ),
     );
