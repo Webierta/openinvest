@@ -55,6 +55,8 @@ class _FundOperationFormPageState extends State<FundOperationFormPage> {
 
   @override
   void initState() {
+    super.initState();
+
     isTransfer =
         widget.operation?.type == OperationType.outTransfer ||
         widget.operation?.type == OperationType.inTransfer;
@@ -84,7 +86,6 @@ class _FundOperationFormPageState extends State<FundOperationFormPage> {
       );
       maxAmount = maxUnits * initialPrice;
     }
-    super.initState();
   }
 
   @override
@@ -308,20 +309,18 @@ class _FundOperationFormPageState extends State<FundOperationFormPage> {
                             );
                             if (picked == null) return;
                             if (!context.mounted) return;
-                            setState(() {
-                              selectedDate = picked;
-                              if (widget.operation == null) {
-                                final price = getPrice(picked);
-                                if (price != null) {
-                                  updateMaxValues(picked, price);
-                                } else {
-                                  priceController.text = '0';
-                                  unitsController.text = '0';
-                                  updateMaxValues(picked, 0);
-                                }
-                                updateAmount();
+                            setState(() => selectedDate = picked);
+                            if (widget.operation == null) {
+                              final price = getPrice(picked);
+                              if (price != null) {
+                                updateMaxValues(picked, price);
+                              } else {
+                                priceController.text = '0';
+                                unitsController.text = '0';
+                                updateMaxValues(picked, 0);
                               }
-                            });
+                              updateAmount();
+                            }
                           },
                   ),
                   // PRECIO (valor liquidativo)
@@ -673,56 +672,76 @@ class _FundOperationFormPageState extends State<FundOperationFormPage> {
     BuildContext context,
     FundOperation operation,
   ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final strings = l10n;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (confirmationContext) => AlertDialog(
-        title: Text(l10n.deleteOperationTitle),
-        content: Text(l10n.deleteOperationConfirm),
+        title: Text(strings.deleteOperationTitle),
+        content: Text(strings.deleteOperationConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(confirmationContext, false),
-            child: Text(l10n.cancel),
+            child: Text(strings.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(confirmationContext, true),
-            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+            child: Text(
+              strings.delete,
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
     );
-    if (confirmed != true || operation.id == null || provider.isBusy) return;
+
+    if (confirmed != true || operation.id == null || provider.isBusy) {
+      return;
+    }
 
     try {
       await provider.deleteOperation(operation.id!);
+
       if (!context.mounted) return;
+
       Navigator.pop(context);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+
+      if (!messenger.mounted) return;
+
+      messenger.showSnackBar(
         SnackBar(
-          content: Text(l10n.operationDeletedSuccess),
+          content: Text(strings.operationDeletedSuccess),
           duration: const Duration(seconds: 4),
+          persist: false,
           action:
-              (operation.type == .outTransfer || operation.type == .inTransfer)
+              operation.type == OperationType.outTransfer ||
+                  operation.type == OperationType.inTransfer
               ? null
               : SnackBarAction(
-                  label: l10n.undo,
+                  label: strings.undo,
                   onPressed: () async {
                     try {
                       await provider.restoreOperation(operation);
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+
+                      if (!messenger.mounted) return;
+
+                      messenger.showSnackBar(
                         SnackBar(
-                          content: Text(l10n.deletionUndone),
+                          content: Text(strings.deletionUndone),
                           duration: const Duration(seconds: 4),
+                          persist: false,
                         ),
                       );
                     } catch (_) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      if (!messenger.mounted) return;
+
+                      messenger.showSnackBar(
                         SnackBar(
-                          content: Text(l10n.restoreOperationError),
+                          content: Text(strings.restoreOperationError),
                           backgroundColor: Colors.redAccent,
                           duration: const Duration(seconds: 4),
+                          persist: false,
                         ),
                       );
                     }
@@ -731,12 +750,14 @@ class _FundOperationFormPageState extends State<FundOperationFormPage> {
         ),
       );
     } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!context.mounted || !messenger.mounted) return;
+
+      messenger.showSnackBar(
         SnackBar(
-          content: Text(l10n.deleteOperationError),
+          content: Text(strings.deleteOperationError),
           backgroundColor: Colors.redAccent,
           duration: const Duration(seconds: 4),
+          persist: false,
         ),
       );
     }

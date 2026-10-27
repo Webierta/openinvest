@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
 import 'package:investing/models/fund_data.dart';
 import 'package:investing/providers/fund_provider.dart';
+import 'package:investing/screens/fund_details_tabs/fund_operation_form_page.dart';
 import 'package:investing/screens/fund_details_tabs/fund_operations_list.dart';
 import 'package:provider/provider.dart';
 
@@ -135,47 +136,66 @@ void main() {
     );
   });
 
-  testWidgets(
-    'LF-131.2: cambiar la fecha recalcula ambos máximos cronológicos',
-    (tester) async {
-      await openOperationDialog(tester);
+  testWidgets('LF-131.2: cambiar la fecha recalcula ambos máximos cronológicos', (
+    tester,
+  ) async {
+    await openOperationDialog(tester);
 
-      await selectSellOperation(tester);
+    await selectSellOperation(tester);
 
-      final context = tester.element(find.byType(FundOperationsList));
-      final l10n = AppLocalizations.of(context)!;
+    final context = tester.element(find.byType(FundOperationFormPage));
+    final l10n = AppLocalizations.of(context)!;
 
-      await tester.tap(find.text(l10n.dateLabel));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.dateLabel));
+    await tester.pumpAndSettle();
 
-      // Si la fecha está en el mes anterior, navegamos hasta ese mes.
-      while (find
-          .text(DateFormat.yMMMM('es_ES').format(firstBuyDate))
-          .evaluate()
-          .isEmpty) {
-        final previousMonth = find.byIcon(Icons.chevron_left);
+    // Si la fecha está en el mes anterior, navegamos hasta ese mes.
+    while (find
+        .text(DateFormat.yMMMM('es_ES').format(firstBuyDate))
+        .evaluate()
+        .isEmpty) {
+      final previousMonth = find.byIcon(Icons.chevron_left);
 
-        if (previousMonth.evaluate().isEmpty) {
-          break;
-        }
-
-        await tester.tap(previousMonth.first);
-        await tester.pumpAndSettle();
+      if (previousMonth.evaluate().isEmpty) {
+        break;
       }
 
-      // La fecha objetivo es dos días anterior a hoy.
-      await tester.tap(find.text('${firstBuyDate.day}').last);
+      await tester.tap(previousMonth.first);
       await tester.pumpAndSettle();
+    }
 
-      expect(
-        find.text('Max: ${NumberFormat('#,##0.####', 'es_ES').format(20)}'),
-        findsOneWidget,
-      );
+    // La fecha objetivo es dos días anterior a hoy.
+    await tester.tap(find.text('${firstBuyDate.day}').last);
+    await tester.pumpAndSettle();
 
-      expect(
-        find.text('Max: ${NumberFormat('#,##0.## €', 'es_ES').format(100)}'),
-        findsOneWidget,
-      );
-    },
-  );
+    await tester.tap(find.text('25').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('ACEPTAR'));
+    await tester.pumpAndSettle();
+
+    debugPrint(
+      'Fecha esperada: ${DateFormat('dd/MM/yyyy').format(firstBuyDate)}',
+    );
+
+    debugPrint(
+      'Fecha mostrada: '
+      '${tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).whereType<String>().toList()}',
+    );
+
+    debugPrint(
+      'Máximos visibles: '
+      '${tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).whereType<String>().where((s) => s.contains('Max:')).toList()}',
+    );
+
+    expect(
+      find.text('Max: ${NumberFormat('#,##0.####', 'es_ES').format(20)}'),
+      findsOneWidget,
+    );
+
+    expect(
+      find.text('Max: ${NumberFormat('#,##0.## €', 'es_ES').format(100)}'),
+      findsOneWidget,
+    );
+  });
 }
