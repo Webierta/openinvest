@@ -1606,6 +1606,22 @@ class FundProvider with ChangeNotifier {
     }
   }
 
+  Future<void> deletePricePoints(String isin, List<DateTime> dates) async {
+    isLoading = true;
+    _clearError();
+    notifyListeners();
+    try {
+      await DatabaseService.deletePricePoints(isin, dates);
+      await loadPortfolio();
+    } catch (error, stackTrace) {
+      _setError(_asError(error, stackTrace, type: AppErrorType.database));
+      rethrow;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> restorePricePoint(String isin, PricePoint point) async {
     isLoading = true;
     _clearError();
@@ -1615,6 +1631,22 @@ class FundProvider with ChangeNotifier {
       await loadPortfolio();
     } catch (error, stackTrace) {
       _setError(_asError(error, stackTrace, type: AppErrorType.database));
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> restorePricePoints(String isin, List<PricePoint> points) async {
+    isLoading = true;
+    _clearError();
+    notifyListeners();
+    try {
+      await DatabaseService.restorePricePoints(isin, points);
+      await loadPortfolio();
+    } catch (error, stackTrace) {
+      _setError(_asError(error, stackTrace, type: AppErrorType.database));
+      rethrow;
     } finally {
       isLoading = false;
       notifyListeners();

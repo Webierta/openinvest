@@ -35,6 +35,34 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
   bool _isAscending = false;
   final Set<String> _pendingDeletedPricePoints = <String>{};
 
+  final Set<DateTime> _selectedPriceDates = {};
+  DateTime? _rangeAnchor;
+  bool _isDeleting = false;
+
+  DateTime _day(DateTime date) => DateTime(date.year, date.month, date.day);
+
+  String _pricePointKey(DateTime date) =>
+      '${widget.fund.isin}|${_day(date).toIso8601String()}';
+
+  @override
+  void didUpdateWidget(covariant PriceHistoryTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.fund.isin != oldWidget.fund.isin) {
+      _selectedPriceDates.clear();
+      _rangeAnchor = null;
+      _pendingDeletedPricePoints.clear();
+      return;
+    }
+
+    final availableDates = widget.fund.history
+        .map((point) => _day(point.date))
+        .toSet();
+    _selectedPriceDates.retainAll(availableDates);
+    if (_rangeAnchor != null && !availableDates.contains(_rangeAnchor)) {
+      _rangeAnchor = null;
+    }
+  }
+
   void _onSort(int columnIndex) {
     setState(() {
       if (_sortColumnIndex == columnIndex) {
@@ -65,6 +93,141 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         ),
       ),
     );
+  }
+
+  void _onRowLongPress(DateTime date) {
+    final day = _day(date);
+    setState(() {
+      _selectedPriceDates.add(day);
+      _rangeAnchor = day;
+    });
+  }
+
+  void _onRowTap(int index, List<Map<String, dynamic>> rows) {
+    final day = _day(rows[index]['date'] as DateTime);
+    setState(() {
+      final anchor = _rangeAnchor;
+      if (anchor == null) {
+        if (!_selectedPriceDates.add(day)) {
+          _selectedPriceDates.remove(day);
+        }
+        return;
+      }
+
+      final anchorIndex = rows.indexWhere(
+        (row) => _day(row['date'] as DateTime) == anchor,
+      );
+      if (anchorIndex >= 0) {
+        final first = anchorIndex < index ? anchorIndex : index;
+        final last = anchorIndex > index ? anchorIndex : index;
+        for (var rowIndex = first; rowIndex <= last; rowIndex++) {
+          _selectedPriceDates.add(_day(rows[rowIndex]['date'] as DateTime));
+        }
+      } else {
+        _selectedPriceDates.add(day);
+      }
+      _rangeAnchor = null;
+    });
+  }
+
+  Future<void> _confirmAndDeleteSelected() async {
+    if (_selectedPriceDates.isEmpty || _isDeleting) return;
+
+    final points = widget.fund.history
+        .where((point) => _selectedPriceDates.contains(_day(point.date)))
+        .toList();
+    if (points.isEmpty) {
+      setState(() {
+        _selectedPriceDates.clear();
+        _rangeAnchor = null;
+      });
+      return;
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    final confirmMessage = points.length == 1
+        ? l10n.deletePriceConfirm(
+            DateFormat('dd/MM/yyyy').format(points.single.date),
+          )
+        : l10n.deletePricesConfirm(points.length);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.deletePriceTitle),
+        content: Text(confirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final keys = points.map((point) => _pricePointKey(point.date)).toSet();
+    setState(() {
+      _isDeleting = true;
+      _pendingDeletedPricePoints.addAll(keys);
+    });
+
+    try {
+      await context.read<FundProvider>().deletePricePoints(
+        widget.fund.isin,
+        points.map((point) => point.date).toList(),
+      );
+      if (!mounted) return;
+
+      setState(() {
+        _pendingDeletedPricePoints.removeAll(keys);
+        _selectedPriceDates.clear();
+        _rangeAnchor = null;
+      });
+
+      final snackBarController = ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            points.length == 1
+                ? l10n.priceDeletedSuccess
+                : l10n.pricesDeletedSuccess(points.length),
+          ),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: l10n.undo,
+            onPressed: () async {
+              try {
+                await context.read<FundProvider>().restorePricePoints(
+                  widget.fund.isin,
+                  points,
+                );
+                if (!mounted) return;
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(l10n.deletionUndone)));
+              } catch (_) {
+                if (!mounted) return;
+                _showDeleteError(context);
+              }
+            },
+          ),
+        ),
+      );
+      Future<void>.delayed(
+        const Duration(seconds: 4),
+        snackBarController.close,
+      );
+    } catch (_) {
+      _pendingDeletedPricePoints.removeAll(keys);
+      if (!mounted) return;
+      _showDeleteError(context);
+    } finally {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
+    }
   }
 
   @override
@@ -99,7 +262,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
 
     tableData.removeWhere(
       (row) => _pendingDeletedPricePoints.contains(
-        '${widget.fund.isin}|${(row['date'] as DateTime).toIso8601String()}',
+        _pricePointKey(row['date'] as DateTime),
       ),
     );
     tableData.sort((a, b) {
@@ -135,125 +298,167 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
       return _isAscending ? comparison : -comparison;
     });
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const minTableWidth = 440.0; // 640
-        final tableWidth = constraints.maxWidth < minTableWidth
-            ? minTableWidth
-            : constraints.maxWidth;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          const minTableWidth = 540.0; // 640
+          final tableWidth = constraints.maxWidth < minTableWidth
+              ? minTableWidth
+              : constraints.maxWidth;
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: tableWidth,
-            child: Column(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white10,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(8),
-                    ),
-                    border: const Border(
-                      top: BorderSide(color: Colors.white10, width: 0.5),
-                      bottom: BorderSide(color: Colors.white10, width: 0.5),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 8,
-                        child: _SortableHeader(
-                          label: l10n.numberLabel,
-                          index: 0,
-                          selectedIndex: _sortColumnIndex,
-                          ascending: _isAscending,
-                          onSort: _onSort,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 14,
-                        child: _SortableHeader(
-                          label: l10n.dateLabel,
-                          index: 1,
-                          selectedIndex: _sortColumnIndex,
-                          ascending: _isAscending,
-                          onSort: _onSort,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 14,
-                        child: _SortableHeader(
-                          label: l10n.priceLabel,
-                          index: 2,
-                          selectedIndex: _sortColumnIndex,
-                          ascending: _isAscending,
-                          onSort: _onSort,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 14,
-                        child: _SortableHeader(
-                          label: l10n.diffLabel,
-                          index: 3,
-                          selectedIndex: _sortColumnIndex,
-                          ascending: _isAscending,
-                          onSort: _onSort,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 14,
-                        child: _SortableHeader(
-                          label: l10n.varLabel,
-                          index: 4,
-                          selectedIndex: _sortColumnIndex,
-                          ascending: _isAscending,
-                          onSort: _onSort,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 14,
-                        child: _SortableHeader(
-                          label: 'Rendimiento',
-                          index: 5,
-                          selectedIndex: _sortColumnIndex,
-                          ascending: _isAscending,
-                          onSort: _onSort,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Container(
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: tableWidth,
+              child: Column(
+                children: [
+                  Container(
                     decoration: BoxDecoration(
+                      color: Colors.white10,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(8),
+                      ),
                       border: const Border(
+                        top: BorderSide(color: Colors.white10, width: 0.5),
                         bottom: BorderSide(color: Colors.white10, width: 0.5),
                       ),
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 8,
+                            child: _SortableHeader(
+                              label: l10n.numberLabel,
+                              index: 0,
+                              selectedIndex: _sortColumnIndex,
+                              ascending: _isAscending,
+                              onSort: _onSort,
+                            ),
+                          ),
+                          Expanded(
+                            flex: 14,
+                            child: _SortableHeader(
+                              label: l10n.dateLabel,
+                              index: 1,
+                              selectedIndex: _sortColumnIndex,
+                              ascending: _isAscending,
+                              onSort: _onSort,
+                            ),
+                          ),
+                          Expanded(
+                            flex: 14,
+                            child: _SortableHeader(
+                              label: l10n.priceLabel,
+                              index: 2,
+                              selectedIndex: _sortColumnIndex,
+                              ascending: _isAscending,
+                              onSort: _onSort,
+                            ),
+                          ),
+                          Expanded(
+                            flex: 14,
+                            child: _SortableHeader(
+                              label: l10n.diffLabel,
+                              index: 3,
+                              selectedIndex: _sortColumnIndex,
+                              ascending: _isAscending,
+                              onSort: _onSort,
+                            ),
+                          ),
+                          Expanded(
+                            flex: 14,
+                            child: _SortableHeader(
+                              label: l10n.varLabel,
+                              index: 4,
+                              selectedIndex: _sortColumnIndex,
+                              ascending: _isAscending,
+                              onSort: _onSort,
+                            ),
+                          ),
+                          Expanded(
+                            flex: 18,
+                            child: _SortableHeader(
+                              label: 'Rendimiento',
+                              index: 5,
+                              selectedIndex: _sortColumnIndex,
+                              ascending: _isAscending,
+                              onSort: _onSort,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      itemCount: tableData.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1, color: Colors.white10),
-                      itemBuilder: (context, index) =>
-                          _buildRow(context, tableData[index]),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: const Border(
+                            bottom: BorderSide(
+                              color: Colors.white10,
+                              width: 0.5,
+                            ),
+                          ),
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(8),
+                          ),
+                        ),
+                        child: ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: tableData.length,
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1, color: Colors.white10),
+                          itemBuilder: (context, index) =>
+                              _buildRow(context, tableData, index),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
+      persistentFooterDecoration: BoxDecoration(color: Colors.black54),
+      persistentFooterButtons: _selectedPriceDates.isEmpty
+          ? null
+          : [
+              Row(
+                mainAxisAlignment: .spaceEvenly,
+                children: [
+                  FilledButton.icon(
+                    onPressed: _isDeleting
+                        ? null
+                        : () {
+                            setState(() {
+                              _selectedPriceDates.clear();
+                            });
+                          },
+                    icon: const Icon(Icons.check_box_outline_blank),
+                    label: Text('Desmarcar'),
+                  ),
+                  FilledButton.icon(
+                    onPressed: _isDeleting ? null : _confirmAndDeleteSelected,
+                    icon: const Icon(Icons.delete_outline),
+                    label: Text(l10n.delete),
+                  ),
+                ],
+              ),
+            ],
     );
   }
 
-  Widget _buildRow(BuildContext context, Map<String, dynamic> row) {
-    final l10n = AppLocalizations.of(context)!;
+  Widget _buildRow(
+    BuildContext context,
+    List<Map<String, dynamic>> rows,
+    int index,
+  ) {
+    final row = rows[index];
     final absVar = row['absVar'] as double?;
     final variation = row['variation'] as double?;
     final date = row['date'] as DateTime;
@@ -268,167 +473,97 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
     double partes = FinancialCalculator.calculateUnitsAt(widget.fund, date);
     final precio = row['price'] as double;
     final rendimiento = precio * partes;
+    final selected = _selectedPriceDates.contains(_day(date));
 
-    return Dismissible(
-      key: ValueKey(date.toString()),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        color: Colors.redAccent,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        child: const Icon(Icons.delete, color: Colors.white, size: 20),
-      ),
-      confirmDismiss: (direction) => showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(l10n.deletePriceTitle),
-          content: Text(
-            l10n.deletePriceConfirm(DateFormat('dd/MM/yyyy').format(date)),
+    return InkWell(
+      onTap: () => _onRowTap(index, rows),
+      onLongPress: () => _onRowLongPress(date),
+      child: Container(
+        color: selected ? Colors.redAccent.shade100 : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 8,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Text(
+                    row['index'].toString(),
+                    style: const TextStyle(fontSize: 10, color: Colors.white24),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 14,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Text(
+                    fecha.substring(0, fecha.length - 3) +
+                        fecha.substring(fecha.length - 1),
+                    //DateFormat('dd/MM/yy').format(date),
+                    style: const TextStyle(fontSize: 11, color: Colors.white70),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 14,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Text(
+                    widget.priceFormat.format(row['price']),
+                    style: const TextStyle(fontSize: 11, color: Colors.white),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 14,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Text(
+                    absVar == null
+                        ? '-'
+                        : '${absVar > 0 ? '+' : ''}${widget.priceFormat.format(absVar)}',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 14,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Text(
+                    variation == null
+                        ? '-'
+                        : '${variation > 0 ? '+' : ''}${widget.percentFormat.format(variation)}%',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 18,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Text(
+                    widget.smartFormat.format(rendimiento),
+                    style: TextStyle(
+                      //color: color,
+                      //fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(
-                l10n.delete,
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        ),
-      ),
-      onDismissed: (_) async {
-        final point = PricePoint(date, row['price'] as double);
-        final key = '${widget.fund.isin}|${date.toIso8601String()}';
-        _pendingDeletedPricePoints.add(key);
-        setState(() {});
-        try {
-          await context.read<FundProvider>().deletePricePoint(
-            widget.fund.isin,
-            date,
-          );
-          _pendingDeletedPricePoints.remove(key);
-          if (!context.mounted) return;
-          final snackBarController = ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.priceDeletedSuccess),
-              duration: const Duration(seconds: 4),
-              action: SnackBarAction(
-                label: l10n.undo,
-                onPressed: () async {
-                  try {
-                    await context.read<FundProvider>().restorePricePoint(
-                      widget.fund.isin,
-                      point,
-                    );
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.deletionUndone)),
-                    );
-                  } catch (_) {
-                    _showDeleteError(context);
-                  }
-                },
-              ),
-            ),
-          );
-          Future<void>.delayed(
-            const Duration(seconds: 4),
-            snackBarController.close,
-          );
-        } catch (_) {
-          _pendingDeletedPricePoints.remove(key);
-          if (!context.mounted) return;
-          setState(() {});
-          _showDeleteError(context);
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 8,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  row['index'].toString(),
-                  style: const TextStyle(fontSize: 10, color: Colors.white24),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 14,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  fecha.substring(0, fecha.length - 3) +
-                      fecha.substring(fecha.length - 1),
-                  //DateFormat('dd/MM/yy').format(date),
-                  style: const TextStyle(fontSize: 11, color: Colors.white70),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 14,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  widget.priceFormat.format(row['price']),
-                  style: const TextStyle(fontSize: 11, color: Colors.white),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 14,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  absVar == null
-                      ? '-'
-                      : '${absVar > 0 ? '+' : ''}${widget.priceFormat.format(absVar)}',
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 14,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  variation == null
-                      ? '-'
-                      : '${variation > 0 ? '+' : ''}${widget.percentFormat.format(variation)}%',
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 14,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  widget.smartFormat.format(rendimiento),
-                  style: TextStyle(
-                    //color: color,
-                    //fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

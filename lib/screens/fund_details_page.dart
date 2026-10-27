@@ -280,19 +280,14 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
                         onRefresh: () => provider.searchFund(fund.isin),
                         child: fund.lastValue == 0 && fund.history.isEmpty
                             ? Center(child: Text(l10n.noDataAvailable))
-                            : Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: PriceHistoryTable(
-                                  fund: fund,
-                                  priceFormat: priceFormat,
-                                  percentFormat: percentFormat,
-                                  smartFormat: smartFormat,
-                                  //dateFormat: DateFormat.yMMMd(locale),
-                                  dateFormat: DateFormat.yMd(locale),
-                                  onExported: () => setState(() {}),
-                                ),
+                            : PriceHistoryTable(
+                                fund: fund,
+                                priceFormat: priceFormat,
+                                percentFormat: percentFormat,
+                                smartFormat: smartFormat,
+                                //dateFormat: DateFormat.yMMMd(locale),
+                                dateFormat: DateFormat.yMd(locale),
+                                onExported: () => setState(() {}),
                               ),
                       ),
                       FundMarketTab(fund: fund),

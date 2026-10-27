@@ -665,7 +665,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String deletePricesConfirm(int count) {
+    return 'Do you want to delete the $count selected records?';
+  }
+
+  @override
   String get priceDeletedSuccess => 'Price deleted successfully';
+
+  @override
+  String pricesDeletedSuccess(int count) {
+    return 'Successfully deleted $count prices';
+  }
 
   @override
   String get undo => 'Undo';

@@ -52,6 +52,49 @@ void main() {
     expect(storedFund.history.map((point) => point.date), [firstDate]);
   });
 
+  test(
+    'eliminar y restaurar varios precios conserva el valor vigente',
+    () async {
+      final dates = [
+        DateTime(2026, 9, 1),
+        DateTime(2026, 9, 2),
+        DateTime(2026, 9, 3),
+      ];
+      final points = [
+        PricePoint(dates[0], 10),
+        PricePoint(dates[1], 20),
+        PricePoint(dates[2], 30),
+      ];
+      await DatabaseService.saveFund(
+        FundData(
+          isin: 'BATCH',
+          symbol: 'BAT',
+          name: 'Batch Test Fund',
+          lastValue: 30,
+          currency: 'EUR',
+          date: dates.last,
+          history: points,
+        ),
+      );
+
+      await DatabaseService.deletePricePoints('BATCH', dates.sublist(1));
+
+      var storedFund = await DatabaseService.getFund('BATCH');
+      expect(storedFund!.history.map((point) => point.date), [dates.first]);
+      expect(storedFund.lastValue, 10);
+
+      await DatabaseService.restorePricePoints('BATCH', points.sublist(1));
+
+      storedFund = await DatabaseService.getFund('BATCH');
+      expect(storedFund!.history.map((point) => point.date), dates);
+      expect(
+        storedFund.history.map((point) => point.price),
+        points.map((point) => point.price),
+      );
+      expect(storedFund.lastValue, 30);
+    },
+  );
+
   test('guardar un fondo persiste sus operaciones', () async {
     final date = DateTime(2026, 9, 2);
     final fund = FundData(

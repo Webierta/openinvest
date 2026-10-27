@@ -1298,11 +1298,23 @@ abstract class AppLocalizations {
   /// **'¿Deseas eliminar el registro del día {date}?'**
   String deletePriceConfirm(String date);
 
+  /// No description provided for @deletePricesConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Deseas eliminar los {count} registros seleccionados?'**
+  String deletePricesConfirm(int count);
+
   /// No description provided for @priceDeletedSuccess.
   ///
   /// In es, this message translates to:
   /// **'Precio eliminado correctamente'**
   String get priceDeletedSuccess;
+
+  /// No description provided for @pricesDeletedSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Se eliminaron correctamente {count} precios'**
+  String pricesDeletedSuccess(int count);
 
   /// No description provided for @undo.
   ///

@@ -751,7 +751,6 @@ class DatabaseService {
           where: 'id = ? AND isin = ?',
           whereArgs: [op.id, op.isin],
         );
-        // TODO: Revisar no se actualiza el traspaso de entrada en el fondo destino
         return;
       }
 
@@ -859,18 +858,30 @@ class DatabaseService {
   }
 
   static Future<void> deletePricePoint(String isin, DateTime date) async {
+    await deletePricePoints(isin, [date]);
+  }
+
+  static Future<void> deletePricePoints(
+    String isin,
+    Iterable<DateTime> dates,
+  ) async {
+    final normalizedDates = dates
+        .map(
+          (date) => DateTime(date.year, date.month, date.day).toIso8601String(),
+        )
+        .toSet()
+        .toList();
+    if (normalizedDates.isEmpty) return;
+
     final db = await database;
-    final String pDate = DateTime(
-      date.year,
-      date.month,
-      date.day,
-    ).toIso8601String();
     await db.transaction((txn) async {
-      await txn.delete(
-        'prices',
-        where: 'isin = ? AND date = ?',
-        whereArgs: [isin, pDate],
-      );
+      for (final date in normalizedDates) {
+        await txn.delete(
+          'prices',
+          where: 'isin = ? AND date = ?',
+          whereArgs: [isin, date],
+        );
+      }
 
       final remaining = await txn.query(
         'prices',
@@ -902,18 +913,31 @@ class DatabaseService {
   }
 
   static Future<void> restorePricePoint(String isin, PricePoint point) async {
+    await restorePricePoints(isin, [point]);
+  }
+
+  static Future<void> restorePricePoints(
+    String isin,
+    Iterable<PricePoint> points,
+  ) async {
+    final pointsToRestore = points.toList();
+    if (pointsToRestore.isEmpty) return;
+
     final db = await database;
-    final String pDate = DateTime(
-      point.date.year,
-      point.date.month,
-      point.date.day,
-    ).toIso8601String();
     await db.transaction((txn) async {
-      await txn.insert('prices', {
-        'isin': isin,
-        'date': pDate,
-        'price': point.price,
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      for (final point in pointsToRestore) {
+        final pDate = DateTime(
+          point.date.year,
+          point.date.month,
+          point.date.day,
+        ).toIso8601String();
+        await txn.insert('prices', {
+          'isin': isin,
+          'date': pDate,
+          'price': point.price,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
       final latest = await txn.query(
         'prices',
         where: 'isin = ?',

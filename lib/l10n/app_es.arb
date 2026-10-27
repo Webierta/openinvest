@@ -221,7 +221,23 @@
       }
     }
   },
+  "deletePricesConfirm": "¿Deseas eliminar los {count} registros seleccionados?",
+  "@deletePricesConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "priceDeletedSuccess": "Precio eliminado correctamente",
+  "pricesDeletedSuccess": "Se eliminaron correctamente {count} precios",
+  "@pricesDeletedSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "undo": "Deshacer",
   "deletionUndone": "Eliminación deshecha",
   "noDataAvailable": "No hay datos disponibles",
