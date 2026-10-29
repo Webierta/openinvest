@@ -426,22 +426,37 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
       ),
       persistentFooterDecoration: BoxDecoration(color: Colors.black54),
       persistentFooterButtons: _selectedPriceDates.isEmpty
-          ? null
+          ? [
+              Center(
+                child: FilledButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.add),
+                  label: Text('Añadir'),
+                ),
+              ),
+            ]
           : [
               Row(
                 mainAxisAlignment: .spaceEvenly,
                 children: [
-                  FilledButton.icon(
-                    onPressed: _isDeleting
-                        ? null
-                        : () {
-                            setState(() {
-                              _selectedPriceDates.clear();
-                            });
-                          },
-                    icon: const Icon(Icons.check_box_outline_blank),
-                    label: Text('Desmarcar'),
-                  ),
+                  if (_selectedPriceDates.length == 1)
+                    FilledButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.edit),
+                      label: Text('Editar'),
+                    )
+                  else
+                    FilledButton.icon(
+                      onPressed: _isDeleting
+                          ? null
+                          : () {
+                              setState(() {
+                                _selectedPriceDates.clear();
+                              });
+                            },
+                      icon: const Icon(Icons.check_box_outline_blank),
+                      label: Text('Desmarcar'),
+                    ),
                   FilledButton.icon(
                     onPressed: _isDeleting ? null : _confirmAndDeleteSelected,
                     icon: const Icon(Icons.delete_outline),

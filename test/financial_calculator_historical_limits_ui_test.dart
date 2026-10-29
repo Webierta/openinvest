@@ -151,28 +151,33 @@ void main() {
     await tester.pumpAndSettle();
 
     // Si la fecha está en el mes anterior, navegamos hasta ese mes.
+    // Seleccionar directamente la fecha de la primera compra.
     while (find
         .text(DateFormat.yMMMM('es_ES').format(firstBuyDate))
         .evaluate()
         .isEmpty) {
       final previousMonth = find.byIcon(Icons.chevron_left);
 
-      if (previousMonth.evaluate().isEmpty) {
-        break;
-      }
+      expect(
+        previousMonth,
+        findsWidgets,
+        reason: 'Debe poder navegarse hasta el mes de la primera compra.',
+      );
 
       await tester.tap(previousMonth.first);
       await tester.pumpAndSettle();
     }
 
-    // La fecha objetivo es dos días anterior a hoy.
-    await tester.tap(find.text('${firstBuyDate.day}').last);
+    final targetDay = find.text('${firstBuyDate.day}').last;
+    expect(targetDay, findsOneWidget);
+
+    await tester.tap(targetDay);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('25').last);
-    await tester.pumpAndSettle();
+    final acceptButton = find.text('ACEPTAR');
+    expect(acceptButton, findsOneWidget);
 
-    await tester.tap(find.text('ACEPTAR'));
+    await tester.tap(acceptButton);
     await tester.pumpAndSettle();
 
     debugPrint(
