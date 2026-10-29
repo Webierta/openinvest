@@ -38,6 +38,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
   final Set<DateTime> _selectedPriceDates = {};
   DateTime? _rangeAnchor;
   bool _isDeleting = false;
+  bool _isSaving = false;
 
   DateTime _day(DateTime date) => DateTime(date.year, date.month, date.day);
 
@@ -226,6 +227,178 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
     } finally {
       if (mounted) {
         setState(() => _isDeleting = false);
+      }
+    }
+  }
+
+  Future<void> _showPriceDialog({PricePoint? pointToEdit}) async {
+    if (_isSaving || _isDeleting) return;
+
+    final isEdit = pointToEdit != null;
+    final l10n = AppLocalizations.of(context)!;
+    final displayDateFormat = DateFormat('dd/MM/yyyy');
+
+    DateTime selectedDate = pointToEdit != null
+        ? _day(pointToEdit.date)
+        : _day(DateTime.now());
+    String priceText = pointToEdit?.price.toString() ?? '';
+    String? validationError;
+
+    final result = await showDialog<PricePoint>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(isEdit ? 'Editar precio' : 'Añadir precio'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (validationError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      validationError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.calendar_today,
+                    color: isEdit ? Colors.white70 : null,
+                  ),
+                  title: Text(l10n.dateLabel),
+                  subtitle: Text(
+                    isEdit
+                        ? displayDateFormat.format(selectedDate)
+                        : displayDateFormat.format(selectedDate),
+                  ),
+                  trailing: isEdit ? null : const Icon(Icons.edit_calendar),
+                  onTap: isEdit
+                      ? null
+                      : () async {
+                          final picked = await showDatePicker(
+                            context: dialogContext,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(1970),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null && dialogContext.mounted) {
+                            setDialogState(() {
+                              validationError = null;
+                              selectedDate = _day(picked);
+                            });
+                          }
+                        },
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  autofocus: true,
+                  initialValue: priceText,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: l10n.priceLabel,
+                    hintText: '0.00',
+                    suffixText: widget.fund.currency.isNotEmpty
+                        ? widget.fund.currency
+                        : null,
+                  ),
+                  onChanged: (value) {
+                    priceText = value;
+                    if (validationError != null) {
+                      setDialogState(() => validationError = null);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final price = double.tryParse(
+                  priceText.trim().replaceAll(',', '.'),
+                );
+                if (price == null || price <= 0 || !price.isFinite) {
+                  setDialogState(() {
+                    validationError = 'Introduce un precio válido mayor que 0.';
+                  });
+                  return;
+                }
+
+                if (!isEdit) {
+                  final exists = widget.fund.history.any(
+                    (p) => _day(p.date) == _day(selectedDate),
+                  );
+                  if (exists) {
+                    setDialogState(() {
+                      validationError =
+                          'Ya existe un precio para esta fecha. Usa Editar si deseas modificarlo.';
+                    });
+                    return;
+                  }
+                }
+
+                Navigator.pop(dialogContext, PricePoint(selectedDate, price));
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await context.read<FundProvider>().savePricePoint(
+        widget.fund.isin,
+        result,
+      );
+      if (!mounted) return;
+
+      if (isEdit) {
+        setState(() {
+          _selectedPriceDates.clear();
+          _rangeAnchor = null;
+        });
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEdit
+                ? 'Precio actualizado correctamente'
+                : 'Precio añadido correctamente',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEdit
+                ? 'Error al actualizar el precio'
+                : 'Error al guardar el precio',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
     }
   }
@@ -429,7 +602,9 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
           ? [
               Center(
                 child: FilledButton.icon(
-                  onPressed: () {},
+                  onPressed: (_isDeleting || _isSaving)
+                      ? null
+                      : () => _showPriceDialog(),
                   icon: const Icon(Icons.add),
                   label: Text('Añadir'),
                 ),
@@ -441,13 +616,22 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                 children: [
                   if (_selectedPriceDates.length == 1)
                     FilledButton.icon(
-                      onPressed: () {},
+                      onPressed: (_isDeleting || _isSaving)
+                          ? null
+                          : () {
+                              final selectedDay = _selectedPriceDates.single;
+                              final point = widget.fund.history.firstWhere(
+                                (p) => _day(p.date) == selectedDay,
+                                orElse: () => PricePoint(selectedDay, 0.0),
+                              );
+                              _showPriceDialog(pointToEdit: point);
+                            },
                       icon: const Icon(Icons.edit),
                       label: Text('Editar'),
                     )
                   else
                     FilledButton.icon(
-                      onPressed: _isDeleting
+                      onPressed: (_isDeleting || _isSaving)
                           ? null
                           : () {
                               setState(() {
@@ -458,7 +642,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                       label: Text('Desmarcar'),
                     ),
                   FilledButton.icon(
-                    onPressed: _isDeleting ? null : _confirmAndDeleteSelected,
+                    onPressed: (_isDeleting || _isSaving) ? null : _confirmAndDeleteSelected,
                     icon: const Icon(Icons.delete_outline),
                     label: Text(l10n.delete),
                   ),

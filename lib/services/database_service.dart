@@ -959,6 +959,47 @@ class DatabaseService {
     });
   }
 
+  // GUARDAR O EDITAR PRECIO
+  static Future<void> savePricePoint(String isin, PricePoint point) async {
+    final pDate = DateTime(
+      point.date.year,
+      point.date.month,
+      point.date.day,
+    ).toIso8601String();
+
+    final db = await database;
+    await db.transaction((txn) async {
+      // 1. Inserta o reemplaza el registro de precio
+      await txn.insert('prices', {
+        'isin': isin,
+        'date': pDate,
+        'price': point.price,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+
+      // 2. Consulta el registro con la fecha más reciente
+      final latest = await txn.query(
+        'prices',
+        where: 'isin = ?',
+        whereArgs: [isin],
+        orderBy: 'date DESC',
+        limit: 1,
+      );
+
+      // 3. Sincroniza last_value y last_update en la tabla funds
+      if (latest.isNotEmpty) {
+        await txn.update(
+          'funds',
+          {
+            'last_value': latest.first['price'],
+            'last_update': latest.first['date'],
+          },
+          where: 'isin = ?',
+          whereArgs: [isin],
+        );
+      }
+    });
+  }
+
   static Future<List<FundData>> getPortfolio() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('funds');

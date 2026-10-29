@@ -1591,6 +1591,22 @@ class FundProvider with ChangeNotifier {
   // =============================================================
   // === OPERACIONES DE PRECIOS ===
 
+  Future<void> savePricePoint(String isin, PricePoint point) async {
+    isLoading = true;
+    _clearError();
+    notifyListeners();
+    try {
+      await DatabaseService.savePricePoint(isin, point);
+      await loadPortfolio();
+    } catch (error, stackTrace) {
+      _setError(_asError(error, stackTrace, type: AppErrorType.database));
+      rethrow;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> deletePricePoint(String isin, DateTime date) async {
     isLoading = true;
     _clearError();
