@@ -118,6 +118,10 @@ void main() {
     expect(result.error, isNull);
     expect(result.data, isNotNull);
     expect(result.data!.valuationSource, FundSource.yahoo);
+    expect(
+      result.data!.history.map((point) => point.source).toList(),
+      everyElement(PricePointSource.yahoo),
+    );
   });
 
   test('rechaza historiales con longitudes diferentes', () {
@@ -176,6 +180,10 @@ void main() {
     expect(result.error, isNull);
     expect(result.data?.lastValue, 12.5);
     expect(result.data?.history, isNotEmpty);
+    expect(
+      result.data!.history.map((point) => point.source).toList(),
+      everyElement(PricePointSource.yahoo),
+    );
   });
 
   test(

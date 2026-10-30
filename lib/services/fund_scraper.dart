@@ -396,6 +396,20 @@ class FundScraper {
         ? DateTime.now()
         : DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
 
+    final effectiveHistory = history.isEmpty
+        ? [
+            PricePoint(
+              DateTime(
+                effectiveDate.year,
+                effectiveDate.month,
+                effectiveDate.day,
+              ),
+              effectivePrice,
+              source: PricePointSource.yahoo,
+            ),
+          ]
+        : history;
+
     return ScrapeResult(
       data: FundData(
         isin: effectiveIsin,
@@ -408,7 +422,8 @@ class FundScraper {
           effectiveDate.month,
           effectiveDate.day,
         ),
-        history: history,
+        //history: history,
+        history: effectiveHistory,
         valuationSource: FundSource.yahoo,
       ),
     );
@@ -449,7 +464,11 @@ class FundScraper {
       }
       final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
       history.add(
-        PricePoint(DateTime(date.year, date.month, date.day), closePrice),
+        PricePoint(
+          DateTime(date.year, date.month, date.day),
+          closePrice,
+          source: PricePointSource.yahoo,
+        ),
       );
     }
     return (data: history, error: null);

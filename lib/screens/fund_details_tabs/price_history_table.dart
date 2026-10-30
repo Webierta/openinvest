@@ -349,7 +349,10 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                   PricePoint(
                     selectedDate,
                     price,
-                    source: PricePointSource.manual,
+                    source: isEdit
+                        ? pointToEdit.source
+                        : PricePointSource.manual,
+                    //source: PricePointSource.manual,
                   ),
                 );
               },
