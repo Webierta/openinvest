@@ -573,5 +573,17 @@
     }
   },
   "fundIdentityLabel": "Identidad",
-  "fundValuationLabel": "Valoración"
+  "fundValuationLabel": "Valoración",
+  "editPriceTitle": "Editar precio",
+  "addPriceTitle": "Añadir precio",
+  "priceUpdateError": "Error al actualizar el precio",
+  "priceSaveError": "Error al guardar el precio",
+  "priceAlreadyExists": "Ya existe un precio para esta fecha. Usa Editar si deseas modificarlo.",
+  "invalidPriceValue": "Introduce un precio válido mayor que 0.",
+  "priceUpdatedSuccess": "Precio actualizado correctamente",
+  "priceAddedSuccess": "Precio añadido correctamente",
+  "addButton": "Añadir",
+  "editButton": "Editar",
+  "deselectButton": "Desmarcar",
+  "performanceColumn": "Rendimiento"
 }

@@ -248,7 +248,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: Text(isEdit ? 'Editar precio' : 'Añadir precio'),
+          title: Text(isEdit ? l10n.editPriceTitle : l10n.addPriceTitle),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -331,7 +331,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                 );
                 if (price == null || price <= 0 || !price.isFinite) {
                   setDialogState(() {
-                    validationError = 'Introduce un precio válido mayor que 0.';
+                    validationError = l10n.invalidPriceValue;
                   });
                   return;
                 }
@@ -343,7 +343,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                   if (exists) {
                     setDialogState(() {
                       validationError =
-                          'Ya existe un precio para esta fecha. Usa Editar si deseas modificarlo.';
+                          l10n.priceAlreadyExists;
                     });
                     return;
                   }
@@ -379,8 +379,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         SnackBar(
           content: Text(
             isEdit
-                ? 'Precio actualizado correctamente'
-                : 'Precio añadido correctamente',
+                ? l10n.priceUpdatedSuccess
+                : l10n.priceAddedSuccess,
           ),
         ),
       );
@@ -390,8 +390,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         SnackBar(
           content: Text(
             isEdit
-                ? 'Error al actualizar el precio'
-                : 'Error al guardar el precio',
+                ? l10n.priceUpdateError
+                : l10n.priceSaveError,
           ),
           backgroundColor: Colors.redAccent,
         ),
@@ -554,7 +554,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                           Expanded(
                             flex: 18,
                             child: _SortableHeader(
-                              label: 'Rendimiento',
+                              label: l10n.performanceColumn,
                               index: 5,
                               selectedIndex: _sortColumnIndex,
                               ascending: _isAscending,
@@ -606,7 +606,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                       ? null
                       : () => _showPriceDialog(),
                   icon: const Icon(Icons.add),
-                  label: Text('Añadir'),
+                  label: Text(l10n.addButton),
                 ),
               ),
             ]
@@ -627,7 +627,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               _showPriceDialog(pointToEdit: point);
                             },
                       icon: const Icon(Icons.edit),
-                      label: Text('Editar'),
+                      label: Text(l10n.editButton),
                     )
                   else
                     FilledButton.icon(
@@ -639,7 +639,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               });
                             },
                       icon: const Icon(Icons.check_box_outline_blank),
-                      label: Text('Desmarcar'),
+                      label: Text(l10n.deselectButton),
                     ),
                   FilledButton.icon(
                     onPressed: (_isDeleting || _isSaving) ? null : _confirmAndDeleteSelected,

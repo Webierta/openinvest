@@ -41,7 +41,10 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.business_center, color: Colors.white70),
-            title: Text('Cartera', style: const TextStyle(color: Colors.white)),
+            title: Text(
+              l10n.portfolioTitle,
+              style: const TextStyle(color: Colors.white),
+            ),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(

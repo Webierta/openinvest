@@ -2923,6 +2923,78 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Valoración'**
   String get fundValuationLabel;
+
+  /// No description provided for @editPriceTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar precio'**
+  String get editPriceTitle;
+
+  /// No description provided for @addPriceTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir precio'**
+  String get addPriceTitle;
+
+  /// No description provided for @priceUpdateError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al actualizar el precio'**
+  String get priceUpdateError;
+
+  /// No description provided for @priceSaveError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al guardar el precio'**
+  String get priceSaveError;
+
+  /// No description provided for @priceAlreadyExists.
+  ///
+  /// In es, this message translates to:
+  /// **'Ya existe un precio para esta fecha. Usa Editar si deseas modificarlo.'**
+  String get priceAlreadyExists;
+
+  /// No description provided for @invalidPriceValue.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce un precio válido mayor que 0.'**
+  String get invalidPriceValue;
+
+  /// No description provided for @priceUpdatedSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Precio actualizado correctamente'**
+  String get priceUpdatedSuccess;
+
+  /// No description provided for @priceAddedSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Precio añadido correctamente'**
+  String get priceAddedSuccess;
+
+  /// No description provided for @addButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir'**
+  String get addButton;
+
+  /// No description provided for @editButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar'**
+  String get editButton;
+
+  /// No description provided for @deselectButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Desmarcar'**
+  String get deselectButton;
+
+  /// No description provided for @performanceColumn.
+  ///
+  /// In es, this message translates to:
+  /// **'Rendimiento'**
+  String get performanceColumn;
 }
 
 class _AppLocalizationsDelegate

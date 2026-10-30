@@ -1573,4 +1573,41 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get fundValuationLabel => 'Valoración';
+
+  @override
+  String get editPriceTitle => 'Editar precio';
+
+  @override
+  String get addPriceTitle => 'Añadir precio';
+
+  @override
+  String get priceUpdateError => 'Error al actualizar el precio';
+
+  @override
+  String get priceSaveError => 'Error al guardar el precio';
+
+  @override
+  String get priceAlreadyExists =>
+      'Ya existe un precio para esta fecha. Usa Editar si deseas modificarlo.';
+
+  @override
+  String get invalidPriceValue => 'Introduce un precio válido mayor que 0.';
+
+  @override
+  String get priceUpdatedSuccess => 'Precio actualizado correctamente';
+
+  @override
+  String get priceAddedSuccess => 'Precio añadido correctamente';
+
+  @override
+  String get addButton => 'Añadir';
+
+  @override
+  String get editButton => 'Editar';
+
+  @override
+  String get deselectButton => 'Desmarcar';
+
+  @override
+  String get performanceColumn => 'Rendimiento';
 }
