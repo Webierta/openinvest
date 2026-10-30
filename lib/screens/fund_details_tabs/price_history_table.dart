@@ -189,7 +189,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         _rangeAnchor = null;
       });
 
-      final snackBarController = ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             points.length == 1
@@ -215,10 +215,6 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
             },
           ),
         ),
-      );
-      Future<void>.delayed(
-        const Duration(seconds: 4),
-        snackBarController.close,
       );
     } catch (_) {
       _pendingDeletedPricePoints.removeAll(keys);
@@ -342,14 +338,20 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                   );
                   if (exists) {
                     setDialogState(() {
-                      validationError =
-                          l10n.priceAlreadyExists;
+                      validationError = l10n.priceAlreadyExists;
                     });
                     return;
                   }
                 }
 
-                Navigator.pop(dialogContext, PricePoint(selectedDate, price));
+                Navigator.pop(
+                  dialogContext,
+                  PricePoint(
+                    selectedDate,
+                    price,
+                    source: PricePointSource.manual,
+                  ),
+                );
               },
               child: Text(l10n.save),
             ),
@@ -378,9 +380,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isEdit
-                ? l10n.priceUpdatedSuccess
-                : l10n.priceAddedSuccess,
+            isEdit ? l10n.priceUpdatedSuccess : l10n.priceAddedSuccess,
           ),
         ),
       );
@@ -388,11 +388,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            isEdit
-                ? l10n.priceUpdateError
-                : l10n.priceSaveError,
-          ),
+          content: Text(isEdit ? l10n.priceUpdateError : l10n.priceSaveError),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -429,6 +425,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         'price': point.price,
         'absVar': absVar,
         'variation': variation,
+        'source': point.source,
         'rendimiento': rendimiento,
       });
     }
@@ -475,7 +472,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
       backgroundColor: Colors.transparent,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          const minTableWidth = 540.0; // 640
+          const minTableWidth = 640.0;
           final tableWidth = constraints.maxWidth < minTableWidth
               ? minTableWidth
               : constraints.maxWidth;
@@ -549,6 +546,20 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               selectedIndex: _sortColumnIndex,
                               ascending: _isAscending,
                               onSort: _onSort,
+                            ),
+                          ),
+                          Expanded(
+                            flex: 14,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Text(
+                                'Origen',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  color: Colors.white70,
+                                ),
+                              ),
                             ),
                           ),
                           Expanded(
@@ -642,7 +653,9 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                       label: Text(l10n.deselectButton),
                     ),
                   FilledButton.icon(
-                    onPressed: (_isDeleting || _isSaving) ? null : _confirmAndDeleteSelected,
+                    onPressed: (_isDeleting || _isSaving)
+                        ? null
+                        : _confirmAndDeleteSelected,
                     icon: const Icon(Icons.delete_outline),
                     label: Text(l10n.delete),
                   ),
@@ -744,6 +757,16 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
                     ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 14,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Text(
+                    (row['source'] as PricePointSource?)?.name ?? '—',
+                    style: const TextStyle(fontSize: 10, color: Colors.white70),
                   ),
                 ),
               ),

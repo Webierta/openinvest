@@ -125,14 +125,7 @@ class FundSummaryTab extends StatelessWidget {
                                   horizontal: 4,
                                   vertical: 6,
                                 ),
-                                //color: Colors.red,
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  //color: Colors.blueGrey,
-                                  // borderRadius: BorderRadius.vertical(
-                                  //   top: Radius.circular(8),
-                                  // ),
-                                ),
+                                decoration: BoxDecoration(color: Colors.red),
                                 child: Container(
                                   padding: .symmetric(vertical: 4),
                                   child: Text(
