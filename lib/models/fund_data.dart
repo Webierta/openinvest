@@ -4,19 +4,43 @@ import '../services/isin_resolver.dart';
 import '../utils/app_error.dart';
 import 'fund_cost.dart';
 
+enum PricePointSource {
+  manual,
+  cnmv,
+  yahoo,
+  morningstar,
+  queFondos,
+  financialTimes,
+  local,
+  ecb,
+}
+
 class PricePoint {
   final DateTime date;
   final double price;
+  final PricePointSource? source;
 
-  PricePoint(this.date, this.price);
+  PricePoint(this.date, this.price, {this.source});
 
   Map<String, dynamic> toJson() => {
     'date': date.toIso8601String(),
     'price': price,
+    if (source != null) 'source': source!.name,
   };
 
-  factory PricePoint.fromJson(Map<String, dynamic> json) =>
-      PricePoint(DateTime.parse(json['date']), json['price'].toDouble());
+  factory PricePoint.fromJson(Map<String, dynamic> json) {
+    final sourceName = json['source'];
+
+    return PricePoint(
+      DateTime.parse(json['date']),
+      (json['price'] as num).toDouble(),
+      source: sourceName == null
+          ? null
+          : PricePointSource.values.firstWhere(
+              (value) => value.name == sourceName,
+            ),
+    );
+  }
 }
 
 // NOTE: Implementada nueva operación: traspaso entre fondos
@@ -93,6 +117,49 @@ class FundData {
   final FundSource? valuationSource;
 
   FundData({
+    required String isin,
+    required String symbol,
+    required String name,
+    required double lastValue,
+    required String currency,
+    required DateTime date,
+    required List<PricePoint> history,
+    List<FundOperation> operations = const [],
+    double? alertMin,
+    double? alertMax,
+    double? ter,
+    double? performanceFee,
+    List<FundCostPeriod>? costPeriods,
+    List<FundCostCharge> costCharges = const [],
+    int? morningstarRating,
+    DateTime? morningstarCheckedAt,
+    DateTime? morningstarLastAttemptAt,
+    FundSource? source,
+    FundSource? valuationSource,
+  }) : this._(
+         isin: isin,
+         symbol: symbol,
+         name: name,
+         lastValue: lastValue,
+         currency: currency,
+         date: date,
+         history: history,
+         operations: operations,
+         alertMin: alertMin,
+         alertMax: alertMax,
+         ter: ter,
+         performanceFee: performanceFee,
+         costPeriods: costPeriods,
+         costCharges: costCharges,
+         morningstarRating: morningstarRating,
+         morningstarCheckedAt: morningstarCheckedAt,
+         morningstarLastAttemptAt: morningstarLastAttemptAt,
+         source: source,
+         valuationSource: valuationSource,
+         syncHistory: true,
+       );
+
+  FundData._({
     required this.isin,
     required this.symbol,
     required this.name,
@@ -100,24 +167,72 @@ class FundData {
     required this.currency,
     required this.date,
     required List<PricePoint> history,
-    List<FundOperation> operations = const [],
-    this.alertMin,
-    this.alertMax,
-    this.ter,
-    this.performanceFee,
-    List<FundCostPeriod>? costPeriods,
-    List<FundCostCharge> costCharges = const [],
-    this.morningstarRating,
-    this.morningstarCheckedAt,
-    this.morningstarLastAttemptAt,
-    this.source,
-    this.valuationSource,
-  }) : history = _syncHistory(history, lastValue, date),
+    required List<FundOperation> operations,
+    required this.alertMin,
+    required this.alertMax,
+    required this.ter,
+    required this.performanceFee,
+    required List<FundCostPeriod>? costPeriods,
+    required List<FundCostCharge> costCharges,
+    required this.morningstarRating,
+    required this.morningstarCheckedAt,
+    required this.morningstarLastAttemptAt,
+    required this.source,
+    required this.valuationSource,
+    required bool syncHistory,
+  }) : history = syncHistory
+           ? _syncHistory(history, lastValue, date)
+           : List.unmodifiable(history),
        operations = List.unmodifiable(operations),
        costPeriods = List.unmodifiable(
          costPeriods ?? _legacyCostPeriods(ter, performanceFee),
        ),
        costCharges = List.unmodifiable(costCharges);
+
+  factory FundData.fromPersistence({
+    required String isin,
+    required String symbol,
+    required String name,
+    required double lastValue,
+    required String currency,
+    required DateTime date,
+    required List<PricePoint> history,
+    List<FundOperation> operations = const [],
+    double? alertMin,
+    double? alertMax,
+    double? ter,
+    double? performanceFee,
+    List<FundCostPeriod>? costPeriods,
+    List<FundCostCharge> costCharges = const [],
+    int? morningstarRating,
+    DateTime? morningstarCheckedAt,
+    DateTime? morningstarLastAttemptAt,
+    FundSource? source,
+    FundSource? valuationSource,
+  }) {
+    return FundData._(
+      isin: isin,
+      symbol: symbol,
+      name: name,
+      lastValue: lastValue,
+      currency: currency,
+      date: date,
+      history: history,
+      operations: operations,
+      alertMin: alertMin,
+      alertMax: alertMax,
+      ter: ter,
+      performanceFee: performanceFee,
+      costPeriods: costPeriods,
+      costCharges: costCharges,
+      morningstarRating: morningstarRating,
+      morningstarCheckedAt: morningstarCheckedAt,
+      morningstarLastAttemptAt: morningstarLastAttemptAt,
+      source: source,
+      valuationSource: valuationSource,
+      syncHistory: false,
+    );
+  }
 
   // Asegura que lastValue esté en history y sea el punto más reciente para esa fecha
   static List<PricePoint> _syncHistory(
@@ -125,30 +240,15 @@ class FundData {
     double lastValue,
     DateTime date,
   ) {
-    final DateTime normalizedDate = DateTime(date.year, date.month, date.day);
-    final List<PricePoint> synced = List.from(history);
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    final synced = List<PricePoint>.from(history);
 
     if (lastValue <= 0) {
       synced.sort((a, b) => a.date.compareTo(b.date));
       return synced;
     }
 
-    /* final int existingIdx = synced.indexWhere(
-      (p) =>
-          p.date.year == normalizedDate.year &&
-          p.date.month == normalizedDate.month &&
-          p.date.day == normalizedDate.day,
-    );
-
-    if (existingIdx != -1) {
-      // Reemplazamos el punto del día con el lastValue más preciso
-      synced[existingIdx] = PricePoint(normalizedDate, lastValue);
-    } else {
-      // Si no existe el día en el historial (ej: es hoy), lo añadimos
-      synced.add(PricePoint(normalizedDate, lastValue));
-    } */
-
-    final int existingIdx = synced.indexWhere(
+    final existingIdx = synced.indexWhere(
       (p) =>
           p.date.year == normalizedDate.year &&
           p.date.month == normalizedDate.month &&
@@ -156,9 +256,16 @@ class FundData {
     );
 
     if (existingIdx == -1) {
-      // Si no hay precio histórico para ese día, añadimos la valoración.
       synced.add(PricePoint(normalizedDate, lastValue));
-    }
+    } /* else {
+      final existingPoint = synced[existingIdx];
+
+      synced[existingIdx] = PricePoint(
+        existingPoint.date,
+        lastValue,
+        source: existingPoint.source,
+      );
+    } */
 
     synced.sort((a, b) => a.date.compareTo(b.date));
     return synced;
@@ -188,18 +295,43 @@ class FundData {
     final nextLastValue = lastValue ?? this.lastValue;
     final nextDate = date ?? this.date;
 
-    final nextHistory =
-        history ??
-        this.history.map((point) {
-          final sameDay =
-              point.date.year == nextDate.year &&
-              point.date.month == nextDate.month &&
-              point.date.day == nextDate.day;
+    final nextHistory = () {
+      final updatedHistory = List<PricePoint>.from(history ?? this.history);
 
-          return sameDay ? PricePoint(point.date, nextLastValue) : point;
-        }).toList();
+      if (lastValue != null) {
+        final normalizedDate = DateTime(
+          nextDate.year,
+          nextDate.month,
+          nextDate.day,
+        );
 
-    return FundData(
+        final existingIndex = updatedHistory.indexWhere(
+          (point) =>
+              point.date.year == normalizedDate.year &&
+              point.date.month == normalizedDate.month &&
+              point.date.day == normalizedDate.day,
+        );
+
+        if (existingIndex == -1) {
+          updatedHistory.add(PricePoint(normalizedDate, nextLastValue));
+        } else if (history == null) {
+          final existingPoint = updatedHistory[existingIndex];
+
+          updatedHistory[existingIndex] = PricePoint(
+            existingPoint.date,
+            nextLastValue,
+            source: existingPoint.source,
+          );
+        }
+      }
+
+      updatedHistory.sort((a, b) => a.date.compareTo(b.date));
+
+      return updatedHistory;
+    }();
+
+    //return FundData(
+    return FundData._(
       isin: isin ?? this.isin,
       symbol: symbol ?? this.symbol,
       name: name ?? this.name,
@@ -220,6 +352,7 @@ class FundData {
           morningstarLastAttemptAt ?? this.morningstarLastAttemptAt,
       source: source ?? this.source,
       valuationSource: valuationSource ?? this.valuationSource,
+      syncHistory: false,
     );
   }
 

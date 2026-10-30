@@ -59,7 +59,7 @@ class DatabaseService {
 
     return await openDatabase(
       newPath,
-      version: 11,
+      version: 12,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE funds (
@@ -85,6 +85,7 @@ class DatabaseService {
             isin TEXT,
             date TEXT,
             price REAL,
+            source TEXT,
             PRIMARY KEY (isin, date)
           )
         ''');
@@ -202,6 +203,9 @@ class DatabaseService {
                 'valuation_source',
                 'TEXT',
               );
+            }
+            if (oldVersion < 12) {
+              await _addColumnIfNotExists(txn, 'prices', 'source', 'TEXT');
             }
           } catch (e, stackTrace) {
             // Si algo falla, la transacción se revierte automáticamente (Rollback).
@@ -656,6 +660,7 @@ class DatabaseService {
           'isin': fund.isin,
           'date': pDate,
           'price': point.price,
+          'source': point.source?.name,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
 
@@ -808,6 +813,7 @@ class DatabaseService {
           'isin': fund.isin,
           'date': date,
           'price': point.price,
+          'source': point.source?.name,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
 
@@ -935,6 +941,7 @@ class DatabaseService {
           'isin': isin,
           'date': pDate,
           'price': point.price,
+          'source': point.source?.name,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
 
@@ -974,6 +981,7 @@ class DatabaseService {
         'isin': isin,
         'date': pDate,
         'price': point.price,
+        'source': point.source?.name,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 
       // 2. Consulta el registro con la fecha más reciente
@@ -1022,8 +1030,14 @@ class DatabaseService {
         final date = DateTime.parse(pm['date']);
         final normalizedDate = DateTime(date.year, date.month, date.day);
         final key = normalizedDate.toIso8601String();
-        historyMap[key] = PricePoint(normalizedDate, pm['price']);
+        //historyMap[key] = PricePoint(normalizedDate, pm['price']);
+        historyMap[key] = PricePoint(
+          normalizedDate,
+          pm['price'],
+          source: _pricePointSourceFromDatabase(pm['source'] as String?),
+        );
       }
+
       final history = historyMap.values.toList()
         ..sort((a, b) => a.date.compareTo(b.date));
 
@@ -1070,7 +1084,7 @@ class DatabaseService {
       );
 
       funds.add(
-        FundData(
+        FundData.fromPersistence(
           isin: isin,
           symbol: m['symbol'],
           name: m['name'],
@@ -1096,6 +1110,7 @@ class DatabaseService {
           valuationSource: _fundSourceFromDatabase(
             m['valuation_source'] as String?,
           ),
+          //syncHistory: false,
         ),
       );
     }
@@ -1107,6 +1122,16 @@ class DatabaseService {
     for (final source in FundSource.values) {
       if (source.name == value) return source;
     }
+    return null;
+  }
+
+  static PricePointSource? _pricePointSourceFromDatabase(String? value) {
+    if (value == null || value.isEmpty) return null;
+
+    for (final source in PricePointSource.values) {
+      if (source.name == value) return source;
+    }
+
     return null;
   }
 
@@ -1134,8 +1159,14 @@ class DatabaseService {
       final date = DateTime.parse(pm['date']);
       final normalizedDate = DateTime(date.year, date.month, date.day);
       final key = normalizedDate.toIso8601String();
-      historyMap[key] = PricePoint(normalizedDate, pm['price']);
+      //historyMap[key] = PricePoint(normalizedDate, pm['price']);
+      historyMap[key] = PricePoint(
+        normalizedDate,
+        pm['price'],
+        source: _pricePointSourceFromDatabase(pm['source'] as String?),
+      );
     }
+
     final history = historyMap.values.toList()
       ..sort((a, b) => a.date.compareTo(b.date));
 
@@ -1181,7 +1212,8 @@ class DatabaseService {
       orderBy: 'date DESC, id DESC',
     );
 
-    return FundData(
+    //return FundData(
+    return FundData.fromPersistence(
       isin: isin,
       symbol: m['symbol'],
       name: m['name'],
@@ -1207,6 +1239,7 @@ class DatabaseService {
       valuationSource: _fundSourceFromDatabase(
         m['valuation_source'] as String?,
       ),
+      //syncHistory: false,
     );
   }
 
