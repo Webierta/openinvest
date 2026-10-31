@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
+import '../models/fund_data.dart';
 import '../models/scraper_result.dart';
 
 // scrape: Obtiene nombre, VL, fecha y divisa a partir de ISIN
@@ -22,26 +23,31 @@ class QueFondosScraper {
   static const String _baseUrl =
       'https://www1.quefondos.com/m/es/fondos/ficha/index.html';
 
-  Future<http.Response?> _getResponse(String isin) async {
+  static const String _desktopBaseUrl =
+      'https://www.quefondos.com/es/fondos/ficha/index.html';
+
+  Future<http.Response?> _getResponse(String isin, {bool mobile = true}) async {
     if (isin.trim().isEmpty) return null;
 
     try {
-      final uri = Uri.parse(_baseUrl).replace(queryParameters: {'isin': isin});
+      final baseUrl = mobile ? _baseUrl : _desktopBaseUrl;
+      final uri = Uri.parse(baseUrl).replace(queryParameters: {'isin': isin});
+
       final response = await _client.get(
         uri,
         headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 '
-              '(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36',
+          'User-Agent': mobile
+              ? 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 '
+                    '(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36'
+              : 'Mozilla/5.0 (X11; Linux x86_64) '
+                    'AppleWebKit/537.36 (KHTML, like Gecko) '
+                    'Chrome/120.0.0.0 Safari/537.36',
           'Accept':
               'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
       );
-      if (response.statusCode == 200) {
-        return response;
-      } else {
-        return null;
-      }
+
+      return response.statusCode == 200 ? response : null;
     } catch (e) {
       return null;
     }
@@ -164,6 +170,100 @@ class QueFondosScraper {
     result = result.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (result.isEmpty) return null;
     return result;
+  }
+
+  Future<List<PricePoint>> scrapeHistory(
+    String isin, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    //final response = await _getResponse(isin);
+    final response = await _getResponse(isin, mobile: false);
+    if (response == null) return [];
+
+    try {
+      final document = html_parser.parse(utf8.decode(response.bodyBytes));
+
+      //final bodyText = document.body?.text ?? '';
+
+      // Buscamos el script que contiene la serie histórica.
+      final scripts = document.querySelectorAll('script');
+
+      String? historyJson;
+
+      for (final script in scripts) {
+        final content = script.text;
+
+        final match = RegExp(
+          r'\bvar\s+fondo\s*=\s*(\[\[.*?\]\])\s*;',
+          dotAll: true,
+        ).firstMatch(content);
+
+        if (match != null) {
+          historyJson = match.group(1);
+          break;
+        }
+      }
+
+      if (historyJson == null) return [];
+
+      final decoded = jsonDecode(historyJson);
+      if (decoded is! List) return [];
+
+      final points = <PricePoint>[];
+
+      for (final entry in decoded) {
+        if (entry is! List || entry.length != 2) continue;
+
+        final dateText = entry[0];
+        final rawPrice = entry[1];
+
+        if (dateText is! String || rawPrice is! num) continue;
+
+        final price = rawPrice.toDouble();
+        if (!price.isFinite || price <= 0) continue;
+
+        final parts = dateText.split('/');
+        if (parts.length != 3) continue;
+
+        final month = int.tryParse(parts[0]);
+        final day = int.tryParse(parts[1]);
+        final year = int.tryParse(parts[2]);
+
+        if (month == null || day == null || year == null) continue;
+
+        final date = DateTime(year, month, day);
+
+        if (date.year != year || date.month != month || date.day != day) {
+          continue;
+        }
+
+        final normalizedDate = DateTime(year, month, day);
+
+        if (startDate != null &&
+            normalizedDate.isBefore(
+              DateTime(startDate.year, startDate.month, startDate.day),
+            )) {
+          continue;
+        }
+
+        if (endDate != null &&
+            normalizedDate.isAfter(
+              DateTime(endDate.year, endDate.month, endDate.day),
+            )) {
+          continue;
+        }
+
+        points.add(
+          PricePoint(normalizedDate, price, source: PricePointSource.queFondos),
+        );
+      }
+
+      points.sort((a, b) => a.date.compareTo(b.date));
+      return points;
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<({String? category, int? rating})> scrapeVdos(String isin) async {

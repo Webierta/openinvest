@@ -755,7 +755,6 @@ class FundProvider with ChangeNotifier {
       print('LF-71 searchFund exception: $error');
       // ignore: avoid_print
       print(stackTrace);
-
       lastError = _asError(error, stackTrace);
       return false;
     } finally {
@@ -778,13 +777,23 @@ class FundProvider with ChangeNotifier {
       final result = await _fundRangeFetcher(isin.toUpperCase(), range);
       final fetchedFund = result.data;
 
-      if (fetchedFund == null) {
+      // Recuperamos el fondo existente incluso si Yahoo no devuelve
+      // ningún FundData.
+      final existingFund = await DatabaseService.getFund(
+        fetchedFund?.isin ?? isin.toUpperCase(),
+      );
+
+      // Si Yahoo no devuelve datos, necesitamos un fondo existente
+      // para poder conservar sus metadatos y demás información.
+      final baseFund = fetchedFund ?? existingFund;
+
+      if (baseFund == null) {
         lastError = result.error;
         return false;
       }
 
-      final validFetchedHistory =
-          fetchedFund.history
+      final validYahooHistory =
+          (fetchedFund?.history ?? <PricePoint>[])
               .where(
                 (point) =>
                     point.price.isFinite &&
@@ -795,16 +804,30 @@ class FundProvider with ChangeNotifier {
               .toList()
             ..sort((a, b) => a.date.compareTo(b.date));
 
-      if (validFetchedHistory.isEmpty) {
-        final existingFund = await DatabaseService.getFund(fetchedFund.isin);
+      // Yahoo es la fuente principal. Solo si no devuelve ningún
+      // precio válido consultamos el historial mensual de QueFondos.
+      final hasYahooHistory = validYahooHistory.isNotEmpty;
 
+      final validFetchedHistory = hasYahooHistory
+          ? validYahooHistory
+          : await QueFondosScraper(client: _getHttpClient())
+                .scrapeHistory(
+                  baseFund.isin,
+                  startDate: range.start,
+                  endDate: range.end,
+                )
+                .timeout(HttpConfig.timeout);
+
+      if (validFetchedHistory.isEmpty) {
         if (existingFund == null) {
           return false;
         }
 
-        // Compatibilidad con una respuesta que contiene un único precio cero:
-        // se considera procesada, pero no se modifica el fondo persistido.
-        if (fetchedFund.history.length == 1 &&
+        // Compatibilidad con una respuesta de Yahoo que contiene
+        // un único precio cero: se considera procesada, pero no
+        // se modifica el fondo persistido.
+        if (fetchedFund != null &&
+            fetchedFund.history.length == 1 &&
             fetchedFund.history.single.price == 0.0) {
           return true;
         }
@@ -812,13 +835,15 @@ class FundProvider with ChangeNotifier {
         return false;
       }
 
-      final existingFund = await DatabaseService.getFund(fetchedFund.isin);
-
-      final fetchedLatestPoint = validFetchedHistory.fold<PricePoint?>(
-        null,
-        (latest, point) =>
-            latest == null || point.date.isAfter(latest.date) ? point : latest,
-      );
+      final fetchedLatestPoint = hasYahooHistory
+          ? validFetchedHistory.fold<PricePoint?>(
+              null,
+              (latest, point) =>
+                  latest == null || point.date.isAfter(latest.date)
+                  ? point
+                  : latest,
+            )
+          : null;
 
       final hasExistingHistory =
           existingFund?.history.any(
@@ -826,7 +851,10 @@ class FundProvider with ChangeNotifier {
           ) ??
           false;
 
+      // QueFondos solo aporta historial. Nunca actualiza la valoración
+      // vigente ni sus metadatos.
       final shouldAdoptFetchedValuation =
+          hasYahooHistory &&
           fetchedLatestPoint != null &&
           (existingFund == null ||
               !hasExistingHistory ||
@@ -836,6 +864,7 @@ class FundProvider with ChangeNotifier {
 
       for (final point in existingFund?.history ?? <PricePoint>[]) {
         final key = DateTime(point.date.year, point.date.month, point.date.day);
+
         if (point.price.isFinite && point.price > 0) {
           mergedHistory[key] = point;
         }
@@ -861,17 +890,19 @@ class FundProvider with ChangeNotifier {
         ..sort((a, b) => a.date.compareTo(b.date));
 
       final fundToSave = existingFund == null
-          ? fetchedFund
+          ? (hasYahooHistory
+                ? fetchedFund!
+                : baseFund.copyWith(history: historyToSave))
           : FundData(
-              isin: fetchedFund.isin,
+              isin: existingFund.isin,
               symbol: shouldAdoptFetchedValuation
-                  ? fetchedFund.symbol
+                  ? fetchedFund!.symbol
                   : existingFund.symbol,
               name: shouldAdoptFetchedValuation
-                  ? fetchedFund.name
+                  ? fetchedFund!.name
                   : existingFund.name,
               currency: shouldAdoptFetchedValuation
-                  ? fetchedFund.currency
+                  ? fetchedFund!.currency
                   : existingFund.currency,
               lastValue: shouldAdoptFetchedValuation
                   ? fetchedLatestPoint.price
@@ -879,7 +910,6 @@ class FundProvider with ChangeNotifier {
               date: shouldAdoptFetchedValuation
                   ? fetchedLatestPoint.date
                   : existingFund.date,
-              //history: validFetchedHistory,
               history: historyToSave,
               operations: existingFund.operations,
               alertMin: existingFund.alertMin,
@@ -893,7 +923,7 @@ class FundProvider with ChangeNotifier {
               morningstarLastAttemptAt: existingFund.morningstarLastAttemptAt,
               source: existingFund.source,
               valuationSource: shouldAdoptFetchedValuation
-                  ? (fetchedFund.valuationSource ??
+                  ? (fetchedFund!.valuationSource ??
                         existingFund.valuationSource)
                   : existingFund.valuationSource,
             );
