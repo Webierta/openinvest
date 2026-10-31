@@ -60,6 +60,21 @@ class FundSummaryTab extends StatelessWidget {
     final double distToMaxAbs = maxVal > 0 ? fund.lastValue - maxVal : 0;
     final double distToMaxRel = maxVal > 0 ? (distToMaxAbs / maxVal) * 100 : 0;
 
+    PricePoint? latestPricePoint;
+
+    for (final point in fund.history) {
+      final sameDate =
+          point.date.year == fund.date.year &&
+          point.date.month == fund.date.month &&
+          point.date.day == fund.date.day;
+
+      // Solo atribuimos el origen si fecha y valor coinciden.
+      if (sameDate && point.price == fund.lastValue) {
+        latestPricePoint = point;
+        break;
+      }
+    }
+
     if (fund.history.length > 1) {
       final previousValue = fund.history[fund.history.length - 2].price;
       if (previousValue != 0) {
@@ -83,6 +98,36 @@ class FundSummaryTab extends StatelessWidget {
           totalVarColor = Colors.redAccent[200];
         }
       }
+    }
+
+    Widget sourceBadge(String label, String source) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '$label · ',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              TextSpan(
+                text: source,
+                style: const TextStyle(fontWeight: FontWeight.normal),
+              ),
+            ],
+          ),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.72),
+            fontSize: 10,
+            letterSpacing: 0.2,
+          ),
+        ),
+      );
     }
 
     return Card(
@@ -231,33 +276,9 @@ class FundSummaryTab extends StatelessWidget {
                             ],
                           ),
                         ],
-                        if (fund.valuationSource != null) ...[
-                          const SizedBox(height: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.12),
-                              ),
-                            ),
-                            child: Text(
-                              //_valuationSourceLabel(fund.valuationSource!),
-                              fund.valuationSource!.name,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.72),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
+                      if (fund.valuationSource != null)
+                        sourceBadge('Fuente', fund.valuationSource!.name),
                     ],
                   ),
                 ],
@@ -460,6 +481,8 @@ class FundSummaryTab extends StatelessWidget {
               },
             ),
             const Divider(height: 32, color: Colors.white10),
+            if (fund.source != null)
+              sourceBadge('Fondo identificado por', fund.source!.name),
             FutureBuilder<DateTime?>(
               future: ExportService.getLastExportDate(fund.isin),
               builder: (context, snapshot) {

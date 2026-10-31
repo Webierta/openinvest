@@ -1099,6 +1099,8 @@ class FundProvider with ChangeNotifier {
         primaryResult = ScrapeResult(error: _asError(error, stackTrace));
       }
     }
+    final FundSource? identitySource =
+        primaryResult.data?.source ?? primaryResult.source;
     if (!_hasUsableNav(primaryResult.data)) {
       try {
         final ftResult = await _ftByIsinFetcher(isin);
@@ -1133,6 +1135,7 @@ class FundProvider with ChangeNotifier {
         queFondosResult,
         existingFund: existingFund,
         primaryFund: primaryFund,
+        identitySource: identitySource,
         valuationSource: FundSource.queFondos,
       );
     } catch (error, stackTrace) {
@@ -1147,6 +1150,7 @@ class FundProvider with ChangeNotifier {
           ftResult,
           existingFund: existingFund,
           primaryFund: primaryFund,
+          identitySource: identitySource,
           valuationSource: FundSource.financialTimes,
         );
         if (fallbackFund != null) scraperError = null;
@@ -1183,15 +1187,6 @@ class FundProvider with ChangeNotifier {
         );
       }
     }
-
-    /* // Evaluar Yahoo también cuando no haya un fallback válido.
-    if (primaryImprovesExisting) return primaryResult;
-
-    if (fallbackFund == null && !primaryResult.isResolved) {
-      fallbackError ??= AppError.data(
-        'QueFondos y Financial Times no devolvieron una valoración válida.',
-      );
-    } */
 
     // Evaluar Yahoo también cuando no haya un fallback válido.
     if (primaryImprovesExisting) return primaryResult;
@@ -1266,6 +1261,7 @@ class FundProvider with ChangeNotifier {
     ScraperResult? result, {
     FundData? existingFund,
     FundData? primaryFund,
+    FundSource? identitySource,
     required FundSource valuationSource,
   }) {
     if (result == null) return null;
@@ -1296,7 +1292,7 @@ class FundProvider with ChangeNotifier {
         : metadataCurrency;
     if (currency == null || currency.isEmpty) return null;
 
-    final normalizedDate = DateTime(date.year, date.month, date.day);
+    /* final normalizedDate = DateTime(date.year, date.month, date.day);
     final historyByDate = <DateTime, PricePoint>{};
     void addHistory(Iterable<PricePoint> history) {
       for (final point in history) {
@@ -1311,11 +1307,51 @@ class FundProvider with ChangeNotifier {
 
     addHistory(existingFund?.history ?? const []);
     addHistory(primaryFund?.history ?? const []);
+
     historyByDate[normalizedDate] = PricePoint(normalizedDate, value);
+    
+    final history = historyByDate.values.toList()
+      ..sort((a, b) => a.date.compareTo(b.date)); */
+
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    final historyByDate = <DateTime, PricePoint>{};
+
+    void addHistory(Iterable<PricePoint> history) {
+      for (final point in history) {
+        final pointDate = DateTime(
+          point.date.year,
+          point.date.month,
+          point.date.day,
+        );
+
+        historyByDate[pointDate] = PricePoint(
+          pointDate,
+          point.price,
+          source: point.source,
+        );
+      }
+    }
+
+    addHistory(existingFund?.history ?? const []);
+    addHistory(primaryFund?.history ?? const []);
+
+    final pricePointSource = switch (valuationSource) {
+      FundSource.queFondos => PricePointSource.queFondos,
+      FundSource.financialTimes => PricePointSource.financialTimes,
+      _ => null,
+    };
+
+    historyByDate[normalizedDate] = PricePoint(
+      normalizedDate,
+      value,
+      source: pricePointSource,
+    );
+
     final history = historyByDate.values.toList()
       ..sort((a, b) => a.date.compareTo(b.date));
 
     final officialName = result.nombre?.trim();
+
     return FundData(
       isin: isin,
       symbol: existingFund?.symbol ?? primaryFund?.symbol ?? '',
@@ -1337,7 +1373,8 @@ class FundProvider with ChangeNotifier {
       morningstarCheckedAt: metadata?.morningstarCheckedAt,
       morningstarLastAttemptAt: metadata?.morningstarLastAttemptAt,
       //source: existingFund?.source ?? primaryFund?.source ?? valuationSource,
-      source: existingFund?.source ?? primaryFund?.source,
+      //source: existingFund?.source ?? primaryFund?.source,
+      source: existingFund?.source ?? primaryFund?.source ?? identitySource,
       valuationSource: valuationSource,
     );
   }

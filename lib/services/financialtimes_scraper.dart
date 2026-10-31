@@ -28,6 +28,7 @@ class FTFundScraper {
             PricePoint(
               DateTime(parseFecha.year, parseFecha.month, parseFecha.day),
               precio,
+              source: PricePointSource.financialTimes,
             ),
           );
         }
