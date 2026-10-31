@@ -118,11 +118,11 @@ class _FundSearchPageState extends State<FundSearchPage> {
       final bool isResolved = result.isResolved;
       final bool isValid = fund.hasValidIsin;
 
-      debugPrint(
+      /* debugPrint(
         '[LF-UI-1] fund=${fund.name}, '
         'source=${fund.source}, '
         'valuationSource=${fund.valuationSource}',
-      );
+      ); */
 
       final confirm = await showDialog<bool>(
         context: context,

@@ -60,20 +60,7 @@ class FundSummaryTab extends StatelessWidget {
     final double distToMaxAbs = maxVal > 0 ? fund.lastValue - maxVal : 0;
     final double distToMaxRel = maxVal > 0 ? (distToMaxAbs / maxVal) * 100 : 0;
 
-    /* PricePoint? latestPricePoint;
-
-    for (final point in fund.history) {
-      final sameDate =
-          point.date.year == fund.date.year &&
-          point.date.month == fund.date.month &&
-          point.date.day == fund.date.day;
-
-      // Solo atribuimos el origen si fecha y valor coinciden.
-      if (sameDate && point.price == fund.lastValue) {
-        latestPricePoint = point;
-        break;
-      }
-    } */
+    
 
     if (fund.history.length > 1) {
       final previousValue = fund.history[fund.history.length - 2].price;

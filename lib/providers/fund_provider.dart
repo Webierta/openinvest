@@ -601,28 +601,12 @@ class FundProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      //final result = await _fundSearchFetcher(match);
-
-      debugPrint(
+      /* debugPrint(
         '[LF-UI-2] match=${match.name}, '
         'match.source=${match.source}, '
         'match.isin=${match.isin}',
-      );
-      final fetchedResult = await _fundSearchFetcher(match);
-
-      /* final identitySource =
-          fetchedResult.data?.source ?? fetchedResult.source ?? match.source;
-
-      final result = ScrapeResult(
-        data: fetchedResult.data == null
-            ? null
-            : fetchedResult.data!.source == null
-            ? fetchedResult.data!.copyWith(source: identitySource)
-            : fetchedResult.data,
-        error: fetchedResult.error,
-        isResolved: fetchedResult.isResolved,
-        source: fetchedResult.source ?? identitySource,
       ); */
+      final fetchedResult = await _fundSearchFetcher(match);
 
       final identitySource =
           fetchedResult.data?.source ?? fetchedResult.source ?? match.source;
@@ -656,11 +640,6 @@ class FundProvider with ChangeNotifier {
       final fund = resolvedResult.data;
       if (fund == null || !fund.hasValidIsin) return resolvedResult;
 
-      /* return await _fetchLatestFundWithFallback(
-        fund.isin,
-        primaryResult: resolvedResult,
-      ); */
-
       final latestResult = await _fetchLatestFundWithFallback(
         fund.isin,
         primaryResult: resolvedResult,
@@ -668,14 +647,6 @@ class FundProvider with ChangeNotifier {
 
       final latestFund = latestResult.data;
 
-      /* if (latestFund != null && latestFund.source == null) {
-        return ScrapeResult(
-          data: latestFund.copyWith(source: match.source),
-          error: latestResult.error,
-          isResolved: latestResult.isResolved,
-          source: latestResult.source ?? match.source,
-        );
-      } */
       if (latestFund != null &&
           latestFund.source == null &&
           match.source == FundSource.ecb) {

@@ -131,26 +131,6 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
     });
   }
 
-  /* Future<void> _undoDeletePricePoints(
-    List<PricePoint> points,
-    AppLocalizations l10n,
-  ) async {
-    try {
-      await context.read<FundProvider>().restorePricePoints(
-        widget.fund.isin,
-        points,
-      );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.deletionUndone)));
-    } catch (_) {
-      if (!mounted) return;
-      _showDeleteError(context);
-    }
-  } */
-
   Future<void> _confirmAndDeleteSelected() async {
     if (_selectedPriceDates.isEmpty || _isDeleting) return;
 
@@ -243,52 +223,6 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
           duration: const Duration(seconds: 4),
         ),
       );
-
-      /* ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            points.length == 1
-                ? l10n.priceDeletedSuccess
-                : l10n.pricesDeletedSuccess(points.length),
-          ),
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: l10n.undo,
-            onPressed: () {},
-            // onPressed: () {
-            //   _undoDeletePricePoints(points, l10n);
-            // },
-          ),
-        ),
-      ); */
-
-      /* ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            points.length == 1
-                ? l10n.priceDeletedSuccess
-                : l10n.pricesDeletedSuccess(points.length),
-          ),
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: l10n.undo,
-            onPressed: () async {
-              try {
-                await context.read<FundProvider>().restorePricePoints(
-                  widget.fund.isin,
-                  points,
-                );
-                if (!mounted) return;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(l10n.deletionUndone)));
-              } catch (_) {
-                if (!mounted) return;
-                _showDeleteError(context);
-              }
-            },
-          ),
-        ),
-      ); */
     } catch (_) {
       _pendingDeletedPricePoints.removeAll(keys);
       if (!mounted) return;
