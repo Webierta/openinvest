@@ -595,11 +595,45 @@ class FundProvider with ChangeNotifier {
       _setError(appError);
       return ScrapeResult(error: appError);
     }
+
     isLoading = true;
     _clearError();
     notifyListeners();
+
     try {
-      final result = await _fundSearchFetcher(match);
+      //final result = await _fundSearchFetcher(match);
+
+      debugPrint(
+        '[LF-UI-2] match=${match.name}, '
+        'match.source=${match.source}, '
+        'match.isin=${match.isin}',
+      );
+      final fetchedResult = await _fundSearchFetcher(match);
+
+      /* final identitySource =
+          fetchedResult.data?.source ?? fetchedResult.source ?? match.source;
+
+      final result = ScrapeResult(
+        data: fetchedResult.data == null
+            ? null
+            : fetchedResult.data!.source == null
+            ? fetchedResult.data!.copyWith(source: identitySource)
+            : fetchedResult.data,
+        error: fetchedResult.error,
+        isResolved: fetchedResult.isResolved,
+        source: fetchedResult.source ?? identitySource,
+      ); */
+
+      final identitySource =
+          fetchedResult.data?.source ?? fetchedResult.source ?? match.source;
+
+      final result = ScrapeResult(
+        data: fetchedResult.data,
+        error: fetchedResult.error,
+        isResolved: fetchedResult.isResolved,
+        source: fetchedResult.source ?? identitySource,
+      );
+
       if (result.data == null) {
         final candidateIsin = match.isin?.trim().toUpperCase();
         if (candidateIsin != null && IsinValidator.isValid(candidateIsin)) {
@@ -622,10 +656,38 @@ class FundProvider with ChangeNotifier {
       final fund = resolvedResult.data;
       if (fund == null || !fund.hasValidIsin) return resolvedResult;
 
-      return await _fetchLatestFundWithFallback(
+      /* return await _fetchLatestFundWithFallback(
+        fund.isin,
+        primaryResult: resolvedResult,
+      ); */
+
+      final latestResult = await _fetchLatestFundWithFallback(
         fund.isin,
         primaryResult: resolvedResult,
       );
+
+      final latestFund = latestResult.data;
+
+      /* if (latestFund != null && latestFund.source == null) {
+        return ScrapeResult(
+          data: latestFund.copyWith(source: match.source),
+          error: latestResult.error,
+          isResolved: latestResult.isResolved,
+          source: latestResult.source ?? match.source,
+        );
+      } */
+      if (latestFund != null &&
+          latestFund.source == null &&
+          match.source == FundSource.ecb) {
+        return ScrapeResult(
+          data: latestFund.copyWith(source: FundSource.ecb),
+          error: latestResult.error,
+          isResolved: latestResult.isResolved,
+          source: latestResult.source ?? FundSource.ecb,
+        );
+      }
+
+      return latestResult;
     } catch (error, stackTrace) {
       final appError = _asError(error, stackTrace);
       lastError = appError;

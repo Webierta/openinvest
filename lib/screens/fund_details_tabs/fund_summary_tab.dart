@@ -60,7 +60,7 @@ class FundSummaryTab extends StatelessWidget {
     final double distToMaxAbs = maxVal > 0 ? fund.lastValue - maxVal : 0;
     final double distToMaxRel = maxVal > 0 ? (distToMaxAbs / maxVal) * 100 : 0;
 
-    PricePoint? latestPricePoint;
+    /* PricePoint? latestPricePoint;
 
     for (final point in fund.history) {
       final sameDate =
@@ -73,7 +73,7 @@ class FundSummaryTab extends StatelessWidget {
         latestPricePoint = point;
         break;
       }
-    }
+    } */
 
     if (fund.history.length > 1) {
       final previousValue = fund.history[fund.history.length - 2].price;
@@ -480,9 +480,8 @@ class FundSummaryTab extends StatelessWidget {
                 return const SizedBox.shrink();
               },
             ),
+
             const Divider(height: 32, color: Colors.white10),
-            if (fund.source != null)
-              sourceBadge('Fondo identificado por', fund.source!.name),
             FutureBuilder<DateTime?>(
               future: ExportService.getLastExportDate(fund.isin),
               builder: (context, snapshot) {
@@ -527,6 +526,13 @@ class FundSummaryTab extends StatelessWidget {
                 );
               },
             ),
+            const Divider(height: 32, color: Colors.white10),
+            if (fund.source != null)
+              Row(
+                children: [
+                  sourceBadge('Fuente de identificación', fund.source!.name),
+                ],
+              ),
           ],
         ),
       ),
