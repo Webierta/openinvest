@@ -78,14 +78,14 @@ void main() {
         await tester.tap(find.byIcon(Icons.date_range));
         await tester.pumpAndSettle();
 
-        expect(find.text('Confirmación'), findsOneWidget);
+        expect(find.text('Aviso'), findsOneWidget);
         expect(find.text('Cancelar'), findsOneWidget);
         expect(find.text('Confirmar'), findsOneWidget);
 
         await tester.tap(find.text('Cancelar'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Confirmación'), findsNothing);
+        expect(find.text('Aviso'), findsNothing);
         expect(find.byType(DateRangePickerDialog), findsNothing);
         expect(tester.takeException(), isNull);
       },
@@ -99,7 +99,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.date_range));
       await tester.pumpAndSettle();
 
-      expect(find.text('Confirmación'), findsOneWidget);
+      expect(find.text('Aviso'), findsOneWidget);
 
       await tester.tap(find.text('Confirmar'));
       await tester.pumpAndSettle();
