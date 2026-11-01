@@ -183,100 +183,54 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
     final netProfit = metrics.netProfit;
     final netProfitPercent = metrics.netProfitRel;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildBalanceRow(
-          l10n.totalUnitsLabel,
-          unitsFormat.format(metrics.totalUnits),
-        ),
-        _buildBalanceRow(
-          l10n.netInvestmentLabel,
-          '${smartFormat.format(metrics.totalInvested)} ${widget.fund.currency}',
-        ),
-        _buildBalanceRow(
-          l10n.avgPurchasePriceLabel,
-          '${widget.priceFormat.format(metrics.avgPurchasePrice)} ${widget.fund.currency}',
-        ),
-        const Divider(height: 20, color: Colors.white10),
-        _buildBalanceRow(
-          l10n.currentValueLabel,
-          '${smartFormat.format(metrics.currentValue)} ${widget.fund.currency}',
-          isBold: true,
-          fontSize: 16,
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              metrics.profitAbs > 0
-                  ? l10n.grossProfitLabel
-                  : l10n.grossLossLabel,
-              style: const TextStyle(color: Colors.white70),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${widget.fund.currency}',
-                  style: TextStyle(
-                    color: profitColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  '${metrics.profitRel > 0 ? '+' : ''}${widget.percentFormat.format(metrics.profitRel)}%',
-                  style: TextStyle(
-                    color: profitColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        if (metrics.recordedExternalCosts > 0) ...[
-          const SizedBox(height: 12),
+    return Padding(
+      padding: const .all(8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildBalanceRow(
+            l10n.totalUnitsLabel,
+            unitsFormat.format(metrics.totalUnits),
+          ),
+          _buildBalanceRow(
+            l10n.netInvestmentLabel,
+            '${smartFormat.format(metrics.totalInvested)} ${widget.fund.currency}',
+          ),
+          _buildBalanceRow(
+            l10n.avgPurchasePriceLabel,
+            '${widget.priceFormat.format(metrics.avgPurchasePrice)} ${widget.fund.currency}',
+          ),
+          const Divider(height: 20, color: Colors.white10),
+          _buildBalanceRow(
+            l10n.currentValueLabel,
+            '${smartFormat.format(metrics.currentValue)} ${widget.fund.currency}',
+            isBold: true,
+            fontSize: 16,
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.realGainLabel,
-                    style: const TextStyle(
-                      color: Colors.blueAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    l10n.netProfitRecordedLabel,
-                    style: const TextStyle(color: Colors.white38, fontSize: 10),
-                  ),
-                ],
+              Text(
+                metrics.profitAbs > 0
+                    ? l10n.grossProfitLabel
+                    : l10n.grossLossLabel,
+                style: const TextStyle(color: Colors.white70),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${netProfit > 0 ? '+' : ''}${smartFormat.format(netProfit)} ${widget.fund.currency}',
+                    '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${widget.fund.currency}',
                     style: TextStyle(
-                      color: netProfit >= 0
-                          ? Colors.greenAccent[400]
-                          : Colors.redAccent[200],
+                      color: profitColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
                   Text(
-                    '${netProfitPercent > 0 ? '+' : ''}${widget.percentFormat.format(netProfitPercent)}%',
+                    '${metrics.profitRel > 0 ? '+' : ''}${widget.percentFormat.format(metrics.profitRel)}%',
                     style: TextStyle(
-                      color: netProfit >= 0
-                          ? Colors.greenAccent[400]
-                          : Colors.redAccent[200],
+                      color: profitColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -285,136 +239,190 @@ class _FundBalanceTabState extends State<FundBalanceTab> {
               ),
             ],
           ),
-        ],
-        const Divider(height: 40, color: Colors.white10),
-        Row(
-          children: [
-            Text(
-              l10n.profitabilityIndicesTitle,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: const Icon(
-                Icons.info_outline,
-                size: 16,
-                color: Colors.white38,
-              ),
-              onPressed: () => _showIndicesInfo(context),
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+          if (metrics.recordedExternalCosts > 0) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.realGainLabel,
+                      style: const TextStyle(
+                        color: Colors.blueAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      l10n.netProfitRecordedLabel,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${netProfit > 0 ? '+' : ''}${smartFormat.format(netProfit)} ${widget.fund.currency}',
+                      style: TextStyle(
+                        color: netProfit >= 0
+                            ? Colors.greenAccent[400]
+                            : Colors.redAccent[200],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      '${netProfitPercent > 0 ? '+' : ''}${widget.percentFormat.format(netProfitPercent)}%',
+                      style: TextStyle(
+                        color: netProfit >= 0
+                            ? Colors.greenAccent[400]
+                            : Colors.redAccent[200],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
-        ),
-        if (warningHistory != '')
+          const Divider(height: 40, color: Colors.white10),
           Row(
             children: [
-              Icon(Icons.warning, color: Colors.amber, size: 16),
+              Text(
+                l10n.profitabilityIndicesTitle,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
               const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Colors.white38,
+                ),
+                onPressed: () => _showIndicesInfo(context),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          if (warningHistory != '')
+            Row(
+              children: [
+                Icon(Icons.warning, color: Colors.amber, size: 16),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    warningHistory,
+                    style: TextStyle(fontSize: 11, color: Colors.white38),
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
               Expanded(
-                child: Text(
-                  warningHistory,
-                  style: TextStyle(fontSize: 11, color: Colors.white38),
+                child: _buildSimpleStat(
+                  l10n.annualizedReturnLabel,
+                  annualizedReturnStr,
+                  color: profitColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildSimpleStat(
+                  l10n.moicLabel,
+                  '${metrics.moic.toStringAsFixed(2)}x',
                 ),
               ),
             ],
           ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSimpleStat(
-                l10n.annualizedReturnLabel,
-                annualizedReturnStr,
-                color: profitColor,
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSimpleStat(l10n.twrTotalLabel, twrTotalStr),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSimpleStat(
-                l10n.moicLabel,
-                '${metrics.moic.toStringAsFixed(2)}x',
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildSimpleStat(
+                  l10n.twrAnnualizedLabel,
+                  twrAnnualizedStr,
+                  color: profitColor,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildSimpleStat(l10n.twrTotalLabel, twrTotalStr)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSimpleStat(
-                l10n.twrAnnualizedLabel,
-                twrAnnualizedStr,
-                color: profitColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSimpleStat(l10n.mwrHistoricalLabel, mwrTotalStr),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSimpleStat(
-                l10n.mwrAnnualizedLabel,
-                mwrAnnualizedStr,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSimpleStat(
-                l10n.twrRealvsInflation,
-                _isIpcLoading ? '...' : twrRealAnnualizedStr,
-                color: _getIpcColor(metrics.twrRealAnnualized),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSimpleStat(
-                l10n.mwrRealvsInflation,
-                _isIpcLoading ? '...' : mwrRealAnnualizedStr,
-                color: _getIpcColor(metrics.mwrRealAnnualized),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildSimpleStat(l10n.ageLabel, ageStr)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSimpleStat(
-                l10n.breakEvenLabel,
-                widget.priceFormat.format(metrics.avgPurchasePrice),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (ineIpcVariationStr.isNotEmpty)
-          Align(
-            alignment: Alignment.topRight,
-            child: Text(
-              l10n.inflationTotal(ineIpcVariationStr),
-              style: TextStyle(fontSize: 11, color: Colors.white54),
-            ),
+            ],
           ),
-      ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSimpleStat(l10n.mwrHistoricalLabel, mwrTotalStr),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildSimpleStat(
+                  l10n.mwrAnnualizedLabel,
+                  mwrAnnualizedStr,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSimpleStat(
+                  l10n.twrRealvsInflation,
+                  _isIpcLoading ? '...' : twrRealAnnualizedStr,
+                  color: _getIpcColor(metrics.twrRealAnnualized),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildSimpleStat(
+                  l10n.mwrRealvsInflation,
+                  _isIpcLoading ? '...' : mwrRealAnnualizedStr,
+                  color: _getIpcColor(metrics.mwrRealAnnualized),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildSimpleStat(l10n.ageLabel, ageStr)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildSimpleStat(
+                  l10n.breakEvenLabel,
+                  widget.priceFormat.format(metrics.avgPurchasePrice),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (ineIpcVariationStr.isNotEmpty)
+            Align(
+              alignment: Alignment.topRight,
+              child: Text(
+                l10n.inflationTotal(ineIpcVariationStr),
+                style: TextStyle(fontSize: 11, color: Colors.white54),
+              ),
+            ),
+        ],
+      ),
     );
   }
 

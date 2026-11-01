@@ -818,6 +818,13 @@ class FundProvider with ChangeNotifier {
                 )
                 .timeout(HttpConfig.timeout);
 
+      /* final validFetchedHistory = await FTFundScraper(client: _getHttpClient())
+          .ftHistoricalPriceFetcher(
+            isin: baseFund.isin,
+            startDate: range.start,
+            endDate: range.end,
+          ); */
+
       if (validFetchedHistory.isEmpty) {
         if (existingFund == null) {
           return false;

@@ -374,6 +374,29 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
       ),
     );
     if (picked != null) {
+      // TEST FT HISTÓRICO
+      /* try {
+        final fetcher = FTFundScraper(client: http.Client());
+        print('Obteniendo datos para $fund.isin...');
+        final historicalPrices = await fetcher.ftHistoricalPriceFetcher(
+          isin: fund.isin,
+          //startDate: picked.start,
+          //endDate: picked.end,
+          startDate: DateTime(2026, 1, 1),
+          endDate: DateTime(2026, 9, 1),
+        );
+        print('✅ Se encontraron ${historicalPrices.length} registros.\n');
+        for (var i = 0; i < 5 && i < historicalPrices.length; i++) {
+          final entry = historicalPrices[i];
+          print(
+            'Fecha: ${entry.date.toIso8601String().split('T')[0]} | Apertura: ${entry.price}',
+          );
+        }
+      } catch (e) {
+        print('❌ Error: $e');
+      } */
+      // FIN TEST
+
       await provider.searchFundByRange(fund.isin, picked);
     }
   }

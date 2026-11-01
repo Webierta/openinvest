@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:html/parser.dart' as html_parser;
@@ -235,6 +238,8 @@ class FTFundScraper {
     return null;
   }
 
+  // Este método solo recupera los últimos valores disponibles en el historial
+  // (normalmente el último mes) pero no admite rango de fechas definido por el usuario
   // https://markets.ft.com/data/funds/tearsheet/historical?s=LU2597552558:EUR
   Future<Map<String, double>?> getHistoricalPrices(String isin) async {
     if (isin.trim().isEmpty) return null;
@@ -312,5 +317,195 @@ class FTFundScraper {
     }
 
     return result.isEmpty ? null : result;
+  }
+
+  // OBTENER HISTÓRICO DE PRECIOS PARA UN RANGO DE FECHAS DEFINIDO
+  Future<List<PricePoint>> ftHistoricalPriceFetcher({
+    required String isin,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    // PASO 1: Obtener el ID numérico interno de FT (XID)
+    // a partir del ISIN: ES0127215004 -> 540766728
+    final String? securityId = await getFundXid(isin);
+    if (securityId == null || securityId.trim().isEmpty) {
+      throw Exception(
+        'No se pudo encontrar el ID del activo para el ISIN: $isin',
+      );
+    }
+    // PASO 2: Usar el XID para obtener los precios históricos
+    return await _fetchPricesByXid(securityId, startDate, endDate);
+  }
+
+  // EJECUCIÓN PASO 1. Método para obtener el xid interno de FT usando el ISIN
+  Future<String?> getFundXid(String isin) async {
+    final uri = Uri.https(
+      'markets.ft.com',
+      '/data/funds/tearsheet/historical',
+      {'s': isin},
+    );
+
+    try {
+      final response = await _client.get(uri);
+      if (response.statusCode != 200) {
+        //throw Exception('FT respondió HTTP ${response.statusCode}');
+        return null;
+      }
+      // El HTML puede incluir el JSON escapado como &quot;symbol&quot;:&quot;123...
+      final match = RegExp(r'&quot;symbol&quot;:&quot;(\d+)&quot;')
+          .firstMatch(response.body);
+      if (match == null) {
+        //throw StateError('No se encontró el XID para $isin');
+        return null;
+      }
+      return match.group(1);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // EJECUCIÓN PASO 2.
+  Future<List<PricePoint>> _fetchPricesByXid(
+    String symbol,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    if (symbol.trim().isEmpty) return [];
+
+    if (startDate.isAfter(endDate)) {
+      throw ArgumentError('La fecha inicial es posterior a la final');
+    }
+
+    String formatDate(DateTime date) {
+      final year = date.year.toString().padLeft(4, '0');
+      final month = date.month.toString().padLeft(2, '0');
+      final day = date.day.toString().padLeft(2, '0');
+      return '$year/$month/$day';
+    }
+
+    final uri = Uri.https(
+      'markets.ft.com',
+      '/data/equities/ajax/get-historical-prices',
+      {
+        'startDate': formatDate(startDate),
+        'endDate': formatDate(endDate),
+        'symbol': symbol.trim(),
+      },
+    );
+
+    try {
+      final response = await _client.get(
+        uri,
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'User-Agent':
+              'Mozilla/5.0 (X11; Linux x86_64) '
+              'AppleWebKit/537.36 (KHTML, like Gecko) '
+              'Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      );
+      if (response.statusCode != 200) return [];
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) return [];
+
+      final html = decoded['html'];
+      if (html is! String || html.isEmpty) return [];
+
+      final document = html_parser.parse(
+        '<!DOCTYPE html><html><body><table><tbody>$html</tbody></table></body></html>',
+      );
+
+      final rows = document.querySelectorAll('tr');
+
+      final pointsByDate = <DateTime, PricePoint>{};
+
+      for (final row in rows) {
+        final cells = row.querySelectorAll('td');
+
+        // Fecha + apertura + máximo + mínimo + cierre + volumen.
+        if (cells.length < 6) continue;
+
+        // Preferimos la fecha de la versión de escritorio.
+        final dateText =
+            row.querySelector('.mod-ui-hide-small-below')?.text.trim() ??
+            cells.first.text.trim();
+
+        // Ejemplo: Tuesday, September 01, 2026.
+        final dateParts = dateText.split(',');
+
+        if (dateParts.length < 2) continue;
+
+        final dateString = dateParts.skip(1).join(',').trim();
+
+        final dateMatch = RegExp(r'^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})$')
+            .firstMatch(dateString);
+
+        if (dateMatch == null) continue;
+
+        const months = {
+          'January': 1,
+          'February': 2,
+          'March': 3,
+          'April': 4,
+          'May': 5,
+          'June': 6,
+          'July': 7,
+          'August': 8,
+          'September': 9,
+          'October': 10,
+          'November': 11,
+          'December': 12,
+        };
+
+        final month = months[dateMatch.group(1)];
+        final day = int.tryParse(dateMatch.group(2)!);
+        final year = int.tryParse(dateMatch.group(3)!);
+
+        if (month == null || day == null || year == null) continue;
+
+        final date = DateTime(year, month, day);
+
+        // Evitamos fechas inválidas normalizadas por DateTime.
+        if (date.year != year || date.month != month || date.day != day) {
+          continue;
+        }
+
+        final normalizedDate = DateTime(year, month, day);
+
+        if (normalizedDate.isBefore(
+              DateTime(startDate.year, startDate.month, startDate.day),
+            ) ||
+            normalizedDate.isAfter(
+              DateTime(endDate.year, endDate.month, endDate.day),
+            )) {
+          continue;
+        }
+
+        // La quinta celda contiene el precio de cierre.
+        final closeText = cells[4].text.trim();
+        final closePrice = double.tryParse(closeText.replaceAll(',', ''));
+
+        if (closePrice == null || !closePrice.isFinite || closePrice <= 0) {
+          continue;
+        }
+
+        pointsByDate[normalizedDate] = PricePoint(
+          normalizedDate,
+          closePrice,
+          source: PricePointSource.financialTimes,
+        );
+      }
+
+      final points = pointsByDate.values.toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
+
+      return points;
+    } catch (e, stackTrace) {
+      debugPrint('[FT history] Error: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      return [];
+    }
   }
 }

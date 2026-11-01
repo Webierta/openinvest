@@ -60,8 +60,6 @@ class FundSummaryTab extends StatelessWidget {
     final double distToMaxAbs = maxVal > 0 ? fund.lastValue - maxVal : 0;
     final double distToMaxRel = maxVal > 0 ? (distToMaxAbs / maxVal) * 100 : 0;
 
-    
-
     if (fund.history.length > 1) {
       final previousValue = fund.history[fund.history.length - 2].price;
       if (previousValue != 0) {
@@ -117,411 +115,404 @@ class FundSummaryTab extends StatelessWidget {
       );
     }
 
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (fund.lastValue == 0 && fund.history.isEmpty)
-              Center(child: Text(l10n.noQuoteData))
-            else ...[
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (fund.lastValue == 0 && fund.history.isEmpty)
+            Center(child: Text(l10n.noQuoteData))
+          else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: .start,
+                  children: [
+                    Container(
+                      width: 76.0,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        mainAxisSize: .min,
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: Container(
+                              padding: const .symmetric(
+                                horizontal: 4,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(color: Colors.red),
+                              child: Container(
+                                padding: .symmetric(vertical: 4),
+                                child: Text(
+                                  () {
+                                    final full = DateFormat.yMMM(locale)
+                                        .format(fund.date);
+                                    final yearStr = fund.date.year.toString();
+                                    final shortYear = yearStr.length >= 2
+                                        ? yearStr.substring(yearStr.length - 2)
+                                        : yearStr;
+                                    return full.replaceAll(yearStr, shortYear);
+                                  }(),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: double.infinity,
+                            child: Padding(
+                              padding: const .symmetric(vertical: 6),
+                              child: Text(
+                                DateFormat.d(locale).format(fund.date),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    /* Text(
+                      l10n.navLabel,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ), */
+                    Text(
+                      '${priceFormat.format(fund.lastValue)} ${fund.currency}',
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                      ),
+                    ),
+                    if (diff != null && percent != null) ...[
+                      Row(
+                        children: [
+                          Text(
+                            '${diff > 0 ? '+' : ''}${priceFormat.format(diff)}',
+                            style: TextStyle(
+                              color: varColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '(${percent > 0 ? '+' : ''}${percentFormat.format(percent)}%)',
+                            style: TextStyle(color: varColor, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                      if (distToMaxAbs < -0.0001) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.keyboard_double_arrow_up,
+                              size: 12,
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${l10n.toHighsLabel}: ${priceFormat.format(distToMaxAbs)} (${percentFormat.format(distToMaxRel)}%)',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.3),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                    if (fund.valuationSource != null) ...[
+                      const SizedBox(height: 8),
+                      sourceBadge('Fuente', fund.valuationSource!.name),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+
+            if (totalDiff != null &&
+                totalPercent != null &&
+                oldestDate != null) ...[
+              const Divider(height: 32, color: Colors.white10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
-                    crossAxisAlignment: .start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 76.0,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          mainAxisSize: .min,
-                          children: [
-                            SizedBox(
-                              width: double.infinity,
-                              child: Container(
-                                padding: const .symmetric(
-                                  horizontal: 4,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(color: Colors.red),
-                                child: Container(
-                                  padding: .symmetric(vertical: 4),
-                                  child: Text(
-                                    () {
-                                      final full = DateFormat.yMMM(locale)
-                                          .format(fund.date);
-                                      final yearStr = fund.date.year.toString();
-                                      final shortYear = yearStr.length >= 2
-                                          ? yearStr.substring(
-                                              yearStr.length - 2,
-                                            )
-                                          : yearStr;
-                                      return full.replaceAll(
-                                        yearStr,
-                                        shortYear,
-                                      );
-                                    }(),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: double.infinity,
-                              child: Padding(
-                                padding: const .symmetric(vertical: 6),
-                                child: Text(
-                                  DateFormat.d(locale).format(fund.date),
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: Colors.black87,
-                                    fontSize: 34,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      Text(
+                        l10n.totalVariationLabel,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      Text(
+                        '${l10n.sinceLabel} ${DateFormat.yMd(locale).format(oldestDate)}',
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: Colors.white38),
                       ),
                     ],
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      /* Text(
-                        l10n.navLabel,
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ), */
                       Text(
-                        '${priceFormat.format(fund.lastValue)} ${fund.currency}',
-                        style: Theme.of(context).textTheme.displaySmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 24,
-                            ),
-                      ),
-                      if (diff != null && percent != null) ...[
-                        Row(
-                          children: [
-                            Text(
-                              '${diff > 0 ? '+' : ''}${priceFormat.format(diff)}',
-                              style: TextStyle(
-                                color: varColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              '(${percent > 0 ? '+' : ''}${percentFormat.format(percent)}%)',
-                              style: TextStyle(color: varColor, fontSize: 11),
-                            ),
-                          ],
+                        '${totalDiff > 0 ? '+' : ''}${priceFormat.format(totalDiff)} ${fund.currency}',
+                        style: TextStyle(
+                          color: totalVarColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
-                        if (distToMaxAbs < -0.0001) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.keyboard_double_arrow_up,
-                                size: 12,
-                                color: Colors.white.withValues(alpha: 0.3),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${l10n.toHighsLabel}: ${priceFormat.format(distToMaxAbs)} (${percentFormat.format(distToMaxRel)}%)',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                      if (fund.valuationSource != null)
-                        sourceBadge('Fuente', fund.valuationSource!.name),
+                      ),
+                      Text(
+                        '${totalPercent > 0 ? '+' : ''}${percentFormat.format(totalPercent)}%',
+                        style: TextStyle(
+                          color: totalVarColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
-
-              if (totalDiff != null &&
-                  totalPercent != null &&
-                  oldestDate != null) ...[
-                const Divider(height: 32, color: Colors.white10),
-                Row(
+            ],
+            const SizedBox(height: 24),
+            _buildStatsGrid(context, meanVal, maxPoint, minPoint),
+            const SizedBox(height: 16),
+            if (fund.morningstarRating != null)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.totalVariationLabel,
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                        Text(
-                          '${l10n.sinceLabel} ${DateFormat.yMd(locale).format(oldestDate)}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: Colors.white38),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${totalDiff > 0 ? '+' : ''}${priceFormat.format(totalDiff)} ${fund.currency}',
-                          style: TextStyle(
-                            color: totalVarColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        Text(
-                          '${totalPercent > 0 ? '+' : ''}${percentFormat.format(totalPercent)}%',
-                          style: TextStyle(
-                            color: totalVarColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 24),
-              _buildStatsGrid(context, meanVal, maxPoint, minPoint),
-              const SizedBox(height: 16),
-              if (fund.morningstarRating != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Morningstar Rating',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    const Text(
+                      'Morningstar Rating',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
-                      Row(
-                        children: List.generate(5, (index) {
-                          /*return Icon(
-                              index < rating ? Icons.star : Icons.star_border,
-                              color: Colors.amber,
-                              size: 18,
-                            );*/
-                          return Icon(
-                            Icons.star,
-                            color: index < fund.morningstarRating!
-                                ? Colors.amber
-                                : Colors.grey.shade700,
+                    ),
+                    Row(
+                      children: List.generate(5, (index) {
+                        /*return Icon(
+                            index < rating ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
                             size: 18,
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-            if (fund.alertMin != null || fund.alertMax != null) ...[
-              const Divider(height: 32, color: Colors.white10),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.notifications_active_outlined,
-                    size: 16,
-                    color: Colors.amberAccent,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    l10n.configuredAlertsLabel,
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              if (fund.alertMin != null)
-                _buildAlertValue(
-                  context,
-                  l10n.minLabel,
-                  fund.alertMin!,
-                  Icons.arrow_downward,
-                  Colors.redAccent[200]!,
-                ),
-              if (fund.alertMax != null)
-                _buildAlertValue(
-                  context,
-                  l10n.maxLabel,
-                  fund.alertMax!,
-                  Icons.arrow_upward,
-                  Colors.greenAccent[400]!,
-                ),
-            ],
-            FutureBuilder<String?>(
-              future: _getCnmvUrl(context),
-              builder: (context, snapshot) {
-                if (snapshot.hasData && snapshot.data != null) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 24),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => launchUrl(
-                        Uri.parse(snapshot.data!),
-                        mode: LaunchMode.externalApplication,
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.03),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.05),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFA50A37),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'CNMV',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 10,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                l10n.cnmvOfficialRegistryLabel,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            const Icon(
-                              Icons.open_in_new,
-                              size: 14,
-                              color: Colors.blueAccent,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-
-            const Divider(height: 32, color: Colors.white10),
-            FutureBuilder<DateTime?>(
-              future: ExportService.getLastExportDate(fund.isin),
-              builder: (context, snapshot) {
-                final lastExport = snapshot.data;
-                final backupPending =
-                    lastExport == null ||
-                    lastExport.isBefore(
-                      DateTime.now().subtract(const Duration(days: 30)),
-                    );
-                return Row(
-                  children: [
-                    Icon(
-                      backupPending
-                          ? Icons.warning_amber_outlined
-                          : Icons.cloud_done_outlined,
-                      size: 14,
-                      color: backupPending
-                          ? Colors.amberAccent
-                          : Colors.greenAccent[400],
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        backupPending
-                            ? lastExport == null
-                                  ? l10n.noBackupLabel
-                                  : l10n.oldBackupLabel
-                            : l10n.lastBackupLabel(
-                                DateFormat.yMd(locale)
-                                    .add_Hm()
-                                    .format(lastExport),
-                              ),
-                        style: TextStyle(
-                          color: backupPending
-                              ? Colors.amberAccent
-                              : Colors.white38,
-                          fontSize: 11,
-                        ),
-                      ),
+                          );*/
+                        return Icon(
+                          Icons.star,
+                          color: index < fund.morningstarRating!
+                              ? Colors.amber
+                              : Colors.grey.shade700,
+                          size: 18,
+                        );
+                      }),
                     ),
                   ],
-                );
-              },
-            ),
-            const Divider(height: 32, color: Colors.white10),
-            if (fund.source != null)
-              Row(
-                children: [
-                  sourceBadge('Fuente de identificación', fund.source!.name),
-                ],
+                ),
               ),
           ],
-        ),
+          if (fund.alertMin != null || fund.alertMax != null) ...[
+            const Divider(height: 32, color: Colors.white10),
+            Row(
+              children: [
+                const Icon(
+                  Icons.notifications_active_outlined,
+                  size: 16,
+                  color: Colors.amberAccent,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  l10n.configuredAlertsLabel,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (fund.alertMin != null)
+              _buildAlertValue(
+                context,
+                l10n.minLabel,
+                fund.alertMin!,
+                Icons.arrow_downward,
+                Colors.redAccent[200]!,
+              ),
+            if (fund.alertMax != null)
+              _buildAlertValue(
+                context,
+                l10n.maxLabel,
+                fund.alertMax!,
+                Icons.arrow_upward,
+                Colors.greenAccent[400]!,
+              ),
+          ],
+          FutureBuilder<String?>(
+            future: _getCnmvUrl(context),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data != null) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => launchUrl(
+                      Uri.parse(snapshot.data!),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFA50A37),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'CNMV',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 10,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              l10n.cnmvOfficialRegistryLabel,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.open_in_new,
+                            size: 14,
+                            color: Colors.blueAccent,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+
+          const Divider(height: 32, color: Colors.white10),
+          FutureBuilder<DateTime?>(
+            future: ExportService.getLastExportDate(fund.isin),
+            builder: (context, snapshot) {
+              final lastExport = snapshot.data;
+              final backupPending =
+                  lastExport == null ||
+                  lastExport.isBefore(
+                    DateTime.now().subtract(const Duration(days: 30)),
+                  );
+              return Row(
+                children: [
+                  Icon(
+                    backupPending
+                        ? Icons.warning_amber_outlined
+                        : Icons.cloud_done_outlined,
+                    size: 14,
+                    color: backupPending
+                        ? Colors.amberAccent
+                        : Colors.greenAccent[400],
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      backupPending
+                          ? lastExport == null
+                                ? l10n.noBackupLabel
+                                : l10n.oldBackupLabel
+                          : l10n.lastBackupLabel(
+                              DateFormat.yMd(locale)
+                                  .add_Hm()
+                                  .format(lastExport),
+                            ),
+                      style: TextStyle(
+                        color: backupPending
+                            ? Colors.amberAccent
+                            : Colors.white38,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const Divider(height: 32, color: Colors.white10),
+          if (fund.source != null)
+            Row(
+              children: [
+                sourceBadge('Fuente de identificación', fund.source!.name),
+              ],
+            ),
+        ],
       ),
     );
   }
