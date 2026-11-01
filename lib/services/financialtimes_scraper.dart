@@ -10,7 +10,15 @@ import '../models/scraper_result.dart';
 
 class FTFundScraper {
   final http.Client _client;
-  FTFundScraper({required this._client});
+  final bool _ownsClient;
+
+  FTFundScraper({http.Client? client})
+    : _client = client ?? http.Client(),
+      _ownsClient = client == null;
+
+  void close() {
+    if (_ownsClient) _client.close();
+  }
 
   static const String baseUrl =
       'https://markets.ft.com/data/funds/tearsheet/summary';

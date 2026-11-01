@@ -324,19 +324,27 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
     );
   }
 
-  Future<bool> _showConfirmDialog(BuildContext context) async {
+  Future<bool> _showConfirmDialog(
+    BuildContext context,
+    FundSource? fundSource,
+  ) async {
+    String content =
+        'Este fondo ha obtenido su valor desde QueFondos, una fuente que '
+        'solo proporciona un precio mensual en las cotizaciones históricas.\n\n'
+        'Tenlo presente al seleccionar el periodo a buscar. ¿Continuar?';
+    if (fundSource == FundSource.financialTimes) {
+      content =
+          'Este fondo ha obtenido su valor desde Financial Times, una fuente que '
+          'proporciona un rango máximo de un año en las cotizaciones históricas.\n\n'
+          'Tenlo presente al seleccionar el periodo a buscar. ¿Continuar?';
+    }
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirmación'),
-          content: const Text(
-            'Este fondo ha obtenido su valor desde QueFondos, una fuente que, '
-            'en respuesta a la actualización por rango de fechas, solo proporciona '
-            'un precio mensual en las cotizaciones históricas.\n\n'
-            'Tenlo presente al seleccionar el periodo a buscar. ¿Continuar?',
-          ),
+          title: const Text('Aviso'),
+          content: Text(content),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -358,10 +366,12 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
     FundProvider provider,
     FundData fund,
   ) async {
-    if (fund.valuationSource == FundSource.queFondos) {
-      bool confirmed = await _showConfirmDialog(context);
+    if (fund.valuationSource == FundSource.queFondos ||
+        fund.valuationSource == FundSource.financialTimes) {
+      bool confirmed = await _showConfirmDialog(context, fund.valuationSource);
       if (confirmed == false) return;
     }
+
     if (!context.mounted) return;
     final picked = await showDateRangePicker(
       context: context,

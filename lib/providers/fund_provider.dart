@@ -804,26 +804,44 @@ class FundProvider with ChangeNotifier {
               .toList()
             ..sort((a, b) => a.date.compareTo(b.date));
 
-      // Yahoo es la fuente principal. Solo si no devuelve ningún
-      // precio válido consultamos el historial mensual de QueFondos.
+      // Yahoo es la fuente principal.
+      // Si no devuelve precios válidos, probamos Financial Times.
+      // QueFondos queda como último proveedor alternativo.
       final hasYahooHistory = validYahooHistory.isNotEmpty;
 
-      final validFetchedHistory = hasYahooHistory
-          ? validYahooHistory
-          : await QueFondosScraper(client: _getHttpClient())
-                .scrapeHistory(
-                  baseFund.isin,
-                  startDate: range.start,
-                  endDate: range.end,
-                )
-                .timeout(HttpConfig.timeout);
+      List<PricePoint> validFetchedHistory;
 
-      /* final validFetchedHistory = await FTFundScraper(client: _getHttpClient())
-          .ftHistoricalPriceFetcher(
-            isin: baseFund.isin,
-            startDate: range.start,
-            endDate: range.end,
-          ); */
+      if (hasYahooHistory) {
+        validFetchedHistory = validYahooHistory;
+      } else {
+        validFetchedHistory = [];
+
+        // 1. Financial Times.
+        try {
+          debugPrint('[FT history] START');
+          validFetchedHistory = await FTFundScraper(client: _getHttpClient())
+              .ftHistoricalPriceFetcher(
+                isin: baseFund.isin,
+                startDate: range.start,
+                endDate: range.end,
+              )
+              .timeout(HttpConfig.timeout);
+        } catch (error) {
+          debugPrint('[FT history] Fallo al obtener el historial: $error');
+          //debugPrintStack(stackTrace: stackTrace);
+        }
+
+        // 2. QueFondos, si Financial Times no devuelve datos.
+        if (validFetchedHistory.isEmpty) {
+          validFetchedHistory = await QueFondosScraper(client: _getHttpClient())
+              .scrapeHistory(
+                baseFund.isin,
+                startDate: range.start,
+                endDate: range.end,
+              )
+              .timeout(HttpConfig.timeout);
+        }
+      }
 
       if (validFetchedHistory.isEmpty) {
         if (existingFund == null) {
