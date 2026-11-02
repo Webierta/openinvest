@@ -422,6 +422,18 @@ void main() {
       await tester.tap(find.text(l10n.dateLabel));
       await tester.pumpAndSettle();
 
+      final targetMonth = DateFormat.yMMMM('es_ES').format(firstBuyDate);
+      while (find.text(targetMonth).evaluate().isEmpty) {
+        final previousMonth = find.byIcon(Icons.chevron_left);
+        expect(
+          previousMonth,
+          findsWidgets,
+          reason: 'Debe poder navegarse al mes de la fecha a cancelar.',
+        );
+        await tester.tap(previousMonth.first);
+        await tester.pumpAndSettle();
+      }
+
       await tester.tap(find.text('${firstBuyDate.day}').last);
       await tester.pumpAndSettle();
 

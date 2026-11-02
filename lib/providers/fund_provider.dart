@@ -108,6 +108,8 @@ class FundProvider with ChangeNotifier {
   List<FundData> portfolio = [];
   FundData? currentFund;
   bool isLoading = false;
+  bool isUpdatingPortfolio = false;
+  bool isUpdatingFundData = false;
   bool hasPortfolioLoadError = false;
   AppError? lastError;
   SortCriteria sortCriteria = SortCriteria.name;
@@ -679,6 +681,7 @@ class FundProvider with ChangeNotifier {
       return false;
     }
     isLoading = true;
+    isUpdatingFundData = true;
     _clearError();
     notifyListeners();
     try {
@@ -751,14 +754,13 @@ class FundProvider with ChangeNotifier {
       lastError = result.error;
       return false;
     } catch (error, stackTrace) {
-      // ignore: avoid_print
-      print('LF-71 searchFund exception: $error');
-      // ignore: avoid_print
-      print(stackTrace);
+      //print('LF-71 searchFund exception: $error');
+      //print(stackTrace);
       lastError = _asError(error, stackTrace);
       return false;
     } finally {
       isLoading = false;
+      isUpdatingFundData = false;
       notifyListeners();
     }
   }
@@ -770,6 +772,7 @@ class FundProvider with ChangeNotifier {
     }
 
     isLoading = true;
+    isUpdatingFundData = true;
     _clearError();
     notifyListeners();
 
@@ -964,6 +967,7 @@ class FundProvider with ChangeNotifier {
       return false;
     } finally {
       isLoading = false;
+      isUpdatingFundData = false;
       notifyListeners();
     }
   }
@@ -971,6 +975,7 @@ class FundProvider with ChangeNotifier {
   Future<void> updateAllPortfolio() async {
     if (portfolio.isEmpty || isBusy) return;
     isLoading = true;
+    isUpdatingPortfolio = true;
     _clearError();
     notifyListeners();
 
@@ -1066,6 +1071,7 @@ class FundProvider with ChangeNotifier {
       _setError(_asError(error, stackTrace, type: AppErrorType.database));
     } finally {
       isLoading = false;
+      isUpdatingPortfolio = false;
       notifyListeners();
     }
   }

@@ -197,6 +197,11 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         if (provider.portfolio.isNotEmpty) ...[
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: provider.isBusy ? null : onRefresh,
+            tooltip: l10n.updatePortfolioTooltip,
+          ),
+          /* IconButton(
             icon: provider.isBusy
                 ? const SizedBox(
                     width: 20,
@@ -209,7 +214,7 @@ class PortfolioAppbar extends StatelessWidget implements PreferredSizeWidget {
                 : const Icon(Icons.refresh),
             onPressed: provider.isBusy ? null : onRefresh,
             tooltip: l10n.updatePortfolioTooltip,
-          ),
+          ), */
         ],
         if (provider.portfolio.isNotEmpty)
           PopupMenuButton<SortCriteria>(

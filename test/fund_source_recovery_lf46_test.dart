@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:investing/models/fund_data.dart';
 import 'package:investing/providers/fund_provider.dart';
@@ -115,6 +117,66 @@ void main() {
 
     expectRecoveredFund(await DatabaseService.getFund(isin));
   });
+
+  test('updateAllPortfolio mantiene activo su estado hasta terminar', () async {
+    final existing = createFund();
+    await DatabaseService.saveFund(existing);
+    final fetchCompleter = Completer<void>();
+    final provider = FundProvider(
+      fundIsinFetcher: (_) async {
+        await fetchCompleter.future;
+        return ScrapeResult(data: existing, source: FundSource.cnmv);
+      },
+      ftByIsinFetcher: (_) async => null,
+      queFondosFetcher: (_) async => null,
+      ftFetcher: (_) async => null,
+    )..portfolio = [existing];
+
+    final update = provider.updateAllPortfolio();
+
+    expect(provider.isUpdatingPortfolio, isTrue);
+    fetchCompleter.complete();
+    await update;
+    expect(provider.isUpdatingPortfolio, isFalse);
+  });
+
+  test(
+    'las búsquedas de datos e historial mantienen activo su estado',
+    () async {
+      final existing = createFund();
+      await DatabaseService.saveFund(existing);
+      final fundFetchCompleter = Completer<void>();
+      final rangeFetchCompleter = Completer<void>();
+      final provider = FundProvider(
+        fundIsinFetcher: (_) async {
+          await fundFetchCompleter.future;
+          return ScrapeResult(data: existing, source: FundSource.cnmv);
+        },
+        fundRangeFetcher: (_, _) async {
+          await rangeFetchCompleter.future;
+          return ScrapeResult(data: existing, source: FundSource.cnmv);
+        },
+        ftByIsinFetcher: (_) async => null,
+        queFondosFetcher: (_) async => null,
+        ftFetcher: (_) async => null,
+      );
+
+      final fundUpdate = provider.searchFund(isin);
+      expect(provider.isUpdatingFundData, isTrue);
+      fundFetchCompleter.complete();
+      await fundUpdate;
+      expect(provider.isUpdatingFundData, isFalse);
+
+      final rangeUpdate = provider.searchFundByRange(
+        isin,
+        DateTimeRange(start: DateTime(2026, 9, 1), end: DateTime(2026, 10, 31)),
+      );
+      expect(provider.isUpdatingFundData, isTrue);
+      rangeFetchCompleter.complete();
+      await rangeUpdate;
+      expect(provider.isUpdatingFundData, isFalse);
+    },
+  );
 
   test('LF-46.2: updateAllPortfolio se recupera después de un fallo', () async {
     final existing = createFund();

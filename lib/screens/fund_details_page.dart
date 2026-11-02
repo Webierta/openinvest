@@ -66,261 +66,287 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
     final smartFormat = NumberFormat('#,##0.##', locale);
     final dateFormat = DateFormat.yMd(locale).add_Hm();
 
-    return DefaultTabController(
-      length: 6,
-      child: Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          title: Row(
-            children: [
-              Hero(
-                tag: 'avatar_${fund.isin}',
-                child: CircleAvatarFund(fund: fund),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Hero(
-                      tag: 'name_${fund.isin}',
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Text(
-                          fund.name,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+    return Stack(
+      children: [
+        DefaultTabController(
+          length: 6,
+          child: Scaffold(
+            extendBodyBehindAppBar: true,
+            appBar: AppBar(
+              title: Row(
+                children: [
+                  Hero(
+                    tag: 'avatar_${fund.isin}',
+                    child: CircleAvatarFund(fund: fund),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Hero(
+                          tag: 'name_${fund.isin}',
+                          child: Material(
+                            color: Colors.transparent,
+                            child: Text(
+                              fund.name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
+                        Text(
+                          fund.isin,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white38,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: provider.isBusy
+                      ? null
+                      : () => provider.searchFund(fund.isin),
+                  tooltip: l10n.updateDataTooltip,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.date_range, color: Colors.white),
+                  onPressed: provider.isBusy
+                      ? null
+                      : () => _selectDateRange(context, provider, fund),
+                  tooltip: l10n.downloadRangeTooltip,
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  tooltip: l10n.moreOptionsTooltip,
+                  onSelected: (value) =>
+                      _handleMenuAction(context, provider, fund, value),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'export',
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.save,
+                            size: 20,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(l10n.exportFundAction),
+                        ],
                       ),
                     ),
-                    Text(
-                      fund.isin,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.white38,
+                    PopupMenuItem(
+                      value: 'clear',
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.layers_clear_outlined,
+                            size: 20,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(l10n.clearDataAction),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(color: Colors.white24),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: Colors.redAccent,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            l10n.deleteFromPortfolioAction,
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              bottom: TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white38,
+                indicatorColor: Colors.white,
+                tabs: [
+                  Tab(
+                    icon: const Icon(Icons.info_outline),
+                    text: l10n.statusTab,
+                  ),
+                  Tab(
+                    icon: const Icon(Icons.account_balance_wallet_outlined),
+                    text: l10n.balanceTab,
+                  ),
+                  Tab(icon: const Icon(Icons.show_chart), text: l10n.chartTab),
+                  Tab(
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    text: l10n.monthsTab,
+                  ),
+                  Tab(icon: const Icon(Icons.table_rows), text: l10n.tableTab),
+                  Tab(
+                    icon: const Icon(Icons.account_balance),
+                    text: l10n.marketTab,
+                  ),
+                ],
+              ),
+            ),
+            body: GradientBackground(
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    if (provider.error != null || provider.info != null)
+                      ErrorBanner(
+                        message: provider.info ?? provider.error!,
+                        isInfo: provider.info != null,
+                        onRetry: provider.info != null
+                            ? null
+                            : () => provider.searchFund(fund.isin),
+                        onDismiss: provider.clearError,
+                      ),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          RefreshIndicator(
+                            onRefresh: () => provider.searchFund(fund.isin),
+                            child: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(16),
+                              child: FundSummaryTab(
+                                fund: fund,
+                                priceFormat: priceFormat,
+                                percentFormat: percentFormat,
+                                dateFormat: dateFormat,
+                              ),
+                            ),
+                          ),
+                          RefreshIndicator(
+                            onRefresh: () => provider.searchFund(fund.isin),
+                            child: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(16),
+                              child: fund.operations.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        l10n.noOperationsRegistered,
+                                        style: const TextStyle(
+                                          color: Colors.white38,
+                                        ),
+                                      ),
+                                    )
+                                  : FundBalanceTab(
+                                      fund: fund,
+                                      priceFormat: priceFormat,
+                                      percentFormat: percentFormat,
+                                    ),
+                            ),
+                          ),
+                          RefreshIndicator(
+                            onRefresh: () => provider.searchFund(fund.isin),
+                            child: fund.lastValue == 0 && fund.history.isEmpty
+                                ? Center(child: Text(l10n.noDataAvailable))
+                                : SingleChildScrollView(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.all(16),
+                                    child: FundHistoryChart(
+                                      fund: fund,
+                                      priceFormat: priceFormat,
+                                    ),
+                                  ),
+                          ),
+                          RefreshIndicator(
+                            onRefresh: () => provider.searchFund(fund.isin),
+                            child: fund.lastValue == 0 && fund.history.isEmpty
+                                ? Center(child: Text(l10n.noDataAvailable))
+                                : SingleChildScrollView(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.all(16),
+                                    child: MonthlyReturnsTab(
+                                      fund: fund,
+                                      percentFormat: percentFormat,
+                                    ),
+                                  ),
+                          ),
+                          RefreshIndicator(
+                            onRefresh: () => provider.searchFund(fund.isin),
+                            child: fund.lastValue == 0 && fund.history.isEmpty
+                                ? Center(child: Text(l10n.noDataAvailable))
+                                : PriceHistoryTable(
+                                    fund: fund,
+                                    priceFormat: priceFormat,
+                                    percentFormat: percentFormat,
+                                    smartFormat: smartFormat,
+                                    //dateFormat: DateFormat.yMMMd(locale),
+                                    dateFormat: DateFormat.yMd(locale),
+                                    onExported: () => setState(() {}),
+                                  ),
+                          ),
+                          FundMarketTab(fund: fund),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: provider.isBusy
-                  ? null
-                  : () => provider.searchFund(fund.isin),
-              tooltip: l10n.updateDataTooltip,
             ),
-            IconButton(
-              icon: const Icon(Icons.date_range, color: Colors.white),
-              onPressed: provider.isBusy
-                  ? null
-                  : () => _selectDateRange(context, provider, fund),
-              tooltip: l10n.downloadRangeTooltip,
-            ),
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
-              tooltip: l10n.moreOptionsTooltip,
-              onSelected: (value) =>
-                  _handleMenuAction(context, provider, fund, value),
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'export',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.save, size: 20, color: Colors.white70),
-                      const SizedBox(width: 12),
-                      Text(l10n.exportFundAction),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'clear',
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.layers_clear_outlined,
-                        size: 20,
-                        color: Colors.white70,
+            floatingActionButton: Builder(
+              builder: (context) {
+                final tabController = DefaultTabController.of(context);
+                return AnimatedBuilder(
+                  animation: tabController,
+                  builder: (context, _) {
+                    if (tabController.index != 0) {
+                      return const SizedBox.shrink();
+                    }
+                    return FloatingActionButton(
+                      onPressed: () =>
+                          _showAlertDialog(context, provider, fund),
+                      backgroundColor: Colors.amber,
+                      child: const Icon(
+                        Icons.add_alert_rounded,
+                        color: Colors.black87,
+                        size: 32,
                       ),
-                      const SizedBox(width: 12),
-                      Text(l10n.clearDataAction),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(color: Colors.white24),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.delete_outline,
-                        size: 20,
-                        color: Colors.redAccent,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        l10n.deleteFromPortfolioAction,
-                        style: const TextStyle(color: Colors.redAccent),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-          bottom: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white38,
-            indicatorColor: Colors.white,
-            tabs: [
-              Tab(icon: const Icon(Icons.info_outline), text: l10n.statusTab),
-              Tab(
-                icon: const Icon(Icons.account_balance_wallet_outlined),
-                text: l10n.balanceTab,
-              ),
-              Tab(icon: const Icon(Icons.show_chart), text: l10n.chartTab),
-              Tab(
-                icon: const Icon(Icons.calendar_month_outlined),
-                text: l10n.monthsTab,
-              ),
-              Tab(icon: const Icon(Icons.table_rows), text: l10n.tableTab),
-              Tab(
-                icon: const Icon(Icons.account_balance),
-                text: l10n.marketTab,
-              ),
-            ],
-          ),
-        ),
-        body: GradientBackground(
-          child: SafeArea(
-            child: Column(
-              children: [
-                if (provider.error != null || provider.info != null)
-                  ErrorBanner(
-                    message: provider.info ?? provider.error!,
-                    isInfo: provider.info != null,
-                    onRetry: provider.info != null
-                        ? null
-                        : () => provider.searchFund(fund.isin),
-                    onDismiss: provider.clearError,
-                  ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      RefreshIndicator(
-                        onRefresh: () => provider.searchFund(fund.isin),
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(16),
-                          child: FundSummaryTab(
-                            fund: fund,
-                            priceFormat: priceFormat,
-                            percentFormat: percentFormat,
-                            dateFormat: dateFormat,
-                          ),
-                        ),
-                      ),
-                      RefreshIndicator(
-                        onRefresh: () => provider.searchFund(fund.isin),
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(16),
-                          child: fund.operations.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    l10n.noOperationsRegistered,
-                                    style: const TextStyle(
-                                      color: Colors.white38,
-                                    ),
-                                  ),
-                                )
-                              : FundBalanceTab(
-                                  fund: fund,
-                                  priceFormat: priceFormat,
-                                  percentFormat: percentFormat,
-                                ),
-                        ),
-                      ),
-                      RefreshIndicator(
-                        onRefresh: () => provider.searchFund(fund.isin),
-                        child: fund.lastValue == 0 && fund.history.isEmpty
-                            ? Center(child: Text(l10n.noDataAvailable))
-                            : SingleChildScrollView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                padding: const EdgeInsets.all(16),
-                                child: FundHistoryChart(
-                                  fund: fund,
-                                  priceFormat: priceFormat,
-                                ),
-                              ),
-                      ),
-                      RefreshIndicator(
-                        onRefresh: () => provider.searchFund(fund.isin),
-                        child: fund.lastValue == 0 && fund.history.isEmpty
-                            ? Center(child: Text(l10n.noDataAvailable))
-                            : SingleChildScrollView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                padding: const EdgeInsets.all(16),
-                                child: MonthlyReturnsTab(
-                                  fund: fund,
-                                  percentFormat: percentFormat,
-                                ),
-                              ),
-                      ),
-                      RefreshIndicator(
-                        onRefresh: () => provider.searchFund(fund.isin),
-                        child: fund.lastValue == 0 && fund.history.isEmpty
-                            ? Center(child: Text(l10n.noDataAvailable))
-                            : PriceHistoryTable(
-                                fund: fund,
-                                priceFormat: priceFormat,
-                                percentFormat: percentFormat,
-                                smartFormat: smartFormat,
-                                //dateFormat: DateFormat.yMMMd(locale),
-                                dateFormat: DateFormat.yMd(locale),
-                                onExported: () => setState(() {}),
-                              ),
-                      ),
-                      FundMarketTab(fund: fund),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        floatingActionButton: Builder(
-          builder: (context) {
-            final tabController = DefaultTabController.of(context);
-            return AnimatedBuilder(
-              animation: tabController,
-              builder: (context, _) {
-                if (tabController.index != 0) {
-                  return const SizedBox.shrink();
-                }
-                return FloatingActionButton(
-                  onPressed: () => _showAlertDialog(context, provider, fund),
-                  backgroundColor: Colors.amber,
-                  child: const Icon(
-                    Icons.add_alert_rounded,
-                    color: Colors.black87,
-                    size: 32,
-                  ),
+                    );
+                  },
                 );
               },
-            );
-          },
+            ),
+          ),
         ),
-      ),
+        if (provider.isUpdatingFundData) ...[
+          const ModalBarrier(dismissible: false, color: Colors.black54),
+          Center(
+            child: Transform.scale(
+              scale: 2.5,
+              child: CircularProgressIndicator(
+                color: Colors.blueAccent,
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -384,29 +410,6 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
       ),
     );
     if (picked != null) {
-      // TEST FT HISTÓRICO
-      /* try {
-        final fetcher = FTFundScraper(client: http.Client());
-        print('Obteniendo datos para $fund.isin...');
-        final historicalPrices = await fetcher.ftHistoricalPriceFetcher(
-          isin: fund.isin,
-          //startDate: picked.start,
-          //endDate: picked.end,
-          startDate: DateTime(2026, 1, 1),
-          endDate: DateTime(2026, 9, 1),
-        );
-        print('✅ Se encontraron ${historicalPrices.length} registros.\n');
-        for (var i = 0; i < 5 && i < historicalPrices.length; i++) {
-          final entry = historicalPrices[i];
-          print(
-            'Fecha: ${entry.date.toIso8601String().split('T')[0]} | Apertura: ${entry.price}',
-          );
-        }
-      } catch (e) {
-        print('❌ Error: $e');
-      } */
-      // FIN TEST
-
       await provider.searchFundByRange(fund.isin, picked);
     }
   }
