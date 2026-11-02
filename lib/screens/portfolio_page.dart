@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
+import '../models/fund_data.dart';
 import '../providers/fund_provider.dart';
 import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart';
@@ -53,6 +54,60 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     context.read<FundProvider>().clearError();
   }
 
+  List<({DateTime date, double value})> _buildPortfolioHistory(
+    List<FundData> funds,
+    Map<String, double> exchangeRates,
+  ) {
+    final dates = <DateTime>{};
+
+    for (final fund in funds) {
+      for (final point in fund.history) {
+        if (point.price > 0 && point.price.isFinite) {
+          dates.add(
+            DateTime(point.date.year, point.date.month, point.date.day),
+          );
+        }
+      }
+    }
+
+    final sortedDates = dates.toList()..sort();
+    final result = <({DateTime date, double value})>[];
+
+    for (final date in sortedDates) {
+      var portfolioValue = 0.0;
+
+      for (final fund in funds) {
+        final units = FinancialCalculator.calculateUnitsAt(fund, date);
+        if (units <= 0) continue;
+
+        PricePoint? quote;
+        for (final point in fund.history) {
+          final pointDate = DateTime(
+            point.date.year,
+            point.date.month,
+            point.date.day,
+          );
+
+          if (pointDate.isAfter(date)) break;
+          if (point.price > 0 && point.price.isFinite) {
+            quote = point;
+          }
+        }
+
+        if (quote == null) continue;
+
+        final exchangeRate = exchangeRates[fund.currency] ?? 1.0;
+        portfolioValue += units * quote.price * exchangeRate;
+      }
+
+      if (portfolioValue > 0 && portfolioValue.isFinite) {
+        result.add((date: date, value: portfolioValue));
+      }
+    }
+
+    return result;
+  }
+
   // GETTERS
   AppLocalizations get l10n => AppLocalizations.of(context)!;
   String get locale => Localizations.localeOf(context).toString();
@@ -70,6 +125,31 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
       provider.exchangeRates,
     );
     final bool showPortfolioSummary = globalMetrics.totalInvested > 0;
+
+    // Variación global entre las dos últimas valoraciones disponibles
+    // de cada fondo, convertidas a euros.
+    double dailyChangeAbs = 0;
+    double previousPortfolioValue = 0;
+
+    for (final fund in provider.portfolio) {
+      if (fund.history.length < 2) continue;
+
+      final fundMetrics = FinancialCalculator.calculateFundMetrics(fund);
+      final previousPrice = fund.history[fund.history.length - 2].price;
+      final exchangeRate = provider.exchangeRates[fund.currency] ?? 1.0;
+
+      dailyChangeAbs +=
+          fundMetrics.totalUnits *
+          (fund.lastValue - previousPrice) *
+          exchangeRate;
+
+      previousPortfolioValue +=
+          fundMetrics.totalUnits * previousPrice * exchangeRate;
+    }
+
+    final dailyChangePercent = previousPortfolioValue > 0
+        ? dailyChangeAbs / previousPortfolioValue * 100
+        : null;
 
     return Stack(
       children: [
@@ -166,7 +246,12 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                   (showPortfolioSummary ? 1 : 0),
                               itemBuilder: (context, index) {
                                 if (showPortfolioSummary && index == 0) {
-                                  return SizedBox.shrink();
+                                  //return SizedBox.shrink();
+                                  return _buildPortfolioHeader(
+                                    globalMetrics,
+                                    dailyChangeAbs,
+                                    dailyChangePercent,
+                                  );
                                 }
 
                                 final item =
@@ -386,36 +471,35 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                                                     .white70,
                                                               ),
                                                         ),
-                                                        if (item
-                                                                .history
-                                                                .length >
-                                                            30) ...[
-                                                          const SizedBox(
-                                                            height: 10,
+                                                        // if (item
+                                                        //         .history
+                                                        //         .length >
+                                                        //     30) ...[
+                                                        const SizedBox(
+                                                          height: 10,
+                                                        ),
+                                                        Text(
+                                                          l10n.performanceLabel,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 9,
+                                                                color: Colors
+                                                                    .white38,
+                                                                fontWeight:
+                                                                    .bold,
+                                                                letterSpacing:
+                                                                    0.5,
+                                                              ),
+                                                        ),
+                                                        Text(
+                                                          '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${item.currency}',
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            fontWeight: .bold,
+                                                            color: profitColor,
                                                           ),
-                                                          Text(
-                                                            l10n.performanceLabel,
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontSize: 9,
-                                                                  color: Colors
-                                                                      .white38,
-                                                                  fontWeight:
-                                                                      .bold,
-                                                                  letterSpacing:
-                                                                      0.5,
-                                                                ),
-                                                          ),
-                                                          Text(
-                                                            '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${item.currency}',
-                                                            style: TextStyle(
-                                                              fontSize: 13,
-                                                              fontWeight: .bold,
-                                                              color:
-                                                                  profitColor,
-                                                            ),
-                                                          ),
-                                                        ],
+                                                        ),
+                                                        //],
                                                       ],
                                                     ),
                                                     if (item.history.length >
@@ -509,6 +593,199 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         ),
         if (provider.isUpdatingPortfolio) ...UpdatingIndicator.show(),
       ],
+    );
+  }
+
+  Widget _buildPortfolioHeader(
+    GlobalMetrics metrics,
+    double dailyChangeAbs,
+    double? dailyChangePercent,
+  ) {
+    final currencyFormat = NumberFormat.currency(
+      locale: locale,
+      symbol: '€',
+      decimalDigits: 2,
+    );
+
+    final accumulatedReturn = metrics.totalInvested > 0
+        ? metrics.profitAbs / metrics.totalInvested * 100
+        : 0.0;
+
+    final profitColor = metrics.profitAbs >= 0
+        ? Colors.greenAccent[400]!
+        : Colors.redAccent[200]!;
+
+    final dailyColor = dailyChangeAbs > 0
+        ? Colors.greenAccent[400]!
+        : dailyChangeAbs < 0
+        ? Colors.redAccent[200]!
+        : Colors.white70;
+
+    final portfolioHistory = _buildPortfolioHistory(
+      context.read<FundProvider>().portfolio,
+      context.read<FundProvider>().exchangeRates,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF263750), Color(0xFF172337)],
+          ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: .start,
+          children: [
+            const Text(
+              'Mi Cartera',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                // Logo
+                Image.asset(
+                  'assets/images/logo_trans.png',
+                  width: 64,
+                  cacheWidth: 64,
+                ),
+                const SizedBox(width: 10),
+                // Patrimonio y resultado acumulado
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          currencyFormat.format(metrics.totalValue),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w300,
+                            letterSpacing: -0.6,
+                          ),
+                        ),
+                      ),
+                      FittedBox(
+                        child: Row(
+                          children: [
+                            Icon(
+                              metrics.profitAbs > 0
+                                  ? Icons.trending_up
+                                  : Icons.trending_down,
+                              color: profitColor,
+                              //size: 28,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${metrics.profitAbs > 0 ? '+' : ''}'
+                              '${currencyFormat.format(metrics.profitAbs)} '
+                              '(${accumulatedReturn > 0 ? '+' : ''}'
+                              '${percentFormat.format(accumulatedReturn)}%)',
+                              style: TextStyle(
+                                color: profitColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Variación diaria global
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        '± Hoy',
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      if (dailyChangePercent != null)
+                        Chip(
+                          backgroundColor: dailyColor.withValues(alpha: 0.13),
+                          side: BorderSide(
+                            color: dailyColor.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: .all(4),
+                          avatar: Icon(
+                            dailyChangePercent > 0
+                                ? Icons.trending_up
+                                : Icons.trending_down,
+                            color: dailyColor,
+                            size: 24,
+                          ),
+                          label: Text(
+                            '${dailyChangePercent > 0 ? '+' : ''}'
+                            '${percentFormat.format(dailyChangePercent)}%',
+                            style: TextStyle(
+                              color: dailyColor,
+                              fontSize: 12,
+                              //fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      else
+                        const Text(
+                          '—',
+                          style: TextStyle(color: Colors.white54, fontSize: 16),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            if (portfolioHistory.length >= 2) ...[
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 65,
+                width: double.infinity,
+                child: CustomPaint(
+                  painter: _PortfolioHistoryPainter(
+                    portfolioHistory.map((point) => point.value).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -608,5 +885,80 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         ],
       ),
     );
+  }
+}
+
+class _PortfolioHistoryPainter extends CustomPainter {
+  final List<double> values;
+
+  _PortfolioHistoryPainter(this.values);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2 || size.width <= 0 || size.height <= 0) {
+      return;
+    }
+
+    // Reducimos la cantidad de puntos para mantener una gráfica ligera.
+    final sampled = <double>[];
+    final step = (values.length - 1) / 49;
+
+    for (var i = 0; i < 50; i++) {
+      sampled.add(values[(i * step).round()]);
+    }
+
+    final minValue = sampled.reduce((a, b) => a < b ? a : b);
+    final maxValue = sampled.reduce((a, b) => a > b ? a : b);
+    final range = maxValue - minValue;
+
+    final points = <Offset>[];
+
+    for (var i = 0; i < sampled.length; i++) {
+      final x = size.width * i / (sampled.length - 1);
+      final normalized = range == 0 ? 0.5 : (sampled[i] - minValue) / range;
+      final y = size.height - 5 - normalized * (size.height - 10);
+
+      points.add(Offset(x, y));
+    }
+
+    final linePath = Path()..moveTo(points.first.dx, points.first.dy);
+
+    for (var i = 1; i < points.length; i++) {
+      linePath.lineTo(points[i].dx, points[i].dy);
+    }
+
+    final fillPath = Path.from(linePath)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+
+    final fillPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0x554FC3F7), Color(0x004FC3F7)],
+      ).createShader(Offset.zero & size);
+
+    canvas.drawPath(fillPath, fillPaint);
+
+    final linePaint = Paint()
+      ..color = const Color(0xFF64C8F5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(linePath, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PortfolioHistoryPainter oldDelegate) {
+    if (oldDelegate.values.length != values.length) return true;
+
+    for (var i = 0; i < values.length; i++) {
+      if (oldDelegate.values[i] != values[i]) return true;
+    }
+
+    return false;
   }
 }
