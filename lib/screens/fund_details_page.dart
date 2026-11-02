@@ -9,6 +9,7 @@ import '../services/export_service.dart';
 import '../widgets/circle_avatar_fund.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/gradient_background.dart';
+import '../widgets/updating_indicator.dart';
 import 'fund_details_tabs/fund_balance_tab.dart';
 import 'fund_details_tabs/fund_history_chart.dart';
 import 'fund_details_tabs/fund_market_tab.dart';
@@ -334,18 +335,7 @@ class _FundDetailsPageState extends State<FundDetailsPage> with RouteAware {
             ),
           ),
         ),
-        if (provider.isUpdatingFundData) ...[
-          const ModalBarrier(dismissible: false, color: Colors.black54),
-          Center(
-            child: Transform.scale(
-              scale: 2.5,
-              child: CircularProgressIndicator(
-                color: Colors.blueAccent,
-                strokeWidth: 2,
-              ),
-            ),
-          ),
-        ],
+        if (provider.isUpdatingFundData) ...UpdatingIndicator.show(),
       ],
     );
   }

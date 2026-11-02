@@ -9,6 +9,7 @@ import '../widgets/gradient_background.dart';
 import '../widgets/portfolio_appbar.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/updating_indicator.dart';
 import 'fund_search_page.dart';
 import 'fund_details_page.dart';
 import '../utils/route_observer.dart';
@@ -506,18 +507,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
             ),
           ),
         ),
-        if (provider.isUpdatingPortfolio) ...[
-          const ModalBarrier(dismissible: false, color: Colors.black54),
-          Center(
-            child: Transform.scale(
-              scale: 2.5,
-              child: CircularProgressIndicator(
-                color: Colors.blueAccent,
-                strokeWidth: 2,
-              ),
-            ),
-          ),
-        ],
+        if (provider.isUpdatingPortfolio) ...UpdatingIndicator.show(),
       ],
     );
   }
