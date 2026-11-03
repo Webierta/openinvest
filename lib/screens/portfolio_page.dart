@@ -826,41 +826,44 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
 
                         // TAE
                         //if (fund.history.length > 30)
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: .start,
-                            children: [
-                              metricLabel('TAE'),
-                              FittedBox(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: profitColor.withValues(alpha: 0.8),
+                        if (metrics.twrAnnualized != null)
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: .start,
+                              children: [
+                                metricLabel('TWR'),
+                                FittedBox(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 4,
                                     ),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Text(
-                                    //'${metrics.tae > 0 ? '+' : ''}'
-                                    //'${percentFormat.format(metrics.tae)}%',
-                                    '${(metrics.twrAnnualized != null && metrics.twrAnnualized! > 0) ? '+' : ''}'
-                                    '${(metrics.twrAnnualized != null) ? '${percentFormat.format(metrics.twrAnnualized! * 100)}%' : ''}',
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                      color: profitColor,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: profitColor.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Text(
+                                      //'${metrics.tae > 0 ? '+' : ''}'
+                                      //'${percentFormat.format(metrics.tae)}%',
+                                      '${(metrics.twrAnnualized != null && metrics.twrAnnualized! > 0) ? '+' : ''}'
+                                      '${(metrics.twrAnnualized != null) ? '${percentFormat.format(metrics.twrAnnualized! * 100)}%' : ''}',
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        color: profitColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],
