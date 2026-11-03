@@ -15,6 +15,7 @@ import 'fund_search_page.dart';
 import 'fund_details_page.dart';
 import '../utils/route_observer.dart';
 import '../utils/financial_calculator.dart';
+import 'portfolio_summary_page.dart';
 
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
@@ -202,6 +203,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                           : provider.updateAllPortfolio,
                       onDismiss: provider.clearError,
                     ),
+
                   Expanded(
                     child: provider.hasPortfolioLoadError
                         ? Center(
@@ -246,14 +248,13 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                   (showPortfolioSummary ? 1 : 0),
                               itemBuilder: (context, index) {
                                 if (showPortfolioSummary && index == 0) {
-                                  //return SizedBox.shrink();
                                   return _buildPortfolioHeader(
                                     globalMetrics,
                                     dailyChangeAbs,
                                     dailyChangePercent,
+                                    provider,
                                   );
                                 }
-
                                 final item =
                                     provider.portfolio[index -
                                         (showPortfolioSummary ? 1 : 0)];
@@ -280,295 +281,12 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                   }
                                 }
 
-                                final hasOps = item.operations.isNotEmpty;
-                                //final hasPrices30Days = item.history.length > 30;
-                                final Color profitColor = metrics.profitAbs >= 0
-                                    ? Colors.greenAccent[400]!
-                                    : Colors.redAccent[200]!;
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 15),
-                                  child: Badge(
-                                    label: Text(dateFormat.format(item.date)),
-                                    textColor: Colors.white,
-                                    textStyle: TextStyle(fontSize: 12),
-                                    alignment: .topRight,
-                                    //largeSize: 130,
-                                    //alignment: AlignmentDirectional(0.7, -1),
-                                    offset: Offset(-120, -6),
-                                    padding: const .symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    backgroundColor: Colors.blueGrey,
-                                    child: Card(
-                                      //clipBehavior: Clip.none,
-                                      margin: const .symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      color: Colors.white.withValues(
-                                        alpha: 0.03,
-                                      ),
-                                      child: InkWell(
-                                        borderRadius: .circular(16),
-                                        onTap: () {
-                                          provider.selectFund(item);
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const FundDetailsPage(),
-                                            ),
-                                          );
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(16),
-                                          child: Column(
-                                            children: [
-                                              Row(
-                                                crossAxisAlignment: .end,
-                                                children: [
-                                                  Hero(
-                                                    tag: 'avatar_${item.isin}',
-                                                    child: CircleAvatarFund(
-                                                      fund: item,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          .start,
-                                                      children: [
-                                                        Hero(
-                                                          tag:
-                                                              'name_${item.isin}',
-                                                          child: Material(
-                                                            color: Colors
-                                                                .transparent,
-                                                            child: Row(
-                                                              children: [
-                                                                Flexible(
-                                                                  child: Text(
-                                                                    item.name,
-                                                                    overflow:
-                                                                        .ellipsis,
-                                                                    style: const TextStyle(
-                                                                      fontWeight:
-                                                                          .bold,
-                                                                      fontSize:
-                                                                          15,
-                                                                      color: Colors
-                                                                          .white,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                if ((item.alertMin !=
-                                                                            null &&
-                                                                        item.lastValue <=
-                                                                            item.alertMin!) ||
-                                                                    (item.alertMax !=
-                                                                            null &&
-                                                                        item.lastValue >=
-                                                                            item.alertMax!)) ...[
-                                                                  const SizedBox(
-                                                                    width: 6,
-                                                                  ),
-                                                                  const Icon(
-                                                                    Icons
-                                                                        .notifications_active_rounded,
-                                                                    color: Colors
-                                                                        .amber,
-                                                                    size: 16,
-                                                                  ),
-                                                                ],
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          item.isin,
-                                                          style:
-                                                              Theme.of(context)
-                                                                  .textTheme
-                                                                  .bodySmall
-                                                                  ?.copyWith(
-                                                                    fontSize:
-                                                                        11,
-                                                                    color: Colors
-                                                                        .white38,
-                                                                  ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Column(
-                                                    crossAxisAlignment: .end,
-                                                    children: [
-                                                      Text(
-                                                        '${priceFormat.format(item.lastValue)} ${item.currency}',
-                                                        style: const TextStyle(
-                                                          //fontWeight: FontWeight.bold,
-                                                          fontSize: 16,
-                                                          height: 1.1,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 2),
-                                                      if (dailyVariation !=
-                                                          null) ...[
-                                                        Text(
-                                                          '${dailyVariation > 0 ? '+' : ''}${percentFormat.format(dailyVariation)}%',
-                                                          style: TextStyle(
-                                                            color:
-                                                                dailyVarColor,
-                                                            fontSize: 14,
-                                                            fontWeight: .bold,
-                                                            height: 1.0,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                              if (hasOps) ...[
-                                                const Divider(
-                                                  height: 30,
-                                                  color: Colors.white10,
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      .spaceBetween,
-                                                  crossAxisAlignment: .end,
-                                                  children: [
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          .start,
-                                                      children: [
-                                                        Text(
-                                                          l10n.valueLabel,
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 9,
-                                                                color: Colors
-                                                                    .white38,
-                                                                fontWeight:
-                                                                    .bold,
-                                                                letterSpacing:
-                                                                    0.5,
-                                                              ),
-                                                        ),
-                                                        Text(
-                                                          '${smartFormat.format(metrics.currentValue)} ${item.currency}',
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 13,
-                                                                fontWeight:
-                                                                    .w500,
-                                                                color: Colors
-                                                                    .white70,
-                                                              ),
-                                                        ),
-                                                        // if (item
-                                                        //         .history
-                                                        //         .length >
-                                                        //     30) ...[
-                                                        const SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        Text(
-                                                          l10n.performanceLabel,
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 9,
-                                                                color: Colors
-                                                                    .white38,
-                                                                fontWeight:
-                                                                    .bold,
-                                                                letterSpacing:
-                                                                    0.5,
-                                                              ),
-                                                        ),
-                                                        Text(
-                                                          '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} ${item.currency}',
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            fontWeight: .bold,
-                                                            color: profitColor,
-                                                          ),
-                                                        ),
-                                                        //],
-                                                      ],
-                                                    ),
-                                                    if (item.history.length >
-                                                        30)
-                                                      Column(
-                                                        crossAxisAlignment:
-                                                            .end,
-                                                        children: [
-                                                          Text(
-                                                            metrics.isAnnualized
-                                                                ? l10n.sortByPerformance
-                                                                : l10n.totalGain,
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontSize: 9,
-                                                                  color: Colors
-                                                                      .white38,
-                                                                  fontWeight:
-                                                                      .bold,
-                                                                  letterSpacing:
-                                                                      0.5,
-                                                                ),
-                                                          ),
-                                                          Container(
-                                                            padding:
-                                                                const .symmetric(
-                                                                  horizontal:
-                                                                      10,
-                                                                  vertical: 4,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color: profitColor
-                                                                  .withValues(
-                                                                    alpha: 0.15,
-                                                                  ),
-                                                              borderRadius:
-                                                                  .circular(6),
-                                                              border: .all(
-                                                                color: profitColor
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          0.3,
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                            child: Text(
-                                                              //'${(metrics.isAnnualized ? metrics.tae : metrics.profitRel) > 0 ? '+' : ''}'
-                                                              //'${percentFormat.format(metrics.isAnnualized ? metrics.tae : metrics.profitRel)}%',
-                                                              '${(metrics.twrAnnualized != null && metrics.twrAnnualized! > 0) ? '+' : ''}'
-                                                              '${(metrics.twrAnnualized != null) ? '${percentFormat.format(metrics.twrAnnualized! * 100)}%' : ''}',
-                                                              style: TextStyle(
-                                                                //fontSize: 14,
-                                                                //fontWeight: FontWeight.bold,
-                                                                color:
-                                                                    profitColor,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                                return _buildFundCard(
+                                  item,
+                                  metrics,
+                                  dailyVariation,
+                                  dailyVarColor,
+                                  provider,
                                 );
                               },
                             ),
@@ -600,6 +318,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     GlobalMetrics metrics,
     double dailyChangeAbs,
     double? dailyChangePercent,
+    FundProvider provider,
   ) {
     final currencyFormat = NumberFormat.currency(
       locale: locale,
@@ -650,24 +369,47 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         child: Column(
           crossAxisAlignment: .start,
           children: [
-            const Text(
-              'Mi Cartera',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 5),
             Row(
               children: [
-                // Logo
-                Image.asset(
-                  'assets/images/logo_trans.png',
-                  width: 64,
-                  cacheWidth: 64,
+                CircleAvatar(
+                  backgroundColor: Colors.blue.shade900,
+                  child: IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PortfolioSummaryPage(),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.business_center, color: Colors.white),
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
+                const Text(
+                  'Mi Cartera',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const Spacer(),
+                CircleAvatar(
+                  backgroundColor: Colors.blue.shade900,
+                  child: Text(
+                    '${provider.portfolio.length}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
                 // Patrimonio y resultado acumulado
                 Expanded(
                   child: Column(
@@ -680,7 +422,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                           currencyFormat.format(metrics.totalValue),
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 25,
+                            fontSize: 26,
                             fontWeight: FontWeight.w300,
                             letterSpacing: -0.6,
                           ),
@@ -688,13 +430,14 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                       ),
                       FittedBox(
                         child: Row(
+                          crossAxisAlignment: .end,
                           children: [
-                            Icon(
-                              metrics.profitAbs > 0
-                                  ? Icons.trending_up
-                                  : Icons.trending_down,
-                              color: profitColor,
-                              //size: 28,
+                            Text(
+                              metrics.profitAbs > 0 ? '\u25B2' : '\u25BC',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: profitColor,
+                              ),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -704,7 +447,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               '${percentFormat.format(accumulatedReturn)}%)',
                               style: TextStyle(
                                 color: profitColor,
-                                fontSize: 12,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                               maxLines: 1,
@@ -742,15 +485,10 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: .all(4),
-                          avatar: Icon(
-                            dailyChangePercent > 0
-                                ? Icons.trending_up
-                                : Icons.trending_down,
-                            color: dailyColor,
-                            size: 24,
-                          ),
+                          //padding: .all(0),
+                          labelPadding: .all(0),
                           label: Text(
+                            '${dailyChangePercent > 0 ? '\u25B2' : '\u25BC'} '
                             '${dailyChangePercent > 0 ? '+' : ''}'
                             '${percentFormat.format(dailyChangePercent)}%',
                             style: TextStyle(
@@ -772,18 +510,402 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
             ),
 
             if (portfolioHistory.length >= 2) ...[
-              const SizedBox(height: 20),
               SizedBox(
                 height: 65,
                 width: double.infinity,
                 child: CustomPaint(
-                  painter: _PortfolioHistoryPainter(
+                  painter: _HistoryChartPainter(
                     portfolioHistory.map((point) => point.value).toList(),
+                    strokeWidth: 2,
                   ),
                 ),
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFundCard(
+    FundData fund,
+    FundMetrics metrics,
+    double? dailyVariation,
+    Color? dailyVarColor,
+    FundProvider provider,
+  ) {
+    final hasOps = fund.operations.isNotEmpty;
+    //final hasPrices30Days = item.history.length > 30;
+    final profitColor = metrics.profitAbs > 0
+        ? Colors.greenAccent
+        : metrics.profitAbs < 0
+        ? Colors.redAccent
+        : Colors.blueGrey.shade200;
+
+    final chartValues = fund.history
+        .where((point) => point.price > 0 && point.price.isFinite)
+        .map((point) => point.price)
+        .toList();
+
+    final chartColor =
+        chartValues.length < 2 || chartValues.last == chartValues.first
+        ? Colors.blueGrey.shade300
+        : chartValues.last > chartValues.first
+        ? Colors.greenAccent
+        : Colors.redAccent;
+
+    final hasAlert =
+        (fund.alertMin != null && fund.lastValue <= fund.alertMin!) ||
+        (fund.alertMax != null && fund.lastValue >= fund.alertMax!);
+
+    final cardDecoration = BoxDecoration(
+      borderRadius: BorderRadius.circular(20),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF192A40), Color(0xFF101C30)],
+      ),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.12),
+          blurRadius: 12,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    );
+
+    Widget metricLabel(String value) {
+      return Text(
+        value,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11, color: Colors.white70),
+      );
+    }
+
+    Widget metricValue(
+      String value, {
+      Color color = Colors.white,
+      bool bold = true,
+      double size = 13,
+    }) {
+      return Text(
+        value,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: size,
+          fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+          color: color,
+        ),
+      );
+    }
+
+    String symbolCurrency = fund.currency;
+    if (fund.currency == 'EUR') {
+      symbolCurrency = '€';
+    } else if (fund.currency == 'USD') {
+      symbolCurrency = '\$';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+      child: Container(
+        decoration: cardDecoration,
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              provider.selectFund(fund);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FundDetailsPage(),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 15, 16, 12),
+              child: Column(
+                children: [
+                  // CABECERA: identidad
+                  Row(
+                    children: [
+                      Hero(
+                        tag: 'avatar_${fund.isin}',
+                        child: CircleAvatarFund(
+                          fund: fund,
+                          radius: 40,
+                          fontSize: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Hero(
+                              tag: 'name_${fund.isin}',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        fund.name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Text(
+                              fund.isin,
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // COTIZACIÓN
+                  Row(
+                    mainAxisAlignment: .end,
+                    children: [
+                      Column(
+                        crossAxisAlignment: .end,
+                        children: [
+                          Row(
+                            children: [
+                              if (hasAlert) ...[
+                                const SizedBox(width: 5),
+                                const Icon(
+                                  Icons.notifications_active_rounded,
+                                  color: Colors.amber,
+                                  size: 17,
+                                ),
+                              ],
+                              Text(
+                                '${priceFormat.format(fund.lastValue)} ${fund.currency}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (dailyVariation != null) ...[
+                            const SizedBox(height: 5),
+                            Container(
+                              padding: const .symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: (dailyVarColor ?? Colors.blueGrey)
+                                    .withValues(alpha: 0.17),
+                                borderRadius: .circular(20),
+                              ),
+                              child: Text(
+                                '${dailyVariation > 0
+                                    ? '\u25B2'
+                                    : dailyVariation < 0
+                                    ? '\u25BC'
+                                    : '='} '
+                                '${dailyVariation > 0 ? '+' : ''}'
+                                '${percentFormat.format(dailyVariation)} %',
+                                style: TextStyle(
+                                  color:
+                                      dailyVarColor ?? Colors.blueGrey.shade200,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  // GRÁFICO DEL FONDO
+                  if (chartValues.length >= 2) ...[
+                    SizedBox(
+                      height: 65,
+                      width: double.infinity,
+                      child: CustomPaint(
+                        painter: _HistoryChartPainter(
+                          chartValues,
+                          lineColor: chartColor,
+                          fillColor: chartColor.withValues(alpha: 0.25),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // MÉTRICAS DE LA POSICIÓN
+                  if (hasOps) ...[
+                    const SizedBox(height: 9),
+                    const Divider(height: 1, color: Colors.white12),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        // Valor de posición
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            crossAxisAlignment: .start,
+                            children: [
+                              metricLabel(l10n.valueLabel),
+                              FittedBox(
+                                child: metricValue(
+                                  '${smartFormat.format(metrics.currentValue)} $symbolCurrency',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Container(
+                          width: 1,
+                          height: 48,
+                          color: Colors.white30,
+                          margin: const .symmetric(horizontal: 9),
+                        ),
+
+                        // Rentabilidad acumulada
+                        Expanded(
+                          flex: 6,
+                          child: Column(
+                            crossAxisAlignment: .start,
+                            children: [
+                              metricLabel(l10n.performanceLabel),
+                              FittedBox(
+                                child: Row(
+                                  children: [
+                                    metricValue(
+                                      '${metrics.profitAbs > 0 ? '+' : ''}'
+                                      '${smartFormat.format(metrics.profitAbs)} $symbolCurrency',
+                                      color: profitColor,
+                                    ),
+                                    metricValue(
+                                      ' (${metrics.profitRel > 0 ? '+' : ''}'
+                                      '${percentFormat.format(metrics.profitRel)} %)',
+                                      color: profitColor,
+                                      bold: false,
+                                      size: 11,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Container(
+                          width: 1,
+                          height: 48,
+                          color: Colors.white30,
+                          margin: const EdgeInsets.symmetric(horizontal: 9),
+                        ),
+
+                        // TAE
+                        //if (fund.history.length > 30)
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: .start,
+                            children: [
+                              metricLabel('TAE'),
+                              FittedBox(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: profitColor.withValues(alpha: 0.8),
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    //'${metrics.tae > 0 ? '+' : ''}'
+                                    //'${percentFormat.format(metrics.tae)}%',
+                                    '${(metrics.twrAnnualized != null && metrics.twrAnnualized! > 0) ? '+' : ''}'
+                                    '${(metrics.twrAnnualized != null) ? '${percentFormat.format(metrics.twrAnnualized! * 100)}%' : ''}',
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      color: profitColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  // PIE: fecha de cotización y navegación
+                  const SizedBox(height: 10),
+                  const Divider(height: 1, color: Colors.white12),
+                  const SizedBox(height: 9),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_month_outlined,
+                        color: Colors.white70,
+                        size: 19,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Cotización: ${dateFormat.format(fund.date)}',
+                          //'${l10n.valuationDate}: ${dateFormat.format(fund.date)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Ver detalle',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      const SizedBox(width: 3),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: Colors.white,
+                        size: 21,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -888,10 +1010,18 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   }
 }
 
-class _PortfolioHistoryPainter extends CustomPainter {
+class _HistoryChartPainter extends CustomPainter {
   final List<double> values;
+  final Color lineColor;
+  final Color fillColor;
+  final double strokeWidth;
 
-  _PortfolioHistoryPainter(this.values);
+  _HistoryChartPainter(
+    this.values, {
+    this.lineColor = const Color(0xFF64C8F5),
+    this.fillColor = const Color(0x554FC3F7),
+    this.strokeWidth = 2,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -899,7 +1029,6 @@ class _PortfolioHistoryPainter extends CustomPainter {
       return;
     }
 
-    // Reducimos la cantidad de puntos para mantener una gráfica ligera.
     final sampled = <double>[];
     final step = (values.length - 1) / 49;
 
@@ -932,28 +1061,35 @@ class _PortfolioHistoryPainter extends CustomPainter {
       ..lineTo(0, size.height)
       ..close();
 
-    final fillPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0x554FC3F7), Color(0x004FC3F7)],
-      ).createShader(Offset.zero & size);
+    canvas.drawPath(
+      fillPath,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [fillColor, fillColor.withValues(alpha: 0)],
+        ).createShader(Offset.zero & size),
+    );
 
-    canvas.drawPath(fillPath, fillPaint);
-
-    final linePaint = Paint()
-      ..color = const Color(0xFF64C8F5)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    canvas.drawPath(linePath, linePaint);
+    canvas.drawPath(
+      linePath,
+      Paint()
+        ..color = lineColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _PortfolioHistoryPainter oldDelegate) {
-    if (oldDelegate.values.length != values.length) return true;
+  bool shouldRepaint(covariant _HistoryChartPainter oldDelegate) {
+    if (oldDelegate.lineColor != lineColor ||
+        oldDelegate.fillColor != fillColor ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.values.length != values.length) {
+      return true;
+    }
 
     for (var i = 0; i < values.length; i++) {
       if (oldDelegate.values[i] != values[i]) return true;

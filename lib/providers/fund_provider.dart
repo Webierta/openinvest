@@ -29,7 +29,7 @@ import '../utils/isin_validator.dart';
 // =============================================================
 // TOP-LEVEL TYPES
 // =============================================================
-enum SortCriteria { name, date, value, performance }
+enum SortCriteria { name, date, value, performance, tae }
 
 // =============================================================
 // AUXILIARY CLASSES
@@ -367,9 +367,8 @@ class FundProvider with ChangeNotifier {
         portfolio.sort((a, b) {
           final metricsA = FinancialCalculator.calculateFundMetrics(a);
           final metricsB = FinancialCalculator.calculateFundMetrics(b);
-          return metricsB.currentValue.compareTo(
-            metricsA.currentValue,
-          ); // Descendente por defecto para valores
+          return metricsB.currentValue.compareTo(metricsA.currentValue);
+          // Descendente por defecto para valores
         });
         break;
       case SortCriteria.performance:
@@ -382,9 +381,18 @@ class FundProvider with ChangeNotifier {
           final perfB = metricsB.isAnnualized
               ? metricsB.tae
               : metricsB.profitRel;
-          return perfB.compareTo(
-            perfA,
-          ); // Descendente por defecto para rendimiento
+          return perfB.compareTo(perfA);
+          // Descendente por defecto para rendimiento
+        });
+        break;
+      case SortCriteria.tae:
+        portfolio.sort((a, b) {
+          final metricsA = FinancialCalculator.calculateFundMetrics(a);
+          final metricsB = FinancialCalculator.calculateFundMetrics(b);
+          final perfA = metricsA.twrAnnualized ?? metricsA.profitRel;
+          final perfB = metricsB.twrAnnualized ?? metricsB.profitRel;
+          return perfB.compareTo(perfA);
+          // Descendente por defecto para rendimiento
         });
         break;
     }
