@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -547,8 +549,20 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                 ],
               ),
             ],
-            // PIE
+
+            // Marquesina
             const SizedBox(height: 10),
+            const Divider(height: 1, color: Colors.white12),
+            //const SizedBox(height: 9),
+            MarqueeTicker(
+              funds: provider.portfolio,
+              priceFormat: priceFormat,
+              percentFormat: percentFormat,
+              velocity: 60.0,
+            ),
+
+            // PIE
+            //const SizedBox(height: 10),
             const Divider(height: 1, color: Colors.white12),
             const SizedBox(height: 9),
             Row(
@@ -842,14 +856,12 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             ],
                           ),
                         ),
-
                         Container(
                           width: 1,
                           height: 48,
                           color: Colors.white30,
                           margin: const .symmetric(horizontal: 9),
                         ),
-
                         // TAE
                         //if (fund.history.length > 30)
                         if (metrics.twrAnnualized != null)
@@ -1185,6 +1197,145 @@ class MetricRelative extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(value, style: TextStyle(color: color, fontSize: 11)),
+    );
+  }
+}
+
+class MarqueeTicker extends StatefulWidget {
+  final List<FundData> funds;
+  final NumberFormat priceFormat;
+  final NumberFormat percentFormat;
+  final double velocity; // Píxeles por segundo
+
+  const MarqueeTicker({
+    super.key,
+    required this.funds,
+    required this.priceFormat,
+    required this.percentFormat,
+    this.velocity = 50.0,
+  });
+
+  @override
+  State<MarqueeTicker> createState() => _MarqueeTickerState();
+}
+
+class _MarqueeTickerState extends State<MarqueeTicker> {
+  late ScrollController _scrollController;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+
+    // Espera a que el widget se renderice para iniciar la animación
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startScrolling();
+    });
+  }
+
+  void _startScrolling() {
+    if (!_scrollController.hasClients) return;
+
+    // Calculamos el tiempo basado en el desplazamiento máximo y la velocidad deseada
+    final maxScrollExtent = _scrollController.position.maxScrollExtent;
+    final durationInMs = ((maxScrollExtent / widget.velocity) * 1000).toInt();
+
+    _scrollController
+        .animateTo(
+          maxScrollExtent,
+          duration: Duration(milliseconds: durationInMs),
+          curve: Curves.linear, // Movimiento fluido y lineal sin aceleraciones
+        )
+        .then((_) {
+          if (mounted) {
+            // Al llegar al final, salta instantáneamente al inicio sin que el usuario lo note y repite
+            _scrollController.jumpTo(0.0);
+            _startScrolling();
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 50,
+      child: Container(
+        color: Colors.black87,
+        child: ListView.builder(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          // Multiplicamos la lista para simular un bucle continuo fluido
+          itemCount: widget.funds.length * 100,
+          itemBuilder: (context, index) {
+            // Conseguimos el índice real usando el operador módulo
+            final fund = widget.funds[index % widget.funds.length];
+
+            double? dailyVariation;
+            Color? dailyVarColor;
+            if (fund.history.length > 1) {
+              final prev = fund.history[fund.history.length - 2].price;
+              if (prev != 0) {
+                dailyVariation = ((fund.lastValue - prev) / prev) * 100;
+                if (dailyVariation > 0) {
+                  dailyVarColor = Colors.greenAccent[400];
+                } else if (dailyVariation < 0) {
+                  dailyVarColor = Colors.redAccent[200];
+                }
+              }
+            }
+            String variacion = '';
+            if (dailyVariation != null) {
+              variacion = '${dailyVariation > 0 ? '\u25B2' : '\u25BC'} ';
+            }
+
+            return Row(
+              children: [
+                const SizedBox(width: 12),
+                Text(
+                  variacion,
+                  style: TextStyle(
+                    color: dailyVarColor ?? Colors.blueGrey.shade200,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  fund.name,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${widget.priceFormat.format(fund.lastValue)} ${fund.currency}',
+                  style: TextStyle(fontWeight: .bold),
+                ),
+                const SizedBox(width: 6),
+                if (dailyVariation != null)
+                  Text(
+                    '${dailyVariation > 0 ? '+' : ''}'
+                    '${widget.percentFormat.format(dailyVariation)} %',
+                    style: TextStyle(
+                      color: dailyVarColor ?? Colors.blueGrey.shade200,
+                    ),
+                  ),
+                const SizedBox(width: 12),
+                // Separador visual entre cotizaciones
+                const Text('|', style: TextStyle(color: Colors.white54)),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
