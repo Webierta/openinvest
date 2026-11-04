@@ -60,6 +60,7 @@ class GlobalMetrics {
   final double profitAbs;
   final double profitRel;
   final bool isAnnualized;
+  final double? mwrAnnualized;
 
   GlobalMetrics({
     required this.totalValue,
@@ -67,6 +68,7 @@ class GlobalMetrics {
     required this.profitAbs,
     required this.profitRel,
     required this.isAnnualized,
+    this.mwrAnnualized,
   });
 }
 
@@ -800,6 +802,8 @@ class FinancialCalculator {
     double profitAbs = 0;
     double weightedTaeSum = 0;
     DateTime? firstOpDate;
+    DateTime? valuationDate;
+    final cashFlows = <Map<String, Object>>[];
 
     for (var fund in portfolio) {
       final metrics = calculateFundMetrics(fund);
@@ -811,6 +815,24 @@ class FinancialCalculator {
       totalValue += fundValueConverted;
       totalInvested += fundInvestedConverted;
       profitAbs += (fundValueConverted - fundInvestedConverted);
+
+      if (valuationDate == null || fund.date.isAfter(valuationDate)) {
+        valuationDate = fund.date;
+      }
+
+      for (final operation in fund.operations) {
+        final isInvestment =
+            operation.type == OperationType.buy ||
+            operation.type == OperationType.inTransfer;
+        cashFlows.add({
+          'amount':
+              (isInvestment ? -operation.amount : operation.amount) * rate,
+          'date': operation.date,
+        });
+        if (valuationDate == null || operation.date.isAfter(valuationDate)) {
+          valuationDate = operation.date;
+        }
+      }
 
       if (fundValueConverted > 0) {
         weightedTaeSum += metrics.tae * fundValueConverted;
@@ -834,22 +856,46 @@ class FinancialCalculator {
       isAnnualized = DateTime.now().difference(firstOpDate).inDays >= 30;
     }
 
+    double? mwrAnnualized;
+    if (totalValue > 0 && valuationDate != null) {
+      cashFlows.add({'amount': totalValue, 'date': valuationDate});
+      cashFlows.sort(
+        (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime),
+      );
+      final irr = _calculateIRR(cashFlows);
+      if (!irr.isNaN) {
+        mwrAnnualized = irr;
+      }
+    }
+
     return GlobalMetrics(
       totalValue: totalValue,
       totalInvested: totalInvested,
       profitAbs: profitAbs,
       profitRel: profitRel,
       isAnnualized: isAnnualized,
+      mwrAnnualized: mwrAnnualized,
     );
   }
 
   static double _calculateIRR(List<Map<String, Object>> flows) {
     if (flows.isEmpty) return double.nan;
 
+    final sortedFlows = List<Map<String, Object>>.from(
+      flows,
+    )..sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+    final hasPositiveFlow = sortedFlows.any(
+      (flow) => (flow['amount'] as double) > 0,
+    );
+    final hasNegativeFlow = sortedFlows.any(
+      (flow) => (flow['amount'] as double) < 0,
+    );
+    if (!hasPositiveFlow || !hasNegativeFlow) return double.nan;
+
     double npv(double rate) {
       double total = 0;
-      final start = flows.first['date'] as DateTime;
-      for (var f in flows) {
+      final start = sortedFlows.first['date'] as DateTime;
+      for (var f in sortedFlows) {
         final time = (f['date'] as DateTime).difference(start).inDays / 365.25;
         total += (f['amount'] as double) / pow(1 + rate, time);
       }
@@ -857,10 +903,16 @@ class FinancialCalculator {
     }
 
     double low = -0.99, high = 2.0;
+    final lowNpv = npv(low);
+    final highNpv = npv(high);
+    if (lowNpv == 0) return low;
+    if (highNpv == 0) return high;
+    if (lowNpv.sign == highNpv.sign) return double.nan;
+
     for (int i = 0; i < 50; i++) {
       double mid = (low + high) / 2;
       double v = npv(mid);
-      if (v > 0) {
+      if (v.sign == lowNpv.sign) {
         low = mid;
       } else {
         high = mid;

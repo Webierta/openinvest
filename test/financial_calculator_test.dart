@@ -388,6 +388,100 @@ void main() {
       expect(estimate.hasPerformanceRate, isFalse);
       expect(estimate.potentialPerformanceFee, 0);
     });
+
+    group('calculateGlobalMetrics - Portfolio MWR', () {
+      test('calculates the annualized MWR from global cash flows', () {
+        final startDate = DateTime(2023, 1, 1);
+        final endDate = DateTime(2025, 1, 1);
+        final fund = FundData(
+          isin: 'GLOBAL-MWR',
+          symbol: 'GMWR',
+          name: 'Global MWR Fund',
+          lastValue: 12.1,
+          currency: 'EUR',
+          date: endDate,
+          history: [PricePoint(startDate, 10), PricePoint(endDate, 12.1)],
+          operations: [
+            FundOperation(
+              isin: 'GLOBAL-MWR',
+              date: startDate,
+              type: OperationType.buy,
+              units: 10,
+              price: 10,
+              amount: 100,
+            ),
+          ],
+        );
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [fund],
+          const {'EUR': 1},
+        );
+
+        expect(metrics.mwrAnnualized, isNotNull);
+        expect(metrics.mwrAnnualized, closeTo(0.1, 0.0005));
+      });
+
+      test('internal fund transfers cancel out in global cash flows', () {
+        final startDate = DateTime(2023, 1, 1);
+        final transferDate = DateTime(2023, 7, 1);
+        final endDate = DateTime(2024, 1, 1);
+        final sourceFund = FundData(
+          isin: 'TRANSFER-OUT',
+          symbol: 'OUT',
+          name: 'Transfer source',
+          lastValue: 10,
+          currency: 'EUR',
+          date: endDate,
+          history: [PricePoint(endDate, 10)],
+          operations: [
+            FundOperation(
+              isin: 'TRANSFER-OUT',
+              date: startDate,
+              type: OperationType.buy,
+              units: 10,
+              price: 10,
+              amount: 100,
+            ),
+            FundOperation(
+              isin: 'TRANSFER-OUT',
+              date: transferDate,
+              type: OperationType.outTransfer,
+              units: 5,
+              price: 10,
+              amount: 50,
+            ),
+          ],
+        );
+        final destinationFund = FundData(
+          isin: 'TRANSFER-IN',
+          symbol: 'IN',
+          name: 'Transfer destination',
+          lastValue: 10,
+          currency: 'EUR',
+          date: endDate,
+          history: [PricePoint(endDate, 10)],
+          operations: [
+            FundOperation(
+              isin: 'TRANSFER-IN',
+              date: transferDate,
+              type: OperationType.inTransfer,
+              units: 5,
+              price: 10,
+              amount: 50,
+            ),
+          ],
+        );
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [sourceFund, destinationFund],
+          const {'EUR': 1},
+        );
+
+        expect(metrics.mwrAnnualized, isNotNull);
+        expect(metrics.mwrAnnualized, closeTo(0, 0.0005));
+      });
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {

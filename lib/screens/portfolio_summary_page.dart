@@ -166,6 +166,10 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         : Colors.redAccent[200]!;
     final bool hayInversion = globalMetrics.totalInvested > 0;
 
+    final accumulatedReturn = globalMetrics.totalInvested > 0
+        ? globalMetrics.profitAbs / globalMetrics.totalInvested * 100
+        : 0.0;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -218,6 +222,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
             const SizedBox(height: 10),
             const Divider(color: Colors.white24),
             const SizedBox(height: 10),
+            // TOTAL INVERTIDO
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -239,6 +244,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               ],
             ),
             const SizedBox(height: 10),
+            // RENDIMIENTO ABSOLUTO
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -260,7 +266,53 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               ],
             ),
             const SizedBox(height: 10),
+            // RENTABILIDAD SIMPLE ACUMULADA
             Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Rentabilidad simple acumulada',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  '${accumulatedReturn > 0 ? '+' : ''}${percentFormat.format(accumulatedReturn)} %',
+                  style: TextStyle(
+                    color: globalProfitColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // MWR ANUALIZADO
+            if (globalMetrics.mwrAnnualized != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'MWR anualizado',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    '${globalMetrics.mwrAnnualized! > 0 ? '+' : ''}'
+                    '${smartFormat.format(globalMetrics.mwrAnnualized! * 100)} %',
+                    style: TextStyle(
+                      color: globalProfitColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            //const SizedBox(height: 10),
+            /* Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -279,7 +331,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                   ),
                 ),
               ],
-            ),
+            ), */
             if (globalMetrics.totalValue > 0) ...[
               const SizedBox(height: 10),
               Text(

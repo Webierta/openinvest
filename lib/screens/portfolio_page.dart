@@ -314,6 +314,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     );
   }
 
+  // ENCABEZADO CARTERA
   Widget _buildPortfolioHeader(
     GlobalMetrics metrics,
     double dailyChangeAbs,
@@ -367,8 +368,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
           ],
         ),
         child: Column(
-          crossAxisAlignment: .start,
           children: [
+            // CABECERA
             Row(
               children: [
                 CircleAvatar(
@@ -385,7 +386,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                     icon: Icon(Icons.business_center, color: Colors.white),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 const Text(
                   'Mi Cartera',
                   style: TextStyle(
@@ -394,121 +395,49 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-                const Spacer(),
-                CircleAvatar(
-                  backgroundColor: Colors.blue.shade900,
-                  child: Text(
-                    '${provider.portfolio.length}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                // Patrimonio y resultado acumulado
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          currencyFormat.format(metrics.totalValue),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w300,
-                            letterSpacing: -0.6,
-                          ),
-                        ),
+
+            // VALOR Y VARIACIÓN DIARIA
+            Card(
+              elevation: 1,
+              shape: RoundedRectangleBorder(borderRadius: .circular(16)),
+              //color: dailyColor.withValues(alpha: 0.12),
+              color: Theme.of(context).colorScheme.primaryContainer
+                  .withValues(alpha: 0.3),
+              child: Padding(
+                padding: const .symmetric(horizontal: 18, vertical: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        currencyFormat.format(metrics.totalValue),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
-                      FittedBox(
-                        child: Row(
-                          crossAxisAlignment: .end,
-                          children: [
-                            Text(
-                              metrics.profitAbs > 0 ? '\u25B2' : '\u25BC',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: profitColor,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${metrics.profitAbs > 0 ? '+' : ''}'
-                              '${currencyFormat.format(metrics.profitAbs)} '
-                              '(${accumulatedReturn > 0 ? '+' : ''}'
-                              '${percentFormat.format(accumulatedReturn)}%)',
-                              style: TextStyle(
-                                color: profitColor,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Variación diaria global
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        '± Hoy',
+                    ),
+                    if (dailyChangePercent != null)
+                      Text(
+                        '${dailyChangePercent > 0
+                            ? '\u25B2'
+                            : dailyChangePercent < 0
+                            ? '\u25BC'
+                            : '='} '
+                        '${dailyChangePercent > 0 ? '+' : ''}'
+                        '${percentFormat.format(dailyChangePercent)} %',
                         style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.8,
+                          color: dailyColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      if (dailyChangePercent != null)
-                        Chip(
-                          backgroundColor: dailyColor.withValues(alpha: 0.13),
-                          side: BorderSide(
-                            color: dailyColor.withValues(alpha: 0.3),
-                            width: 1.5,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          //padding: .all(0),
-                          labelPadding: .all(0),
-                          label: Text(
-                            '${dailyChangePercent > 0 ? '\u25B2' : '\u25BC'} '
-                            '${dailyChangePercent > 0 ? '+' : ''}'
-                            '${percentFormat.format(dailyChangePercent)}%',
-                            style: TextStyle(
-                              color: dailyColor,
-                              fontSize: 12,
-                              //fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                      else
-                        const Text(
-                          '—',
-                          style: TextStyle(color: Colors.white54, fontSize: 16),
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
 
+            // GRAFICO
             if (portfolioHistory.length >= 2) ...[
               SizedBox(
                 height: 65,
@@ -521,12 +450,150 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                 ),
               ),
             ],
+            // MÉTRICAS
+            ...[
+              const SizedBox(height: 9),
+              const Divider(height: 1, color: Colors.white12),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  // Inversión
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: .start,
+                      children: [
+                        FittedBox(child: MetricLabel('INVERSIÓN')),
+                        FittedBox(
+                          child: MetricValue(
+                            '${smartFormat.format(metrics.totalInvested)} €',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 48,
+                    color: Colors.white30,
+                    margin: const .symmetric(horizontal: 9),
+                  ),
+                  // Rentabilidad
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: .start,
+                      children: [
+                        MetricLabel('RENDIMIENTO'),
+                        FittedBox(
+                          child: Row(
+                            children: [
+                              MetricValue(
+                                '${metrics.profitAbs > 0 ? '+' : ''}'
+                                '${currencyFormat.format(metrics.profitAbs)}',
+                                color: profitColor,
+                              ),
+                              const SizedBox(width: 4),
+                              MetricRelative(
+                                '${accumulatedReturn > 0 ? '+' : ''}'
+                                '${percentFormat.format(accumulatedReturn)}%',
+                                profitColor,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 48,
+                    color: Colors.white30,
+                    margin: const EdgeInsets.symmetric(horizontal: 9),
+                  ),
+                  // MWR
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: .start,
+                      children: [
+                        MetricLabel('MWR'),
+                        FittedBox(
+                          child: Container(
+                            padding: const .symmetric(
+                              horizontal: 7,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: profitColor.withValues(alpha: 0.8),
+                              ),
+                              borderRadius: .circular(16),
+                            ),
+                            child: Text(
+                              '${(metrics.mwrAnnualized != null && metrics.mwrAnnualized! > 0) ? '+' : ''}'
+                              '${(metrics.mwrAnnualized != null) ? '${percentFormat.format(metrics.mwrAnnualized! * 100)}%' : ''}',
+                              style: TextStyle(
+                                color: profitColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            // PIE
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: Colors.white12),
+            const SizedBox(height: 9),
+            Row(
+              children: [
+                const Icon(Icons.assessment, color: Colors.white70, size: 19),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${provider.portfolio.length} fondos',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PortfolioSummaryPage(),
+                      ),
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      Text(
+                        'Ver detalle',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      const SizedBox(width: 3),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: Colors.white,
+                        size: 21,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
+  // TARJETA FONDO
   Widget _buildFundCard(
     FundData fund,
     FundMetrics metrics,
@@ -559,7 +626,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         (fund.alertMax != null && fund.lastValue >= fund.alertMax!);
 
     final cardDecoration = BoxDecoration(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: .circular(20),
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -575,33 +642,6 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
       ],
     );
 
-    Widget metricLabel(String value) {
-      return Text(
-        value,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 11, color: Colors.white70),
-      );
-    }
-
-    Widget metricValue(
-      String value, {
-      Color color = Colors.white,
-      bool bold = true,
-      double size = 13,
-    }) {
-      return Text(
-        value,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: size,
-          fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-          color: color,
-        ),
-      );
-    }
-
     String symbolCurrency = fund.currency;
     if (fund.currency == 'EUR') {
       symbolCurrency = '€';
@@ -610,12 +650,12 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+      padding: const .fromLTRB(12, 9, 12, 9),
       child: Container(
         decoration: cardDecoration,
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: .circular(20),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () {
@@ -628,24 +668,25 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
               );
             },
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 15, 16, 12),
+              padding: const .fromLTRB(16, 15, 16, 12),
               child: Column(
+                crossAxisAlignment: .start,
                 children: [
                   // CABECERA: identidad
-                  Row(
-                    children: [
-                      Hero(
-                        tag: 'avatar_${fund.isin}',
-                        child: CircleAvatarFund(
-                          fund: fund,
-                          radius: 40,
-                          fontSize: 20,
+                  FittedBox(
+                    child: Row(
+                      children: [
+                        Hero(
+                          tag: 'avatar_${fund.isin}',
+                          child: CircleAvatarFund(
+                            fund: fund,
+                            radius: 40,
+                            fontSize: 20,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: .start,
                           children: [
                             Hero(
                               tag: 'name_${fund.isin}',
@@ -653,16 +694,14 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                 color: Colors.transparent,
                                 child: Row(
                                   children: [
-                                    Expanded(
-                                      child: Text(
-                                        fund.name,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w400,
-                                        ),
+                                    Text(
+                                      fund.name,
+                                      maxLines: 1,
+                                      overflow: .ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w400,
                                       ),
                                     ),
                                   ],
@@ -678,70 +717,58 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-
+                  const SizedBox(height: 8),
                   // COTIZACIÓN
-                  Row(
-                    mainAxisAlignment: .end,
-                    children: [
-                      Column(
-                        crossAxisAlignment: .end,
-                        children: [
-                          Row(
-                            children: [
-                              if (hasAlert) ...[
-                                const SizedBox(width: 5),
-                                const Icon(
-                                  Icons.notifications_active_rounded,
-                                  color: Colors.amber,
-                                  size: 17,
-                                ),
-                              ],
-                              Text(
-                                '${priceFormat.format(fund.lastValue)} ${fund.currency}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                  if (dailyVariation != null)
+                    Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: .circular(16),
+                      ),
+                      color: (dailyVarColor ?? Colors.blueGrey).withValues(
+                        alpha: 0.12,
+                      ),
+                      child: Padding(
+                        padding: const .symmetric(horizontal: 18, vertical: 16),
+                        child: Row(
+                          children: [
+                            if (hasAlert) ...[
+                              const Icon(
+                                Icons.notifications_active_rounded,
+                                color: Colors.amber,
+                                size: 27,
                               ),
+                              const SizedBox(width: 8),
                             ],
-                          ),
-                          if (dailyVariation != null) ...[
-                            const SizedBox(height: 5),
-                            Container(
-                              padding: const .symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: (dailyVarColor ?? Colors.blueGrey)
-                                    .withValues(alpha: 0.17),
-                                borderRadius: .circular(20),
-                              ),
+                            Expanded(
                               child: Text(
-                                '${dailyVariation > 0
-                                    ? '\u25B2'
-                                    : dailyVariation < 0
-                                    ? '\u25BC'
-                                    : '='} '
-                                '${dailyVariation > 0 ? '+' : ''}'
-                                '${percentFormat.format(dailyVariation)} %',
-                                style: TextStyle(
-                                  color:
-                                      dailyVarColor ?? Colors.blueGrey.shade200,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                '${priceFormat.format(fund.lastValue)} ${fund.currency}',
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            Text(
+                              '${dailyVariation > 0
+                                  ? '\u25B2'
+                                  : dailyVariation < 0
+                                  ? '\u25BC'
+                                  : '='} '
+                              '${dailyVariation > 0 ? '+' : ''}'
+                              '${percentFormat.format(dailyVariation)} %',
+                              style: TextStyle(
+                                color:
+                                    dailyVarColor ?? Colors.blueGrey.shade200,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
                               ),
                             ),
                           ],
-                        ],
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
 
                   // GRÁFICO DEL FONDO
                   if (chartValues.length >= 2) ...[
@@ -771,9 +798,9 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                           child: Column(
                             crossAxisAlignment: .start,
                             children: [
-                              metricLabel(l10n.valueLabel),
+                              MetricLabel(l10n.valueLabel),
                               FittedBox(
-                                child: metricValue(
+                                child: MetricValue(
                                   '${smartFormat.format(metrics.currentValue)} $symbolCurrency',
                                 ),
                               ),
@@ -794,21 +821,20 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                           child: Column(
                             crossAxisAlignment: .start,
                             children: [
-                              metricLabel(l10n.performanceLabel),
+                              MetricLabel(l10n.performanceLabel),
                               FittedBox(
                                 child: Row(
                                   children: [
-                                    metricValue(
+                                    MetricValue(
                                       '${metrics.profitAbs > 0 ? '+' : ''}'
                                       '${smartFormat.format(metrics.profitAbs)} $symbolCurrency',
                                       color: profitColor,
                                     ),
-                                    metricValue(
-                                      ' (${metrics.profitRel > 0 ? '+' : ''}'
-                                      '${percentFormat.format(metrics.profitRel)} %)',
-                                      color: profitColor,
-                                      bold: false,
-                                      size: 11,
+                                    const SizedBox(width: 4),
+                                    MetricRelative(
+                                      '${metrics.profitRel > 0 ? '+' : ''}'
+                                      '${percentFormat.format(metrics.profitRel)} %',
+                                      profitColor,
                                     ),
                                   ],
                                 ),
@@ -821,7 +847,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                           width: 1,
                           height: 48,
                           color: Colors.white30,
-                          margin: const EdgeInsets.symmetric(horizontal: 9),
+                          margin: const .symmetric(horizontal: 9),
                         ),
 
                         // TAE
@@ -832,7 +858,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             child: Column(
                               crossAxisAlignment: .start,
                               children: [
-                                metricLabel('TWR'),
+                                MetricLabel('TWR'),
                                 FittedBox(
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -845,7 +871,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                           alpha: 0.8,
                                         ),
                                       ),
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius: .circular(16),
                                     ),
                                     child: Text(
                                       //'${metrics.tae > 0 ? '+' : ''}'
@@ -885,7 +911,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                           'Cotización: ${dateFormat.format(fund.date)}',
                           //'${l10n.valuationDate}: ${dateFormat.format(fund.date)}',
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          overflow: .ellipsis,
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
@@ -929,7 +955,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: .start,
             children: [
               Text(
                 l10n.portfolioAlertsDesc,
@@ -954,9 +980,9 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             priceFormat.format(alert.limitValue),
                           );
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
+                      padding: const .only(bottom: 12.0),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: .start,
                         children: [
                           Icon(
                             alert.isMinAlert
@@ -970,7 +996,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: .start,
                               children: [
                                 Text(
                                   alert.fund.name,
@@ -1099,5 +1125,66 @@ class _HistoryChartPainter extends CustomPainter {
     }
 
     return false;
+  }
+}
+
+class MetricLabel extends StatelessWidget {
+  final String value;
+  const MetricLabel(this.value, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      value,
+      maxLines: 1,
+      overflow: .ellipsis,
+      style: const TextStyle(fontSize: 11, color: Colors.white70),
+    );
+  }
+}
+
+class MetricValue extends StatelessWidget {
+  final String value;
+  final Color? color;
+  final bool? bold;
+  final double? size;
+  const MetricValue(
+    this.value, {
+    this.color = Colors.white,
+    this.bold = true,
+    this.size = 13,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      value,
+      maxLines: 1,
+      overflow: .ellipsis,
+      style: TextStyle(
+        fontSize: size,
+        fontWeight: bold == true ? .bold : .w500,
+        color: color,
+      ),
+    );
+  }
+}
+
+class MetricRelative extends StatelessWidget {
+  final String value;
+  final Color color;
+  const MetricRelative(this.value, this.color, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const .symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.17),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(value, style: TextStyle(color: color, fontSize: 11)),
+    );
   }
 }
