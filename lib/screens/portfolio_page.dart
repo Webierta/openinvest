@@ -389,8 +389,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Mi Cartera',
+                Text(
+                  l10n.myPortfolioTitle,
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 18,
@@ -465,7 +465,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                     child: Column(
                       crossAxisAlignment: .start,
                       children: [
-                        FittedBox(child: MetricLabel('INVERSIÓN')),
+                        FittedBox(child: MetricLabel(l10n.invested)),
                         FittedBox(
                           child: MetricValue(
                             '${smartFormat.format(metrics.totalInvested)} €',
@@ -486,7 +486,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                     child: Column(
                       crossAxisAlignment: .start,
                       children: [
-                        MetricLabel('RENDIMIENTO'),
+                        MetricLabel(l10n.performanceLabel),
                         FittedBox(
                           child: Row(
                             children: [
@@ -571,7 +571,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${provider.portfolio.length} fondos',
+                    l10n.countFunds(provider.portfolio.length),
+                    //'${provider.portfolio.length} fondos',
                     style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ),
@@ -587,7 +588,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                   child: Row(
                     children: [
                       Text(
-                        'Ver detalle',
+                        l10n.viewDetails,
                         style: TextStyle(color: Colors.white, fontSize: 12),
                       ),
                       const SizedBox(width: 3),
@@ -920,7 +921,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Cotización: ${dateFormat.format(fund.date)}',
+                          dateFormat.format(fund.date),
                           //'${l10n.valuationDate}: ${dateFormat.format(fund.date)}',
                           maxLines: 1,
                           overflow: .ellipsis,
@@ -931,8 +932,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Ver detalle',
+                      Text(
+                        l10n.viewDetails,
                         style: TextStyle(color: Colors.white, fontSize: 12),
                       ),
                       const SizedBox(width: 3),
@@ -1164,7 +1165,7 @@ class MetricValue extends StatelessWidget {
     this.value, {
     this.color = Colors.white,
     this.bold = true,
-    this.size = 13,
+    this.size = 14,
     super.key,
   });
 
@@ -1266,7 +1267,7 @@ class _MarqueeTickerState extends State<MarqueeTicker> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 50,
+      height: 45,
       child: Container(
         color: Colors.black87,
         child: ListView.builder(
@@ -1277,7 +1278,6 @@ class _MarqueeTickerState extends State<MarqueeTicker> {
           itemBuilder: (context, index) {
             // Conseguimos el índice real usando el operador módulo
             final fund = widget.funds[index % widget.funds.length];
-
             double? dailyVariation;
             Color? dailyVarColor;
             if (fund.history.length > 1) {
@@ -1288,6 +1288,8 @@ class _MarqueeTickerState extends State<MarqueeTicker> {
                   dailyVarColor = Colors.greenAccent[400];
                 } else if (dailyVariation < 0) {
                   dailyVarColor = Colors.redAccent[200];
+                } else {
+                  dailyVarColor = Colors.blueGrey.shade200;
                 }
               }
             }
@@ -1304,7 +1306,7 @@ class _MarqueeTickerState extends State<MarqueeTicker> {
                   style: TextStyle(
                     color: dailyVarColor ?? Colors.blueGrey.shade200,
                     fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    fontSize: 18,
                   ),
                 ),
                 Text(
@@ -1321,11 +1323,14 @@ class _MarqueeTickerState extends State<MarqueeTicker> {
                 ),
                 const SizedBox(width: 6),
                 if (dailyVariation != null)
-                  Text(
-                    '${dailyVariation > 0 ? '+' : ''}'
-                    '${widget.percentFormat.format(dailyVariation)} %',
-                    style: TextStyle(
-                      color: dailyVarColor ?? Colors.blueGrey.shade200,
+                  ColoredBox(
+                    color:
+                        Color.lerp(dailyVarColor, Colors.black, 0.3) ??
+                        Colors.blueGrey.shade200,
+                    child: Text(
+                      ' ${dailyVariation > 0 ? '+' : ''}'
+                      '${widget.percentFormat.format(dailyVariation)} % ',
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
                 const SizedBox(width: 12),

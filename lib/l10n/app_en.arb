@@ -542,38 +542,41 @@
   "allNumericFieldsGreaterThanZeroError": "All numeric fields must be greater than zero.",
   "cannotSellMoreThanOwnedError": "You cannot sell more units than you own.",
   "saleAmountExceedsCurrentValueError": "The sale amount cannot exceed the current fund value.",
-    "portfolioTitle": "Portfolio",
-    "actionsLabel": "Actions",
-    "yourFundsTitle": "Your Funds ({count})",
-    "@yourFundsTitle": {
-      "placeholders": {
-        "count": { "type": "String" }
-      }
-    },
-    "currentPortfolioValue": "Current Portfolio Value",
-    "absoluteReturnLabel": "Absolute Return",
-    "relativeReturnLabel": "Relative Return",
-    "weightsLabel": "Weights",
-    "addAction": "Add",
-    "newFundSubtitle": "New Fund",
-    "twoFundsSubtitle": "2 Funds",
-    "correlationAction": "Correlation",
-    "riskMatrixSubtitle": "Risk Matrix",
-    "reportsAction": "Reports",
-    "pdfCsvSubtitle": "PDF / CSV",
-    "needAtLeastTwoFundsForCorrelation": "You need at least 2 funds to view the matrix.",
-    "generatePortfolioFilesTitle": "Generate Portfolio Files",
-    "csvSpreadsheetOption": "✔️ Spreadsheet of transactions (CSV format)",
-    "annualPdfReportOption": "✔️ Annual report in PDF format",
-    "recentOperationsTitle": "Recent Transactions",
-    "unitsPartsFormat": "{count} units",
-    "@unitsPartsFormat": {
-      "placeholders": {
-        "count": { "type": "String" }
-      }
-    },
-    "fundIdentityLabel": "Identity",
-    "fundValuationLabel": "Valuation",
+  "portfolioTitle": "Portfolio",
+  "myPortfolioTitle": "My Portfolio",
+  "actionsLabel": "Actions",
+  "yourFundsTitle": "Your Funds ({count})",
+  "@yourFundsTitle": {
+    "placeholders": {
+      "count": { "type": "String" }
+    }
+  },
+  "countFunds": "{count} Funds",
+  "viewDetails": "View details",
+  "currentPortfolioValue": "Current Portfolio Value",
+  "absoluteReturnLabel": "Absolute Return",
+  "relativeReturnLabel": "Relative Return",
+  "weightsLabel": "Weights",
+  "addAction": "Add",
+  "newFundSubtitle": "New Fund",
+  "twoFundsSubtitle": "2 Funds",
+  "correlationAction": "Correlation",
+  "riskMatrixSubtitle": "Risk Matrix",
+  "reportsAction": "Reports",
+  "pdfCsvSubtitle": "PDF / CSV",
+  "needAtLeastTwoFundsForCorrelation": "You need at least 2 funds to view the matrix.",
+  "generatePortfolioFilesTitle": "Generate Portfolio Files",
+  "csvSpreadsheetOption": "✔️ Spreadsheet of transactions (CSV format)",
+  "annualPdfReportOption": "✔️ Annual report in PDF format",
+  "recentOperationsTitle": "Recent Transactions",
+  "unitsPartsFormat": "{count} units",
+  "@unitsPartsFormat": {
+    "placeholders": {
+      "count": { "type": "String" }
+    }
+  },
+  "fundIdentityLabel": "Identity",
+  "fundValuationLabel": "Valuation",
   "priceUpdateError": "Error updating price",
   "priceSaveError": "Error saving price",
   "priceAlreadyExists": "A price already exists for this date. Use Edit if you want to modify it.",

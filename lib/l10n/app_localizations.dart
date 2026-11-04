@@ -2798,6 +2798,12 @@ abstract class AppLocalizations {
   /// **'Cartera'**
   String get portfolioTitle;
 
+  /// No description provided for @myPortfolioTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi Cartera'**
+  String get myPortfolioTitle;
+
   /// No description provided for @actionsLabel.
   ///
   /// In es, this message translates to:
@@ -2809,6 +2815,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Tus Fondos ({count})'**
   String yourFundsTitle(String count);
+
+  /// No description provided for @countFunds.
+  ///
+  /// In es, this message translates to:
+  /// **'{count} Fondos'**
+  String countFunds(Object count);
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver detalle'**
+  String get viewDetails;
 
   /// No description provided for @currentPortfolioValue.
   ///

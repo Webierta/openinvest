@@ -543,6 +543,7 @@
   "cannotSellMoreThanOwnedError": "No puedes vender más participaciones de las que posees.",
   "saleAmountExceedsCurrentValueError": "El importe de venta no puede superar el valor actual del fondo.",
   "portfolioTitle": "Cartera",
+  "myPortfolioTitle": "Mi Cartera",
   "actionsLabel": "Acciones",
   "yourFundsTitle": "Tus Fondos ({count})",
   "@yourFundsTitle": {
@@ -550,6 +551,8 @@
       "count": { "type": "String" }
     }
   },
+  "countFunds": "{count} Fondos",
+  "viewDetails": "Ver detalle",
   "currentPortfolioValue": "Valor actual de la Cartera",
   "absoluteReturnLabel": "Rendimiento absoluto",
   "relativeReturnLabel": "Rendimiento relativo",

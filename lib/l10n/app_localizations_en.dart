@@ -1496,12 +1496,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get portfolioTitle => 'Portfolio';
 
   @override
+  String get myPortfolioTitle => 'My Portfolio';
+
+  @override
   String get actionsLabel => 'Actions';
 
   @override
   String yourFundsTitle(String count) {
     return 'Your Funds ($count)';
   }
+
+  @override
+  String countFunds(Object count) {
+    return '$count Funds';
+  }
+
+  @override
+  String get viewDetails => 'View details';
 
   @override
   String get currentPortfolioValue => 'Current Portfolio Value';
