@@ -533,5 +533,423 @@ void main() {
 
       expect(() => original.copyWith(amount: double.nan), throwsArgumentError);
     });
+
+    test('LF-132.28: copyWith rechaza participaciones negativas', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+      );
+
+      expect(() => original.copyWith(units: -1), throwsArgumentError);
+    });
+
+    test('LF-132.29: copyWith rechaza precios negativos', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+      );
+
+      expect(() => original.copyWith(price: -10), throwsArgumentError);
+    });
+
+    test('LF-132.30: copyWith rechaza importes negativos', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+      );
+
+      expect(() => original.copyWith(amount: -1), throwsArgumentError);
+    });
+
+    test('LF-132.31: copyWith permite eliminar unidades y precio conservando el importe', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      final updated = original.copyWith(units: null, price: null);
+
+      expect(updated.amount, 1500);
+      expect(updated.units, isNull);
+      expect(updated.price, isNull);
+    });
+
+    test(
+      'LF-132.32: cambiar unidades y eliminar precio conserva el importe',
+      () {
+        final original = HistoricalOperation(
+          uid: 'operation-001',
+          investmentUid: 'investment-001',
+          date: DateTime(2025, 3, 15),
+          type: HistoricalOperationType.subscription,
+          amount: 1500,
+          units: 10,
+          price: 150,
+        );
+
+        final updated = original.copyWith(units: 12, price: null);
+
+        expect(updated.amount, 1500);
+        expect(updated.units, 12);
+        expect(updated.price, isNull);
+      },
+    );
+
+    test('LF-132.33: eliminar unidades conserva precio e importe', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      final updated = original.copyWith(units: null);
+
+      expect(updated.amount, 1500);
+      expect(updated.units, isNull);
+      expect(updated.price, 150);
+    });
+
+    test('LF-132.34: copyWith recalcula el importe cuando se solicita', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      final updated = original.copyWith(units: 12, amount: null);
+
+      expect(updated.amount, 1800);
+      expect(updated.units, 12);
+      expect(updated.price, 150);
+    });
+
+    test('LF-132.35: rechaza recalcular el importe si falta el precio', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      expect(
+        () => original.copyWith(price: null, amount: null),
+        throwsArgumentError,
+      );
+    });
+
+    test('LF-132.36: rechaza recalcular el importe si faltan las unidades', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      expect(
+        () => original.copyWith(units: null, amount: null),
+        throwsArgumentError,
+      );
+    });
+
+    test('LF-132.37: rechaza un importe incoherente al modificar unidades y precio', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      expect(
+        () => original.copyWith(units: 12, price: 160),
+        throwsArgumentError,
+      );
+    });
+
+    test('LF-132.38: copyWith permite modificar unidades y precio recalculando el importe', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      final updated = original.copyWith(units: 12, price: 160, amount: null);
+
+      expect(updated.amount, 1920);
+      expect(updated.units, 12);
+      expect(updated.price, 160);
+    });
+
+    test('LF-132.39: conserva fecha y tipo al modificar datos económicos', () {
+      final date = DateTime(2025, 3, 15);
+
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      final updated = original.copyWith(units: 12, price: 160, amount: null);
+
+      expect(updated.date, date);
+      expect(updated.type, HistoricalOperationType.subscription);
+      expect(updated.amount, 1920);
+    });
+
+    test('LF-132.40: cambiar el tipo conserva los datos económicos', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      final updated = original.copyWith(
+        type: HistoricalOperationType.redemption,
+      );
+
+      expect(updated.type, HistoricalOperationType.redemption);
+      expect(updated.amount, 1500);
+      expect(updated.units, 10);
+      expect(updated.price, 150);
+      expect(updated.uid, original.uid);
+      expect(updated.investmentUid, original.investmentUid);
+    });
+
+    test(
+      'LF-132.41: cambiar la inversión conserva los datos de la operación',
+      () {
+        final original = HistoricalOperation(
+          uid: 'operation-001',
+          investmentUid: 'investment-001',
+          date: DateTime(2025, 3, 15),
+          type: HistoricalOperationType.subscription,
+          amount: 1500,
+          units: 10,
+          price: 150,
+          transferUid: 'transfer-001',
+        );
+
+        final updated = original.copyWith(investmentUid: 'investment-002');
+
+        expect(updated.investmentUid, 'investment-002');
+        expect(updated.uid, original.uid);
+        expect(updated.date, original.date);
+        expect(updated.type, original.type);
+        expect(updated.amount, original.amount);
+        expect(updated.units, original.units);
+        expect(updated.price, original.price);
+        expect(updated.transferUid, original.transferUid);
+      },
+    );
+
+    test('LF-132.42: cambiar la fecha conserva el resto de los datos', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.transferIn,
+        amount: 1500,
+        units: 10,
+        price: 150,
+        transferUid: 'transfer-001',
+      );
+
+      final newDate = DateTime(2025, 4, 20);
+
+      final updated = original.copyWith(date: newDate);
+
+      expect(updated.date, newDate);
+      expect(updated.uid, original.uid);
+      expect(updated.investmentUid, original.investmentUid);
+      expect(updated.type, original.type);
+      expect(updated.amount, original.amount);
+      expect(updated.units, original.units);
+      expect(updated.price, original.price);
+      expect(updated.transferUid, original.transferUid);
+    });
+
+    test('LF-132.43: cambiar transferUid conserva el resto de los datos', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.transferIn,
+        amount: 1500,
+        units: 10,
+        price: 150,
+        transferUid: 'transfer-001',
+      );
+
+      final updated = original.copyWith(transferUid: 'transfer-002');
+
+      expect(updated.transferUid, 'transfer-002');
+      expect(updated.uid, original.uid);
+      expect(updated.investmentUid, original.investmentUid);
+      expect(updated.date, original.date);
+      expect(updated.type, original.type);
+      expect(updated.amount, original.amount);
+      expect(updated.units, original.units);
+      expect(updated.price, original.price);
+    });
+
+    test('LF-132.44: copyWith permite eliminar transferUid', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.transferIn,
+        amount: 1500,
+        transferUid: 'transfer-001',
+      );
+
+      final updated = original.copyWith(transferUid: null);
+
+      expect(updated.transferUid, isNull);
+      expect(updated.uid, original.uid);
+      expect(updated.investmentUid, original.investmentUid);
+      expect(updated.amount, original.amount);
+      expect(updated.type, original.type);
+    });
+
+    test('LF-132.45: copyWith permite eliminar la descripción', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        description: 'Aportación inicial',
+      );
+
+      final updated = original.copyWith(description: null);
+
+      expect(updated.description, isNull);
+      expect(updated.uid, original.uid);
+      expect(updated.investmentUid, original.investmentUid);
+      expect(updated.amount, original.amount);
+    });
+
+    test('LF-132.46: copyWith permite modificar la descripción', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        description: 'Aportación inicial',
+      );
+
+      final updated = original.copyWith(
+        description: 'Aportación extraordinaria',
+      );
+
+      expect(updated.description, 'Aportación extraordinaria');
+      expect(updated.uid, original.uid);
+      expect(updated.investmentUid, original.investmentUid);
+      expect(updated.date, original.date);
+      expect(updated.amount, original.amount);
+    });
+
+    test('LF-132.47: copyWith normaliza transferUid', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.transferIn,
+        amount: 1500,
+      );
+
+      final updated = original.copyWith(transferUid: ' transfer-002 ');
+
+      expect(updated.transferUid, 'transfer-002');
+    });
+
+    test('LF-132.48: copyWith rechaza transferUid vacío', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.transferIn,
+        amount: 1500,
+      );
+
+      expect(() => original.copyWith(transferUid: '   '), throwsArgumentError);
+    });
+
+    test('LF-132.49: copyWith permite cambiar el UID de la operación', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+        units: 10,
+        price: 150,
+      );
+
+      final updated = original.copyWith(uid: 'operation-002');
+
+      expect(updated.uid, 'operation-002');
+      expect(updated.investmentUid, original.investmentUid);
+      expect(updated.date, original.date);
+      expect(updated.type, original.type);
+      expect(updated.amount, original.amount);
+      expect(updated.units, original.units);
+      expect(updated.price, original.price);
+    });
+
+    test('LF-132.50: copyWith rechaza un UID vacío', () {
+      final original = HistoricalOperation(
+        uid: 'operation-001',
+        investmentUid: 'investment-001',
+        date: DateTime(2025, 3, 15),
+        type: HistoricalOperationType.subscription,
+        amount: 1500,
+      );
+
+      expect(() => original.copyWith(uid: '   '), throwsArgumentError);
+    });
   });
 }
