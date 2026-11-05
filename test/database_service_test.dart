@@ -2891,4 +2891,42 @@ void main() {
       ]);
     },
   );
+
+  test(
+    'recupera todas las inversiones históricas ordenadas por más recientes',
+    () async {
+      await DatabaseService.saveHistoricalInvestment(
+        HistoricalInvestment(
+          uid: 'historical-list-A',
+          name: 'Primera inversión',
+        ),
+      );
+
+      await DatabaseService.saveHistoricalInvestment(
+        HistoricalInvestment(
+          uid: 'historical-list-B',
+          name: 'Segunda inversión',
+        ),
+      );
+
+      await DatabaseService.saveHistoricalInvestment(
+        HistoricalInvestment(
+          uid: 'historical-list-C',
+          name: 'Tercera inversión',
+        ),
+      );
+
+      final investments = await DatabaseService.getHistoricalInvestments();
+
+      expect(investments.map((investment) => investment.uid).toList(), [
+        'historical-list-C',
+        'historical-list-B',
+        'historical-list-A',
+      ]);
+
+      expect(investments, hasLength(3));
+      expect(investments.first.name, 'Tercera inversión');
+      expect(investments.first.id, isNotNull);
+    },
+  );
 }

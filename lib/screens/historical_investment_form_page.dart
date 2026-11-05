@@ -6,6 +6,7 @@ import '../models/historical_operation.dart';
 import '../services/database_service.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_search_page.dart';
+import 'historical_investments_page.dart';
 
 class HistoricalInvestmentFormPage extends StatefulWidget {
   const HistoricalInvestmentFormPage({super.key});
@@ -38,12 +39,13 @@ class _HistoricalInvestmentFormPageState
   }
 
   double? _parseNumber(String value) {
-    final normalized = value
-        .trim()
-        .replaceAll(' ', '')
-        .replaceAll('€', '')
-        .replaceAll('.', '')
-        .replaceAll(',', '.');
+    var normalized = value.trim().replaceAll(' ', '').replaceAll('€', '');
+
+    // Si hay coma, asumimos formato español:
+    // 1.234,56 -> 1234.56
+    if (normalized.contains(',')) {
+      normalized = normalized.replaceAll('.', '').replaceAll(',', '.');
+    }
 
     return double.tryParse(normalized);
   }
@@ -192,7 +194,11 @@ class _HistoricalInvestmentFormPageState
         ),
       );
 
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HistoricalInvestmentsPage()),
+      );
+
+      //Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
 
@@ -386,6 +392,49 @@ class _HistoricalInvestmentFormPageState
     );
   }
 
+  void showInfo() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog.fullscreen(
+          child: GradientBackground(
+            child: SafeArea(
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                appBar: AppBar(
+                  backgroundColor: const Color(0xFF1E293B),
+                  elevation: 0,
+                  title: Text('Histórico de inversiones'),
+                ),
+                body: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      children: [
+                        Text(
+                          'OpenInvest calcula la rentabilidad de la Cartera global en base a los fondos '
+                          'que actualmente la componen. Pero cuando la inversión de alguno de estos fondos deriva de '
+                          'un traspaso desde otro fondo, se pierde información acumulada por el fondo de origen. '
+                          'También se pierde si se elimina un fondo con inversiones.',
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Para evitarlo, este regitro permite reconstruir el histórico de inversiones pasadas '
+                          '(por ejemplo después de reembolsos o traspasos) e incorporar sus rentabilidades a los cálculos de '
+                          'la Cartera aunque esos fondos no formen parte actualmente de la Cartera o nunca lo hicieran.',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -394,6 +443,20 @@ class _HistoricalInvestmentFormPageState
         title: const Text('Nueva inversión histórica'),
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
+        actions: [
+          IconButton(onPressed: showInfo, icon: Icon(Icons.info_outline)),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const HistoricalInvestmentsPage(),
+                ),
+              );
+            },
+            icon: Icon(Icons.history),
+          ),
+        ],
       ),
       body: GradientBackground(
         child: SafeArea(
@@ -427,33 +490,37 @@ class _HistoricalInvestmentFormPageState
                   child: _buildOperationList(),
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  height: 54,
-                  child: FilledButton.icon(
-                    onPressed: _saving ? null : _save,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.save_outlined),
-                    label: Text(
-                      _saving ? 'Guardando…' : 'Guardar inversión histórica',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                // BOTONES
+                Row(
+                  mainAxisAlignment: .spaceAround,
+                  children: [
+                    TextButton(
+                      onPressed: _saving
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.white70),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: _saving ? null : () => Navigator.of(context).pop(),
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                    FilledButton.icon(
+                      onPressed: _saving ? null : _save,
+                      icon: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_outlined),
+                      label: Text(
+                        _saving ? 'Guardando…' : 'Guardar',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -541,6 +608,9 @@ class _HistoricalOperationDialogState
 
     _selectedType = operation?.type ?? HistoricalOperationType.subscription;
     _selectedDate = operation?.date ?? DateTime.now();
+
+    _unitsController.addListener(_updateCalculatedAmount);
+    _priceController.addListener(_updateCalculatedAmount);
   }
 
   @override
@@ -551,6 +621,39 @@ class _HistoricalOperationDialogState
     _descriptionController.dispose();
     _transferController.dispose();
     super.dispose();
+  }
+
+  void _updateCalculatedAmount() {
+    final unitsText = _unitsController.text.trim();
+    final priceText = _priceController.text.trim();
+
+    // Si falta alguno de los dos datos, no calculamos.
+    if (unitsText.isEmpty || priceText.isEmpty) return;
+
+    final units = widget.parseNumber(unitsText);
+    final price = widget.parseNumber(priceText);
+
+    if (units == null ||
+        price == null ||
+        !units.isFinite ||
+        !price.isFinite ||
+        units < 0 ||
+        price < 0) {
+      return;
+    }
+
+    final amount = units * price;
+    if (!amount.isFinite) return;
+
+    // Formato español con dos decimales.
+    final calculated = amount.toStringAsFixed(2).replaceAll('.', ',');
+
+    if (_amountController.text != calculated) {
+      _amountController.value = TextEditingValue(
+        text: calculated,
+        selection: TextSelection.collapsed(offset: calculated.length),
+      );
+    }
   }
 
   void _submit() {

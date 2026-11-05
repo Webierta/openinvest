@@ -1218,6 +1218,22 @@ class DatabaseService {
     );
   }
 
+  static Future<List<HistoricalInvestment>> getHistoricalInvestments() async {
+    final db = await database;
+
+    final rows = await db.query('historical_investments', orderBy: 'id DESC');
+
+    return rows.map((row) {
+      return HistoricalInvestment(
+        id: row['id'] as int,
+        uid: row['uid'] as String,
+        name: row['name'] as String,
+        isin: row['isin'] as String?,
+        description: row['description'] as String?,
+      );
+    }).toList();
+  }
+
   static Future<void> saveHistoricalOperation(
     HistoricalOperation operation,
   ) async {
