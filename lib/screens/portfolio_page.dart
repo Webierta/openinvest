@@ -376,17 +376,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
               children: [
                 CircleAvatar(
                   backgroundColor: Colors.blue.shade900,
-                  child: IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PortfolioSummaryPage(),
-                        ),
-                      );
-                    },
-                    icon: Icon(Icons.business_center, color: Colors.white),
-                  ),
+                  child: Icon(Icons.business_center, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -707,19 +697,21 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               tag: 'name_${fund.isin}',
                               child: Material(
                                 color: Colors.transparent,
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      fund.name,
-                                      maxLines: 1,
-                                      overflow: .ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w400,
+                                child: FittedBox(
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        fund.name,
+                                        maxLines: 1,
+                                        overflow: .ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w400,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -1319,7 +1311,16 @@ class _MarqueeTickerState extends State<MarqueeTicker> {
                 const SizedBox(width: 6),
                 Text(
                   '${widget.priceFormat.format(fund.lastValue)} ${fund.currency}',
-                  style: TextStyle(fontWeight: .bold),
+                  style: TextStyle(
+                    fontWeight: .bold,
+                    shadows: [
+                      Shadow(
+                        blurRadius: 8.0,
+                        color: const Color(0xFF39FF14).withAlpha(180),
+                        offset: Offset.zero,
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 6),
                 if (dailyVariation != null)

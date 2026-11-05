@@ -14,7 +14,8 @@ import 'fund_details_page.dart';
 enum _SearchStatus { initial, invalidQuery, searching, completed }
 
 class FundSearchPage extends StatefulWidget {
-  const FundSearchPage({super.key});
+  final bool? isOnlySearch;
+  const FundSearchPage({super.key, this.isOnlySearch = false});
 
   @override
   State<FundSearchPage> createState() => _FundSearchPageState();
@@ -27,6 +28,10 @@ class _FundSearchPageState extends State<FundSearchPage> {
   String? _searchWarning;
   _SearchStatus _searchStatus = _SearchStatus.initial;
   int _searchGeneration = 0;
+
+  // FundData _returnFund(FundData fund) {
+  //   return fund;
+  // }
 
   Future<void> _search(String value) async {
     final generation = ++_searchGeneration;
@@ -118,11 +123,10 @@ class _FundSearchPageState extends State<FundSearchPage> {
       final bool isResolved = result.isResolved;
       final bool isValid = fund.hasValidIsin;
 
-      /* debugPrint(
-        '[LF-UI-1] fund=${fund.name}, '
-        'source=${fund.source}, '
-        'valuationSource=${fund.valuationSource}',
-      ); */
+      if (widget.isOnlySearch == true) {
+        Navigator.pop(context, fund);
+        return;
+      }
 
       final confirm = await showDialog<bool>(
         context: context,

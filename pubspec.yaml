@@ -117,7 +117,7 @@ flutter:
   #         weight: 700
   #
   # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+  # see https://flutter.dev/to/font-from-package  
 
 flutter_launcher_icons:
   android: "launcher_icon"

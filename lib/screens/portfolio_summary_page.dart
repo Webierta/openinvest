@@ -14,6 +14,7 @@ import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
 import 'fund_search_page.dart';
+import 'portfolio_history_form_page.dart';
 
 class PortfolioSummaryPage extends StatefulWidget {
   const PortfolioSummaryPage({super.key});
@@ -480,6 +481,22 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
             if (returnDialogInformes == 'CSV') {
               filesGenerator.initExportCsv();
             }
+          },
+        ),
+        _buildActionCard(
+          context,
+          provider,
+          icon: Icons.history,
+          title: 'Histórico',
+          subtitle: 'Reconstruir operaciones',
+          color: Colors.green,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const PortfolioHistoryFormPage(),
+              ),
+            );
           },
         ),
       ],
