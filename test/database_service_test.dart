@@ -2842,4 +2842,53 @@ void main() {
     expect(recovered.amount, 1100);
     expect(recovered.id, stored.id);
   });
+
+  test(
+    'recupera una inversión histórica junto con sus operaciones ordenadas',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-combined-001',
+        name: 'Fondo histórico combinado',
+        isin: 'ES0000000002',
+        description: 'Prueba de recuperación conjunta',
+      );
+
+      final redemption = HistoricalOperation(
+        uid: 'historical-combined-redemption',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 12, 31),
+        type: HistoricalOperationType.redemption,
+        amount: 1250,
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'historical-combined-subscription',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 1, 1),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+      await DatabaseService.saveHistoricalOperation(redemption);
+      await DatabaseService.saveHistoricalOperation(subscription);
+
+      final result =
+          await DatabaseService.getHistoricalInvestmentWithOperations(
+            investment.uid,
+          );
+
+      expect(result, isNotNull);
+      expect(result!.investment.uid, investment.uid);
+      expect(result.investment.name, investment.name);
+      expect(result.investment.isin, investment.isin);
+      expect(result.investment.description, investment.description);
+
+      expect(result.operations, hasLength(2));
+      expect(result.operations.map((operation) => operation.uid).toList(), [
+        subscription.uid,
+        redemption.uid,
+      ]);
+    },
+  );
 }
