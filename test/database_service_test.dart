@@ -8,6 +8,9 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:investing/services/database_service.dart';
 import 'package:investing/models/fund_cost.dart';
 
+import 'package:investing/models/historical_investment.dart';
+import 'package:investing/models/historical_operation.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
@@ -720,4 +723,2123 @@ void main() {
       expect(storedFund.operations.single.id, isNot(999));
     },
   );
+
+  test('crea las tablas de inversiones y operaciones históricas', () async {
+    final db = await DatabaseService.database;
+
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
+    );
+
+    final tableNames = tables.map((row) => row['name'] as String).toSet();
+
+    expect(tableNames, contains('historical_investments'));
+    expect(tableNames, contains('historical_operations'));
+  });
+
+  test(
+    'migra de v12 a v13 creando las tablas históricas y conservando datos',
+    () async {
+      final databasePath = path.join(temporaryDirectory.path, 'test.db');
+
+      // Simula una base de datos existente en versión 12.
+      final oldDatabase = await databaseFactory.openDatabase(
+        databasePath,
+        options: OpenDatabaseOptions(
+          version: 12,
+          onCreate: (db, version) async {
+            await db.execute('''
+          CREATE TABLE legacy_probe (
+            id INTEGER PRIMARY KEY,
+            value TEXT NOT NULL
+          )
+        ''');
+
+            await db.insert('legacy_probe', {
+              'id': 1,
+              'value': 'dato existente',
+            });
+          },
+        ),
+      );
+
+      await oldDatabase.close();
+
+      // Abrir mediante DatabaseService debe ejecutar la migración a v13.
+      final db = await DatabaseService.database;
+
+      final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type = 'table'",
+      );
+
+      final tableNames = tables.map((row) => row['name'] as String).toSet();
+
+      expect(tableNames, contains('historical_investments'));
+      expect(tableNames, contains('historical_operations'));
+
+      final preservedRows = await db.query('legacy_probe');
+      expect(preservedRows, hasLength(1));
+      expect(preservedRows.single['value'], 'dato existente');
+
+      expect(await db.getVersion(), 13);
+    },
+  );
+  test('guarda y recupera una inversión histórica por su UID', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-001',
+      name: 'Fondo histórico',
+      isin: 'ES0123456789',
+      description: 'Inversión anterior a OpenInvest',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final stored = await DatabaseService.getHistoricalInvestment(
+      'historical-001',
+    );
+
+    expect(stored, isNotNull);
+    expect(stored!.uid, 'historical-001');
+    expect(stored.name, 'Fondo histórico');
+    expect(stored.isin, 'ES0123456789');
+    expect(stored.description, 'Inversión anterior a OpenInvest');
+    expect(stored.id, isNotNull);
+  });
+
+  test('guarda inversiones históricas independientes por UID', () async {
+    final first = HistoricalInvestment(
+      uid: 'historical-A',
+      name: 'Primera inversión',
+      isin: 'ES0000000001',
+    );
+
+    final second = HistoricalInvestment(
+      uid: 'historical-B',
+      name: 'Segunda inversión',
+      isin: 'ES0000000002',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(first);
+    await DatabaseService.saveHistoricalInvestment(second);
+
+    final storedFirst = await DatabaseService.getHistoricalInvestment(
+      'historical-A',
+    );
+    final storedSecond = await DatabaseService.getHistoricalInvestment(
+      'historical-B',
+    );
+
+    expect(storedFirst, isNotNull);
+    expect(storedSecond, isNotNull);
+
+    expect(storedFirst!.name, 'Primera inversión');
+    expect(storedFirst.isin, 'ES0000000001');
+
+    expect(storedSecond!.name, 'Segunda inversión');
+    expect(storedSecond.isin, 'ES0000000002');
+
+    expect(storedFirst.id, isNot(storedSecond.id));
+  });
+
+  test('rechaza guardar dos inversiones históricas con el mismo UID', () async {
+    final first = HistoricalInvestment(
+      uid: 'historical-duplicate',
+      name: 'Primera inversión',
+    );
+
+    final second = HistoricalInvestment(
+      uid: 'historical-duplicate',
+      name: 'Segunda inversión',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(first);
+
+    await expectLater(
+      DatabaseService.saveHistoricalInvestment(second),
+      throwsA(isA<DatabaseException>()),
+    );
+
+    final stored = await DatabaseService.getHistoricalInvestment(
+      'historical-duplicate',
+    );
+
+    expect(stored, isNotNull);
+    expect(stored!.name, 'Primera inversión');
+  });
+
+  test('devuelve null al buscar una inversión histórica inexistente', () async {
+    final stored = await DatabaseService.getHistoricalInvestment(
+      'historical-no-existe',
+    );
+
+    expect(stored, isNull);
+  });
+
+  test(
+    'guarda y recupera una inversión histórica con campos opcionales nulos',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-null-fields',
+        name: 'Inversión sin datos adicionales',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final stored = await DatabaseService.getHistoricalInvestment(
+        'historical-null-fields',
+      );
+
+      expect(stored, isNotNull);
+      expect(stored!.uid, 'historical-null-fields');
+      expect(stored.name, 'Inversión sin datos adicionales');
+      expect(stored.isin, isNull);
+      expect(stored.description, isNull);
+    },
+  );
+
+  test('guarda y recupera una operación histórica por su UID', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-operation-investment',
+      name: 'Inversión histórica',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-operation-001',
+      investmentUid: 'historical-operation-investment',
+      date: DateTime(2020, 5, 15),
+      type: HistoricalOperationType.subscription,
+      amount: 1500.0,
+      units: 100.0,
+      price: 15.0,
+      description: 'Aportación inicial',
+    );
+
+    await DatabaseService.saveHistoricalOperation(operation);
+
+    final stored = await DatabaseService.getHistoricalOperation(
+      'historical-operation-001',
+    );
+
+    expect(stored, isNotNull);
+    expect(stored!.uid, 'historical-operation-001');
+    expect(stored.investmentUid, 'historical-operation-investment');
+    expect(stored.date, DateTime(2020, 5, 15));
+    expect(stored.type, HistoricalOperationType.subscription);
+    expect(stored.amount, 1500.0);
+    expect(stored.units, 100.0);
+    expect(stored.price, 15.0);
+    expect(stored.description, 'Aportación inicial');
+    expect(stored.id, isNotNull);
+  });
+
+  test('guarda operaciones históricas independientes por UID', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-operations-independent',
+      name: 'Inversión histórica',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final first = HistoricalOperation(
+      uid: 'historical-operation-A',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    final second = HistoricalOperation(
+      uid: 'historical-operation-B',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 2, 10),
+      type: HistoricalOperationType.redemption,
+      amount: 250,
+    );
+
+    await DatabaseService.saveHistoricalOperation(first);
+    await DatabaseService.saveHistoricalOperation(second);
+
+    final storedFirst = await DatabaseService.getHistoricalOperation(
+      'historical-operation-A',
+    );
+    final storedSecond = await DatabaseService.getHistoricalOperation(
+      'historical-operation-B',
+    );
+
+    expect(storedFirst, isNotNull);
+    expect(storedSecond, isNotNull);
+
+    expect(storedFirst!.amount, 1000);
+    expect(storedFirst.type, HistoricalOperationType.subscription);
+
+    expect(storedSecond!.amount, 250);
+    expect(storedSecond.type, HistoricalOperationType.redemption);
+
+    expect(storedFirst.id, isNot(storedSecond.id));
+  });
+
+  test('rechaza guardar dos operaciones históricas con el mismo UID', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-operations-duplicate',
+      name: 'Inversión histórica',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final first = HistoricalOperation(
+      uid: 'historical-operation-duplicate',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    final second = HistoricalOperation(
+      uid: 'historical-operation-duplicate',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 2, 10),
+      type: HistoricalOperationType.redemption,
+      amount: 250,
+    );
+
+    await DatabaseService.saveHistoricalOperation(first);
+
+    await expectLater(
+      DatabaseService.saveHistoricalOperation(second),
+      throwsA(isA<DatabaseException>()),
+    );
+
+    final stored = await DatabaseService.getHistoricalOperation(
+      'historical-operation-duplicate',
+    );
+
+    expect(stored, isNotNull);
+    expect(stored!.amount, 1000);
+    expect(stored.type, HistoricalOperationType.subscription);
+  });
+
+  test('devuelve null al buscar una operación histórica inexistente', () async {
+    final stored = await DatabaseService.getHistoricalOperation(
+      'historical-operation-no-existe',
+    );
+
+    expect(stored, isNull);
+  });
+
+  test(
+    'guarda y recupera una operación histórica con campos opcionales nulos',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-operation-null-fields',
+        name: 'Inversión histórica',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final operation = HistoricalOperation(
+        uid: 'historical-operation-null-001',
+        investmentUid: investment.uid,
+        date: DateTime(2021, 3, 20),
+        type: HistoricalOperationType.subscription,
+        amount: 500,
+      );
+
+      await DatabaseService.saveHistoricalOperation(operation);
+
+      final stored = await DatabaseService.getHistoricalOperation(
+        operation.uid,
+      );
+
+      expect(stored, isNotNull);
+      expect(stored!.units, isNull);
+      expect(stored.price, isNull);
+      expect(stored.description, isNull);
+      expect(stored.transferUid, isNull);
+    },
+  );
+
+  test('recupera las operaciones históricas de una inversión', () async {
+    final investmentA = HistoricalInvestment(
+      uid: 'historical-operations-by-investment-A',
+      name: 'Inversión A',
+    );
+
+    final investmentB = HistoricalInvestment(
+      uid: 'historical-operations-by-investment-B',
+      name: 'Inversión B',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investmentA);
+    await DatabaseService.saveHistoricalInvestment(investmentB);
+
+    final operationA1 = HistoricalOperation(
+      uid: 'historical-operation-A1',
+      investmentUid: investmentA.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    final operationA2 = HistoricalOperation(
+      uid: 'historical-operation-A2',
+      investmentUid: investmentA.uid,
+      date: DateTime(2020, 2, 10),
+      type: HistoricalOperationType.redemption,
+      amount: 200,
+    );
+
+    final operationB1 = HistoricalOperation(
+      uid: 'historical-operation-B1',
+      investmentUid: investmentB.uid,
+      date: DateTime(2020, 1, 15),
+      type: HistoricalOperationType.subscription,
+      amount: 500,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operationA1);
+    await DatabaseService.saveHistoricalOperation(operationA2);
+    await DatabaseService.saveHistoricalOperation(operationB1);
+
+    final stored = await DatabaseService.getHistoricalOperations(
+      investmentA.uid,
+    );
+
+    expect(stored, hasLength(2));
+    expect(stored.map((operation) => operation.uid).toSet(), {
+      'historical-operation-A1',
+      'historical-operation-A2',
+    });
+
+    expect(
+      stored.every((operation) => operation.investmentUid == investmentA.uid),
+      isTrue,
+    );
+  });
+
+  test('recupera las operaciones históricas en orden cronológico', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-operations-chronological',
+      name: 'Inversión cronológica',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final later = HistoricalOperation(
+      uid: 'historical-operation-later',
+      investmentUid: investment.uid,
+      date: DateTime(2022, 3, 15),
+      type: HistoricalOperationType.redemption,
+      amount: 300,
+    );
+
+    final earlier = HistoricalOperation(
+      uid: 'historical-operation-earlier',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    final middle = HistoricalOperation(
+      uid: 'historical-operation-middle',
+      investmentUid: investment.uid,
+      date: DateTime(2021, 6, 20),
+      type: HistoricalOperationType.subscription,
+      amount: 500,
+    );
+
+    // Guardamos deliberadamente en un orden distinto al cronológico.
+    await DatabaseService.saveHistoricalOperation(later);
+    await DatabaseService.saveHistoricalOperation(earlier);
+    await DatabaseService.saveHistoricalOperation(middle);
+
+    final stored = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(stored.map((operation) => operation.uid).toList(), [
+      'historical-operation-earlier',
+      'historical-operation-middle',
+      'historical-operation-later',
+    ]);
+  });
+  test(
+    'devuelve una lista vacía si la inversión no tiene operaciones históricas',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-investment-without-operations',
+        name: 'Inversión sin operaciones',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final stored = await DatabaseService.getHistoricalOperations(
+        investment.uid,
+      );
+
+      expect(stored, isEmpty);
+    },
+  );
+  test(
+    'mantiene un orden estable entre operaciones históricas de igual fecha',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-operations-same-date',
+        name: 'Inversión con operaciones simultáneas',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final first = HistoricalOperation(
+        uid: 'historical-operation-same-date-1',
+        investmentUid: investment.uid,
+        date: DateTime(2021, 5, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 100,
+      );
+
+      final second = HistoricalOperation(
+        uid: 'historical-operation-same-date-2',
+        investmentUid: investment.uid,
+        date: DateTime(2021, 5, 10),
+        type: HistoricalOperationType.redemption,
+        amount: 50,
+      );
+
+      await DatabaseService.saveHistoricalOperation(first);
+      await DatabaseService.saveHistoricalOperation(second);
+
+      final stored = await DatabaseService.getHistoricalOperations(
+        investment.uid,
+      );
+
+      expect(stored.map((operation) => operation.uid).toList(), [
+        'historical-operation-same-date-1',
+        'historical-operation-same-date-2',
+      ]);
+    },
+  );
+  test(
+    'devuelve una lista vacía para una inversión histórica inexistente',
+    () async {
+      final stored = await DatabaseService.getHistoricalOperations(
+        'historical-investment-no-existe',
+      );
+
+      expect(stored, isEmpty);
+    },
+  );
+
+  test('actualiza una operación histórica conservando su identidad', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-update-investment',
+      name: 'Inversión para actualización',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final original = HistoricalOperation(
+      uid: 'historical-operation-update',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+      description: 'Importe original',
+    );
+
+    await DatabaseService.saveHistoricalOperation(original);
+
+    final storedOriginal = await DatabaseService.getHistoricalOperation(
+      original.uid,
+    );
+
+    final updated = storedOriginal!.copyWith(
+      amount: 1500,
+      description: 'Importe actualizado',
+    );
+
+    await DatabaseService.updateHistoricalOperation(updated);
+
+    final storedUpdated = await DatabaseService.getHistoricalOperation(
+      original.uid,
+    );
+
+    expect(storedUpdated, isNotNull);
+    expect(storedUpdated!.id, storedOriginal.id);
+    expect(storedUpdated.uid, original.uid);
+    expect(storedUpdated.investmentUid, investment.uid);
+    expect(storedUpdated.amount, 1500);
+    expect(storedUpdated.description, 'Importe actualizado');
+  });
+
+  test('rechaza actualizar una operación histórica sin ID', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-no-id-investment',
+      name: 'Inversión sin ID',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-operation-no-id',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    expect(
+      () => DatabaseService.updateHistoricalOperation(operation),
+      throwsArgumentError,
+    );
+
+    final stored = await DatabaseService.getHistoricalOperation(operation.uid);
+
+    expect(stored, isNull);
+  });
+
+  test(
+    'rechaza actualizar una operación histórica con ID ajeno a su UID',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-mismatched-id-investment',
+        name: 'Inversión para comprobar identidad',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final original = HistoricalOperation(
+        uid: 'historical-operation-original',
+        investmentUid: investment.uid,
+        date: DateTime(2020, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      );
+
+      final other = HistoricalOperation(
+        uid: 'historical-operation-other',
+        investmentUid: investment.uid,
+        date: DateTime(2020, 2, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 2000,
+      );
+
+      await DatabaseService.saveHistoricalOperation(original);
+      await DatabaseService.saveHistoricalOperation(other);
+
+      final storedOriginal = await DatabaseService.getHistoricalOperation(
+        original.uid,
+      );
+      final storedOther = await DatabaseService.getHistoricalOperation(
+        other.uid,
+      );
+
+      final invalidUpdate = storedOriginal!.copyWith(
+        id: storedOther!.id,
+        amount: 3000,
+      );
+
+      await expectLater(
+        DatabaseService.updateHistoricalOperation(invalidUpdate),
+        throwsStateError,
+      );
+
+      final unchangedOriginal = await DatabaseService.getHistoricalOperation(
+        original.uid,
+      );
+      final unchangedOther = await DatabaseService.getHistoricalOperation(
+        other.uid,
+      );
+
+      expect(unchangedOriginal!.amount, 1000);
+      expect(unchangedOther!.amount, 2000);
+    },
+  );
+
+  test('permite limpiar los campos opcionales al actualizar una operación histórica', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-clear-fields-investment',
+      name: 'Inversión para limpiar campos',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final original = HistoricalOperation(
+      uid: 'historical-operation-clear-fields',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+      units: 10,
+      price: 100,
+      description: 'Descripción original',
+      transferUid: 'historical-transfer-original',
+    );
+
+    await DatabaseService.saveHistoricalOperation(original);
+
+    final storedOriginal = await DatabaseService.getHistoricalOperation(
+      original.uid,
+    );
+
+    final updated = storedOriginal!.copyWith(
+      units: null,
+      price: null,
+      description: null,
+      transferUid: null,
+    );
+
+    await DatabaseService.updateHistoricalOperation(updated);
+
+    final storedUpdated = await DatabaseService.getHistoricalOperation(
+      original.uid,
+    );
+
+    expect(storedUpdated, isNotNull);
+    expect(storedUpdated!.id, storedOriginal.id);
+    expect(storedUpdated.units, isNull);
+    expect(storedUpdated.price, isNull);
+    expect(storedUpdated.description, isNull);
+    expect(storedUpdated.transferUid, isNull);
+    expect(storedUpdated.amount, 1000);
+  });
+
+  test('elimina una operación histórica conservando las demás', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-delete-investment',
+      name: 'Inversión para eliminación',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operationToDelete = HistoricalOperation(
+      uid: 'historical-operation-to-delete',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    final operationToKeep = HistoricalOperation(
+      uid: 'historical-operation-to-keep',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 2, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 2000,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operationToDelete);
+    await DatabaseService.saveHistoricalOperation(operationToKeep);
+
+    final stored = await DatabaseService.getHistoricalOperation(
+      operationToDelete.uid,
+    );
+
+    await DatabaseService.deleteHistoricalOperation(stored!);
+
+    final deleted = await DatabaseService.getHistoricalOperation(
+      operationToDelete.uid,
+    );
+    final remaining = await DatabaseService.getHistoricalOperation(
+      operationToKeep.uid,
+    );
+
+    expect(deleted, isNull);
+    expect(remaining, isNotNull);
+    expect(remaining!.amount, 2000);
+  });
+
+  test('rechaza eliminar una operación histórica sin ID', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-delete-no-id-investment',
+      name: 'Inversión sin ID',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-delete-no-id',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    await expectLater(
+      DatabaseService.deleteHistoricalOperation(operation),
+      throwsArgumentError,
+    );
+
+    final stored = await DatabaseService.getHistoricalOperation(operation.uid);
+
+    expect(stored, isNull);
+  });
+
+  test(
+    'rechaza eliminar una operación histórica con ID ajeno a su UID',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-delete-mismatch-investment',
+        name: 'Inversión para comprobar identidad',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final original = HistoricalOperation(
+        uid: 'historical-delete-original',
+        investmentUid: investment.uid,
+        date: DateTime(2020, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      );
+
+      final other = HistoricalOperation(
+        uid: 'historical-delete-other',
+        investmentUid: investment.uid,
+        date: DateTime(2020, 2, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 2000,
+      );
+
+      await DatabaseService.saveHistoricalOperation(original);
+      await DatabaseService.saveHistoricalOperation(other);
+
+      final storedOriginal = await DatabaseService.getHistoricalOperation(
+        original.uid,
+      );
+      final storedOther = await DatabaseService.getHistoricalOperation(
+        other.uid,
+      );
+
+      final invalidDelete = storedOriginal!.copyWith(id: storedOther!.id);
+
+      await expectLater(
+        DatabaseService.deleteHistoricalOperation(invalidDelete),
+        throwsStateError,
+      );
+
+      final unchangedOriginal = await DatabaseService.getHistoricalOperation(
+        original.uid,
+      );
+      final unchangedOther = await DatabaseService.getHistoricalOperation(
+        other.uid,
+      );
+
+      expect(unchangedOriginal, isNotNull);
+      expect(unchangedOriginal!.amount, 1000);
+      expect(unchangedOther, isNotNull);
+      expect(unchangedOther!.amount, 2000);
+    },
+  );
+
+  test('elimina una inversión histórica y todas sus operaciones', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-delete-parent',
+      name: 'Inversión que se eliminará',
+    );
+
+    final otherInvestment = HistoricalInvestment(
+      uid: 'historical-delete-other-parent',
+      name: 'Otra inversión',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+    await DatabaseService.saveHistoricalInvestment(otherInvestment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-delete-parent-operation',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    final otherOperation = HistoricalOperation(
+      uid: 'historical-delete-other-operation',
+      investmentUid: otherInvestment.uid,
+      date: DateTime(2020, 2, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 2000,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operation);
+    await DatabaseService.saveHistoricalOperation(otherOperation);
+
+    await DatabaseService.deleteHistoricalInvestment(investment.uid);
+
+    expect(
+      await DatabaseService.getHistoricalInvestment(investment.uid),
+      isNull,
+    );
+
+    expect(await DatabaseService.getHistoricalOperation(operation.uid), isNull);
+
+    expect(
+      await DatabaseService.getHistoricalInvestment(otherInvestment.uid),
+      isNotNull,
+    );
+
+    expect(
+      await DatabaseService.getHistoricalOperation(otherOperation.uid),
+      isNotNull,
+    );
+  });
+
+  test('rechaza eliminar una inversión histórica con UID vacío', () async {
+    await expectLater(
+      DatabaseService.deleteHistoricalInvestment('   '),
+      throwsArgumentError,
+    );
+  });
+
+  test('rechaza eliminar una inversión histórica inexistente', () async {
+    await expectLater(
+      DatabaseService.deleteHistoricalInvestment(
+        'historical-investment-does-not-exist',
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('revierte la eliminación de una inversión si falla el borrado de sus operaciones', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-atomic-delete',
+      name: 'Inversión para comprobar atomicidad',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-atomic-delete-operation',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operation);
+
+    final db = await DatabaseService.database;
+
+    await db.execute('''
+    CREATE TRIGGER prevent_historical_operation_delete
+    BEFORE DELETE ON historical_operations
+    BEGIN
+      SELECT RAISE(ABORT, 'Deletion intentionally blocked');
+    END
+  ''');
+
+    await expectLater(
+      DatabaseService.deleteHistoricalInvestment(investment.uid),
+      throwsA(isA<Exception>()),
+    );
+
+    final storedInvestment = await DatabaseService.getHistoricalInvestment(
+      investment.uid,
+    );
+
+    final storedOperation = await DatabaseService.getHistoricalOperation(
+      operation.uid,
+    );
+
+    expect(storedInvestment, isNotNull);
+    expect(storedOperation, isNotNull);
+  });
+
+  test('recupera una inversión histórica con todas sus operaciones', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-complete-investment',
+      name: 'Inversión histórica completa',
+      isin: 'ES0123456789',
+      description: 'Inversión de prueba',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final firstOperation = HistoricalOperation(
+      uid: 'historical-complete-operation-1',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    final secondOperation = HistoricalOperation(
+      uid: 'historical-complete-operation-2',
+      investmentUid: investment.uid,
+      date: DateTime(2021, 3, 15),
+      type: HistoricalOperationType.redemption,
+      amount: 300,
+    );
+
+    await DatabaseService.saveHistoricalOperation(firstOperation);
+    await DatabaseService.saveHistoricalOperation(secondOperation);
+
+    final recovered =
+        await DatabaseService.getHistoricalInvestmentWithOperations(
+          investment.uid,
+        );
+
+    expect(recovered, isNotNull);
+    expect(recovered!.investment.uid, investment.uid);
+    expect(recovered.investment.name, investment.name);
+    expect(recovered.investment.isin, investment.isin);
+    expect(recovered.investment.description, investment.description);
+
+    expect(recovered.operations, hasLength(2));
+    expect(recovered.operations[0].uid, firstOperation.uid);
+    expect(recovered.operations[1].uid, secondOperation.uid);
+  });
+
+  test('recupera una inversión histórica sin operaciones', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-empty-investment',
+      name: 'Inversión sin operaciones',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final recovered =
+        await DatabaseService.getHistoricalInvestmentWithOperations(
+          investment.uid,
+        );
+
+    expect(recovered, isNotNull);
+    expect(recovered!.investment.uid, investment.uid);
+    expect(recovered.investment.name, investment.name);
+    expect(recovered.operations, isEmpty);
+  });
+
+  test(
+    'devuelve null al recuperar una inversión histórica inexistente',
+    () async {
+      final recovered =
+          await DatabaseService.getHistoricalInvestmentWithOperations(
+            'historical-investment-missing',
+          );
+
+      expect(recovered, isNull);
+    },
+  );
+
+  test(
+    'recupera únicamente las operaciones de la inversión solicitada',
+    () async {
+      final investmentA = HistoricalInvestment(
+        uid: 'historical-isolation-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'historical-isolation-B',
+        name: 'Inversión B',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investmentA);
+      await DatabaseService.saveHistoricalInvestment(investmentB);
+
+      final operationA = HistoricalOperation(
+        uid: 'historical-isolation-operation-A',
+        investmentUid: investmentA.uid,
+        date: DateTime(2020, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      );
+
+      final operationB = HistoricalOperation(
+        uid: 'historical-isolation-operation-B',
+        investmentUid: investmentB.uid,
+        date: DateTime(2020, 2, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 2000,
+      );
+
+      await DatabaseService.saveHistoricalOperation(operationA);
+      await DatabaseService.saveHistoricalOperation(operationB);
+
+      final recovered =
+          await DatabaseService.getHistoricalInvestmentWithOperations(
+            investmentA.uid,
+          );
+
+      expect(recovered, isNotNull);
+      expect(recovered!.investment.uid, investmentA.uid);
+      expect(recovered.operations, hasLength(1));
+      expect(recovered.operations.single.uid, operationA.uid);
+      expect(
+        recovered.operations.any(
+          (operation) => operation.uid == operationB.uid,
+        ),
+        isFalse,
+      );
+    },
+  );
+
+  test(
+    'conserva los ID de inversión y operaciones al recuperar el conjunto',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-identity-investment',
+        name: 'Inversión con identidad',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final operation = HistoricalOperation(
+        uid: 'historical-identity-operation',
+        investmentUid: investment.uid,
+        date: DateTime(2020, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      );
+
+      await DatabaseService.saveHistoricalOperation(operation);
+
+      final storedInvestment = await DatabaseService.getHistoricalInvestment(
+        investment.uid,
+      );
+      final storedOperation = await DatabaseService.getHistoricalOperation(
+        operation.uid,
+      );
+
+      final recovered =
+          await DatabaseService.getHistoricalInvestmentWithOperations(
+            investment.uid,
+          );
+
+      expect(recovered, isNotNull);
+      expect(recovered!.investment.id, storedInvestment!.id);
+      expect(recovered.operations.single.id, storedOperation!.id);
+    },
+  );
+
+  test(
+    'rechaza guardar una operación histórica sin inversión asociada',
+    () async {
+      final operation = HistoricalOperation(
+        uid: 'historical-orphan-operation',
+        investmentUid: 'historical-investment-does-not-exist',
+        date: DateTime(2020, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      );
+
+      // await expectLater(
+      //   DatabaseService.saveHistoricalOperation(operation),
+      //   throwsA(isA<Exception>()),
+      // );
+
+      await expectLater(
+        DatabaseService.saveHistoricalOperation(operation),
+        throwsStateError,
+      );
+
+      final stored = await DatabaseService.getHistoricalOperation(
+        operation.uid,
+      );
+
+      expect(stored, isNull);
+    },
+  );
+
+  test('rechaza actualizar una operación histórica hacia una inversión inexistente', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-update-valid-parent',
+      name: 'Inversión original',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-update-orphan-operation',
+      investmentUid: investment.uid,
+      date: DateTime(2020, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operation);
+
+    final stored = await DatabaseService.getHistoricalOperation(operation.uid);
+
+    final invalidUpdate = stored!.copyWith(
+      investmentUid: 'historical-parent-does-not-exist',
+    );
+
+    await expectLater(
+      DatabaseService.updateHistoricalOperation(invalidUpdate),
+      throwsStateError,
+    );
+
+    final unchanged = await DatabaseService.getHistoricalOperation(
+      operation.uid,
+    );
+
+    expect(unchanged, isNotNull);
+    expect(unchanged!.investmentUid, investment.uid);
+    expect(unchanged.amount, 1000);
+  });
+
+  test(
+    'permite cambiar una operación a otra inversión histórica existente',
+    () async {
+      final investmentA = HistoricalInvestment(
+        uid: 'historical-transfer-parent-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'historical-transfer-parent-B',
+        name: 'Inversión B',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investmentA);
+      await DatabaseService.saveHistoricalInvestment(investmentB);
+
+      final operation = HistoricalOperation(
+        uid: 'historical-transfer-operation',
+        investmentUid: investmentA.uid,
+        date: DateTime(2020, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      );
+
+      await DatabaseService.saveHistoricalOperation(operation);
+
+      final stored = await DatabaseService.getHistoricalOperation(
+        operation.uid,
+      );
+
+      final updated = stored!.copyWith(investmentUid: investmentB.uid);
+
+      await DatabaseService.updateHistoricalOperation(updated);
+
+      final recovered = await DatabaseService.getHistoricalOperation(
+        operation.uid,
+      );
+
+      expect(recovered, isNotNull);
+      expect(recovered!.id, stored.id);
+      expect(recovered.uid, operation.uid);
+      expect(recovered.investmentUid, investmentB.uid);
+      expect(recovered.amount, 1000);
+
+      expect(
+        await DatabaseService.getHistoricalOperations(investmentA.uid),
+        isEmpty,
+      );
+
+      expect(
+        await DatabaseService.getHistoricalOperations(investmentB.uid),
+        hasLength(1),
+      );
+    },
+  );
+
+  test(
+    'elimina todas las operaciones históricas asociadas a una inversión',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-delete-multiple',
+        name: 'Inversión con varios movimientos',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'historical-delete-multiple-1',
+          investmentUid: investment.uid,
+          date: DateTime(2020, 1, 10),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'historical-delete-multiple-2',
+          investmentUid: investment.uid,
+          date: DateTime(2021, 1, 10),
+          type: HistoricalOperationType.redemption,
+          amount: 300,
+        ),
+        HistoricalOperation(
+          uid: 'historical-delete-multiple-3',
+          investmentUid: investment.uid,
+          date: DateTime(2022, 1, 10),
+          type: HistoricalOperationType.subscription,
+          amount: 500,
+        ),
+      ];
+
+      for (final operation in operations) {
+        await DatabaseService.saveHistoricalOperation(operation);
+      }
+
+      expect(
+        await DatabaseService.getHistoricalOperations(investment.uid),
+        hasLength(3),
+      );
+
+      await DatabaseService.deleteHistoricalInvestment(investment.uid);
+
+      expect(
+        await DatabaseService.getHistoricalOperations(investment.uid),
+        isEmpty,
+      );
+
+      for (final operation in operations) {
+        expect(
+          await DatabaseService.getHistoricalOperation(operation.uid),
+          isNull,
+        );
+      }
+    },
+  );
+
+  test(
+    'guarda y recupera operaciones históricas vinculadas por transferUid',
+    () async {
+      final investmentA = HistoricalInvestment(
+        uid: 'historical-transfer-link-A',
+        name: 'Inversión origen',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'historical-transfer-link-B',
+        name: 'Inversión destino',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investmentA);
+      await DatabaseService.saveHistoricalInvestment(investmentB);
+
+      const transferUid = 'historical-transfer-link-001';
+
+      final transferOut = HistoricalOperation(
+        uid: 'historical-transfer-out-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2022, 5, 10),
+        type: HistoricalOperationType.transferOut,
+        amount: 1500,
+        transferUid: transferUid,
+      );
+
+      final transferIn = HistoricalOperation(
+        uid: 'historical-transfer-in-001',
+        investmentUid: investmentB.uid,
+        date: DateTime(2022, 5, 10),
+        type: HistoricalOperationType.transferIn,
+        amount: 1500,
+        transferUid: transferUid,
+      );
+
+      await DatabaseService.saveHistoricalOperation(transferOut);
+      await DatabaseService.saveHistoricalOperation(transferIn);
+
+      final recoveredOut = await DatabaseService.getHistoricalOperation(
+        transferOut.uid,
+      );
+      final recoveredIn = await DatabaseService.getHistoricalOperation(
+        transferIn.uid,
+      );
+
+      expect(recoveredOut, isNotNull);
+      expect(recoveredIn, isNotNull);
+
+      expect(recoveredOut!.type, HistoricalOperationType.transferOut);
+      expect(recoveredIn!.type, HistoricalOperationType.transferIn);
+
+      expect(recoveredOut.transferUid, transferUid);
+      expect(recoveredIn.transferUid, transferUid);
+
+      expect(recoveredOut.amount, recoveredIn.amount);
+      expect(recoveredOut.investmentUid, investmentA.uid);
+      expect(recoveredIn.investmentUid, investmentB.uid);
+    },
+  );
+
+  test('mantiene independientes varias transferencias históricas', () async {
+    final investmentA = HistoricalInvestment(
+      uid: 'historical-multiple-transfer-A',
+      name: 'Inversión A',
+    );
+
+    final investmentB = HistoricalInvestment(
+      uid: 'historical-multiple-transfer-B',
+      name: 'Inversión B',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investmentA);
+    await DatabaseService.saveHistoricalInvestment(investmentB);
+
+    final transfers = [
+      (uid: 'historical-transfer-independent-1', amount: 1000.0),
+      (uid: 'historical-transfer-independent-2', amount: 2500.0),
+    ];
+
+    for (final transfer in transfers) {
+      await DatabaseService.saveHistoricalOperation(
+        HistoricalOperation(
+          uid: '${transfer.uid}-out',
+          investmentUid: investmentA.uid,
+          date: DateTime(2022, 5, 10),
+          type: HistoricalOperationType.transferOut,
+          amount: transfer.amount,
+          transferUid: transfer.uid,
+        ),
+      );
+
+      await DatabaseService.saveHistoricalOperation(
+        HistoricalOperation(
+          uid: '${transfer.uid}-in',
+          investmentUid: investmentB.uid,
+          date: DateTime(2022, 5, 10),
+          type: HistoricalOperationType.transferIn,
+          amount: transfer.amount,
+          transferUid: transfer.uid,
+        ),
+      );
+    }
+
+    final operationsA = await DatabaseService.getHistoricalOperations(
+      investmentA.uid,
+    );
+    final operationsB = await DatabaseService.getHistoricalOperations(
+      investmentB.uid,
+    );
+
+    expect(operationsA, hasLength(2));
+    expect(operationsB, hasLength(2));
+
+    expect(operationsA.map((operation) => operation.transferUid).toSet(), {
+      'historical-transfer-independent-1',
+      'historical-transfer-independent-2',
+    });
+
+    expect(operationsB.map((operation) => operation.transferUid).toSet(), {
+      'historical-transfer-independent-1',
+      'historical-transfer-independent-2',
+    });
+  });
+
+  test(
+    'actualiza el transferUid de una operación sin modificar su contrapartida',
+    () async {
+      final investmentA = HistoricalInvestment(
+        uid: 'historical-transfer-update-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'historical-transfer-update-B',
+        name: 'Inversión B',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investmentA);
+      await DatabaseService.saveHistoricalInvestment(investmentB);
+
+      final transferOut = HistoricalOperation(
+        uid: 'historical-transfer-update-out',
+        investmentUid: investmentA.uid,
+        date: DateTime(2022, 5, 10),
+        type: HistoricalOperationType.transferOut,
+        amount: 1500,
+        transferUid: 'historical-transfer-original',
+      );
+
+      final transferIn = HistoricalOperation(
+        uid: 'historical-transfer-update-in',
+        investmentUid: investmentB.uid,
+        date: DateTime(2022, 5, 10),
+        type: HistoricalOperationType.transferIn,
+        amount: 1500,
+        transferUid: 'historical-transfer-original',
+      );
+
+      await DatabaseService.saveHistoricalOperation(transferOut);
+      await DatabaseService.saveHistoricalOperation(transferIn);
+
+      final storedOut = await DatabaseService.getHistoricalOperation(
+        transferOut.uid,
+      );
+
+      final updatedOut = storedOut!.copyWith(
+        transferUid: 'historical-transfer-modified',
+      );
+
+      await DatabaseService.updateHistoricalOperation(updatedOut);
+
+      final recoveredOut = await DatabaseService.getHistoricalOperation(
+        transferOut.uid,
+      );
+
+      final recoveredIn = await DatabaseService.getHistoricalOperation(
+        transferIn.uid,
+      );
+
+      expect(recoveredOut!.transferUid, 'historical-transfer-modified');
+      expect(recoveredIn!.transferUid, 'historical-transfer-original');
+      expect(recoveredOut.id, storedOut.id);
+      expect(recoveredOut.amount, recoveredIn.amount);
+    },
+  );
+
+  test('permite limpiar el transferUid de una operación sin modificar su contrapartida', () async {
+    final investmentA = HistoricalInvestment(
+      uid: 'historical-transfer-clear-A',
+      name: 'Inversión A',
+    );
+
+    final investmentB = HistoricalInvestment(
+      uid: 'historical-transfer-clear-B',
+      name: 'Inversión B',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investmentA);
+    await DatabaseService.saveHistoricalInvestment(investmentB);
+
+    final transferOut = HistoricalOperation(
+      uid: 'historical-transfer-clear-out',
+      investmentUid: investmentA.uid,
+      date: DateTime(2022, 6, 10),
+      type: HistoricalOperationType.transferOut,
+      amount: 2000,
+      transferUid: 'historical-transfer-clear-link',
+    );
+
+    final transferIn = HistoricalOperation(
+      uid: 'historical-transfer-clear-in',
+      investmentUid: investmentB.uid,
+      date: DateTime(2022, 6, 10),
+      type: HistoricalOperationType.transferIn,
+      amount: 2000,
+      transferUid: 'historical-transfer-clear-link',
+    );
+
+    await DatabaseService.saveHistoricalOperation(transferOut);
+    await DatabaseService.saveHistoricalOperation(transferIn);
+
+    final storedOut = await DatabaseService.getHistoricalOperation(
+      transferOut.uid,
+    );
+
+    final updatedOut = storedOut!.copyWith(transferUid: null);
+
+    await DatabaseService.updateHistoricalOperation(updatedOut);
+
+    final recoveredOut = await DatabaseService.getHistoricalOperation(
+      transferOut.uid,
+    );
+
+    final recoveredIn = await DatabaseService.getHistoricalOperation(
+      transferIn.uid,
+    );
+
+    expect(recoveredOut!.transferUid, isNull);
+    expect(recoveredIn!.transferUid, 'historical-transfer-clear-link');
+    expect(recoveredOut.id, storedOut.id);
+    expect(recoveredOut.amount, recoveredIn.amount);
+  });
+
+  test(
+    'elimina una operación de transferencia sin eliminar su contrapartida',
+    () async {
+      final investmentA = HistoricalInvestment(
+        uid: 'historical-transfer-delete-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'historical-transfer-delete-B',
+        name: 'Inversión B',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investmentA);
+      await DatabaseService.saveHistoricalInvestment(investmentB);
+
+      final transferOut = HistoricalOperation(
+        uid: 'historical-transfer-delete-out',
+        investmentUid: investmentA.uid,
+        date: DateTime(2022, 7, 10),
+        type: HistoricalOperationType.transferOut,
+        amount: 2500,
+        transferUid: 'historical-transfer-delete-link',
+      );
+
+      final transferIn = HistoricalOperation(
+        uid: 'historical-transfer-delete-in',
+        investmentUid: investmentB.uid,
+        date: DateTime(2022, 7, 10),
+        type: HistoricalOperationType.transferIn,
+        amount: 2500,
+        transferUid: 'historical-transfer-delete-link',
+      );
+
+      await DatabaseService.saveHistoricalOperation(transferOut);
+      await DatabaseService.saveHistoricalOperation(transferIn);
+
+      final storedOut = await DatabaseService.getHistoricalOperation(
+        transferOut.uid,
+      );
+
+      await DatabaseService.deleteHistoricalOperation(storedOut!);
+
+      final recoveredOut = await DatabaseService.getHistoricalOperation(
+        transferOut.uid,
+      );
+
+      final recoveredIn = await DatabaseService.getHistoricalOperation(
+        transferIn.uid,
+      );
+
+      expect(recoveredOut, isNull);
+      expect(recoveredIn, isNotNull);
+      expect(recoveredIn!.transferUid, 'historical-transfer-delete-link');
+      expect(recoveredIn.amount, 2500);
+      expect(recoveredIn.type, HistoricalOperationType.transferIn);
+    },
+  );
+
+  test(
+    'elimina todas las operaciones de una transferencia sin afectar a otras',
+    () async {
+      final investmentA = HistoricalInvestment(
+        uid: 'historical-transfer-group-delete-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'historical-transfer-group-delete-B',
+        name: 'Inversión B',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investmentA);
+      await DatabaseService.saveHistoricalInvestment(investmentB);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'historical-transfer-group-delete-out-1',
+          investmentUid: investmentA.uid,
+          date: DateTime(2022, 8, 10),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: 'historical-transfer-group-delete-link-1',
+        ),
+        HistoricalOperation(
+          uid: 'historical-transfer-group-delete-in-1',
+          investmentUid: investmentB.uid,
+          date: DateTime(2022, 8, 10),
+          type: HistoricalOperationType.transferIn,
+          amount: 1000,
+          transferUid: 'historical-transfer-group-delete-link-1',
+        ),
+        HistoricalOperation(
+          uid: 'historical-transfer-group-delete-out-2',
+          investmentUid: investmentA.uid,
+          date: DateTime(2022, 8, 11),
+          type: HistoricalOperationType.transferOut,
+          amount: 2000,
+          transferUid: 'historical-transfer-group-delete-link-2',
+        ),
+        HistoricalOperation(
+          uid: 'historical-transfer-group-delete-in-2',
+          investmentUid: investmentB.uid,
+          date: DateTime(2022, 8, 11),
+          type: HistoricalOperationType.transferIn,
+          amount: 2000,
+          transferUid: 'historical-transfer-group-delete-link-2',
+        ),
+      ];
+
+      for (final operation in operations) {
+        await DatabaseService.saveHistoricalOperation(operation);
+      }
+
+      /* final db = await DatabaseService.database;
+
+      await db.delete(
+        'historical_operations',
+        where: 'transfer_uid = ?',
+        whereArgs: ['historical-transfer-group-delete-link-1'],
+      ); */
+
+      await DatabaseService.deleteHistoricalTransfer(
+        'historical-transfer-group-delete-link-1',
+      );
+
+      final remainingA = await DatabaseService.getHistoricalOperations(
+        investmentA.uid,
+      );
+
+      final remainingB = await DatabaseService.getHistoricalOperations(
+        investmentB.uid,
+      );
+
+      expect(remainingA, hasLength(1));
+      expect(remainingB, hasLength(1));
+      expect(remainingA.single.uid, 'historical-transfer-group-delete-out-2');
+      expect(remainingB.single.uid, 'historical-transfer-group-delete-in-2');
+      expect(
+        remainingA.single.transferUid,
+        'historical-transfer-group-delete-link-2',
+      );
+      expect(
+        remainingB.single.transferUid,
+        'historical-transfer-group-delete-link-2',
+      );
+    },
+  );
+
+  test('rechaza eliminar una transferencia con transferUid vacío', () async {
+    await expectLater(
+      DatabaseService.deleteHistoricalTransfer('   '),
+      throwsArgumentError,
+    );
+  });
+
+  test('rechaza eliminar una transferencia inexistente', () async {
+    await expectLater(
+      DatabaseService.deleteHistoricalTransfer(
+        'historical-transfer-does-not-exist',
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('elimina una transferencia de forma atómica', () async {
+    final investmentA = HistoricalInvestment(
+      uid: 'historical-transfer-atomic-A',
+      name: 'Inversión A',
+    );
+
+    final investmentB = HistoricalInvestment(
+      uid: 'historical-transfer-atomic-B',
+      name: 'Inversión B',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investmentA);
+    await DatabaseService.saveHistoricalInvestment(investmentB);
+
+    final transferOut = HistoricalOperation(
+      uid: 'historical-transfer-atomic-out',
+      investmentUid: investmentA.uid,
+      date: DateTime(2022, 9, 10),
+      type: HistoricalOperationType.transferOut,
+      amount: 3000,
+      transferUid: 'historical-transfer-atomic-link',
+    );
+
+    final transferIn = HistoricalOperation(
+      uid: 'historical-transfer-atomic-in',
+      investmentUid: investmentB.uid,
+      date: DateTime(2022, 9, 10),
+      type: HistoricalOperationType.transferIn,
+      amount: 3000,
+      transferUid: 'historical-transfer-atomic-link',
+    );
+
+    await DatabaseService.saveHistoricalOperation(transferOut);
+    await DatabaseService.saveHistoricalOperation(transferIn);
+
+    final db = await DatabaseService.database;
+
+    await db.execute('''
+    CREATE TRIGGER prevent_historical_transfer_delete
+    BEFORE DELETE ON historical_operations
+    WHEN OLD.uid = 'historical-transfer-atomic-in'
+    BEGIN
+      SELECT RAISE(ABORT, 'Deletion intentionally blocked');
+    END
+  ''');
+
+    await expectLater(
+      DatabaseService.deleteHistoricalTransfer(
+        'historical-transfer-atomic-link',
+      ),
+      throwsException,
+    );
+
+    final recoveredOut = await DatabaseService.getHistoricalOperation(
+      transferOut.uid,
+    );
+
+    final recoveredIn = await DatabaseService.getHistoricalOperation(
+      transferIn.uid,
+    );
+
+    expect(recoveredOut, isNotNull);
+    expect(recoveredIn, isNotNull);
+    expect(recoveredOut!.transferUid, 'historical-transfer-atomic-link');
+    expect(recoveredIn!.transferUid, 'historical-transfer-atomic-link');
+  });
+
+  test(
+    'elimina una transferencia sin eliminar sus inversiones históricas',
+    () async {
+      final investmentA = HistoricalInvestment(
+        uid: 'historical-transfer-preserve-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'historical-transfer-preserve-B',
+        name: 'Inversión B',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investmentA);
+      await DatabaseService.saveHistoricalInvestment(investmentB);
+
+      await DatabaseService.saveHistoricalOperation(
+        HistoricalOperation(
+          uid: 'historical-transfer-preserve-out',
+          investmentUid: investmentA.uid,
+          date: DateTime(2022, 10, 10),
+          type: HistoricalOperationType.transferOut,
+          amount: 4000,
+          transferUid: 'historical-transfer-preserve-link',
+        ),
+      );
+
+      await DatabaseService.saveHistoricalOperation(
+        HistoricalOperation(
+          uid: 'historical-transfer-preserve-in',
+          investmentUid: investmentB.uid,
+          date: DateTime(2022, 10, 10),
+          type: HistoricalOperationType.transferIn,
+          amount: 4000,
+          transferUid: 'historical-transfer-preserve-link',
+        ),
+      );
+
+      await DatabaseService.deleteHistoricalTransfer(
+        'historical-transfer-preserve-link',
+      );
+
+      final recoveredA = await DatabaseService.getHistoricalInvestment(
+        investmentA.uid,
+      );
+      final recoveredB = await DatabaseService.getHistoricalInvestment(
+        investmentB.uid,
+      );
+
+      final operationsA = await DatabaseService.getHistoricalOperations(
+        investmentA.uid,
+      );
+      final operationsB = await DatabaseService.getHistoricalOperations(
+        investmentB.uid,
+      );
+
+      expect(recoveredA, isNotNull);
+      expect(recoveredB, isNotNull);
+      expect(operationsA, isEmpty);
+      expect(operationsB, isEmpty);
+    },
+  );
+
+  test('rechaza cambiar el UID de una operación histórica conservando el registro original', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-operation-uid-immutable',
+      name: 'Inversión histórica',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-operation-original-uid',
+      investmentUid: investment.uid,
+      date: DateTime(2022, 11, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1500,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operation);
+
+    final stored = await DatabaseService.getHistoricalOperation(operation.uid);
+
+    final modified = stored!.copyWith(uid: 'historical-operation-modified-uid');
+
+    await expectLater(
+      DatabaseService.updateHistoricalOperation(modified),
+      throwsStateError,
+    );
+
+    final original = await DatabaseService.getHistoricalOperation(
+      operation.uid,
+    );
+
+    final modifiedLookup = await DatabaseService.getHistoricalOperation(
+      'historical-operation-modified-uid',
+    );
+
+    expect(original, isNotNull);
+    expect(original!.id, stored.id);
+    expect(original.uid, operation.uid);
+    expect(original.amount, 1500);
+    expect(modifiedLookup, isNull);
+  });
+
+  test(
+    'rechaza actualizar una operación histórica con un ID inexistente',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-operation-missing-id',
+        name: 'Inversión histórica',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final operation = HistoricalOperation(
+        id: 999999,
+        uid: 'historical-operation-missing-id-op',
+        investmentUid: investment.uid,
+        date: DateTime(2022, 12, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1800,
+      );
+
+      await expectLater(
+        DatabaseService.updateHistoricalOperation(operation),
+        throwsStateError,
+      );
+
+      final operations = await DatabaseService.getHistoricalOperations(
+        investment.uid,
+      );
+
+      expect(operations, isEmpty);
+    },
+  );
+
+  test(
+    'rechaza actualizar una operación histórica con el UID de otra',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-operation-duplicate-uid',
+        name: 'Inversión histórica',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final first = HistoricalOperation(
+        uid: 'historical-operation-duplicate-first',
+        investmentUid: investment.uid,
+        date: DateTime(2023, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      );
+
+      final second = HistoricalOperation(
+        uid: 'historical-operation-duplicate-second',
+        investmentUid: investment.uid,
+        date: DateTime(2023, 1, 11),
+        type: HistoricalOperationType.subscription,
+        amount: 2000,
+      );
+
+      await DatabaseService.saveHistoricalOperation(first);
+      await DatabaseService.saveHistoricalOperation(second);
+
+      final storedFirst = await DatabaseService.getHistoricalOperation(
+        first.uid,
+      );
+
+      final storedSecond = await DatabaseService.getHistoricalOperation(
+        second.uid,
+      );
+
+      final modified = storedSecond!.copyWith(uid: first.uid, amount: 2500);
+
+      await expectLater(
+        DatabaseService.updateHistoricalOperation(modified),
+        throwsStateError,
+      );
+
+      final recoveredFirst = await DatabaseService.getHistoricalOperation(
+        first.uid,
+      );
+
+      final recoveredSecond = await DatabaseService.getHistoricalOperation(
+        second.uid,
+      );
+
+      expect(recoveredFirst, isNotNull);
+      expect(recoveredSecond, isNotNull);
+      expect(recoveredFirst!.id, storedFirst!.id);
+      expect(recoveredFirst.amount, 1000);
+      expect(recoveredSecond!.id, storedSecond.id);
+      expect(recoveredSecond.uid, second.uid);
+      expect(recoveredSecond.amount, 2000);
+    },
+  );
+
+  test('conserva la identidad al trasladar una operación histórica entre inversiones', () async {
+    final investmentA = HistoricalInvestment(
+      uid: 'historical-operation-move-A',
+      name: 'Inversión A',
+    );
+
+    final investmentB = HistoricalInvestment(
+      uid: 'historical-operation-move-B',
+      name: 'Inversión B',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investmentA);
+    await DatabaseService.saveHistoricalInvestment(investmentB);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-operation-move-uid',
+      investmentUid: investmentA.uid,
+      date: DateTime(2023, 2, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 2200,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operation);
+
+    final stored = await DatabaseService.getHistoricalOperation(operation.uid);
+
+    final modified = stored!.copyWith(investmentUid: investmentB.uid);
+
+    await DatabaseService.updateHistoricalOperation(modified);
+
+    final operationsA = await DatabaseService.getHistoricalOperations(
+      investmentA.uid,
+    );
+
+    final operationsB = await DatabaseService.getHistoricalOperations(
+      investmentB.uid,
+    );
+
+    expect(operationsA, isEmpty);
+    expect(operationsB, hasLength(1));
+    expect(operationsB.single.id, stored.id);
+    expect(operationsB.single.uid, operation.uid);
+    expect(operationsB.single.investmentUid, investmentB.uid);
+    expect(operationsB.single.amount, 2200);
+  });
+
+  test('rechaza trasladar una operación histórica a una inversión inexistente sin modificarla', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-operation-move-invalid-A',
+      name: 'Inversión A',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-operation-move-invalid-op',
+      investmentUid: investment.uid,
+      date: DateTime(2023, 3, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 2750,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operation);
+
+    final stored = await DatabaseService.getHistoricalOperation(operation.uid);
+
+    final modified = stored!.copyWith(
+      investmentUid: 'historical-investment-does-not-exist',
+      amount: 3000,
+    );
+
+    await expectLater(
+      DatabaseService.updateHistoricalOperation(modified),
+      throwsStateError,
+    );
+
+    final recovered = await DatabaseService.getHistoricalOperation(
+      operation.uid,
+    );
+
+    final operations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recovered, isNotNull);
+    expect(recovered!.id, stored.id);
+    expect(recovered.investmentUid, investment.uid);
+    expect(recovered.amount, 2750);
+    expect(operations, hasLength(1));
+  });
+
+  test(
+    'actualiza los datos de una operación histórica conservando su inversión',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-operation-update-parent',
+        name: 'Inversión histórica',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final operation = HistoricalOperation(
+        uid: 'historical-operation-update-parent-op',
+        investmentUid: investment.uid,
+        date: DateTime(2023, 4, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1200,
+        description: 'Aportación inicial',
+      );
+
+      await DatabaseService.saveHistoricalOperation(operation);
+
+      final stored = await DatabaseService.getHistoricalOperation(
+        operation.uid,
+      );
+
+      final modified = stored!.copyWith(
+        amount: 1800,
+        description: 'Aportación actualizada',
+      );
+
+      await DatabaseService.updateHistoricalOperation(modified);
+
+      final recovered = await DatabaseService.getHistoricalOperation(
+        operation.uid,
+      );
+
+      expect(recovered, isNotNull);
+      expect(recovered!.id, stored.id);
+      expect(recovered.uid, operation.uid);
+      expect(recovered.investmentUid, investment.uid);
+      expect(recovered.amount, 1800);
+      expect(recovered.description, 'Aportación actualizada');
+    },
+  );
+
+  test('actualiza una operación histórica conservando fecha y tipo', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-operation-date-type',
+      name: 'Inversión histórica',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-operation-date-type-op',
+      investmentUid: investment.uid,
+      date: DateTime(2023, 5, 15),
+      type: HistoricalOperationType.redemption,
+      amount: 900,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operation);
+
+    final stored = await DatabaseService.getHistoricalOperation(operation.uid);
+
+    final modified = stored!.copyWith(amount: 1100);
+
+    await DatabaseService.updateHistoricalOperation(modified);
+
+    final recovered = await DatabaseService.getHistoricalOperation(
+      operation.uid,
+    );
+
+    expect(recovered, isNotNull);
+    expect(recovered!.date, DateTime(2023, 5, 15));
+    expect(recovered.type, HistoricalOperationType.redemption);
+    expect(recovered.amount, 1100);
+    expect(recovered.id, stored.id);
+  });
 }

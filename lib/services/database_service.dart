@@ -6,6 +6,8 @@ import 'package:path/path.dart';
 
 import '../models/fund_cost.dart';
 import '../models/fund_data.dart';
+import '../models/historical_investment.dart';
+import '../models/historical_operation.dart';
 
 class DatabaseService {
   static Database? _database;
@@ -59,7 +61,7 @@ class DatabaseService {
 
     return await openDatabase(
       newPath,
-      version: 12,
+      version: 13,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE funds (
@@ -101,6 +103,7 @@ class DatabaseService {
           )
         ''');
         await _createCostTables(db);
+        await _createHistoricalTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         // Envolvemos toda la migración en una transacción atómica.
@@ -207,6 +210,9 @@ class DatabaseService {
             if (oldVersion < 12) {
               await _addColumnIfNotExists(txn, 'prices', 'source', 'TEXT');
             }
+            if (oldVersion < 13) {
+              await _createHistoricalTables(txn);
+            }
           } catch (e, stackTrace) {
             // Si algo falla, la transacción se revierte automáticamente (Rollback).
             // Registramos el error para depuración en lugar de silenciarlo.
@@ -258,6 +264,45 @@ class DatabaseService {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_cost_charges_isin_date ON fund_cost_charges(isin, date)',
     );
+  }
+
+  static Future<void> _createHistoricalTables(DatabaseExecutor db) async {
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS historical_investments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uid TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      isin TEXT,
+      description TEXT
+    )
+  ''');
+
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS historical_operations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uid TEXT NOT NULL UNIQUE,
+      investment_uid TEXT NOT NULL,
+      date TEXT NOT NULL,
+      type TEXT NOT NULL,
+      amount REAL NOT NULL,
+      units REAL,
+      price REAL,
+      description TEXT,
+      transfer_uid TEXT
+    )
+  ''');
+
+    await db.execute('''
+    CREATE INDEX IF NOT EXISTS
+    idx_historical_operations_investment_date
+    ON historical_operations(investment_uid, date)
+  ''');
+
+    await db.execute('''
+    CREATE INDEX IF NOT EXISTS
+    idx_historical_operations_transfer_uid
+    ON historical_operations(transfer_uid)
+  ''');
   }
 
   static Future<void> _replaceFundCosts(
@@ -1133,6 +1178,287 @@ class DatabaseService {
     }
 
     return null;
+  }
+
+  static Future<void> saveHistoricalInvestment(
+    HistoricalInvestment investment,
+  ) async {
+    final db = await database;
+
+    await db.insert('historical_investments', {
+      'uid': investment.uid,
+      'name': investment.name,
+      'isin': investment.isin,
+      'description': investment.description,
+    }, conflictAlgorithm: ConflictAlgorithm.abort);
+  }
+
+  static Future<HistoricalInvestment?> getHistoricalInvestment(
+    String uid,
+  ) async {
+    final db = await database;
+
+    final rows = await db.query(
+      'historical_investments',
+      where: 'uid = ?',
+      whereArgs: [uid],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) return null;
+
+    final row = rows.first;
+
+    return HistoricalInvestment(
+      id: row['id'] as int,
+      uid: row['uid'] as String,
+      name: row['name'] as String,
+      isin: row['isin'] as String?,
+      description: row['description'] as String?,
+    );
+  }
+
+  static Future<void> saveHistoricalOperation(
+    HistoricalOperation operation,
+  ) async {
+    final db = await database;
+
+    await db.transaction((txn) async {
+      final investments = await txn.query(
+        'historical_investments',
+        columns: ['uid'],
+        where: 'uid = ?',
+        whereArgs: [operation.investmentUid],
+        limit: 1,
+      );
+
+      if (investments.isEmpty) {
+        throw StateError(
+          'No existe la inversión histórica '
+          '${operation.investmentUid}',
+        );
+      }
+
+      await txn.insert('historical_operations', {
+        'uid': operation.uid,
+        'investment_uid': operation.investmentUid,
+        'date': operation.date.toIso8601String(),
+        'type': operation.type.name,
+        'amount': operation.amount,
+        'units': operation.units,
+        'price': operation.price,
+        'description': operation.description,
+        'transfer_uid': operation.transferUid,
+      }, conflictAlgorithm: ConflictAlgorithm.abort);
+    });
+  }
+
+  static Future<HistoricalOperation?> getHistoricalOperation(String uid) async {
+    final db = await database;
+
+    final rows = await db.query(
+      'historical_operations',
+      where: 'uid = ?',
+      whereArgs: [uid],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) return null;
+
+    final row = rows.first;
+
+    return HistoricalOperation(
+      id: row['id'] as int,
+      uid: row['uid'] as String,
+      investmentUid: row['investment_uid'] as String,
+      date: DateTime.parse(row['date'] as String),
+      type: HistoricalOperationType.values.firstWhere(
+        (value) => value.name == row['type'],
+      ),
+      amount: (row['amount'] as num).toDouble(),
+      units: (row['units'] as num?)?.toDouble(),
+      price: (row['price'] as num?)?.toDouble(),
+      description: row['description'] as String?,
+      transferUid: row['transfer_uid'] as String?,
+    );
+  }
+
+  static Future<List<HistoricalOperation>> getHistoricalOperations(
+    String investmentUid,
+  ) async {
+    final db = await database;
+
+    final rows = await db.query(
+      'historical_operations',
+      where: 'investment_uid = ?',
+      whereArgs: [investmentUid],
+      orderBy: 'date ASC, id ASC',
+    );
+
+    return rows.map((row) {
+      return HistoricalOperation(
+        id: row['id'] as int,
+        uid: row['uid'] as String,
+        investmentUid: row['investment_uid'] as String,
+        date: DateTime.parse(row['date'] as String),
+        type: HistoricalOperationType.values.firstWhere(
+          (value) => value.name == row['type'],
+        ),
+        amount: (row['amount'] as num).toDouble(),
+        units: (row['units'] as num?)?.toDouble(),
+        price: (row['price'] as num?)?.toDouble(),
+        description: row['description'] as String?,
+        transferUid: row['transfer_uid'] as String?,
+      );
+    }).toList();
+  }
+
+  static Future<void> updateHistoricalOperation(
+    HistoricalOperation operation,
+  ) async {
+    if (operation.id == null) {
+      throw ArgumentError(
+        'No se puede actualizar una operación histórica sin ID',
+      );
+    }
+
+    final db = await database;
+
+    await db.transaction((txn) async {
+      final investments = await txn.query(
+        'historical_investments',
+        columns: ['uid'],
+        where: 'uid = ?',
+        whereArgs: [operation.investmentUid],
+        limit: 1,
+      );
+
+      if (investments.isEmpty) {
+        throw StateError(
+          'No existe la inversión histórica '
+          '${operation.investmentUid}',
+        );
+      }
+
+      final updatedRows = await txn.update(
+        'historical_operations',
+        {
+          'uid': operation.uid,
+          'investment_uid': operation.investmentUid,
+          'date': operation.date.toIso8601String(),
+          'type': operation.type.name,
+          'amount': operation.amount,
+          'units': operation.units,
+          'price': operation.price,
+          'description': operation.description,
+          'transfer_uid': operation.transferUid,
+        },
+        where: 'id = ? AND uid = ?',
+        whereArgs: [operation.id, operation.uid],
+      );
+
+      if (updatedRows == 0) {
+        throw StateError(
+          'No se encontró la operación histórica ${operation.uid} '
+          'con ID ${operation.id}',
+        );
+      }
+    });
+  }
+
+  static Future<void> deleteHistoricalOperation(
+    HistoricalOperation operation,
+  ) async {
+    if (operation.id == null) {
+      throw ArgumentError(
+        'No se puede eliminar una operación histórica sin ID',
+      );
+    }
+
+    final db = await database;
+
+    final deletedRows = await db.delete(
+      'historical_operations',
+      where: 'id = ? AND uid = ?',
+      whereArgs: [operation.id, operation.uid],
+    );
+
+    if (deletedRows == 0) {
+      throw StateError(
+        'No se encontró la operación histórica ${operation.uid} '
+        'con ID ${operation.id}',
+      );
+    }
+  }
+
+  static Future<void> deleteHistoricalInvestment(String uid) async {
+    final normalizedUid = uid.trim();
+
+    if (normalizedUid.isEmpty) {
+      throw ArgumentError(
+        'El UID de la inversión histórica no puede estar vacío',
+      );
+    }
+
+    final db = await database;
+
+    await db.transaction((txn) async {
+      final deletedRows = await txn.delete(
+        'historical_investments',
+        where: 'uid = ?',
+        whereArgs: [normalizedUid],
+      );
+
+      if (deletedRows == 0) {
+        throw StateError(
+          'No se encontró la inversión histórica $normalizedUid',
+        );
+      }
+
+      await txn.delete(
+        'historical_operations',
+        where: 'investment_uid = ?',
+        whereArgs: [normalizedUid],
+      );
+    });
+  }
+
+  static Future<
+    ({HistoricalInvestment investment, List<HistoricalOperation> operations})?
+  >
+  getHistoricalInvestmentWithOperations(String uid) async {
+    final investment = await getHistoricalInvestment(uid);
+
+    if (investment == null) return null;
+
+    final operations = await getHistoricalOperations(investment.uid);
+
+    return (investment: investment, operations: operations);
+  }
+
+  static Future<void> deleteHistoricalTransfer(String transferUid) async {
+    final normalizedUid = transferUid.trim();
+
+    if (normalizedUid.isEmpty) {
+      throw ArgumentError(
+        'El UID de la transferencia histórica no puede estar vacío',
+      );
+    }
+
+    final db = await database;
+
+    final deletedRows = await db.delete(
+      'historical_operations',
+      where: 'transfer_uid = ?',
+      whereArgs: [normalizedUid],
+    );
+
+    if (deletedRows == 0) {
+      throw StateError(
+        'No se encontraron operaciones para la transferencia histórica '
+        '$normalizedUid',
+      );
+    }
   }
 
   static Future<FundData?> getFund(String isin) async {
