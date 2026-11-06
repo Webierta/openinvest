@@ -3153,4 +3153,33 @@ void main() {
       expect(recoveredSecond!.name, 'Segunda inversión');
     },
   );
+
+  test(
+    'LF-140.19: rechaza una inversión cuya primera operación es una salida',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'investment-lf140-19',
+        name: 'Inversión inválida',
+      );
+
+      final operation = HistoricalOperation(
+        uid: 'operation-lf140-19',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 1, 1),
+        type: HistoricalOperationType.redemption,
+        amount: 1000,
+      );
+
+      await expectLater(
+        DatabaseService.saveHistoricalInvestmentWithOperations(investment, [
+          operation,
+        ]),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      final investments = await DatabaseService.getHistoricalInvestments();
+
+      expect(investments, isEmpty);
+    },
+  );
 }
