@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import '../models/fund_cost.dart';
 import '../models/fund_data.dart';
 import '../models/fund_search_mode.dart';
+import '../models/historical_investment.dart';
+import '../models/historical_operation.dart';
 import '../models/scraper_result.dart';
 
 import '../services/database_service.dart';
@@ -118,6 +120,9 @@ class FundProvider with ChangeNotifier {
   String? selectedBenchmarkSymbol;
   List<FundAlertInfo> triggeredAlerts = [];
 
+  List<HistoricalInvestment> historicalInvestments = [];
+  List<HistoricalOperation> historicalOperations = [];
+
   // =============================================================
   // CONSTRUCTOR
   // =============================================================
@@ -214,9 +219,25 @@ class FundProvider with ChangeNotifier {
     final loadFuture = () async {
       _clearError();
       hasPortfolioLoadError = false;
+
       try {
         final loadedPortfolio = await DatabaseService.getPortfolio();
         portfolio = loadedPortfolio;
+
+        historicalInvestments =
+            await DatabaseService.getHistoricalInvestments();
+
+        final operationsByInvestment = await Future.wait(
+          historicalInvestments.map(
+            (investment) =>
+                DatabaseService.getHistoricalOperations(investment.uid),
+          ),
+        );
+
+        historicalOperations = operationsByInvestment
+            .expand((operations) => operations)
+            .toList();
+
         await _updateExchangeRates();
         _sortPortfolio();
         if (currentFund != null) {
@@ -227,9 +248,12 @@ class FundProvider with ChangeNotifier {
         hasPortfolioLoadError = true;
         _setError(_asError(error, stackTrace, type: AppErrorType.database));
       }
+
       notifyListeners();
     }();
+
     _portfolioLoadFuture = loadFuture;
+
     try {
       await loadFuture;
     } finally {

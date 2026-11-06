@@ -123,9 +123,16 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   Widget build(BuildContext context) {
     final provider = context.watch<FundProvider>();
 
+    /* final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
+      provider.portfolio,
+      provider.exchangeRates,
+    ); */
+
     final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
       provider.exchangeRates,
+      historicalInvestments: provider.historicalInvestments,
+      historicalOperations: provider.historicalOperations,
     );
     final bool showPortfolioSummary = globalMetrics.totalInvested > 0;
 
@@ -348,6 +355,14 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
       context.read<FundProvider>().exchangeRates,
     );
 
+    /* debugPrint(
+      'Inversión: ${metrics.totalInvested.toStringAsFixed(2)} €\n'
+      'Valor: ${metrics.totalValue.toStringAsFixed(2)} €\n'
+      'Beneficio: ${metrics.profitAbs.toStringAsFixed(2)} €\n'
+      'Rentabilidad: ${metrics.profitRel.toStringAsFixed(2)} %\n'
+      'MWR: ${metrics.mwrAnnualized?.toStringAsFixed(4) ?? "N/D"}',
+    ); */
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       child: Container(
@@ -372,6 +387,14 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         child: Column(
           children: [
             // CABECERA
+            /* Text(
+              'Inversión: ${metrics.totalInvested.toStringAsFixed(2)} €\n'
+              'Valor: ${metrics.totalValue.toStringAsFixed(2)} €\n'
+              'Beneficio: ${metrics.profitAbs.toStringAsFixed(2)} €\n'
+              'Rentabilidad: ${metrics.profitRel.toStringAsFixed(2)} %\n'
+              'MWR: ${metrics.mwrAnnualized?.toStringAsFixed(4) ?? "N/D"}',
+            ), */
+
             Row(
               children: [
                 CircleAvatar(
