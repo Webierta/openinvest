@@ -5,6 +5,7 @@ import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
 import '../services/database_service.dart';
 import '../widgets/gradient_background.dart';
+import '../widgets/historical_investment_dialog.dart';
 import '../widgets/historical_operation_dialog.dart';
 
 class HistoricalInvestmentsPage extends StatefulWidget {
@@ -122,6 +123,91 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No se pudo añadir la operación: $error')),
+      );
+    }
+  }
+
+  Future<void> _editInvestment(HistoricalInvestment investment) async {
+    final draft = await showDialog<HistoricalInvestmentDraft>(
+      context: context,
+      builder: (_) => HistoricalInvestmentDialog(investment: investment),
+    );
+
+    if (draft == null || !mounted) return;
+
+    try {
+      final updated = investment.copyWith(
+        name: draft.name,
+        isin: draft.isin,
+        description: draft.description,
+      );
+
+      await DatabaseService.updateHistoricalInvestment(updated);
+
+      if (!mounted) return;
+
+      setState(_loadInvestments);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inversión histórica actualizada correctamente'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo actualizar la inversión: $error')),
+      );
+    }
+  }
+
+  Future<void> _deleteInvestment(HistoricalInvestment investment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar inversión histórica'),
+        content: Text(
+          '¿Quieres eliminar "${investment.name}"?\n\n'
+          'También se eliminarán todas las operaciones históricas '
+          'asociadas a esta inversión.\n\n'
+          'Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await DatabaseService.deleteHistoricalInvestment(investment.uid);
+
+      if (!mounted) return;
+
+      setState(_loadInvestments);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inversión histórica eliminada correctamente'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo eliminar la inversión: $error')),
       );
     }
   }
@@ -331,6 +417,10 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
                     switch (action) {
                       case 'add':
                         _addOperation(investment);
+                      case 'edit':
+                        _editInvestment(investment);
+                      case 'delete':
+                        _deleteInvestment(investment);
                     }
                   },
                   itemBuilder: (context) => const [
@@ -340,6 +430,25 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
                         dense: true,
                         leading: Icon(Icons.add_circle_outline),
                         title: Text('Añadir operación'),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.edit_outlined),
+                        title: Text('Editar inversión'),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.delete_outline, color: Colors.red),
+                        title: Text(
+                          'Eliminar inversión',
+                          style: TextStyle(color: Colors.red),
+                        ),
                       ),
                     ),
                   ],
