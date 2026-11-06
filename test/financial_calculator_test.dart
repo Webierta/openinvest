@@ -583,6 +583,76 @@ void main() {
         expect(metrics.profitRel, closeTo(10, 0.0001));
         expect(metrics.mwrAnnualized, closeTo(0.10, 0.0005));
       });
+
+      test('combina fondos abiertos e inversiones históricas cerradas', () {
+        final startDate = DateTime(2023, 1, 1);
+        final endDate = DateTime(2025, 1, 1);
+
+        final fund = FundData(
+          isin: 'MIXED-GLOBAL',
+          symbol: 'MIX',
+          name: 'Mixed Portfolio Fund',
+          lastValue: 12.1,
+          currency: 'EUR',
+          date: endDate,
+          history: [PricePoint(startDate, 10), PricePoint(endDate, 12.1)],
+          operations: [
+            FundOperation(
+              isin: 'MIXED-GLOBAL',
+              date: startDate,
+              type: OperationType.buy,
+              units: 10,
+              price: 10,
+              amount: 100,
+            ),
+          ],
+        );
+
+        final investment = HistoricalInvestment(
+          uid: 'HIST-MIXED-001',
+          name: 'Inversión histórica mixta',
+        );
+
+        final historicalOperations = [
+          HistoricalOperation(
+            uid: 'HIST-MIXED-OP-001',
+            investmentUid: investment.uid,
+            date: startDate,
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-MIXED-OP-002',
+            investmentUid: investment.uid,
+            date: endDate,
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [fund],
+          const {'EUR': 1.0},
+          historicalInvestments: [investment],
+          historicalOperations: historicalOperations,
+        );
+
+        final openPortfolioMetrics = FinancialCalculator.calculateGlobalMetrics(
+          [fund],
+          const {'EUR': 1.0},
+        );
+
+        expect(metrics.totalInvested, 1100);
+        expect(metrics.totalValue, 1221);
+        expect(metrics.profitAbs, 121);
+        //expect(metrics.profitRel, closeTo(10, 0.0001));
+        expect(
+          metrics.profitRel,
+          closeTo(openPortfolioMetrics.profitRel, 0.0001),
+        );
+        expect(metrics.mwrAnnualized, isNotNull);
+        expect(metrics.mwrAnnualized, closeTo(0.0536, 0.0002));
+      });
     });
   });
 

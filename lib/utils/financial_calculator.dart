@@ -926,11 +926,6 @@ class FinancialCalculator {
     return null; // La fecha objetivo es anterior a cualquier dato de IPC disponible
   }
 
-  /* static GlobalMetrics calculateGlobalMetrics(
-    List<FundData> portfolio,
-    Map<String, double> exchangeRates,
-  ) { */
-
   static GlobalMetrics calculateGlobalMetrics(
     List<FundData> portfolio,
     Map<String, double> exchangeRates, {
@@ -938,6 +933,7 @@ class FinancialCalculator {
     List<HistoricalOperation> historicalOperations = const [],
   }) {
     double totalValue = 0;
+    double portfolioValue = 0;
     double totalInvested = 0;
     double profitAbs = 0;
     double weightedTaeSum = 0;
@@ -950,6 +946,9 @@ class FinancialCalculator {
       final double rate = exchangeRates[fund.currency] ?? 1.0;
 
       final fundValueConverted = metrics.currentValue * rate;
+
+      portfolioValue += fundValueConverted;
+
       final fundInvestedConverted = metrics.totalInvested * rate;
 
       totalValue += fundValueConverted;
@@ -1021,7 +1020,10 @@ class FinancialCalculator {
       }
     }
 
-    double profitRel = totalValue > 0 ? weightedTaeSum / totalValue : 0.0;
+    //double profitRel = totalValue > 0 ? weightedTaeSum / totalValue : 0.0;
+    double profitRel = portfolioValue > 0
+        ? weightedTaeSum / portfolioValue
+        : 0.0;
 
     if (profitRel == 0 && profitAbs != 0 && totalInvested > 0) {
       profitRel = (profitAbs / totalInvested) * 100;
