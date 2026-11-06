@@ -3182,4 +3182,183 @@ void main() {
       expect(investments, isEmpty);
     },
   );
+
+  test(
+    'LF-140.20: guarda una inversión válida y todas sus operaciones',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'investment-lf140-20',
+        name: 'Inversión válida',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'operation-lf140-20-1',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'operation-lf140-20-2',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 6, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      await DatabaseService.saveHistoricalInvestmentWithOperations(
+        investment,
+        operations,
+      );
+
+      final investments = await DatabaseService.getHistoricalInvestments();
+
+      expect(investments, hasLength(1));
+      expect(investments.single.uid, investment.uid);
+
+      final db = await DatabaseService.database;
+      final savedOperations = await db.query(
+        'historical_operations',
+        where: 'investment_uid = ?',
+        whereArgs: [investment.uid],
+        orderBy: 'date ASC',
+      );
+
+      expect(savedOperations, hasLength(2));
+      expect(savedOperations.map((row) => row['uid']).toList(), [
+        'operation-lf140-20-1',
+        'operation-lf140-20-2',
+      ]);
+    },
+  );
+
+  test(
+    'LF-140.21: revierte toda la transacción si falla una operación',
+    () async {
+      // Preparamos una inversión y una operación que ya existen.
+      final existingInvestment = HistoricalInvestment(
+        uid: 'investment-existing-lf140-21',
+        name: 'Inversión existente',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(existingInvestment);
+
+      final existingOperation = HistoricalOperation(
+        uid: 'operation-lf140-21-2',
+        investmentUid: existingInvestment.uid,
+        date: DateTime(2024, 1, 1),
+        type: HistoricalOperationType.subscription,
+        amount: 500,
+      );
+
+      await DatabaseService.saveHistoricalOperation(existingOperation);
+
+      // La segunda operación colisionará con el UID ya existente.
+      final investment = HistoricalInvestment(
+        uid: 'investment-lf140-21',
+        name: 'Inversión con error',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'operation-lf140-21-1',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'operation-lf140-21-2',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 6, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      await expectLater(
+        DatabaseService.saveHistoricalInvestmentWithOperations(
+          investment,
+          operations,
+        ),
+        throwsA(isA<DatabaseException>()),
+      );
+
+      final investments = await DatabaseService.getHistoricalInvestments();
+
+      // La inversión inicial permanece, pero la nueva no se guarda.
+      expect(investments, hasLength(1));
+      expect(investments.single.uid, existingInvestment.uid);
+
+      final db = await DatabaseService.database;
+
+      // No debe quedar la primera operación de la transacción fallida.
+      final targetOperations = await db.query(
+        'historical_operations',
+        where: 'investment_uid = ?',
+        whereArgs: [investment.uid],
+      );
+
+      expect(targetOperations, isEmpty);
+
+      // La operación que provocó la colisión sigue intacta.
+      final existingOperations = await db.query(
+        'historical_operations',
+        where: 'uid = ?',
+        whereArgs: ['operation-lf140-21-2'],
+      );
+
+      expect(existingOperations, hasLength(1));
+      expect(
+        existingOperations.single['investment_uid'],
+        existingInvestment.uid,
+      );
+    },
+  );
+
+  test(
+    'LF-140.22: rechaza operaciones pertenecientes a otra inversión',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'investment-lf140-22',
+        name: 'Inversión principal',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'operation-lf140-22-1',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'operation-lf140-22-2',
+          investmentUid: 'investment-other-lf140-22',
+          date: DateTime(2025, 6, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      await expectLater(
+        DatabaseService.saveHistoricalInvestmentWithOperations(
+          investment,
+          operations,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      final investments = await DatabaseService.getHistoricalInvestments();
+
+      expect(investments, isEmpty);
+
+      final db = await DatabaseService.database;
+      final savedOperations = await db.query('historical_operations');
+
+      expect(savedOperations, isEmpty);
+    },
+  );
 }

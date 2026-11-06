@@ -8,6 +8,7 @@ import '../models/fund_cost.dart';
 import '../models/fund_data.dart';
 import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
+import '../utils/historical_investment_validator.dart';
 
 class DatabaseService {
   static Database? _database;
@@ -1191,6 +1192,49 @@ class DatabaseService {
       'isin': investment.isin,
       'description': investment.description,
     }, conflictAlgorithm: ConflictAlgorithm.abort);
+  }
+
+  static Future<void> saveHistoricalInvestmentWithOperations(
+    HistoricalInvestment investment,
+    List<HistoricalOperation> operations,
+  ) async {
+    // Comprobar que todas las operaciones pertenecen a esta inversión.
+    if (operations.any(
+      (operation) => operation.investmentUid != investment.uid,
+    )) {
+      throw ArgumentError(
+        'Todas las operaciones deben pertenecer a la inversión indicada.',
+      );
+    }
+
+    // Validar antes de realizar cualquier escritura.
+    HistoricalInvestmentValidator.validate(operations);
+
+    final db = await database;
+
+    // Guardar inversión y operaciones de forma atómica.
+    await db.transaction((txn) async {
+      await txn.insert('historical_investments', {
+        'uid': investment.uid,
+        'name': investment.name,
+        'isin': investment.isin,
+        'description': investment.description,
+      }, conflictAlgorithm: ConflictAlgorithm.abort);
+
+      for (final operation in operations) {
+        await txn.insert('historical_operations', {
+          'uid': operation.uid,
+          'investment_uid': operation.investmentUid,
+          'date': operation.date.toIso8601String(),
+          'type': operation.type.name,
+          'amount': operation.amount,
+          'units': operation.units,
+          'price': operation.price,
+          'description': operation.description,
+          'transfer_uid': operation.transferUid,
+        }, conflictAlgorithm: ConflictAlgorithm.abort);
+      }
+    });
   }
 
   static Future<void> updateHistoricalInvestment(
