@@ -2983,4 +2983,59 @@ void main() {
       expect(result.description, 'Suscripción actualizada');
     },
   );
+
+  test(
+    'LF-136.4.1: elimina una operación histórica sin eliminar la inversión',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-investment-delete-1',
+        name: 'Inversión de prueba',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final operation1 = HistoricalOperation(
+        uid: 'historical-operation-delete-1',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      );
+
+      final operation2 = HistoricalOperation(
+        uid: 'historical-operation-delete-2',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 2, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 500,
+      );
+
+      await DatabaseService.saveHistoricalOperation(operation1);
+      await DatabaseService.saveHistoricalOperation(operation2);
+
+      final saved = await DatabaseService.getHistoricalOperation(
+        operation1.uid,
+      );
+
+      expect(saved, isNotNull);
+
+      await DatabaseService.deleteHistoricalOperation(saved!);
+
+      final deleted = await DatabaseService.getHistoricalOperation(
+        operation1.uid,
+      );
+
+      final remaining = await DatabaseService.getHistoricalOperations(
+        investment.uid,
+      );
+
+      final investmentStillExists =
+          await DatabaseService.getHistoricalInvestment(investment.uid);
+
+      expect(deleted, isNull);
+      expect(remaining.length, 1);
+      expect(remaining.single.uid, operation2.uid);
+      expect(investmentStillExists, isNotNull);
+    },
+  );
 }

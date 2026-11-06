@@ -5,6 +5,7 @@ import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
 import '../services/database_service.dart';
 import '../widgets/gradient_background.dart';
+import '../widgets/historical_operation_dialog.dart';
 
 class HistoricalInvestmentsPage extends StatefulWidget {
   const HistoricalInvestmentsPage({super.key});
@@ -33,6 +34,141 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
   Future<void> _refresh() async {
     setState(_loadInvestments);
     await _investmentsFuture;
+  }
+
+  String get _locale => Localizations.localeOf(context).toString();
+
+  DateFormat get _dialogDateFormat => DateFormat.yMMMd(_locale);
+
+  double? _parseNumber(String value) {
+    var normalized = value.trim().replaceAll(' ', '').replaceAll('€', '');
+
+    if (normalized.contains(',')) {
+      normalized = normalized.replaceAll('.', '').replaceAll(',', '.');
+    }
+
+    return double.tryParse(normalized);
+  }
+
+  String? _validateNumber(String? value, {required String label}) {
+    final number = _parseNumber(value ?? '');
+
+    if (number == null || !number.isFinite || number < 0) {
+      return 'Introduce un $label válido';
+    }
+
+    return null;
+  }
+
+  Future<DateTime?> _pickDate(DateTime initialDate) {
+    return showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      helpText: 'Fecha de la operación',
+      cancelText: 'Cancelar',
+      confirmText: 'Aceptar',
+    );
+  }
+
+  Future<void> _editOperation(HistoricalOperation operation) async {
+    final draft = await showDialog<HistoricalOperationDraft>(
+      context: context,
+      builder: (_) => HistoricalOperationDialog(
+        operation: HistoricalOperationDraft(
+          date: operation.date,
+          type: operation.type,
+          amount: operation.amount,
+          units: operation.units,
+          price: operation.price,
+          description: operation.description,
+          transferUid: operation.transferUid,
+        ),
+        dateFormat: _dialogDateFormat,
+        pickDate: _pickDate,
+        parseNumber: _parseNumber,
+        validateNumber: _validateNumber,
+      ),
+    );
+
+    if (draft == null || !mounted) return;
+
+    try {
+      final updated = operation.copyWith(
+        date: draft.date,
+        type: draft.type,
+        amount: draft.amount,
+        units: draft.units,
+        price: draft.price,
+        description: draft.description,
+        transferUid: draft.transferUid,
+      );
+
+      await DatabaseService.updateHistoricalOperation(updated);
+
+      if (!mounted) return;
+
+      setState(() {});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Operación histórica actualizada correctamente'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo actualizar la operación: $error')),
+      );
+    }
+  }
+
+  Future<void> _deleteOperation(HistoricalOperation operation) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar operación'),
+        content: Text(
+          '¿Quieres eliminar esta operación histórica?\n\n'
+          '${_operationTypeLabel(operation.type)} · '
+          '${_numberFormat.format(operation.amount)}\n\n'
+          'Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await DatabaseService.deleteHistoricalOperation(operation);
+
+      if (!mounted) return;
+
+      setState(() {});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Operación histórica eliminada')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo eliminar la operación: $error')),
+      );
+    }
   }
 
   String _operationTypeLabel(HistoricalOperationType type) {
@@ -76,9 +212,43 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
           if (operation.description?.isNotEmpty == true) operation.description!,
         ].join(' · '),
       ),
-      trailing: Text(
-        _numberFormat.format(operation.amount),
-        style: const TextStyle(fontWeight: FontWeight.w600),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _numberFormat.format(operation.amount),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Acciones de la operación',
+            onSelected: (action) {
+              switch (action) {
+                case 'edit':
+                  _editOperation(operation);
+                case 'delete':
+                  _deleteOperation(operation);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(Icons.edit_outlined),
+                  title: Text('Editar'),
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'delete',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(Icons.delete_outline, color: Colors.red),
+                  title: Text('Eliminar'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
