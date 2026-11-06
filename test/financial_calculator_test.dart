@@ -584,6 +584,316 @@ void main() {
         expect(metrics.mwrAnnualized, closeTo(0.10, 0.0005));
       });
 
+      test(
+        'calcula la MWR conjunta de varias inversiones históricas cerradas',
+        () {
+          final investmentA = HistoricalInvestment(
+            uid: 'HIST-GLOBAL-A',
+            name: 'Inversión histórica A',
+          );
+
+          final investmentB = HistoricalInvestment(
+            uid: 'HIST-GLOBAL-B',
+            name: 'Inversión histórica B',
+          );
+
+          final operations = [
+            HistoricalOperation(
+              uid: 'HIST-GLOBAL-A-01',
+              investmentUid: investmentA.uid,
+              date: DateTime(2023, 1, 1),
+              type: HistoricalOperationType.subscription,
+              amount: 1000,
+            ),
+            HistoricalOperation(
+              uid: 'HIST-GLOBAL-A-02',
+              investmentUid: investmentA.uid,
+              date: DateTime(2024, 1, 1),
+              type: HistoricalOperationType.redemption,
+              amount: 1100,
+            ),
+            HistoricalOperation(
+              uid: 'HIST-GLOBAL-B-01',
+              investmentUid: investmentB.uid,
+              date: DateTime(2024, 1, 1),
+              type: HistoricalOperationType.subscription,
+              amount: 500,
+            ),
+            HistoricalOperation(
+              uid: 'HIST-GLOBAL-B-02',
+              investmentUid: investmentB.uid,
+              date: DateTime(2025, 1, 1),
+              type: HistoricalOperationType.redemption,
+              amount: 600,
+            ),
+          ];
+
+          final metrics = FinancialCalculator.calculateGlobalMetrics(
+            [],
+            const {'EUR': 1.0},
+            historicalInvestments: [investmentA, investmentB],
+            historicalOperations: operations,
+          );
+
+          expect(metrics.totalInvested, 1500);
+          expect(metrics.totalValue, 1700);
+          expect(metrics.profitAbs, 200);
+          expect(metrics.profitRel, closeTo(200 / 1500 * 100, 0.0001));
+          expect(metrics.mwrAnnualized, closeTo(0.130636, 0.0005));
+        },
+      );
+
+      test('no añade una valoración terminal artificial a inversiones históricas cerradas', () {
+        final investmentA = HistoricalInvestment(
+          uid: 'HIST-TERMINAL-A',
+          name: 'Inversión histórica A',
+        );
+
+        final investmentB = HistoricalInvestment(
+          uid: 'HIST-TERMINAL-B',
+          name: 'Inversión histórica B',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'HIST-TERMINAL-A-01',
+            investmentUid: investmentA.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-TERMINAL-A-02',
+            investmentUid: investmentA.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-TERMINAL-B-01',
+            investmentUid: investmentB.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 500,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-TERMINAL-B-02',
+            investmentUid: investmentB.uid,
+            date: DateTime(2025, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 600,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investmentA, investmentB],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvested, 1500);
+        expect(metrics.totalValue, 1700);
+        expect(metrics.profitAbs, 200);
+        //expect(metrics.mwrAnnualized, closeTo(0.130636, 0.0005));
+        expect(metrics.mwrAnnualized, closeTo(0.097724, 0.0005));
+      });
+
+      test('ignora inversiones históricas sin operaciones en las métricas globales', () {
+        final investment = HistoricalInvestment(
+          uid: 'HIST-EMPTY',
+          name: 'Inversión sin operaciones',
+        );
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investment],
+          historicalOperations: const [],
+        );
+
+        expect(metrics.totalInvested, 0);
+        expect(metrics.totalValue, 0);
+        expect(metrics.profitAbs, 0);
+        expect(metrics.profitRel, 0);
+        expect(metrics.mwrAnnualized, isNull);
+      });
+
+      test(
+        'solo contabiliza las operaciones asociadas a cada inversión histórica',
+        () {
+          final investmentA = HistoricalInvestment(
+            uid: 'HIST-ISOLATION-A',
+            name: 'Inversión A',
+          );
+
+          final investmentB = HistoricalInvestment(
+            uid: 'HIST-ISOLATION-B',
+            name: 'Inversión B',
+          );
+
+          final operations = [
+            HistoricalOperation(
+              uid: 'HIST-ISOLATION-A-01',
+              investmentUid: investmentA.uid,
+              date: DateTime(2023, 1, 1),
+              type: HistoricalOperationType.subscription,
+              amount: 1000,
+            ),
+            HistoricalOperation(
+              uid: 'HIST-ISOLATION-A-02',
+              investmentUid: investmentA.uid,
+              date: DateTime(2024, 1, 1),
+              type: HistoricalOperationType.redemption,
+              amount: 1100,
+            ),
+            HistoricalOperation(
+              uid: 'HIST-ISOLATION-B-01',
+              investmentUid: investmentB.uid,
+              date: DateTime(2023, 1, 1),
+              type: HistoricalOperationType.subscription,
+              amount: 500,
+            ),
+            HistoricalOperation(
+              uid: 'HIST-ISOLATION-B-02',
+              investmentUid: investmentB.uid,
+              date: DateTime(2024, 1, 1),
+              type: HistoricalOperationType.redemption,
+              amount: 450,
+            ),
+            // Operación huérfana: no pertenece a ninguna inversión recibida.
+            HistoricalOperation(
+              uid: 'HIST-ISOLATION-ORPHAN',
+              investmentUid: 'HIST-NONEXISTENT',
+              date: DateTime(2024, 1, 1),
+              type: HistoricalOperationType.redemption,
+              amount: 9999,
+            ),
+          ];
+
+          final metrics = FinancialCalculator.calculateGlobalMetrics(
+            [],
+            const {'EUR': 1.0},
+            historicalInvestments: [investmentA, investmentB],
+            historicalOperations: operations,
+          );
+
+          expect(metrics.totalInvested, 1500);
+          expect(metrics.totalValue, 1550);
+          expect(metrics.profitAbs, 50);
+          expect(metrics.mwrAnnualized, isNotNull);
+        },
+      );
+
+      test('mantiene las métricas globales aunque cambie el orden de inversiones y operaciones históricas', () {
+        final investmentA = HistoricalInvestment(
+          uid: 'HIST-ORDER-A',
+          name: 'Inversión A',
+        );
+
+        final investmentB = HistoricalInvestment(
+          uid: 'HIST-ORDER-B',
+          name: 'Inversión B',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'HIST-ORDER-A-01',
+            investmentUid: investmentA.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-ORDER-A-02',
+            investmentUid: investmentA.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-ORDER-B-01',
+            investmentUid: investmentB.uid,
+            date: DateTime(2023, 6, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 500,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-ORDER-B-02',
+            investmentUid: investmentB.uid,
+            date: DateTime(2024, 6, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 600,
+          ),
+        ];
+
+        final first = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investmentA, investmentB],
+          historicalOperations: operations,
+        );
+
+        final reordered = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investmentB, investmentA],
+          historicalOperations: operations.reversed.toList(),
+        );
+
+        expect(reordered.totalInvested, first.totalInvested);
+        expect(reordered.totalValue, first.totalValue);
+        expect(reordered.profitAbs, first.profitAbs);
+        expect(reordered.profitRel, closeTo(first.profitRel, 0.000001));
+        expect(
+          reordered.mwrAnnualized,
+          closeTo(first.mwrAnnualized!, 0.000001),
+        );
+      });
+
+      test('ignora operaciones históricas posteriores a la fecha actual', () {
+        final investment = HistoricalInvestment(
+          uid: 'HIST-FUTURE',
+          name: 'Inversión histórica',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-01',
+            investmentUid: investment.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-02',
+            investmentUid: investment.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-03',
+            investmentUid: investment.uid,
+            date: DateTime(2099, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 5000,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investment],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvested, 1000);
+        expect(metrics.totalValue, 1100);
+        expect(metrics.profitAbs, 100);
+        expect(metrics.mwrAnnualized, closeTo(0.10, 0.0005));
+      });
+
       test('combina fondos abiertos e inversiones históricas cerradas', () {
         final startDate = DateTime(2023, 1, 1);
         final endDate = DateTime(2025, 1, 1);

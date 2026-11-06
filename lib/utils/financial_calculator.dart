@@ -986,8 +986,18 @@ class FinancialCalculator {
 
     // Integra las inversiones históricas cerradas.
     for (final investment in historicalInvestments) {
-      final investmentOperations = historicalOperations
+      /* final investmentOperations = historicalOperations
           .where((operation) => operation.investmentUid == investment.uid)
+          .toList(); */
+
+      final now = DateTime.now();
+
+      final investmentOperations = historicalOperations
+          .where(
+            (operation) =>
+                operation.investmentUid == investment.uid &&
+                !operation.date.isAfter(now),
+          )
           .toList();
 
       final metrics = calculateHistoricalInvestmentMetrics(
