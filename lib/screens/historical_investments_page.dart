@@ -92,7 +92,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
           final operations = snapshot.data ?? [];
 
           return ExpansionTile(
-            leading: const Icon(Icons.account_balance_wallet_outlined),
+            leading: const Icon(Icons.bar_chart),
             title: Text(
               investment.name,
               style: const TextStyle(fontWeight: FontWeight.w600),

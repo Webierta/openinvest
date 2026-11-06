@@ -2929,4 +2929,58 @@ void main() {
       expect(investments.first.id, isNotNull);
     },
   );
+
+  test(
+    'LF-136.1: actualiza una operación histórica conservando su identidad',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-investment-edit-1',
+        name: 'Inversión de prueba',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(investment);
+
+      final operation = HistoricalOperation(
+        uid: 'historical-operation-edit-1',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+        units: 10,
+        price: 100,
+        description: 'Suscripción inicial',
+      );
+
+      await DatabaseService.saveHistoricalOperation(operation);
+
+      final saved = await DatabaseService.getHistoricalOperation(operation.uid);
+
+      expect(saved, isNotNull);
+      expect(saved!.id, isNotNull);
+
+      final updated = saved.copyWith(
+        date: DateTime(2025, 2, 10),
+        amount: 1500,
+        units: 15,
+        price: 100,
+        description: 'Suscripción actualizada',
+      );
+
+      await DatabaseService.updateHistoricalOperation(updated);
+
+      final result = await DatabaseService.getHistoricalOperation(
+        operation.uid,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.id, saved.id);
+      expect(result.uid, saved.uid);
+      expect(result.investmentUid, investment.uid);
+      expect(result.date, DateTime(2025, 2, 10));
+      expect(result.amount, 1500);
+      expect(result.units, 15);
+      expect(result.price, 100);
+      expect(result.description, 'Suscripción actualizada');
+    },
+  );
 }
