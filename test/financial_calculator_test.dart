@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:investing/models/fund_cost.dart';
 import 'package:investing/models/fund_data.dart';
+import 'package:investing/models/historical_investment.dart';
+import 'package:investing/models/historical_operation.dart';
 import 'package:investing/utils/financial_calculator.dart';
 
 void main() {
@@ -543,6 +545,43 @@ void main() {
 
         expect(metrics.mwrAnnualized, isNotNull);
         expect(metrics.mwrAnnualized, closeTo(0, 0.0005));
+      });
+
+      test('incluye inversiones históricas en las métricas globales', () {
+        final investment = HistoricalInvestment(
+          uid: 'HIST-GLOBAL-001',
+          name: 'Inversión histórica',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'HIST-OP-001',
+            investmentUid: investment.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-OP-002',
+            investmentUid: investment.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investment],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvested, 1000);
+        expect(metrics.totalValue, 1100);
+        expect(metrics.profitAbs, 100);
+        expect(metrics.profitRel, closeTo(10, 0.0001));
+        expect(metrics.mwrAnnualized, closeTo(0.10, 0.0005));
       });
     });
   });

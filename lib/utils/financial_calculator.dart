@@ -926,10 +926,17 @@ class FinancialCalculator {
     return null; // La fecha objetivo es anterior a cualquier dato de IPC disponible
   }
 
-  static GlobalMetrics calculateGlobalMetrics(
+  /* static GlobalMetrics calculateGlobalMetrics(
     List<FundData> portfolio,
     Map<String, double> exchangeRates,
-  ) {
+  ) { */
+
+  static GlobalMetrics calculateGlobalMetrics(
+    List<FundData> portfolio,
+    Map<String, double> exchangeRates, {
+    List<HistoricalInvestment> historicalInvestments = const [],
+    List<HistoricalOperation> historicalOperations = const [],
+  }) {
     double totalValue = 0;
     double totalInvested = 0;
     double profitAbs = 0;
@@ -978,6 +985,42 @@ class FinancialCalculator {
       }
     }
 
+    // Integra las inversiones históricas cerradas.
+    for (final investment in historicalInvestments) {
+      final investmentOperations = historicalOperations
+          .where((operation) => operation.investmentUid == investment.uid)
+          .toList();
+
+      final metrics = calculateHistoricalInvestmentMetrics(
+        investment,
+        investmentOperations,
+      );
+
+      totalInvested += metrics.totalContributions;
+      totalValue += metrics.totalReturns;
+      profitAbs += metrics.profitAbs;
+
+      for (final operation in investmentOperations) {
+        final isContribution =
+            operation.type == HistoricalOperationType.subscription ||
+            operation.type == HistoricalOperationType.transferIn;
+
+        cashFlows.add({
+          'amount': isContribution ? -operation.amount : operation.amount,
+          'date': operation.date,
+        });
+
+        if (valuationDate == null || operation.date.isAfter(valuationDate)) {
+          valuationDate = operation.date;
+        }
+
+        if (isContribution &&
+            (firstOpDate == null || operation.date.isBefore(firstOpDate))) {
+          firstOpDate = operation.date;
+        }
+      }
+    }
+
     double profitRel = totalValue > 0 ? weightedTaeSum / totalValue : 0.0;
 
     if (profitRel == 0 && profitAbs != 0 && totalInvested > 0) {
@@ -990,11 +1033,16 @@ class FinancialCalculator {
     }
 
     double? mwrAnnualized;
-    if (totalValue > 0 && valuationDate != null) {
-      cashFlows.add({'amount': totalValue, 'date': valuationDate});
+
+    if (cashFlows.isNotEmpty) {
+      if (portfolio.isNotEmpty && totalValue > 0 && valuationDate != null) {
+        cashFlows.add({'amount': totalValue, 'date': valuationDate});
+      }
+
       cashFlows.sort(
         (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime),
       );
+
       final irr = _calculateIRR(cashFlows);
       if (!irr.isNaN) {
         mwrAnnualized = irr;
