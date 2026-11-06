@@ -225,6 +225,36 @@ void main() {
         expect(metrics.mwrAnnualized, isNotNull);
         expect(metrics.mwrAnnualized, greaterThan(0.40)); // > 40%
       });
+
+      test('calcula una MWR anualizada superior al 200%', () {
+        final startDate = DateTime(2023, 1, 1);
+        final endDate = DateTime(2023, 2, 1);
+
+        final fund = FundData(
+          isin: 'HIGH-IRR',
+          symbol: 'HIR',
+          name: 'High IRR Test Fund',
+          lastValue: 20,
+          currency: 'EUR',
+          date: endDate,
+          history: [PricePoint(startDate, 10), PricePoint(endDate, 20)],
+          operations: [
+            FundOperation(
+              isin: 'HIGH-IRR',
+              date: startDate,
+              type: OperationType.buy,
+              units: 100,
+              price: 10,
+              amount: 1000,
+            ),
+          ],
+        );
+
+        final metrics = FinancialCalculator.calculateFundMetrics(fund);
+
+        expect(metrics.mwrAnnualized, isNotNull);
+        expect(metrics.mwrAnnualized!, greaterThan(2.0));
+      });
     });
 
     group('FinancialCalculator - Edge Cases', () {
@@ -420,6 +450,39 @@ void main() {
 
         expect(metrics.mwrAnnualized, isNotNull);
         expect(metrics.mwrAnnualized, closeTo(0.1, 0.0005));
+      });
+
+      test('calcula una MWR global anualizada superior al 200%', () {
+        final startDate = DateTime(2023, 1, 1);
+        final endDate = DateTime(2023, 2, 1);
+
+        final fund = FundData(
+          isin: 'GLOBAL-HIGH-IRR',
+          symbol: 'GHIR',
+          name: 'Global High IRR Test Fund',
+          lastValue: 20,
+          currency: 'EUR',
+          date: endDate,
+          history: [PricePoint(startDate, 10), PricePoint(endDate, 20)],
+          operations: [
+            FundOperation(
+              isin: 'GLOBAL-HIGH-IRR',
+              date: startDate,
+              type: OperationType.buy,
+              units: 100,
+              price: 10,
+              amount: 1000,
+            ),
+          ],
+        );
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [fund],
+          const {'EUR': 1},
+        );
+
+        expect(metrics.mwrAnnualized, isNotNull);
+        expect(metrics.mwrAnnualized!, greaterThan(2.0));
       });
 
       test('internal fund transfers cancel out in global cash flows', () {

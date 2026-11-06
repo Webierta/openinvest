@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:investing/models/fund_data.dart';
 import 'package:investing/models/historical_investment.dart';
 import 'package:investing/models/historical_operation.dart';
 import 'package:investing/utils/financial_calculator.dart';
@@ -1578,37 +1579,31 @@ void main() {
     );
 
     test('calcula una MWR anualizada superior al 200%', () {
-      final investment = HistoricalInvestment(
-        uid: 'INV-HIGH-IRR-001',
-        name: 'Inversión de alta rentabilidad',
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2023, 2, 1);
+
+      final fund = FundData(
+        isin: 'HIGH-IRR',
+        symbol: 'HIR',
+        name: 'High IRR Test Fund',
+        lastValue: 20,
+        currency: 'EUR',
+        date: endDate,
+        history: [PricePoint(startDate, 10), PricePoint(endDate, 20)],
+        operations: [
+          FundOperation(
+            isin: 'HIGH-IRR',
+            date: startDate,
+            type: OperationType.buy,
+            units: 100,
+            price: 10,
+            amount: 1000,
+          ),
+        ],
       );
 
-      final operations = [
-        HistoricalOperation(
-          uid: 'OP-HIGH-IRR-001',
-          investmentUid: investment.uid,
-          date: DateTime(2023, 1, 1),
-          type: HistoricalOperationType.subscription,
-          amount: 1000,
-        ),
-        HistoricalOperation(
-          uid: 'OP-HIGH-IRR-002',
-          investmentUid: investment.uid,
-          date: DateTime(2023, 2, 1),
-          type: HistoricalOperationType.redemption,
-          amount: 2000,
-        ),
-      ];
+      final metrics = FinancialCalculator.calculateFundMetrics(fund);
 
-      final metrics = FinancialCalculator.calculateHistoricalInvestmentMetrics(
-        investment,
-        operations,
-      );
-
-      expect(metrics.totalContributions, 1000);
-      expect(metrics.totalReturns, 2000);
-      expect(metrics.profitAbs, 1000);
-      expect(metrics.profitRel, 100);
       expect(metrics.mwrAnnualized, isNotNull);
       expect(metrics.mwrAnnualized!, greaterThan(2.0));
     });

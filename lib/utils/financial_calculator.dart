@@ -1035,11 +1035,30 @@ class FinancialCalculator {
       return total;
     }
 
-    double low = -0.99, high = 2.0;
+    /* double low = -0.99, high = 2.0;
     final lowNpv = npv(low);
     final highNpv = npv(high);
     if (lowNpv == 0) return low;
     if (highNpv == 0) return high;
+    if (lowNpv.sign == highNpv.sign) return double.nan; */
+
+    double low = -0.99;
+    double high = 2.0;
+
+    final lowNpv = npv(low);
+    if (lowNpv == 0) return low;
+
+    var highNpv = npv(high);
+    if (highNpv == 0) return high;
+
+    // Amplía progresivamente el límite superior hasta encontrar
+    // un intervalo que contenga una raíz.
+    while (lowNpv.sign == highNpv.sign && high < 1e9) {
+      high = (high * 2 + 1).clamp(2.0, 1e9).toDouble();
+      highNpv = npv(high);
+      if (highNpv == 0) return high;
+    }
+
     if (lowNpv.sign == highNpv.sign) return double.nan;
 
     for (int i = 0; i < 50; i++) {
