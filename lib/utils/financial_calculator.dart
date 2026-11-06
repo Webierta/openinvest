@@ -2,6 +2,8 @@ import 'dart:math';
 
 import '../models/fund_cost.dart';
 import '../models/fund_data.dart';
+import '../models/historical_investment.dart';
+import '../models/historical_operation.dart';
 import '../services/ine_ipc_service.dart';
 
 class FundMetrics {
@@ -69,6 +71,22 @@ class GlobalMetrics {
     required this.profitRel,
     required this.isAnnualized,
     this.mwrAnnualized,
+  });
+}
+
+class HistoricalInvestmentMetrics {
+  final double totalContributions;
+  final double totalReturns;
+  final double profitAbs;
+  final double profitRel;
+  final double? mwrAnnualized;
+
+  const HistoricalInvestmentMetrics({
+    required this.totalContributions,
+    required this.totalReturns,
+    required this.profitAbs,
+    required this.profitRel,
+    required this.mwrAnnualized,
   });
 }
 
@@ -448,6 +466,51 @@ class FinancialCalculator {
         : minimumFutureBalance;
 
     return maxUnits > 0 ? maxUnits : 0.0;
+  }
+
+  static HistoricalInvestmentMetrics calculateHistoricalInvestmentMetrics(
+    HistoricalInvestment investment,
+    List<HistoricalOperation> operations,
+  ) {
+    final investmentOperations = operations
+        .where((operation) => operation.investmentUid == investment.uid)
+        .toList();
+
+    var totalContributions = 0.0;
+    var totalReturns = 0.0;
+
+    final cashFlows = <Map<String, Object>>[];
+
+    for (final operation in investmentOperations) {
+      final isContribution =
+          operation.type == HistoricalOperationType.subscription ||
+          operation.type == HistoricalOperationType.transferIn;
+
+      if (isContribution) {
+        totalContributions += operation.amount;
+        cashFlows.add({'amount': -operation.amount, 'date': operation.date});
+      } else {
+        totalReturns += operation.amount;
+        cashFlows.add({'amount': operation.amount, 'date': operation.date});
+      }
+    }
+
+    final profitAbs = totalReturns - totalContributions;
+
+    final profitRel = totalContributions > 0
+        ? (profitAbs / totalContributions) * 100
+        : 0.0;
+
+    final irr = _calculateIRR(cashFlows);
+    final double? mwrAnnualized = irr.isNaN ? null : irr;
+
+    return HistoricalInvestmentMetrics(
+      totalContributions: totalContributions,
+      totalReturns: totalReturns,
+      profitAbs: profitAbs,
+      profitRel: profitRel,
+      mwrAnnualized: mwrAnnualized,
+    );
   }
 
   static FundMetrics calculateFundMetrics(
