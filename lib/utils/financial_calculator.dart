@@ -78,7 +78,7 @@ class HistoricalInvestmentMetrics {
   final double totalContributions;
   final double totalReturns;
   final double profitAbs;
-  final double profitRel;
+  final double? profitRel;
   final double? mwrAnnualized;
 
   const HistoricalInvestmentMetrics({
@@ -497,9 +497,89 @@ class FinancialCalculator {
 
     final profitAbs = totalReturns - totalContributions;
 
-    final profitRel = totalContributions > 0
+    // final profitRel = totalContributions > 0
+    //     ? (profitAbs / totalContributions) * 100
+    //     : 0.0;
+
+    // final double? profitRel = totalContributions > 0
+    //     ? (profitAbs / totalContributions) * 100
+    //     : null;
+
+    final double? profitRel = totalContributions > 0
         ? (profitAbs / totalContributions) * 100
-        : 0.0;
+        : totalReturns == 0
+        ? 0.0
+        : null;
+
+    final irr = _calculateIRR(cashFlows);
+    final double? mwrAnnualized = irr.isNaN ? null : irr;
+
+    return HistoricalInvestmentMetrics(
+      totalContributions: totalContributions,
+      totalReturns: totalReturns,
+      profitAbs: profitAbs,
+      profitRel: profitRel,
+      mwrAnnualized: mwrAnnualized,
+    );
+  }
+
+  static HistoricalInvestmentMetrics calculateHistoricalInvestmentsMetrics(
+    List<HistoricalInvestment> investments,
+    List<HistoricalOperation> operations,
+  ) {
+    var totalContributions = 0.0;
+    var totalReturns = 0.0;
+
+    /* for (final investment in investments) {
+      final metrics = calculateHistoricalInvestmentMetrics(
+        investment,
+        operations,
+      );
+
+      totalContributions += metrics.totalContributions;
+      totalReturns += metrics.totalReturns;
+    } */
+
+    final uniqueInvestments = {
+      for (final investment in investments) investment.uid: investment,
+    }.values;
+
+    for (final investment in uniqueInvestments) {
+      final metrics = calculateHistoricalInvestmentMetrics(
+        investment,
+        operations,
+      );
+
+      totalContributions += metrics.totalContributions;
+      totalReturns += metrics.totalReturns;
+    }
+
+    final profitAbs = totalReturns - totalContributions;
+
+    final double? profitRel = totalContributions > 0
+        ? (profitAbs / totalContributions) * 100
+        : totalReturns == 0
+        ? 0.0
+        : null;
+
+    final cashFlows = <Map<String, Object>>[];
+
+    for (final operation in operations) {
+      if (!investments.any(
+        (investment) => investment.uid == operation.investmentUid,
+      )) {
+        continue;
+      }
+
+      final isContribution =
+          operation.type == HistoricalOperationType.subscription ||
+          operation.type == HistoricalOperationType.transferIn;
+
+      cashFlows.add({
+        'amount': isContribution ? -operation.amount : operation.amount,
+        'date': operation.date,
+      });
+    }
 
     final irr = _calculateIRR(cashFlows);
     final double? mwrAnnualized = irr.isNaN ? null : irr;
