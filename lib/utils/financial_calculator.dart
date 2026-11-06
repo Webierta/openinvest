@@ -530,16 +530,6 @@ class FinancialCalculator {
     var totalContributions = 0.0;
     var totalReturns = 0.0;
 
-    /* for (final investment in investments) {
-      final metrics = calculateHistoricalInvestmentMetrics(
-        investment,
-        operations,
-      );
-
-      totalContributions += metrics.totalContributions;
-      totalReturns += metrics.totalReturns;
-    } */
-
     final uniqueInvestments = {
       for (final investment in investments) investment.uid: investment,
     }.values;

@@ -1576,5 +1576,41 @@ void main() {
         expect(metrics.mwrAnnualized, closeTo(0.10, 0.001));
       },
     );
+
+    test('calcula una MWR anualizada superior al 200%', () {
+      final investment = HistoricalInvestment(
+        uid: 'INV-HIGH-IRR-001',
+        name: 'Inversión de alta rentabilidad',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-HIGH-IRR-001',
+          investmentUid: investment.uid,
+          date: DateTime(2023, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-HIGH-IRR-002',
+          investmentUid: investment.uid,
+          date: DateTime(2023, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 2000,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateHistoricalInvestmentMetrics(
+        investment,
+        operations,
+      );
+
+      expect(metrics.totalContributions, 1000);
+      expect(metrics.totalReturns, 2000);
+      expect(metrics.profitAbs, 1000);
+      expect(metrics.profitRel, 100);
+      expect(metrics.mwrAnnualized, isNotNull);
+      expect(metrics.mwrAnnualized!, greaterThan(2.0));
+    });
   });
 }
