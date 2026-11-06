@@ -1037,8 +1037,12 @@ class FinancialCalculator {
     double? mwrAnnualized;
 
     if (cashFlows.isNotEmpty) {
-      if (portfolio.isNotEmpty && totalValue > 0 && valuationDate != null) {
+      /* if (portfolio.isNotEmpty && totalValue > 0 && valuationDate != null) {
         cashFlows.add({'amount': totalValue, 'date': valuationDate});
+      } */
+
+      if (portfolioValue > 0 && valuationDate != null) {
+        cashFlows.add({'amount': portfolioValue, 'date': valuationDate});
       }
 
       cashFlows.sort(
