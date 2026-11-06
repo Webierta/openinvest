@@ -36,6 +36,13 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     await _investmentsFuture;
   }
 
+  static int _uidCounter = 0;
+
+  String _newUid(String prefix) {
+    return '${prefix}_${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}'
+        '_${_uidCounter++}';
+  }
+
   String get _locale => Localizations.localeOf(context).toString();
 
   DateFormat get _dialogDateFormat => DateFormat.yMMMd(_locale);
@@ -70,6 +77,53 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       cancelText: 'Cancelar',
       confirmText: 'Aceptar',
     );
+  }
+
+  Future<void> _addOperation(HistoricalInvestment investment) async {
+    final draft = await showDialog<HistoricalOperationDraft>(
+      context: context,
+      builder: (_) => HistoricalOperationDialog(
+        operation: null,
+        dateFormat: _dialogDateFormat,
+        pickDate: _pickDate,
+        parseNumber: _parseNumber,
+        validateNumber: _validateNumber,
+      ),
+    );
+
+    if (draft == null || !mounted) return;
+
+    try {
+      final operation = HistoricalOperation(
+        uid: _newUid('operation'),
+        investmentUid: investment.uid,
+        date: draft.date,
+        type: draft.type,
+        amount: draft.amount,
+        units: draft.units,
+        price: draft.price,
+        description: draft.description,
+        transferUid: draft.transferUid,
+      );
+
+      await DatabaseService.saveHistoricalOperation(operation);
+
+      if (!mounted) return;
+
+      setState(() {});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Operación histórica añadida correctamente'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo añadir la operación: $error')),
+      );
+    }
   }
 
   Future<void> _editOperation(HistoricalOperation operation) async {
@@ -263,9 +317,34 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
 
           return ExpansionTile(
             leading: const Icon(Icons.bar_chart),
-            title: Text(
-              investment.name,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    investment.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: 'Acciones de la inversión',
+                  onSelected: (action) {
+                    switch (action) {
+                      case 'add':
+                        _addOperation(investment);
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'add',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.add_circle_outline),
+                        title: Text('Añadir operación'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             subtitle: Text(
               [

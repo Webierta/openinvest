@@ -3038,4 +3038,119 @@ void main() {
       expect(investmentStillExists, isNotNull);
     },
   );
+
+  test('LF-136.6.1: actualiza una inversión histórica conservando su identidad y operaciones', () async {
+    final investment = HistoricalInvestment(
+      uid: 'historical-investment-edit-1',
+      name: 'Inversión original',
+      isin: 'ES0000000001',
+      description: 'Descripción original',
+    );
+
+    await DatabaseService.saveHistoricalInvestment(investment);
+
+    final operation = HistoricalOperation(
+      uid: 'historical-investment-edit-operation-1',
+      investmentUid: investment.uid,
+      date: DateTime(2025, 1, 10),
+      type: HistoricalOperationType.subscription,
+      amount: 1000,
+    );
+
+    await DatabaseService.saveHistoricalOperation(operation);
+
+    final saved = await DatabaseService.getHistoricalInvestment(investment.uid);
+
+    expect(saved, isNotNull);
+    expect(saved!.id, isNotNull);
+
+    final updated = saved.copyWith(
+      name: 'Inversión actualizada',
+      isin: 'ES0000000002',
+      description: 'Nueva descripción',
+    );
+
+    await DatabaseService.updateHistoricalInvestment(updated);
+
+    final recovered = await DatabaseService.getHistoricalInvestment(
+      investment.uid,
+    );
+
+    final operations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recovered, isNotNull);
+    expect(recovered!.id, saved.id);
+    expect(recovered.uid, saved.uid);
+    expect(recovered.name, 'Inversión actualizada');
+    expect(recovered.isin, 'ES0000000002');
+    expect(recovered.description, 'Nueva descripción');
+
+    expect(operations, hasLength(1));
+    expect(operations.single.uid, operation.uid);
+  });
+
+  test(
+    'LF-136.6.2: rechaza actualizar una inversión histórica sin ID',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'historical-investment-without-id',
+        name: 'Inversión sin ID',
+      );
+
+      expect(
+        () => DatabaseService.updateHistoricalInvestment(investment),
+        throwsArgumentError,
+      );
+    },
+  );
+
+  test(
+    'LF-136.6.3: rechaza actualizar una inversión con el ID de otra',
+    () async {
+      final first = HistoricalInvestment(
+        uid: 'historical-investment-identity-1',
+        name: 'Primera inversión',
+      );
+      final second = HistoricalInvestment(
+        uid: 'historical-investment-identity-2',
+        name: 'Segunda inversión',
+      );
+
+      await DatabaseService.saveHistoricalInvestment(first);
+      await DatabaseService.saveHistoricalInvestment(second);
+
+      final savedFirst = await DatabaseService.getHistoricalInvestment(
+        first.uid,
+      );
+      final savedSecond = await DatabaseService.getHistoricalInvestment(
+        second.uid,
+      );
+
+      expect(savedFirst, isNotNull);
+      expect(savedSecond, isNotNull);
+
+      final forged = HistoricalInvestment(
+        id: savedSecond!.id,
+        uid: savedFirst!.uid,
+        name: 'Nombre manipulado',
+      );
+
+      await expectLater(
+        DatabaseService.updateHistoricalInvestment(forged),
+        throwsStateError,
+      );
+
+      final recoveredFirst = await DatabaseService.getHistoricalInvestment(
+        first.uid,
+      );
+      final recoveredSecond = await DatabaseService.getHistoricalInvestment(
+        second.uid,
+      );
+
+      expect(recoveredFirst!.name, 'Primera inversión');
+      expect(recoveredSecond!.name, 'Segunda inversión');
+    },
+  );
 }

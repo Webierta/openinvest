@@ -1193,6 +1193,36 @@ class DatabaseService {
     }, conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
+  static Future<void> updateHistoricalInvestment(
+    HistoricalInvestment investment,
+  ) async {
+    if (investment.id == null) {
+      throw ArgumentError(
+        'No se puede actualizar una inversión histórica sin ID',
+      );
+    }
+
+    final db = await database;
+
+    final updatedRows = await db.update(
+      'historical_investments',
+      {
+        'name': investment.name,
+        'isin': investment.isin,
+        'description': investment.description,
+      },
+      where: 'id = ? AND uid = ?',
+      whereArgs: [investment.id, investment.uid],
+    );
+
+    if (updatedRows == 0) {
+      throw StateError(
+        'No se encontró la inversión histórica ${investment.uid} '
+        'con ID ${investment.id}',
+      );
+    }
+  }
+
   static Future<HistoricalInvestment?> getHistoricalInvestment(
     String uid,
   ) async {
