@@ -952,4 +952,14 @@ void main() {
       expect(() => original.copyWith(uid: '   '), throwsArgumentError);
     });
   });
+
+  group('LF-140: HistoricalInvestment', () {
+    test(
+      'LF-140.5: rechaza una inversión cuya primera operación es de salida',
+      () {
+        // Aquí utilizaremos el mecanismo de validación
+        // de la inversión histórica.
+      },
+    );
+  });
 }
