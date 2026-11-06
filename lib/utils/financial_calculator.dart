@@ -252,7 +252,6 @@ class FinancialCalculator {
     var units = 0.0;
     var invested = 0.0;
     for (final operation in fund.operations) {
-      // NOTE: ajustado a OperationType.outTransfer y inTransfer
       if (operation.type == OperationType.buy ||
           operation.type == OperationType.inTransfer) {
         units += operation.units;
@@ -296,7 +295,6 @@ class FinancialCalculator {
         operation.date.day,
       );
       if (operationDate.isAfter(target)) continue;
-      // NOTE: ajustado a OperationType.outTransfer y inTransfer
       if (operation.type == OperationType.buy ||
           operation.type == OperationType.inTransfer) {
         units += operation.units;
@@ -497,14 +495,6 @@ class FinancialCalculator {
 
     final profitAbs = totalReturns - totalContributions;
 
-    // final profitRel = totalContributions > 0
-    //     ? (profitAbs / totalContributions) * 100
-    //     : 0.0;
-
-    // final double? profitRel = totalContributions > 0
-    //     ? (profitAbs / totalContributions) * 100
-    //     : null;
-
     final double? profitRel = totalContributions > 0
         ? (profitAbs / totalContributions) * 100
         : totalReturns == 0
@@ -593,7 +583,6 @@ class FinancialCalculator {
     DateTime? firstOpDate;
 
     for (var op in fund.operations) {
-      // NOTE: ajustado a OperationType.outTransfer y inTransfer
       if (op.type == OperationType.buy || op.type == OperationType.inTransfer) {
         totalUnits += op.units;
         totalInvested += op.amount;
@@ -631,8 +620,6 @@ class FinancialCalculator {
     double? mwrRealTotal;
 
     if (totalInvested > 0 && firstOpDate != null) {
-      // days = DateTime.now().difference(firstOpDate).inDays;
-
       // 1. Calcula los días basándote en la fecha del fondo, no en la fecha del sistema
       days = fund.date.difference(firstOpDate).inDays;
 
@@ -770,8 +757,6 @@ class FinancialCalculator {
         // ignorando los flujos intermedios. Por tanto, se ajusta el multiplicador total
         // del TWR por la inflación total acumulada en ese mismo periodo.
 
-        //double? _twrRealTotal;
-        //double? _twrRealAnnualized;
         final DateTime endDate = fund.date; // Fecha final de valoración
 
         final double? startIpc = _getIpcValueForDate(firstOpDate, ipcHistory);
@@ -799,8 +784,6 @@ class FinancialCalculator {
         // La solución profesional es "deflactar" cada flujo a una moneda constante
         // (la de la primera inversión) y luego calcular la TIR sobre esos flujos reales.
 
-        //double? mwrRealAnnualized;
-        //double? mwrRealTotal;
         final double? baseIpc = _getIpcValueForDate(firstOpDate, ipcHistory);
 
         if (baseIpc != null && baseIpc > 0) {
@@ -923,7 +906,8 @@ class FinancialCalculator {
         return ipc.value;
       }
     }
-    return null; // La fecha objetivo es anterior a cualquier dato de IPC disponible
+    return null;
+    // La fecha objetivo es anterior a cualquier dato de IPC disponible
   }
 
   static GlobalMetrics calculateGlobalMetrics(
@@ -985,13 +969,8 @@ class FinancialCalculator {
     }
 
     // Integra las inversiones históricas cerradas.
+    final now = DateTime.now();
     for (final investment in historicalInvestments) {
-      /* final investmentOperations = historicalOperations
-          .where((operation) => operation.investmentUid == investment.uid)
-          .toList(); */
-
-      final now = DateTime.now();
-
       final investmentOperations = historicalOperations
           .where(
             (operation) =>
@@ -1030,7 +1009,6 @@ class FinancialCalculator {
       }
     }
 
-    //double profitRel = totalValue > 0 ? weightedTaeSum / totalValue : 0.0;
     double profitRel = portfolioValue > 0
         ? weightedTaeSum / portfolioValue
         : 0.0;
@@ -1047,10 +1025,6 @@ class FinancialCalculator {
     double? mwrAnnualized;
 
     if (cashFlows.isNotEmpty) {
-      /* if (portfolio.isNotEmpty && totalValue > 0 && valuationDate != null) {
-        cashFlows.add({'amount': totalValue, 'date': valuationDate});
-      } */
-
       if (portfolioValue > 0 && valuationDate != null) {
         cashFlows.add({'amount': portfolioValue, 'date': valuationDate});
       }
@@ -1098,13 +1072,6 @@ class FinancialCalculator {
       }
       return total;
     }
-
-    /* double low = -0.99, high = 2.0;
-    final lowNpv = npv(low);
-    final highNpv = npv(high);
-    if (lowNpv == 0) return low;
-    if (highNpv == 0) return high;
-    if (lowNpv.sign == highNpv.sign) return double.nan; */
 
     double low = -0.99;
     double high = 2.0;

@@ -894,6 +894,212 @@ void main() {
         expect(metrics.mwrAnnualized, closeTo(0.10, 0.0005));
       });
 
+      test('las operaciones futuras no alteran isAnnualized', () {
+        final investment = HistoricalInvestment(
+          uid: 'HIST-ANNUALIZED',
+          name: 'Inversión histórica',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'HIST-ANNUALIZED-01',
+            investmentUid: investment.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-ANNUALIZED-02',
+            investmentUid: investment.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-ANNUALIZED-03',
+            investmentUid: investment.uid,
+            date: DateTime(2099, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 5000,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investment],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.isAnnualized, isTrue);
+      });
+
+      test(
+        'una suscripción futura no modifica la antigüedad de la cartera',
+        () {
+          final investment = HistoricalInvestment(
+            uid: 'HIST-FIRST-DATE',
+            name: 'Inversión histórica',
+          );
+
+          final operations = [
+            HistoricalOperation(
+              uid: 'HIST-FIRST-DATE-01',
+              investmentUid: investment.uid,
+              date: DateTime(2023, 1, 1),
+              type: HistoricalOperationType.subscription,
+              amount: 1000,
+            ),
+            HistoricalOperation(
+              uid: 'HIST-FIRST-DATE-02',
+              investmentUid: investment.uid,
+              date: DateTime(2099, 1, 1),
+              type: HistoricalOperationType.subscription,
+              amount: 5000,
+            ),
+          ];
+
+          final metrics = FinancialCalculator.calculateGlobalMetrics(
+            [],
+            const {'EUR': 1.0},
+            historicalInvestments: [investment],
+            historicalOperations: operations,
+          );
+
+          expect(metrics.totalInvested, 1000);
+          expect(metrics.isAnnualized, isTrue);
+        },
+      );
+
+      test('ignora reembolsos históricos posteriores a la fecha actual', () {
+        final investment = HistoricalInvestment(
+          uid: 'HIST-FUTURE-REDEMPTION',
+          name: 'Inversión histórica',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-REDEMPTION-01',
+            investmentUid: investment.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-REDEMPTION-02',
+            investmentUid: investment.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-REDEMPTION-03',
+            investmentUid: investment.uid,
+            date: DateTime(2099, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 5000,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investment],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvested, 1000);
+        expect(metrics.totalValue, 1100);
+        expect(metrics.profitAbs, 100);
+      });
+
+      test('las operaciones futuras no alteran la MWR global', () {
+        final investment = HistoricalInvestment(
+          uid: 'HIST-FUTURE-MWR',
+          name: 'Inversión histórica',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-MWR-01',
+            investmentUid: investment.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-MWR-02',
+            investmentUid: investment.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-MWR-03',
+            investmentUid: investment.uid,
+            date: DateTime(2099, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 5000,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investment],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.mwrAnnualized, closeTo(0.10, 0.0005));
+      });
+
+      test('ignora operaciones futuras de otras inversiones históricas', () {
+        final investmentA = HistoricalInvestment(
+          uid: 'HIST-FUTURE-OTHER-A',
+          name: 'Inversión A',
+        );
+        final investmentB = HistoricalInvestment(
+          uid: 'HIST-FUTURE-OTHER-B',
+          name: 'Inversión B',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-OTHER-01',
+            investmentUid: investmentA.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-OTHER-02',
+            investmentUid: investmentA.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-FUTURE-OTHER-03',
+            investmentUid: investmentB.uid,
+            date: DateTime(2099, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 5000,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investmentA, investmentB],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvested, 1000);
+        expect(metrics.totalValue, 1100);
+        expect(metrics.profitAbs, 100);
+        expect(metrics.mwrAnnualized, closeTo(0.10, 0.0005));
+      });
+
       test('combina fondos abiertos e inversiones históricas cerradas', () {
         final startDate = DateTime(2023, 1, 1);
         final endDate = DateTime(2025, 1, 1);
@@ -962,6 +1168,53 @@ void main() {
         );
         expect(metrics.mwrAnnualized, isNotNull);
         expect(metrics.mwrAnnualized, closeTo(0.0536, 0.0002));
+      });
+
+      test('mantiene las métricas históricas independientes del instante '
+          'de evaluación durante el cálculo global', () {
+        final investmentA = HistoricalInvestment(
+          uid: 'HIST-NOW-A',
+          name: 'Inversión A',
+        );
+        final investmentB = HistoricalInvestment(
+          uid: 'HIST-NOW-B',
+          name: 'Inversión B',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'HIST-NOW-01',
+            investmentUid: investmentA.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-NOW-02',
+            investmentUid: investmentA.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1100,
+          ),
+          HistoricalOperation(
+            uid: 'HIST-NOW-03',
+            investmentUid: investmentB.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 500,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [investmentA, investmentB],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvested, 1500);
+        expect(metrics.totalValue, 1100);
+        expect(metrics.profitAbs, -400);
       });
     });
   });
