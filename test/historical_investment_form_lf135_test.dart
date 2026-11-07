@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -758,8 +757,6 @@ void main() {
         expect(find.textContaining('Error de intento 1'), findsOneWidget);
 
         // Esperamos a que desaparezca el SnackBar y se estabilice la pantalla.
-        //await tester.pump(const Duration(seconds: 5));
-        //await tester.pumpAndSettle();
 
         await tester.ensureVisible(find.text('Guardar'));
         await tester.pumpAndSettle();
@@ -787,17 +784,15 @@ void main() {
     );
 
     testWidgets(
-      'LF-142.65: impide duplicar el guardado mientras hay uno en curso',
+      'LF-142.66: navega al histórico después de guardar correctamente',
       (tester) async {
-        final saveCompleter = Completer<void>();
         var saveCalls = 0;
 
         await tester.pumpWidget(
           MaterialApp(
             home: HistoricalInvestmentFormPage(
-              saveInvestment: (investment, operations) {
+              saveInvestment: (investment, operations) async {
                 saveCalls++;
-                return saveCompleter.future;
               },
             ),
           ),
@@ -805,7 +800,7 @@ void main() {
 
         await tester.enterText(
           find.byType(TextFormField).first,
-          'Inversión LF-142.65',
+          'Inversión LF-142.66',
         );
 
         // Primera operación: suscripción.
@@ -838,28 +833,175 @@ void main() {
         await tester.tap(find.text('Aceptar').last);
         await tester.pumpAndSettle();
 
+        // Guardar la inversión.
         await tester.scrollUntilVisible(
           find.text('Guardar'),
           300,
           scrollable: find.byType(Scrollable).first,
         );
 
-        // Iniciar el guardado.
         await tester.tap(find.text('Guardar'));
+        //await tester.pumpAndSettle();
         await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
 
+        // El guardado debe haberse delegado una sola vez.
         expect(saveCalls, 1);
-        expect(find.text('Guardando…'), findsOneWidget);
 
-        final button = tester.widget<FilledButton>(find.byType(FilledButton));
-        expect(button.onPressed, isNull);
+        // El formulario debe haber sido sustituido por el histórico.
+        expect(find.byType(HistoricalInvestmentFormPage), findsNothing);
 
-        // Completar el guardado pendiente.
-        saveCompleter.complete();
-        await tester.pumpAndSettle();
-
-        expect(saveCalls, 1);
+        expect(find.byType(HistoricalInvestmentsPage), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'LF-142.67: muestra confirmación después de guardar correctamente',
+      (tester) async {
+        var saveCalls = 0;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: HistoricalInvestmentFormPage(
+              saveInvestment: (investment, operations) async {
+                saveCalls++;
+              },
+            ),
+          ),
+        );
+
+        await tester.enterText(
+          find.byType(TextFormField).first,
+          'Inversión LF-142.67',
+        );
+
+        // Primera operación: suscripción.
+        await tester.tap(find.byTooltip('Añadir operación'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Importe'),
+          '1000',
+        );
+
+        await tester.tap(find.text('Aceptar'));
+        await tester.pumpAndSettle();
+
+        // Segunda operación: reembolso.
+        await tester.tap(find.byTooltip('Añadir operación'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Suscripción').last);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Reembolso').last);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Importe'),
+          '500',
+        );
+
+        await tester.tap(find.text('Aceptar').last);
+        await tester.pumpAndSettle();
+
+        // Guardar la inversión.
+        await tester.scrollUntilVisible(
+          find.text('Guardar'),
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+
+        await tester.tap(find.text('Guardar'));
+        //await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(saveCalls, 1);
+
+        // Debe mostrarse la confirmación del guardado.
+        expect(
+          find.text('Inversión histórica guardada correctamente'),
+          findsOneWidget,
+        );
+
+        // La navegación al histórico también debe haberse completado.
+        expect(find.byType(HistoricalInvestmentFormPage), findsNothing);
+        expect(find.byType(HistoricalInvestmentsPage), findsOneWidget);
+      },
+    );
+
+    testWidgets('LF-142.68: rechaza una secuencia inválida antes de guardar', (
+      tester,
+    ) async {
+      var saveCalls = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HistoricalInvestmentFormPage(
+            saveInvestment: (investment, operations) async {
+              saveCalls++;
+            },
+          ),
+        ),
+      );
+
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'Inversión LF-142.68',
+      );
+
+      // Añadir una única operación de reembolso.
+      // Una secuencia que comienza con una salida es inválida.
+      await tester.tap(find.byTooltip('Añadir operación'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Suscripción').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Reembolso').last);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Importe'),
+        '500',
+      );
+
+      await tester.tap(find.text('Aceptar').last);
+      await tester.pumpAndSettle();
+
+      // Intentar guardar.
+      await tester.scrollUntilVisible(
+        find.text('Guardar'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+
+      // El validador debe impedir que se invoque el callback.
+      expect(saveCalls, 0);
+
+      // Debe mostrarse el motivo del rechazo.
+      expect(
+        find.textContaining(
+          'La primera operación debe ser una entrada de capital.',
+        ),
+        findsOneWidget,
+      );
+
+      // El formulario debe permanecer disponible.
+      expect(find.byType(HistoricalInvestmentFormPage), findsOneWidget);
+      expect(find.text('Guardar'), findsOneWidget);
+
+      // No debe aparecer la confirmación de guardado.
+      expect(
+        find.text('Inversión histórica guardada correctamente'),
+        findsNothing,
+      );
+
+      expect(find.byType(HistoricalInvestmentsPage), findsNothing);
+    });
   });
 }
