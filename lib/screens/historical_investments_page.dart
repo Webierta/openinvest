@@ -246,6 +246,13 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         transferUid: draft.transferUid,
       );
 
+      //await DatabaseService.updateHistoricalOperation(updated);
+      final operations = await DatabaseService.getHistoricalOperations(
+        operation.investmentUid,
+      );
+
+      HistoricalInvestmentValidator.validateUpdate(operations, updated);
+
       await DatabaseService.updateHistoricalOperation(updated);
 
       if (!mounted) return;
@@ -294,7 +301,12 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await DatabaseService.deleteHistoricalOperation(operation);
+      //await DatabaseService.deleteHistoricalOperation(operation);
+      final operations = await DatabaseService.getHistoricalOperations(
+        operation.investmentUid,
+      );
+
+      HistoricalInvestmentValidator.validateDeletion(operations, operation.uid);
 
       if (!mounted) return;
 

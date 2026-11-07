@@ -1,6 +1,62 @@
 import '../models/historical_operation.dart';
 
 class HistoricalInvestmentValidator {
+  static void validateUpdate(
+    List<HistoricalOperation> operations,
+    HistoricalOperation updatedOperation,
+  ) {
+    // Comprobar que la secuencia original es válida.
+    validate(operations);
+
+    final index = operations.indexWhere(
+      (operation) => operation.uid == updatedOperation.uid,
+    );
+
+    if (index == -1) {
+      throw ArgumentError('La operación que se quiere actualizar no existe.');
+    }
+
+    /* if (operations.any(
+      (operation) =>
+          operation.uid != updatedOperation.uid &&
+          operation.investmentUid != updatedOperation.investmentUid,
+    )) {
+      throw ArgumentError(
+        'La operación actualizada debe pertenecer a la misma inversión.',
+      );
+    } */
+
+    if (operations[index].investmentUid != updatedOperation.investmentUid) {
+      throw ArgumentError(
+        'No se puede cambiar la inversión a la que pertenece una operación.',
+      );
+    }
+
+    final updatedOperations = List<HistoricalOperation>.of(operations);
+    updatedOperations[index] = updatedOperation;
+
+    validate(updatedOperations);
+  }
+
+  static void validateDeletion(
+    List<HistoricalOperation> operations,
+    String operationUid,
+  ) {
+    // Comprobar que la secuencia original es válida.
+    validate(operations);
+
+    final remainingOperations = operations
+        .where((operation) => operation.uid != operationUid)
+        .toList();
+
+    if (remainingOperations.length == operations.length) {
+      throw ArgumentError('La operación que se quiere eliminar no existe.');
+    }
+
+    // Comprobar que la secuencia resultante sigue siendo válida.
+    validate(remainingOperations);
+  }
+
   static bool isClosed(List<HistoricalOperation> operations) {
     if (operations.isEmpty) return false;
 
