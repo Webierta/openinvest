@@ -3555,4 +3555,965 @@ void main() {
       expect(recovered.date, DateTime(2025, 2, 1));
     },
   );
+
+  test(
+    'LF-142.31: una edición válida persiste los cambios en SQLite',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'investment-lf142-31',
+        name: 'Inversión cerrada',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'operation-lf142-31-1',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'operation-lf142-31-2',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 250,
+          description: 'Reembolso parcial',
+        ),
+        HistoricalOperation(
+          uid: 'operation-lf142-31-3',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 3, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 750,
+          description: 'Liquidación final',
+        ),
+      ];
+
+      await DatabaseService.saveHistoricalInvestmentWithOperations(
+        investment,
+        operations,
+      );
+
+      final savedOperations = await DatabaseService.getHistoricalOperations(
+        investment.uid,
+      );
+
+      final original = savedOperations[1];
+
+      final updated = original.copyWith(
+        amount: 275,
+        description: 'Reembolso parcial corregido',
+      );
+
+      HistoricalInvestmentValidator.validateUpdate(savedOperations, updated);
+
+      await DatabaseService.updateHistoricalOperation(updated);
+
+      final recovered = await DatabaseService.getHistoricalOperation(
+        original.uid,
+      );
+
+      expect(recovered, isNotNull);
+      expect(recovered!.id, original.id);
+      expect(recovered.uid, original.uid);
+      expect(recovered.investmentUid, investment.uid);
+      expect(recovered.type, original.type);
+      expect(recovered.date, original.date);
+      expect(recovered.amount, 275);
+      expect(recovered.description, 'Reembolso parcial corregido');
+    },
+  );
+
+  test('LF-142.32: un borrado válido persiste los cambios en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-32',
+      name: 'Inversión cerrada',
+    );
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-32-1',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 1, 1),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-32-2',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 2, 1),
+        type: HistoricalOperationType.redemption,
+        amount: 250,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-32-3',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 3, 1),
+        type: HistoricalOperationType.redemption,
+        amount: 750,
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    final toDelete = savedOperations[1];
+
+    HistoricalInvestmentValidator.validateDeletion(
+      savedOperations,
+      toDelete.uid,
+    );
+
+    await DatabaseService.deleteHistoricalOperation(toDelete);
+
+    final recovered = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recovered, hasLength(2));
+    expect(recovered.map((operation) => operation.uid).toList(), [
+      operations[0].uid,
+      operations[2].uid,
+    ]);
+    expect(recovered.map((operation) => operation.id).toList(), [
+      savedOperations[0].id,
+      savedOperations[2].id,
+    ]);
+    expect(HistoricalInvestmentValidator.isClosed(recovered), isTrue);
+  });
+
+  test('LF-142.40: una edición válida con fechas coincidentes conserva el orden en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-40',
+      name: 'Inversión con fechas coincidentes',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-40-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-40-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+        description: 'Traspaso original',
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-40-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+        description: 'Liquidación final',
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(savedOperations, hasLength(3));
+
+    final original = savedOperations[1];
+
+    final updated = original.copyWith(
+      amount: 250,
+      description: 'Traspaso corregido',
+    );
+
+    HistoricalInvestmentValidator.validateUpdate(savedOperations, updated);
+
+    await DatabaseService.updateHistoricalOperation(updated);
+
+    final recovered = await DatabaseService.getHistoricalOperation(
+      original.uid,
+    );
+
+    expect(recovered, isNotNull);
+    expect(recovered!.id, original.id);
+    expect(recovered.uid, original.uid);
+    expect(recovered.investmentUid, investment.uid);
+    expect(recovered.type, HistoricalOperationType.transferIn);
+    expect(recovered.date, date);
+    expect(recovered.amount, 250);
+    expect(recovered.description, 'Traspaso corregido');
+
+    final recoveredOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recoveredOperations.map((operation) => operation.uid).toList(), [
+      'operation-lf142-40-1',
+      'operation-lf142-40-2',
+      'operation-lf142-40-3',
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.amount).toList(), [
+      1000,
+      250,
+      1200,
+    ]);
+  });
+
+  test('LF-142.41: una edición inválida con fechas coincidentes conserva los datos en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-41',
+      name: 'Inversión con fechas coincidentes',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-41-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-41-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-41-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    final original = savedOperations.first;
+
+    final updated = original.copyWith(
+      type: HistoricalOperationType.transferOut,
+      amount: 500,
+      description: 'Edición inválida',
+    );
+
+    expect(
+      () => HistoricalInvestmentValidator.validateUpdate(
+        savedOperations,
+        updated,
+      ),
+      throwsArgumentError,
+    );
+
+    // No se debe delegar la actualización en SQLite.
+    final recoveredOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recoveredOperations, hasLength(3));
+
+    expect(recoveredOperations.map((operation) => operation.uid).toList(), [
+      'operation-lf142-41-1',
+      'operation-lf142-41-2',
+      'operation-lf142-41-3',
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.type).toList(), [
+      HistoricalOperationType.subscription,
+      HistoricalOperationType.transferIn,
+      HistoricalOperationType.redemption,
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.amount).toList(), [
+      1000,
+      200,
+      1200,
+    ]);
+
+    expect(recoveredOperations.first.description, isNull);
+    expect(recoveredOperations.first.id, original.id);
+  });
+
+  test('LF-142.42: un borrado válido con fechas coincidentes conserva el cierre en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-42',
+      name: 'Inversión con fechas coincidentes',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-42-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-42-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-42-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    final deletedOperation = savedOperations[1];
+
+    HistoricalInvestmentValidator.validateDeletion(
+      savedOperations,
+      deletedOperation.uid,
+    );
+
+    await DatabaseService.deleteHistoricalOperation(deletedOperation);
+
+    final recoveredOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recoveredOperations, hasLength(2));
+
+    expect(recoveredOperations.map((operation) => operation.uid).toList(), [
+      'operation-lf142-42-1',
+      'operation-lf142-42-3',
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.type).toList(), [
+      HistoricalOperationType.subscription,
+      HistoricalOperationType.redemption,
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.amount).toList(), [
+      1000,
+      1200,
+    ]);
+
+    expect(recoveredOperations.last.id, savedOperations.last.id);
+
+    expect(HistoricalInvestmentValidator.isClosed(recoveredOperations), isTrue);
+
+    expect(
+      await DatabaseService.getHistoricalOperation(deletedOperation.uid),
+      isNull,
+    );
+  });
+
+  test('LF-142.43: un borrado inválido con fechas coincidentes conserva los datos en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-43',
+      name: 'Inversión con fechas coincidentes',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-43-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-43-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-43-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    final closingOperation = savedOperations.last;
+
+    expect(
+      () => HistoricalInvestmentValidator.validateDeletion(
+        savedOperations,
+        closingOperation.uid,
+      ),
+      throwsArgumentError,
+    );
+
+    // La validación debe impedir que se delegue el borrado en SQLite.
+    final recoveredOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recoveredOperations, hasLength(3));
+
+    expect(recoveredOperations.map((operation) => operation.uid).toList(), [
+      'operation-lf142-43-1',
+      'operation-lf142-43-2',
+      'operation-lf142-43-3',
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.type).toList(), [
+      HistoricalOperationType.subscription,
+      HistoricalOperationType.transferIn,
+      HistoricalOperationType.redemption,
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.amount).toList(), [
+      1000,
+      200,
+      1200,
+    ]);
+
+    expect(recoveredOperations.last.id, closingOperation.id);
+    expect(
+      await DatabaseService.getHistoricalOperation(closingOperation.uid),
+      isNotNull,
+    );
+
+    expect(HistoricalInvestmentValidator.isClosed(recoveredOperations), isTrue);
+  });
+
+  test('LF-142.45: una edición válida cambia la fecha y conserva el orden en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-45',
+      name: 'Inversión con fechas coincidentes',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-45-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-45-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-45-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    final original = savedOperations[1];
+    final updatedDate = DateTime(2024, 12, 31);
+
+    final updated = original.copyWith(date: updatedDate);
+
+    HistoricalInvestmentValidator.validateUpdate(savedOperations, updated);
+
+    await DatabaseService.updateHistoricalOperation(updated);
+
+    final recovered = await DatabaseService.getHistoricalOperation(
+      original.uid,
+    );
+
+    expect(recovered, isNotNull);
+    expect(recovered!.id, original.id);
+    expect(recovered.uid, original.uid);
+    expect(recovered.investmentUid, investment.uid);
+    expect(recovered.type, HistoricalOperationType.transferIn);
+    expect(recovered.date, updatedDate);
+    expect(recovered.amount, 200);
+
+    final recoveredOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recoveredOperations.map((operation) => operation.uid).toList(), [
+      'operation-lf142-45-2',
+      'operation-lf142-45-1',
+      'operation-lf142-45-3',
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.date).toList(), [
+      updatedDate,
+      date,
+      date,
+    ]);
+
+    expect(HistoricalInvestmentValidator.isClosed(recoveredOperations), isTrue);
+  });
+
+  test('LF-142.46: una edición de fecha inválida conserva los datos originales en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-46',
+      name: 'Inversión con fechas coincidentes',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-46-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-46-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-46-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    final original = savedOperations[1];
+
+    final updated = original.copyWith(
+      date: DateTime(2025, 1, 2),
+      amount: 350,
+      description: 'Edición inválida',
+    );
+
+    expect(
+      () => HistoricalInvestmentValidator.validateUpdate(
+        savedOperations,
+        updated,
+      ),
+      throwsArgumentError,
+    );
+
+    final recoveredOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recoveredOperations, hasLength(3));
+
+    expect(recoveredOperations.map((operation) => operation.uid).toList(), [
+      'operation-lf142-46-1',
+      'operation-lf142-46-2',
+      'operation-lf142-46-3',
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.date).toList(), [
+      date,
+      date,
+      date,
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.amount).toList(), [
+      1000,
+      200,
+      1200,
+    ]);
+
+    expect(recoveredOperations[1].id, original.id);
+    expect(recoveredOperations[1].type, HistoricalOperationType.transferIn);
+    expect(recoveredOperations[1].description, isNull);
+
+    expect(HistoricalInvestmentValidator.isClosed(recoveredOperations), isTrue);
+  });
+
+  test('LF-142.47: un borrado con fecha coincidente conserva los registros tras reabrir SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-47',
+      name: 'Inversión con fechas coincidentes',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-47-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-47-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-47-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    final deletedOperation = savedOperations[1];
+
+    HistoricalInvestmentValidator.validateDeletion(
+      savedOperations,
+      deletedOperation.uid,
+    );
+
+    await DatabaseService.deleteHistoricalOperation(deletedOperation);
+
+    // Recuperación desde SQLite después del borrado.
+    final recoveredOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recoveredOperations, hasLength(2));
+
+    expect(recoveredOperations.map((operation) => operation.uid).toList(), [
+      'operation-lf142-47-1',
+      'operation-lf142-47-3',
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.id).toList(), [
+      savedOperations[0].id,
+      savedOperations[2].id,
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.amount).toList(), [
+      1000,
+      1200,
+    ]);
+
+    expect(recoveredOperations.map((operation) => operation.date).toList(), [
+      date,
+      date,
+    ]);
+
+    expect(
+      await DatabaseService.getHistoricalOperation(deletedOperation.uid),
+      isNull,
+    );
+
+    expect(HistoricalInvestmentValidator.isClosed(recoveredOperations), isTrue);
+  });
+
+  test('LF-142.48: una edición con fecha coincidente conserva los demás registros en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-48',
+      name: 'Inversión con fechas coincidentes',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-48-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+        description: 'Suscripción inicial',
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-48-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+        description: 'Traspaso original',
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-48-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+        description: 'Liquidación final',
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    final original = savedOperations[1];
+
+    final updated = original.copyWith(
+      amount: 250,
+      description: 'Traspaso corregido',
+    );
+
+    HistoricalInvestmentValidator.validateUpdate(savedOperations, updated);
+    await DatabaseService.updateHistoricalOperation(updated);
+
+    final recovered = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recovered, hasLength(3));
+
+    expect(recovered.map((operation) => operation.uid).toList(), [
+      'operation-lf142-48-1',
+      'operation-lf142-48-2',
+      'operation-lf142-48-3',
+    ]);
+
+    expect(
+      recovered.map((operation) => operation.id).toList(),
+      savedOperations.map((operation) => operation.id).toList(),
+    );
+
+    expect(recovered[0].amount, 1000);
+    expect(recovered[0].description, 'Suscripción inicial');
+
+    expect(recovered[1].amount, 250);
+    expect(recovered[1].description, 'Traspaso corregido');
+    expect(recovered[1].type, HistoricalOperationType.transferIn);
+    expect(recovered[1].date, date);
+
+    expect(recovered[2].amount, 1200);
+    expect(recovered[2].description, 'Liquidación final');
+
+    expect(HistoricalInvestmentValidator.isClosed(recovered), isTrue);
+  });
+
+  test('LF-142.49: una edición inválida conserva la identidad y los datos de todas las operaciones en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-49',
+      name: 'Inversión con fechas coincidentes',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-49-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+        description: 'Suscripción inicial',
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-49-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+        description: 'Traspaso original',
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-49-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+        description: 'Liquidación final',
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final savedOperations = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    final original = savedOperations[0];
+
+    final updated = original.copyWith(
+      type: HistoricalOperationType.transferOut,
+      amount: 500,
+      description: 'Edición inválida',
+    );
+
+    expect(
+      () => HistoricalInvestmentValidator.validateUpdate(
+        savedOperations,
+        updated,
+      ),
+      throwsArgumentError,
+    );
+
+    final recovered = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recovered, hasLength(3));
+
+    for (var i = 0; i < savedOperations.length; i++) {
+      expect(recovered[i].id, savedOperations[i].id);
+      expect(recovered[i].uid, savedOperations[i].uid);
+      expect(recovered[i].investmentUid, savedOperations[i].investmentUid);
+      expect(recovered[i].date, savedOperations[i].date);
+      expect(recovered[i].type, savedOperations[i].type);
+      expect(recovered[i].amount, savedOperations[i].amount);
+      expect(recovered[i].description, savedOperations[i].description);
+    }
+
+    expect(HistoricalInvestmentValidator.isClosed(recovered), isTrue);
+  });
+
+  test('LF-142.50: una edición con UID duplicado conserva todos los registros en SQLite', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf142-50',
+      name: 'Inversión con UID duplicado',
+    );
+
+    final date = DateTime(2025, 1, 1);
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf142-50-1',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+        description: 'Suscripción inicial',
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-50-2',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.transferIn,
+        amount: 200,
+        description: 'Traspaso original',
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf142-50-3',
+        investmentUid: investment.uid,
+        date: date,
+        type: HistoricalOperationType.redemption,
+        amount: 1200,
+        description: 'Liquidación final',
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final saved = await DatabaseService.getHistoricalOperations(investment.uid);
+
+    final updated = saved[1].copyWith(
+      uid: saved[0].uid,
+      amount: 250,
+      description: 'UID duplicado',
+    );
+
+    expect(
+      () => HistoricalInvestmentValidator.validateUpdate(saved, updated),
+      throwsArgumentError,
+    );
+
+    final recovered = await DatabaseService.getHistoricalOperations(
+      investment.uid,
+    );
+
+    expect(recovered, hasLength(3));
+
+    for (var i = 0; i < saved.length; i++) {
+      expect(recovered[i].id, saved[i].id);
+      expect(recovered[i].uid, saved[i].uid);
+      expect(recovered[i].investmentUid, saved[i].investmentUid);
+      expect(recovered[i].date, saved[i].date);
+      expect(recovered[i].type, saved[i].type);
+      expect(recovered[i].amount, saved[i].amount);
+      expect(recovered[i].description, saved[i].description);
+    }
+
+    expect(HistoricalInvestmentValidator.isClosed(recovered), isTrue);
+  });
 }

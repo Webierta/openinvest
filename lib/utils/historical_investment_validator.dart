@@ -8,23 +8,21 @@ class HistoricalInvestmentValidator {
     // Comprobar que la secuencia original es válida.
     validate(operations);
 
-    final index = operations.indexWhere(
-      (operation) => operation.uid == updatedOperation.uid,
-    );
+    final index = updatedOperation.id != null
+        ? operations.indexWhere(
+            (operation) => operation.id == updatedOperation.id,
+          )
+        : operations.indexWhere(
+            (operation) => operation.uid == updatedOperation.uid,
+          );
 
     if (index == -1) {
       throw ArgumentError('La operación que se quiere actualizar no existe.');
     }
 
-    /* if (operations.any(
-      (operation) =>
-          operation.uid != updatedOperation.uid &&
-          operation.investmentUid != updatedOperation.investmentUid,
-    )) {
-      throw ArgumentError(
-        'La operación actualizada debe pertenecer a la misma inversión.',
-      );
-    } */
+    if (operations[index].uid != updatedOperation.uid) {
+      throw ArgumentError('No se puede cambiar el UID de una operación.');
+    }
 
     if (operations[index].investmentUid != updatedOperation.investmentUid) {
       throw ArgumentError(

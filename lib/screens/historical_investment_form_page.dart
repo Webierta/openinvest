@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
 import '../services/database_service.dart';
+import '../utils/historical_investment_validator.dart';
 import '../widgets/gradient_background.dart';
 import '../widgets/historical_operation_dialog.dart';
 import 'fund_search_page.dart';
@@ -179,6 +180,8 @@ class _HistoricalInvestmentFormPageState
           transferUid: draft.transferUid,
         );
       }).toList();
+
+      HistoricalInvestmentValidator.validate(operations);
 
       final saveInvestment =
           widget.saveInvestment ??

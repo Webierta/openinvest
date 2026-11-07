@@ -308,6 +308,8 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
 
       HistoricalInvestmentValidator.validateDeletion(operations, operation.uid);
 
+      await DatabaseService.deleteHistoricalOperation(operation);
+
       if (!mounted) return;
 
       setState(() {});

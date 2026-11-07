@@ -1319,5 +1319,226 @@ void main() {
         returnsNormally,
       );
     });
+
+    test('LF-142.37: editar una operación con fecha coincidente conserva el orden y los datos originales', () {
+      final date = DateTime(2024, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.transferIn,
+          amount: 200,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final updatedOperation = operations[1].copyWith(amount: 250);
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        returnsNormally,
+      );
+
+      // La lista original mantiene el orden de registro.
+      expect(operations.map((operation) => operation.uid).toList(), [
+        'OP-001',
+        'OP-002',
+        'OP-003',
+      ]);
+
+      // La validación no modifica los datos originales.
+      expect(operations[1].amount, 200);
+      expect(operations[1].type, HistoricalOperationType.transferIn);
+      expect(operations[1].date, date);
+
+      // La operación editada conserva su identidad y fecha.
+      expect(updatedOperation.uid, 'OP-002');
+      expect(updatedOperation.amount, 250);
+      expect(updatedOperation.date, date);
+
+      expect(HistoricalInvestmentValidator.isClosed(operations), isTrue);
+    });
+
+    test('LF-142.38: rechaza cambiar una entrada por salida cuando comparte fecha con el cierre', () {
+      final date = DateTime(2024, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.transferIn,
+          amount: 200,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final updatedOperation = operations[0].copyWith(
+        type: HistoricalOperationType.transferOut,
+      );
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        throwsArgumentError,
+      );
+
+      // La operación original y el orden de registro permanecen intactos.
+      expect(operations.map((operation) => operation.uid).toList(), [
+        'OP-001',
+        'OP-002',
+        'OP-003',
+      ]);
+
+      expect(operations[0].type, HistoricalOperationType.subscription);
+      expect(operations[0].amount, 1000);
+
+      expect(operations[1].type, HistoricalOperationType.transferIn);
+      expect(operations[1].amount, 200);
+
+      expect(HistoricalInvestmentValidator.isClosed(operations), isTrue);
+    });
+
+    test('LF-142.39: editar el importe con fecha coincidente conserva identidad y orden', () {
+      final date = DateTime(2024, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.transferIn,
+          amount: 200,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final updatedOperation = operations[1].copyWith(amount: 350);
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        returnsNormally,
+      );
+
+      expect(operations.map((operation) => operation.uid).toList(), [
+        'OP-001',
+        'OP-002',
+        'OP-003',
+      ]);
+
+      expect(operations[1].amount, 200);
+      expect(operations[1].uid, 'OP-002');
+      expect(operations[1].date, date);
+
+      expect(updatedOperation.amount, 350);
+      expect(updatedOperation.uid, 'OP-002');
+      expect(updatedOperation.date, date);
+      expect(updatedOperation.type, HistoricalOperationType.transferIn);
+
+      expect(HistoricalInvestmentValidator.isClosed(operations), isTrue);
+    });
+
+    test('LF-142.44: rechaza desplazar una entrada después del cierre con fechas coincidentes', () {
+      final date = DateTime(2025, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.transferIn,
+          amount: 200,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final updatedOperation = operations[1].copyWith(
+        date: DateTime(2025, 1, 2),
+      );
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        throwsArgumentError,
+      );
+
+      // La lista y los objetos originales permanecen intactos.
+      expect(operations.map((operation) => operation.uid).toList(), [
+        'OP-001',
+        'OP-002',
+        'OP-003',
+      ]);
+
+      expect(operations[1].date, date);
+      expect(operations[1].type, HistoricalOperationType.transferIn);
+      expect(operations[1].amount, 200);
+
+      expect(operations.last.type, HistoricalOperationType.redemption);
+      expect(HistoricalInvestmentValidator.isClosed(operations), isTrue);
+    });
   });
 }
