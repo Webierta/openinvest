@@ -1,6 +1,21 @@
 import '../models/historical_operation.dart';
 
 class HistoricalInvestmentValidator {
+  static bool isClosed(List<HistoricalOperation> operations) {
+    if (operations.isEmpty) return false;
+
+    final orderedOperations = operations.asMap().entries.toList()
+      ..sort((a, b) {
+        final dateComparison = a.value.date.compareTo(b.value.date);
+        return dateComparison != 0 ? dateComparison : a.key.compareTo(b.key);
+      });
+
+    final lastOperation = orderedOperations.last.value;
+
+    return lastOperation.type == HistoricalOperationType.redemption ||
+        lastOperation.type == HistoricalOperationType.transferOut;
+  }
+
   static void validate(List<HistoricalOperation> operations) {
     if (operations.isEmpty) {
       throw ArgumentError('La inversión debe tener operaciones.');

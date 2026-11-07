@@ -3361,4 +3361,82 @@ void main() {
       expect(savedOperations, isEmpty);
     },
   );
+
+  test('LF-140.26: recupera una inversión guardada atómicamente con sus operaciones', () async {
+    final investment = HistoricalInvestment(
+      uid: 'investment-lf140-26',
+      name: 'Inversión histórica completa',
+      isin: 'ES0000000001',
+      description: 'Histórico recuperado',
+    );
+
+    final operations = [
+      HistoricalOperation(
+        uid: 'operation-lf140-26-1',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 1, 10),
+        type: HistoricalOperationType.subscription,
+        amount: 1000,
+        units: 10,
+        price: 100,
+        description: 'Aportación inicial',
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf140-26-2',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 1, 10),
+        type: HistoricalOperationType.transferIn,
+        amount: 500,
+        units: 5,
+        price: 100,
+        description: 'Traspaso de entrada',
+        transferUid: 'transfer-lf140-26',
+      ),
+      HistoricalOperation(
+        uid: 'operation-lf140-26-3',
+        investmentUid: investment.uid,
+        date: DateTime(2025, 12, 31),
+        type: HistoricalOperationType.redemption,
+        amount: 1600,
+        units: 15,
+        //price: 106.67,
+        price: 1600 / 15,
+        description: 'Liquidación final',
+      ),
+    ];
+
+    await DatabaseService.saveHistoricalInvestmentWithOperations(
+      investment,
+      operations,
+    );
+
+    final recovered =
+        await DatabaseService.getHistoricalInvestmentWithOperations(
+          investment.uid,
+        );
+
+    expect(recovered, isNotNull);
+    expect(recovered!.investment.uid, investment.uid);
+    expect(recovered.investment.name, investment.name);
+    expect(recovered.investment.isin, investment.isin);
+    expect(recovered.investment.description, investment.description);
+
+    expect(recovered.operations, hasLength(3));
+    expect(
+      recovered.operations.map((operation) => operation.uid).toList(),
+      operations.map((operation) => operation.uid).toList(),
+    );
+
+    expect(recovered.operations[0].date, DateTime(2025, 1, 10));
+    expect(recovered.operations[1].date, DateTime(2025, 1, 10));
+    expect(recovered.operations[0].type, HistoricalOperationType.subscription);
+    expect(recovered.operations[1].type, HistoricalOperationType.transferIn);
+    expect(recovered.operations[1].transferUid, 'transfer-lf140-26');
+    expect(recovered.operations[2].type, HistoricalOperationType.redemption);
+    expect(recovered.operations[2].amount, 1600);
+    expect(recovered.operations[2].units, 15);
+    //expect(recovered.operations[2].price, 106.67);
+    expect(recovered.operations[2].price, closeTo(1600 / 15, 0.000000001));
+    expect(recovered.operations[2].description, 'Liquidación final');
+  });
 }

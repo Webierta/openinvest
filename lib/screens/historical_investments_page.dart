@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
 import '../services/database_service.dart';
+import '../utils/historical_investment_validator.dart';
 import '../widgets/gradient_background.dart';
 import '../widgets/historical_investment_dialog.dart';
 import '../widgets/historical_operation_dialog.dart';
@@ -412,6 +413,9 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
                   ),
                 ),
                 PopupMenuButton<String>(
+                  enabled:
+                      snapshot.connectionState == ConnectionState.done &&
+                      !snapshot.hasError,
                   tooltip: 'Acciones de la inversión',
                   onSelected: (action) {
                     switch (action) {
@@ -423,16 +427,19 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
                         _deleteInvestment(investment);
                     }
                   },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: 'add',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.add_circle_outline),
-                        title: Text('Añadir operación'),
+                  itemBuilder: (context) => [
+                    if (snapshot.connectionState == ConnectionState.done &&
+                        !snapshot.hasError &&
+                        !HistoricalInvestmentValidator.isClosed(operations))
+                      const PopupMenuItem(
+                        value: 'add',
+                        child: ListTile(
+                          dense: true,
+                          leading: Icon(Icons.add_circle_outline),
+                          title: Text('Añadir operación'),
+                        ),
                       ),
-                    ),
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'edit',
                       child: ListTile(
                         dense: true,
@@ -440,7 +447,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
                         title: Text('Editar inversión'),
                       ),
                     ),
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'delete',
                       child: ListTile(
                         dense: true,

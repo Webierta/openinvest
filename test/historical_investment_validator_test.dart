@@ -324,5 +324,81 @@ void main() {
         returnsNormally,
       );
     });
+
+    test('LF-141.1: identifica una inversión cerrada por su última operación cronológica', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 500,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+      ];
+
+      expect(HistoricalInvestmentValidator.isClosed(operations), isTrue);
+    });
+
+    test('LF-141.2: identifica como abierta una inversión cuya última operación es una entrada', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 300,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 3, 1),
+          type: HistoricalOperationType.transferIn,
+          amount: 200,
+        ),
+      ];
+
+      expect(HistoricalInvestmentValidator.isClosed(operations), isFalse);
+    });
+
+    test('LF-141.3: considera abierta una inversión sin operaciones', () {
+      expect(HistoricalInvestmentValidator.isClosed([]), isFalse);
+    });
+
+    test('LF-141.4: desempata el cierre por orden de registro cuando coincide la fecha', () {
+      final date = DateTime(2024, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.redemption,
+          amount: 1000,
+        ),
+      ];
+
+      expect(HistoricalInvestmentValidator.isClosed(operations), isTrue);
+    });
   });
 }
