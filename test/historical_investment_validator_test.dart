@@ -714,5 +714,610 @@ void main() {
         );
       },
     );
+    test('LF-142.14: permite editar una operación intermedia si la inversión sigue siendo válida', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 300,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 3, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 200,
+        ),
+        HistoricalOperation(
+          uid: 'OP-004',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 4, 1),
+          type: HistoricalOperationType.transferOut,
+          amount: 900,
+        ),
+      ];
+
+      final updatedOperation = operations[1].copyWith(amount: 350);
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        returnsNormally,
+      );
+    });
+    test('LF-142.15: rechaza editar la fecha de cierre si deja una entrada al final', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 300,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 3, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 200,
+        ),
+        HistoricalOperation(
+          uid: 'OP-004',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 4, 1),
+          type: HistoricalOperationType.transferOut,
+          amount: 900,
+        ),
+      ];
+
+      final updatedOperation = operations.last.copyWith(
+        date: DateTime(2024, 2, 15),
+      );
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('LF-142.16: validateUpdate no modifica la lista original', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1000,
+        ),
+      ];
+
+      final updatedOperation = operations.last.copyWith(amount: 950);
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        returnsNormally,
+      );
+
+      expect(operations.last.amount, 1000);
+      expect(operations.last.type, HistoricalOperationType.redemption);
+      expect(operations.last.uid, 'OP-002');
+    });
+
+    test(
+      'LF-142.17: permite editar una entrada intermedia conservando el cierre',
+      () {
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-001',
+            investmentUid: 'INV-001',
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'OP-002',
+            investmentUid: 'INV-001',
+            date: DateTime(2024, 2, 1),
+            type: HistoricalOperationType.transferIn,
+            amount: 200,
+          ),
+          HistoricalOperation(
+            uid: 'OP-003',
+            investmentUid: 'INV-001',
+            date: DateTime(2024, 3, 1),
+            type: HistoricalOperationType.transferOut,
+            amount: 1200,
+          ),
+        ];
+
+        final updatedOperation = operations[1].copyWith(amount: 250);
+
+        expect(
+          () => HistoricalInvestmentValidator.validateUpdate(
+            operations,
+            updatedOperation,
+          ),
+          returnsNormally,
+        );
+      },
+    );
+
+    test('LF-142.18: permite cambiar la fecha de una operación intermedia sin alterar el cierre', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 300,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 4, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 200,
+        ),
+        HistoricalOperation(
+          uid: 'OP-004',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 5, 1),
+          type: HistoricalOperationType.transferOut,
+          amount: 900,
+        ),
+      ];
+
+      final updatedOperation = operations[2].copyWith(
+        date: DateTime(2024, 3, 1),
+      );
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        returnsNormally,
+      );
+    });
+
+    test(
+      'LF-142.19: validateUpdate rechaza duplicar el UID de otra operación',
+      () {
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-001',
+            investmentUid: 'INV-001',
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'OP-002',
+            investmentUid: 'INV-001',
+            date: DateTime(2024, 2, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1000,
+          ),
+        ];
+
+        final updatedOperation = operations.last.copyWith(uid: 'OP-001');
+
+        expect(
+          () => HistoricalInvestmentValidator.validateUpdate(
+            operations,
+            updatedOperation,
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
+
+    test('LF-142.20: permite editar una operación conservando su UID', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1000,
+        ),
+      ];
+
+      final updatedOperation = operations.last.copyWith(amount: 950);
+
+      expect(updatedOperation.uid, 'OP-002');
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        returnsNormally,
+      );
+    });
+
+    test('LF-142.21: rechaza editar una operación si la secuencia original es inválida', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 500,
+        ),
+      ];
+
+      final updatedOperation = operations.last.copyWith(amount: 600);
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('LF-142.22: rechaza borrar una operación si la secuencia original es inválida', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 500,
+        ),
+      ];
+
+      expect(
+        () => HistoricalInvestmentValidator.validateDeletion(
+          operations,
+          'OP-002',
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('LF-142.23: rechaza borrar una operación inexistente', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1000,
+        ),
+      ];
+
+      expect(
+        () => HistoricalInvestmentValidator.validateDeletion(
+          operations,
+          'OP-999',
+        ),
+        throwsArgumentError,
+      );
+
+      expect(operations.length, 2);
+      expect(operations.map((operation) => operation.uid).toList(), [
+        'OP-001',
+        'OP-002',
+      ]);
+    });
+
+    test('LF-142.24: conserva la operación de cierre al borrar una operación intermedia', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 300,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 3, 1),
+          type: HistoricalOperationType.transferOut,
+          amount: 700,
+        ),
+      ];
+
+      expect(
+        () => HistoricalInvestmentValidator.validateDeletion(
+          operations,
+          'OP-002',
+        ),
+        returnsNormally,
+      );
+
+      expect(operations.last.uid, 'OP-003');
+      expect(HistoricalInvestmentValidator.isClosed(operations), isTrue);
+    });
+
+    test('LF-142.25: validateDeletion no modifica la lista original', () {
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 300,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 3, 1),
+          type: HistoricalOperationType.transferOut,
+          amount: 700,
+        ),
+      ];
+
+      expect(
+        () => HistoricalInvestmentValidator.validateDeletion(
+          operations,
+          'OP-002',
+        ),
+        returnsNormally,
+      );
+
+      expect(operations.length, 3);
+      expect(operations.map((operation) => operation.uid).toList(), [
+        'OP-001',
+        'OP-002',
+        'OP-003',
+      ]);
+    });
+
+    test(
+      'LF-142.26: permite borrar una entrada intermedia conservando el cierre',
+      () {
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-001',
+            investmentUid: 'INV-001',
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'OP-002',
+            investmentUid: 'INV-001',
+            date: DateTime(2024, 2, 1),
+            type: HistoricalOperationType.transferIn,
+            amount: 200,
+          ),
+          HistoricalOperation(
+            uid: 'OP-003',
+            investmentUid: 'INV-001',
+            date: DateTime(2024, 3, 1),
+            type: HistoricalOperationType.transferOut,
+            amount: 1200,
+          ),
+        ];
+
+        expect(
+          () => HistoricalInvestmentValidator.validateDeletion(
+            operations,
+            'OP-002',
+          ),
+          returnsNormally,
+        );
+      },
+    );
+
+    test('LF-142.27: rechaza borrar la última salida cuando comparte fecha con la entrada', () {
+      final date = DateTime(2024, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.redemption,
+          amount: 1000,
+        ),
+      ];
+
+      expect(
+        () => HistoricalInvestmentValidator.validateDeletion(
+          operations,
+          'OP-002',
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('LF-142.28: permite editar una operación con fecha coincidente manteniendo el cierre', () {
+      final date = DateTime(2024, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.redemption,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.transferOut,
+          amount: 100,
+        ),
+      ];
+
+      final updatedOperation = operations[1].copyWith(amount: 950);
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        returnsNormally,
+      );
+    });
+
+    test('LF-142.29: rechaza cambiar la fecha si la entrada queda después del cierre', () {
+      final date = DateTime(2024, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.redemption,
+          amount: 1000,
+        ),
+      ];
+
+      final updatedOperation = operations.first.copyWith(
+        date: DateTime(2024, 1, 2),
+      );
+
+      expect(
+        () => HistoricalInvestmentValidator.validateUpdate(
+          operations,
+          updatedOperation,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('LF-142.30: permite borrar una operación intermedia con fecha coincidente', () {
+      final date = DateTime(2024, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-001',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'OP-002',
+          investmentUid: 'INV-001',
+          date: date,
+          type: HistoricalOperationType.transferIn,
+          amount: 200,
+        ),
+        HistoricalOperation(
+          uid: 'OP-003',
+          investmentUid: 'INV-001',
+          date: DateTime(2024, 2, 1),
+          type: HistoricalOperationType.transferOut,
+          amount: 1200,
+        ),
+      ];
+
+      expect(
+        () => HistoricalInvestmentValidator.validateDeletion(
+          operations,
+          'OP-002',
+        ),
+        returnsNormally,
+      );
+    });
   });
 }

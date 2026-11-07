@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:investing/models/fund_data.dart';
+import 'package:investing/utils/historical_investment_validator.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -3439,4 +3440,119 @@ void main() {
     expect(recovered.operations[2].price, closeTo(1600 / 15, 0.000000001));
     expect(recovered.operations[2].description, 'Liquidación final');
   });
+
+  test(
+    'LF-142.12: una edición inválida conserva la operación original en SQLite',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'investment-lf142-12',
+        name: 'Inversión cerrada',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'operation-lf142-12-1',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'operation-lf142-12-2',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1000,
+        ),
+      ];
+
+      await DatabaseService.saveHistoricalInvestmentWithOperations(
+        investment,
+        operations,
+      );
+
+      final savedOperations = await DatabaseService.getHistoricalOperations(
+        investment.uid,
+      );
+
+      final original = savedOperations.last;
+
+      final updated = original.copyWith(
+        type: HistoricalOperationType.subscription,
+      );
+
+      await expectLater(() async {
+        HistoricalInvestmentValidator.validateUpdate(savedOperations, updated);
+
+        await DatabaseService.updateHistoricalOperation(updated);
+      }, throwsA(isA<ArgumentError>()));
+
+      final recovered = await DatabaseService.getHistoricalOperation(
+        original.uid,
+      );
+
+      expect(recovered, isNotNull);
+      expect(recovered!.id, original.id);
+      expect(recovered.type, HistoricalOperationType.redemption);
+      expect(recovered.amount, 1000);
+      expect(recovered.date, DateTime(2025, 2, 1));
+    },
+  );
+
+  test(
+    'LF-142.13: un borrado inválido conserva la operación original en SQLite',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'investment-lf142-13',
+        name: 'Inversión cerrada',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'operation-lf142-13-1',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'operation-lf142-13-2',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 2, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1000,
+        ),
+      ];
+
+      await DatabaseService.saveHistoricalInvestmentWithOperations(
+        investment,
+        operations,
+      );
+
+      final savedOperations = await DatabaseService.getHistoricalOperations(
+        investment.uid,
+      );
+
+      final original = savedOperations.last;
+
+      await expectLater(() async {
+        HistoricalInvestmentValidator.validateDeletion(
+          savedOperations,
+          original.uid,
+        );
+
+        await DatabaseService.deleteHistoricalOperation(original);
+      }, throwsA(isA<ArgumentError>()));
+
+      final recovered = await DatabaseService.getHistoricalOperation(
+        original.uid,
+      );
+
+      expect(recovered, isNotNull);
+      expect(recovered!.id, original.id);
+      expect(recovered.type, HistoricalOperationType.redemption);
+      expect(recovered.amount, 1000);
+      expect(recovered.date, DateTime(2025, 2, 1));
+    },
+  );
 }
