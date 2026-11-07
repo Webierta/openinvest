@@ -9,8 +9,17 @@ import '../widgets/historical_operation_dialog.dart';
 import 'fund_search_page.dart';
 import 'historical_investments_page.dart';
 
+typedef HistoricalInvestmentSaver = Future<void> Function(
+  HistoricalInvestment investment,
+  List<HistoricalOperation> operations,
+);
+
 class HistoricalInvestmentFormPage extends StatefulWidget {
-  const HistoricalInvestmentFormPage({super.key});
+  const HistoricalInvestmentFormPage({super.key, this.saveInvestment});
+
+  final HistoricalInvestmentSaver? saveInvestment;
+
+  //const HistoricalInvestmentFormPage({super.key});
 
   @override
   State<HistoricalInvestmentFormPage> createState() =>
@@ -161,7 +170,7 @@ class _HistoricalInvestmentFormPageState
 
       await DatabaseService.saveHistoricalInvestment(investment);
 
-      for (final draft in _operations) {
+      /* for (final draft in _operations) {
         final operation = HistoricalOperation(
           uid: _newUid('operation'),
           investmentUid: investmentUid,
@@ -175,7 +184,27 @@ class _HistoricalInvestmentFormPageState
         );
 
         await DatabaseService.saveHistoricalOperation(operation);
-      }
+      } */
+
+      final operations = _operations.map((draft) {
+        return HistoricalOperation(
+          uid: _newUid('operation'),
+          investmentUid: investmentUid,
+          date: draft.date,
+          type: draft.type,
+          amount: draft.amount,
+          units: draft.units,
+          price: draft.price,
+          description: draft.description,
+          transferUid: draft.transferUid,
+        );
+      }).toList();
+
+      final saveInvestment =
+          widget.saveInvestment ??
+          DatabaseService.saveHistoricalInvestmentWithOperations;
+
+      await saveInvestment(investment, operations);
 
       if (!mounted) return;
 
