@@ -19,8 +19,6 @@ class HistoricalInvestmentFormPage extends StatefulWidget {
 
   final HistoricalInvestmentSaver? saveInvestment;
 
-  //const HistoricalInvestmentFormPage({super.key});
-
   @override
   State<HistoricalInvestmentFormPage> createState() =>
       _HistoricalInvestmentFormPageState();
