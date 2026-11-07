@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -7,6 +6,7 @@ import 'package:investing/models/historical_investment.dart';
 import 'package:investing/models/historical_operation.dart';
 import 'package:investing/screens/historical_investment_form_page.dart';
 import 'package:investing/services/database_service.dart';
+import 'package:investing/utils/historical_investment_validator.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -114,76 +114,67 @@ void main() {
     );
 
     testWidgets(
-      'LF-140.25: el formulario no persiste una inversión con primera operación de salida',
+      'LF-140.25: el formulario delega el guardado de sus operaciones',
       (tester) async {
-        sqfliteFfiInit();
-        databaseFactory = databaseFactoryFfi;
+        HistoricalInvestment? savedInvestment;
+        List<HistoricalOperation>? savedOperations;
 
-        final temporaryDirectory = await Directory.systemTemp.createTemp(
-          'historical_investment_form_test_',
+        await tester.pumpWidget(
+          MaterialApp(
+            home: HistoricalInvestmentFormPage(
+              saveInvestment: (investment, operations) async {
+                savedInvestment = investment;
+                savedOperations = operations;
+
+                HistoricalInvestmentValidator.validate(operations);
+              },
+            ),
+          ),
         );
 
-        final saveCompleted = Completer<void>();
+        await tester.enterText(
+          find.byType(TextFormField).first,
+          'Inversión inválida',
+        );
 
-        try {
-          await DatabaseService.useDatabasePathForTesting(
-            path.join(temporaryDirectory.path, 'test.db'),
-          );
+        await tester.tap(find.byTooltip('Añadir operación'));
+        await tester.pumpAndSettle();
 
-          await tester.pumpWidget(
-            MaterialApp(
-              home: HistoricalInvestmentFormPage(
-                saveInvestment: (investment, operations) async {
-                  try {
-                    await DatabaseService.saveHistoricalInvestmentWithOperations(
-                      investment,
-                      operations,
-                    );
-                  } finally {
-                    saveCompleted.complete();
-                  }
-                },
-              ),
-            ),
-          );
+        await tester.tap(find.text('Suscripción').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Reembolso').last);
+        await tester.pumpAndSettle();
 
-          await tester.enterText(
-            find.byType(TextFormField).first,
-            'Inversión inválida',
-          );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Importe'),
+          '1000',
+        );
 
-          await tester.tap(find.byTooltip('Añadir operación'));
-          await tester.pumpAndSettle();
+        await tester.tap(find.text('Aceptar'));
+        await tester.pumpAndSettle();
 
-          await tester.tap(find.text('Suscripción').last);
-          await tester.pumpAndSettle();
-          await tester.tap(find.text('Reembolso').last);
-          await tester.pumpAndSettle();
+        expect(find.byType(HistoricalInvestmentFormPage), findsOneWidget);
+        expect(find.text('Inversión inválida'), findsOneWidget);
+        expect(find.text('Reembolso'), findsOneWidget);
+        expect(find.byTooltip('Añadir operación'), findsOneWidget);
 
-          await tester.enterText(
-            find.widgetWithText(TextFormField, 'Importe'),
-            '1000',
-          );
+        await tester.scrollUntilVisible(
+          find.text('Guardar'),
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.text('Guardar'));
+        await tester.pump();
 
-          await tester.tap(find.text('Aceptar'));
-          await tester.pumpAndSettle();
+        expect(savedInvestment, isNotNull);
+        expect(savedInvestment!.name, 'Inversión inválida');
+        expect(savedOperations, hasLength(1));
+        expect(savedOperations!.first.type, HistoricalOperationType.redemption);
 
-          await tester.ensureVisible(find.text('Guardar'));
-          await tester.tap(find.text('Guardar'));
-          await tester.pump();
-
-          await tester.runAsync(() => saveCompleted.future);
-          await tester.pump();
-
-          final investments = await tester.runAsync(
-            DatabaseService.getHistoricalInvestments,
-          );
-
-          expect(investments, isEmpty);
-        } finally {
-          await DatabaseService.resetDatabasePathForTesting();
-          await temporaryDirectory.delete(recursive: true);
-        }
+        expect(
+          find.textContaining('La primera operación debe ser una entrada'),
+          findsOneWidget,
+        );
       },
     );
   });

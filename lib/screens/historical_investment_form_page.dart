@@ -168,24 +168,6 @@ class _HistoricalInvestmentFormPageState
             : _descriptionController.text.trim(),
       );
 
-      await DatabaseService.saveHistoricalInvestment(investment);
-
-      /* for (final draft in _operations) {
-        final operation = HistoricalOperation(
-          uid: _newUid('operation'),
-          investmentUid: investmentUid,
-          date: draft.date,
-          type: draft.type,
-          amount: draft.amount,
-          units: draft.units,
-          price: draft.price,
-          description: draft.description,
-          transferUid: draft.transferUid,
-        );
-
-        await DatabaseService.saveHistoricalOperation(operation);
-      } */
-
       final operations = _operations.map((draft) {
         return HistoricalOperation(
           uid: _newUid('operation'),
