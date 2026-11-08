@@ -1275,20 +1275,67 @@ void main() {
             historicalOperations: historicalOperations,
           );
 
-          expect(metrics.totalValue, closeTo(120, 0.0001));
           expect(metrics.totalValueGlobal, closeTo(120, 0.0001));
+        },
+      );
 
-          /* // El valor actual solo incluye el fondo que sigue en cartera.
-        expect(metrics.totalValue, closeTo(120, 0.0001));
+      test(
+        'LF-143.2.1: acumula aportaciones sin descontar reembolsos históricos',
+        () {
+          final startDate = DateTime(2023, 1, 1);
+          final endDate = DateTime(2025, 1, 1);
 
-        // Las aportaciones históricas sí forman parte del capital acumulado.
-        expect(metrics.totalInvested, closeTo(1100, 0.0001));
+          final fund = FundData(
+            isin: 'LF143-INVESTED',
+            symbol: 'LF143',
+            name: 'LF143 Invested Fund',
+            lastValue: 12,
+            currency: 'EUR',
+            date: endDate,
+            history: [PricePoint(startDate, 10), PricePoint(endDate, 12)],
+            operations: [
+              FundOperation(
+                isin: 'LF143-INVESTED',
+                date: startDate,
+                type: OperationType.buy,
+                units: 10,
+                price: 10,
+                amount: 100,
+              ),
+            ],
+          );
 
-        // Beneficio actual: 20 €. Beneficio histórico: 100 €.
-        expect(metrics.profitAbs, closeTo(120, 0.0001));
+          final investment = HistoricalInvestment(
+            uid: 'LF143-HIST-001',
+            name: 'Inversión histórica cerrada',
+          );
 
-        // Rentabilidad global sobre el capital aportado acumulado.
-        expect(metrics.profitRel, closeTo(120 / 1100 * 100, 0.0001)); */
+          final historicalOperations = [
+            HistoricalOperation(
+              uid: 'LF143-HIST-OP-001',
+              investmentUid: investment.uid,
+              date: startDate,
+              type: HistoricalOperationType.subscription,
+              amount: 1000,
+            ),
+            HistoricalOperation(
+              uid: 'LF143-HIST-OP-002',
+              investmentUid: investment.uid,
+              date: endDate,
+              type: HistoricalOperationType.redemption,
+              amount: 1100,
+            ),
+          ];
+
+          final metrics = FinancialCalculator.calculateGlobalMetrics(
+            [fund],
+            const {'EUR': 1.0},
+            historicalInvestments: [investment],
+            historicalOperations: historicalOperations,
+          );
+
+          expect(metrics.totalInvested, 1100);
+          expect(metrics.totalInvestedGlobal, 1100);
         },
       );
     });

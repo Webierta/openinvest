@@ -67,7 +67,7 @@ class GlobalMetrics {
 
   // Trayectoria inversora
   final double totalValueGlobal;
-  //final double totalInvestedGlobal;
+  final double totalInvestedGlobal;
   //final double profitAbsGlobal;
   //final double profitRelGlobal;
   //final bool isAnnualizedGlobal;
@@ -81,6 +81,7 @@ class GlobalMetrics {
     required this.isAnnualized,
     this.mwrAnnualized,
     required this.totalValueGlobal,
+    required this.totalInvestedGlobal,
   });
 }
 
@@ -930,10 +931,14 @@ class FinancialCalculator {
     double portfolioValue = 0;
     double totalInvested = 0;
     double profitAbs = 0;
-    double weightedTaeSum = 0;
+    //double weightedTaeSum = 0;
     DateTime? firstOpDate;
     DateTime? valuationDate;
     final cashFlows = <Map<String, Object>>[];
+
+    double portfolioInvested = 0;
+    double portfolioProfitAbs = 0;
+    double totalInvestedGlobal = 0;
 
     for (var fund in portfolio) {
       final metrics = calculateFundMetrics(fund);
@@ -949,6 +954,9 @@ class FinancialCalculator {
       totalInvested += fundInvestedConverted;
       profitAbs += (fundValueConverted - fundInvestedConverted);
 
+      portfolioInvested += fundInvestedConverted;
+      portfolioProfitAbs += fundValueConverted - fundInvestedConverted;
+
       if (valuationDate == null || fund.date.isAfter(valuationDate)) {
         valuationDate = fund.date;
       }
@@ -957,19 +965,25 @@ class FinancialCalculator {
         final isInvestment =
             operation.type == OperationType.buy ||
             operation.type == OperationType.inTransfer;
+
+        if (isInvestment) {
+          totalInvestedGlobal += operation.amount * rate;
+        }
+
         cashFlows.add({
           'amount':
               (isInvestment ? -operation.amount : operation.amount) * rate,
           'date': operation.date,
         });
+
         if (valuationDate == null || operation.date.isAfter(valuationDate)) {
           valuationDate = operation.date;
         }
       }
 
-      if (fundValueConverted > 0) {
+      /* if (fundValueConverted > 0) {
         weightedTaeSum += metrics.tae * fundValueConverted;
-      }
+      } */
 
       if (metrics.firstOpDate != null) {
         if (firstOpDate == null || metrics.firstOpDate!.isBefore(firstOpDate)) {
@@ -995,13 +1009,17 @@ class FinancialCalculator {
       );
 
       totalInvested += metrics.totalContributions;
-      //totalValue += metrics.totalReturns;
+      totalValue += metrics.totalReturns;
       profitAbs += metrics.profitAbs;
 
       for (final operation in investmentOperations) {
         final isContribution =
             operation.type == HistoricalOperationType.subscription ||
             operation.type == HistoricalOperationType.transferIn;
+
+        if (isContribution) {
+          totalInvestedGlobal += operation.amount;
+        }
 
         cashFlows.add({
           'amount': isContribution ? -operation.amount : operation.amount,
@@ -1027,7 +1045,9 @@ class FinancialCalculator {
       profitRel = (profitAbs / totalInvested) * 100;
     } */
 
-    final double profitRel = totalInvested > 0
+    final double profitRel = portfolioInvested > 0
+        ? (portfolioProfitAbs / portfolioInvested) * 100
+        : totalInvested > 0
         ? (profitAbs / totalInvested) * 100
         : 0.0;
 
@@ -1061,6 +1081,7 @@ class FinancialCalculator {
       isAnnualized: isAnnualized,
       mwrAnnualized: mwrAnnualized,
       totalValueGlobal: portfolioValue,
+      totalInvestedGlobal: totalInvestedGlobal,
     );
   }
 
