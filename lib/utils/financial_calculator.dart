@@ -1017,7 +1017,7 @@ class FinancialCalculator {
             operation.type == HistoricalOperationType.subscription ||
             operation.type == HistoricalOperationType.transferIn;
 
-        final matchingTransferOuts = operation.transferUid == null
+        /* final matchingTransferOuts = operation.transferUid == null
             ? <HistoricalOperation>[]
             : historicalOperations.where(
                 (candidate) =>
@@ -1037,22 +1037,63 @@ class FinancialCalculator {
               );
 
         final isInternalTransfer =
-            matchingTransferOuts.length == 1 && matchingTransferIns.length == 1;
+            matchingTransferOuts.length == 1 && matchingTransferIns.length == 1; */
+
+        final isTransferOperation =
+            operation.type == HistoricalOperationType.transferIn ||
+            operation.type == HistoricalOperationType.transferOut;
+
+        final matchingTransferOuts = operation.transferUid == null
+            ? <HistoricalOperation>[]
+            : historicalOperations.where(
+                (candidate) =>
+                    candidate.transferUid == operation.transferUid &&
+                    candidate.type == HistoricalOperationType.transferOut &&
+                    candidate.date.isAtSameMomentAs(operation.date),
+              );
+
+        final matchingTransferIns = operation.transferUid == null
+            ? <HistoricalOperation>[]
+            : historicalOperations.where(
+                (candidate) =>
+                    candidate.transferUid == operation.transferUid &&
+                    candidate.type == HistoricalOperationType.transferIn &&
+                    candidate.date.isAtSameMomentAs(operation.date),
+              );
+
+        final isInternalTransfer =
+            isTransferOperation &&
+            matchingTransferOuts.length == 1 &&
+            matchingTransferIns.length == 1 &&
+            matchingTransferOuts.first.investmentUid !=
+                matchingTransferIns.first.investmentUid;
 
         if (isContribution && !isInternalTransfer) {
           totalInvestedGlobal += operation.amount;
         }
 
-        cashFlows.add({
+        if (!isInternalTransfer) {
+          cashFlows.add({
+            'amount': isContribution ? -operation.amount : operation.amount,
+            'date': operation.date,
+          });
+        }
+
+        /* cashFlows.add({
           'amount': isContribution ? -operation.amount : operation.amount,
           'date': operation.date,
-        });
+        }); */
 
         if (valuationDate == null || operation.date.isAfter(valuationDate)) {
           valuationDate = operation.date;
         }
 
+        /* if (isContribution &&
+            (firstOpDate == null || operation.date.isBefore(firstOpDate))) {
+          firstOpDate = operation.date;
+        } */
         if (isContribution &&
+            operation.amount > 0 &&
             (firstOpDate == null || operation.date.isBefore(firstOpDate))) {
           firstOpDate = operation.date;
         }
