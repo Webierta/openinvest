@@ -1216,6 +1216,81 @@ void main() {
         expect(metrics.totalValue, 1100);
         expect(metrics.profitAbs, -400);
       });
+
+      test(
+        'LF-143.1: mantiene el valor actual limitado a los fondos vigentes',
+        () {
+          final currentStartDate = DateTime(2025, 1, 1);
+          final currentEndDate = DateTime(2026, 1, 1);
+
+          final currentFund = FundData(
+            isin: 'CURRENT-LF143',
+            symbol: 'CUR',
+            name: 'Fondo actual',
+            lastValue: 12,
+            currency: 'EUR',
+            date: currentEndDate,
+            history: [
+              PricePoint(currentStartDate, 10),
+              PricePoint(currentEndDate, 12),
+            ],
+            operations: [
+              FundOperation(
+                isin: 'CURRENT-LF143',
+                date: currentStartDate,
+                type: OperationType.buy,
+                units: 10,
+                price: 10,
+                amount: 100,
+              ),
+            ],
+          );
+
+          final historicalInvestment = HistoricalInvestment(
+            uid: 'HIST-LF143-001',
+            name: 'Inversión histórica cerrada',
+          );
+
+          final historicalOperations = [
+            HistoricalOperation(
+              uid: 'HIST-LF143-001-01',
+              investmentUid: historicalInvestment.uid,
+              date: DateTime(2023, 1, 1),
+              type: HistoricalOperationType.subscription,
+              amount: 1000,
+            ),
+            HistoricalOperation(
+              uid: 'HIST-LF143-001-02',
+              investmentUid: historicalInvestment.uid,
+              date: DateTime(2024, 1, 1),
+              type: HistoricalOperationType.redemption,
+              amount: 1100,
+            ),
+          ];
+
+          final metrics = FinancialCalculator.calculateGlobalMetrics(
+            [currentFund],
+            const {'EUR': 1.0},
+            historicalInvestments: [historicalInvestment],
+            historicalOperations: historicalOperations,
+          );
+
+          expect(metrics.totalValue, closeTo(120, 0.0001));
+          expect(metrics.totalValueGlobal, closeTo(120, 0.0001));
+
+          /* // El valor actual solo incluye el fondo que sigue en cartera.
+        expect(metrics.totalValue, closeTo(120, 0.0001));
+
+        // Las aportaciones históricas sí forman parte del capital acumulado.
+        expect(metrics.totalInvested, closeTo(1100, 0.0001));
+
+        // Beneficio actual: 20 €. Beneficio histórico: 100 €.
+        expect(metrics.profitAbs, closeTo(120, 0.0001));
+
+        // Rentabilidad global sobre el capital aportado acumulado.
+        expect(metrics.profitRel, closeTo(120 / 1100 * 100, 0.0001)); */
+        },
+      );
     });
   });
 

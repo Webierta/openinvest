@@ -57,12 +57,21 @@ class FundMetrics {
 }
 
 class GlobalMetrics {
+  // Cartera vigente
   final double totalValue;
   final double totalInvested;
   final double profitAbs;
   final double profitRel;
   final bool isAnnualized;
   final double? mwrAnnualized;
+
+  // Trayectoria inversora
+  final double totalValueGlobal;
+  //final double totalInvestedGlobal;
+  //final double profitAbsGlobal;
+  //final double profitRelGlobal;
+  //final bool isAnnualizedGlobal;
+  //final double? mwrAnnualizedGlobal;
 
   GlobalMetrics({
     required this.totalValue,
@@ -71,6 +80,7 @@ class GlobalMetrics {
     required this.profitRel,
     required this.isAnnualized,
     this.mwrAnnualized,
+    required this.totalValueGlobal,
   });
 }
 
@@ -985,7 +995,7 @@ class FinancialCalculator {
       );
 
       totalInvested += metrics.totalContributions;
-      totalValue += metrics.totalReturns;
+      //totalValue += metrics.totalReturns;
       profitAbs += metrics.profitAbs;
 
       for (final operation in investmentOperations) {
@@ -1009,13 +1019,17 @@ class FinancialCalculator {
       }
     }
 
-    double profitRel = portfolioValue > 0
+    /* double profitRel = portfolioValue > 0
         ? weightedTaeSum / portfolioValue
         : 0.0;
 
     if (profitRel == 0 && profitAbs != 0 && totalInvested > 0) {
       profitRel = (profitAbs / totalInvested) * 100;
-    }
+    } */
+
+    final double profitRel = totalInvested > 0
+        ? (profitAbs / totalInvested) * 100
+        : 0.0;
 
     bool isAnnualized = false;
     if (firstOpDate != null) {
@@ -1046,6 +1060,7 @@ class FinancialCalculator {
       profitRel: profitRel,
       isAnnualized: isAnnualized,
       mwrAnnualized: mwrAnnualized,
+      totalValueGlobal: portfolioValue,
     );
   }
 
