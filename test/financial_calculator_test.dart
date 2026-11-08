@@ -1338,6 +1338,322 @@ void main() {
           expect(metrics.totalInvestedGlobal, 1100);
         },
       );
+
+      test('LF-143.2.2: no duplica las aportaciones al realizar traspasos históricos internos', () {
+        final subscriptionDate = DateTime(2023, 1, 1);
+        final transferDate = DateTime(2024, 1, 1);
+
+        final sourceInvestment = HistoricalInvestment(
+          uid: 'LF143-TRANSFER-SOURCE',
+          name: 'Inversión origen',
+        );
+
+        final destinationInvestment = HistoricalInvestment(
+          uid: 'LF143-TRANSFER-DESTINATION',
+          name: 'Inversión destino',
+        );
+
+        final historicalOperations = [
+          HistoricalOperation(
+            uid: 'LF143-TRANSFER-OP-001',
+            investmentUid: sourceInvestment.uid,
+            date: subscriptionDate,
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'LF143-TRANSFER-OP-002',
+            investmentUid: sourceInvestment.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferOut,
+            amount: 300,
+            transferUid: 'LF143-TRANSFER-001',
+          ),
+          HistoricalOperation(
+            uid: 'LF143-TRANSFER-OP-003',
+            investmentUid: destinationInvestment.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferIn,
+            amount: 300,
+            transferUid: 'LF143-TRANSFER-001',
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          const [],
+          const {},
+          historicalInvestments: [sourceInvestment, destinationInvestment],
+          historicalOperations: historicalOperations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 1000);
+      });
+
+      test(
+        'LF-143.2.3: contabiliza los traspasos históricos de entrada externos',
+        () {
+          final investment = HistoricalInvestment(
+            uid: 'LF143-EXTERNAL-TRANSFER',
+            name: 'Inversión destino',
+          );
+
+          final historicalOperations = [
+            HistoricalOperation(
+              uid: 'LF143-EXTERNAL-OP-001',
+              investmentUid: investment.uid,
+              date: DateTime(2023, 1, 1),
+              type: HistoricalOperationType.subscription,
+              amount: 1000,
+            ),
+            HistoricalOperation(
+              uid: 'LF143-EXTERNAL-OP-002',
+              investmentUid: investment.uid,
+              date: DateTime(2024, 1, 1),
+              type: HistoricalOperationType.transferIn,
+              amount: 300,
+              transferUid: 'LF143-EXTERNAL-TRANSFER-001',
+            ),
+          ];
+
+          final metrics = FinancialCalculator.calculateGlobalMetrics(
+            const [],
+            const {},
+            historicalInvestments: [investment],
+            historicalOperations: historicalOperations,
+          );
+
+          expect(metrics.totalInvestedGlobal, 1300);
+        },
+      );
+
+      test(
+        'LF-143.2.4: no empareja traspasos históricos de fechas distintas',
+        () {
+          final sourceInvestment = HistoricalInvestment(
+            uid: 'LF143-DATE-SOURCE',
+            name: 'Inversión origen',
+          );
+
+          final destinationInvestment = HistoricalInvestment(
+            uid: 'LF143-DATE-DESTINATION',
+            name: 'Inversión destino',
+          );
+
+          final historicalOperations = [
+            HistoricalOperation(
+              uid: 'LF143-DATE-OP-001',
+              investmentUid: sourceInvestment.uid,
+              date: DateTime(2023, 1, 1),
+              type: HistoricalOperationType.subscription,
+              amount: 1000,
+            ),
+            HistoricalOperation(
+              uid: 'LF143-DATE-OP-002',
+              investmentUid: sourceInvestment.uid,
+              date: DateTime(2024, 1, 1),
+              type: HistoricalOperationType.transferOut,
+              amount: 300,
+              transferUid: 'LF143-DATE-TRANSFER-001',
+            ),
+            HistoricalOperation(
+              uid: 'LF143-DATE-OP-003',
+              investmentUid: destinationInvestment.uid,
+              date: DateTime(2024, 1, 2),
+              type: HistoricalOperationType.transferIn,
+              amount: 300,
+              transferUid: 'LF143-DATE-TRANSFER-001',
+            ),
+          ];
+
+          final metrics = FinancialCalculator.calculateGlobalMetrics(
+            const [],
+            const {},
+            historicalInvestments: [sourceInvestment, destinationInvestment],
+            historicalOperations: historicalOperations,
+          );
+
+          expect(metrics.totalInvestedGlobal, 1300);
+        },
+      );
+
+      test('LF-143.2.5: un traspaso de salida futuro no anula una entrada histórica', () {
+        final sourceInvestment = HistoricalInvestment(
+          uid: 'LF143-FUTURE-SOURCE',
+          name: 'Inversión origen',
+        );
+
+        final destinationInvestment = HistoricalInvestment(
+          uid: 'LF143-FUTURE-DESTINATION',
+          name: 'Inversión destino',
+        );
+
+        final historicalOperations = [
+          HistoricalOperation(
+            uid: 'LF143-FUTURE-OP-001',
+            investmentUid: destinationInvestment.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'LF143-FUTURE-OP-002',
+            investmentUid: destinationInvestment.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.transferIn,
+            amount: 300,
+            transferUid: 'LF143-FUTURE-TRANSFER-001',
+          ),
+          HistoricalOperation(
+            uid: 'LF143-FUTURE-OP-003',
+            investmentUid: sourceInvestment.uid,
+            date: DateTime.now().add(const Duration(days: 30)),
+            type: HistoricalOperationType.transferOut,
+            amount: 300,
+            transferUid: 'LF143-FUTURE-TRANSFER-001',
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          const [],
+          const {},
+          historicalInvestments: [sourceInvestment, destinationInvestment],
+          historicalOperations: historicalOperations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 1300);
+      });
+
+      test('LF-143.2.6: contabiliza entradas con identificador de traspaso ambiguo', () {
+        final sourceInvestment1 = HistoricalInvestment(
+          uid: 'LF143-AMBIGUOUS-SOURCE-1',
+          name: 'Inversión origen 1',
+        );
+
+        final sourceInvestment2 = HistoricalInvestment(
+          uid: 'LF143-AMBIGUOUS-SOURCE-2',
+          name: 'Inversión origen 2',
+        );
+
+        final destinationInvestment = HistoricalInvestment(
+          uid: 'LF143-AMBIGUOUS-DESTINATION',
+          name: 'Inversión destino',
+        );
+
+        final transferDate = DateTime(2024, 1, 1);
+
+        final historicalOperations = [
+          HistoricalOperation(
+            uid: 'LF143-AMBIGUOUS-OP-001',
+            investmentUid: sourceInvestment1.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferOut,
+            amount: 300,
+            transferUid: 'LF143-AMBIGUOUS-TRANSFER-001',
+          ),
+          HistoricalOperation(
+            uid: 'LF143-AMBIGUOUS-OP-002',
+            investmentUid: sourceInvestment2.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferOut,
+            amount: 300,
+            transferUid: 'LF143-AMBIGUOUS-TRANSFER-001',
+          ),
+          HistoricalOperation(
+            uid: 'LF143-AMBIGUOUS-OP-003',
+            investmentUid: destinationInvestment.uid,
+            date: transferDate,
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'LF143-AMBIGUOUS-OP-004',
+            investmentUid: destinationInvestment.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferIn,
+            amount: 300,
+            transferUid: 'LF143-AMBIGUOUS-TRANSFER-001',
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          const [],
+          const {},
+          historicalInvestments: [
+            sourceInvestment1,
+            sourceInvestment2,
+            destinationInvestment,
+          ],
+          historicalOperations: historicalOperations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 1300);
+      });
+
+      test('LF-143.2.7: contabiliza entradas cuando una salida tiene varios destinos', () {
+        final sourceInvestment = HistoricalInvestment(
+          uid: 'LF143-MULTI-IN-SOURCE',
+          name: 'Inversión origen',
+        );
+
+        final destinationInvestment1 = HistoricalInvestment(
+          uid: 'LF143-MULTI-IN-DESTINATION-1',
+          name: 'Inversión destino 1',
+        );
+
+        final destinationInvestment2 = HistoricalInvestment(
+          uid: 'LF143-MULTI-IN-DESTINATION-2',
+          name: 'Inversión destino 2',
+        );
+
+        final transferDate = DateTime(2024, 1, 1);
+
+        final historicalOperations = [
+          HistoricalOperation(
+            uid: 'LF143-MULTI-IN-OP-001',
+            investmentUid: sourceInvestment.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferOut,
+            amount: 300,
+            transferUid: 'LF143-MULTI-IN-TRANSFER-001',
+          ),
+          HistoricalOperation(
+            uid: 'LF143-MULTI-IN-OP-002',
+            investmentUid: destinationInvestment1.uid,
+            date: transferDate,
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'LF143-MULTI-IN-OP-003',
+            investmentUid: destinationInvestment1.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferIn,
+            amount: 300,
+            transferUid: 'LF143-MULTI-IN-TRANSFER-001',
+          ),
+          HistoricalOperation(
+            uid: 'LF143-MULTI-IN-OP-004',
+            investmentUid: destinationInvestment2.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferIn,
+            amount: 300,
+            transferUid: 'LF143-MULTI-IN-TRANSFER-001',
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          const [],
+          const {},
+          historicalInvestments: [
+            sourceInvestment,
+            destinationInvestment1,
+            destinationInvestment2,
+          ],
+          historicalOperations: historicalOperations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 1600);
+      });
     });
   });
 

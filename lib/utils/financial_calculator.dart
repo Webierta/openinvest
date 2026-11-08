@@ -1017,7 +1017,29 @@ class FinancialCalculator {
             operation.type == HistoricalOperationType.subscription ||
             operation.type == HistoricalOperationType.transferIn;
 
-        if (isContribution) {
+        final matchingTransferOuts = operation.transferUid == null
+            ? <HistoricalOperation>[]
+            : historicalOperations.where(
+                (candidate) =>
+                    candidate.transferUid == operation.transferUid &&
+                    candidate.investmentUid != operation.investmentUid &&
+                    candidate.type == HistoricalOperationType.transferOut &&
+                    candidate.date.isAtSameMomentAs(operation.date),
+              );
+
+        final matchingTransferIns = operation.transferUid == null
+            ? <HistoricalOperation>[]
+            : historicalOperations.where(
+                (candidate) =>
+                    candidate.transferUid == operation.transferUid &&
+                    candidate.type == HistoricalOperationType.transferIn &&
+                    candidate.date.isAtSameMomentAs(operation.date),
+              );
+
+        final isInternalTransfer =
+            matchingTransferOuts.length == 1 && matchingTransferIns.length == 1;
+
+        if (isContribution && !isInternalTransfer) {
           totalInvestedGlobal += operation.amount;
         }
 
@@ -1036,14 +1058,6 @@ class FinancialCalculator {
         }
       }
     }
-
-    /* double profitRel = portfolioValue > 0
-        ? weightedTaeSum / portfolioValue
-        : 0.0;
-
-    if (profitRel == 0 && profitAbs != 0 && totalInvested > 0) {
-      profitRel = (profitAbs / totalInvested) * 100;
-    } */
 
     final double profitRel = portfolioInvested > 0
         ? (portfolioProfitAbs / portfolioInvested) * 100
