@@ -1093,15 +1093,20 @@ class FinancialCalculator {
     double? mwrAnnualized;
 
     if (cashFlows.isNotEmpty) {
+      final portfolioCashFlows = List<Map<String, Object>>.from(cashFlows);
+
       if (portfolioValue > 0 && valuationDate != null) {
-        cashFlows.add({'amount': portfolioValue, 'date': valuationDate});
+        portfolioCashFlows.add({
+          'amount': portfolioValue,
+          'date': valuationDate,
+        });
       }
 
-      cashFlows.sort(
+      portfolioCashFlows.sort(
         (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime),
       );
 
-      final irr = _calculateIRR(cashFlows);
+      final irr = _calculateIRR(portfolioCashFlows);
       if (!irr.isNaN) {
         mwrAnnualized = irr;
       }

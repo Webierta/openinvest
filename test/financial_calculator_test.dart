@@ -4210,6 +4210,254 @@ void main() {
       expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualizedGlobal, closeTo(0.20015, 0.0001));
     });
+
+    test('LF-143.5.2: mwrAnnualizedGlobal combina fondos vigentes '
+        'e inversiones históricas sin duplicar el valor terminal', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2024, 1, 1);
+
+      final fund = FundData(
+        isin: 'LF143-5-2',
+        symbol: 'LF143',
+        name: 'Fondo vigente',
+        lastValue: 110,
+        currency: 'EUR',
+        date: endDate,
+        history: [PricePoint(startDate, 100), PricePoint(endDate, 110)],
+        operations: [
+          FundOperation(
+            isin: 'LF143-5-2',
+            date: startDate,
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-5-2-HIST',
+        name: 'Inversión histórica',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-5-2-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-5-2-RED',
+          investmentUid: investment.uid,
+          date: endDate,
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalValueGlobal, 1100);
+      expect(metrics.totalInvestedGlobal, 2000);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+      expect(metrics.mwrAnnualizedGlobal, closeTo(0.1501, 0.0002));
+    });
+
+    test('LF-143.5.3: mwrAnnualizedGlobal coincide con mwrAnnualized '
+        'cuando solo existen fondos vigentes', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2024, 1, 1);
+
+      final fund = FundData(
+        isin: 'LF143-5-3',
+        symbol: 'LF143',
+        name: 'Fondo vigente',
+        lastValue: 110,
+        currency: 'EUR',
+        date: endDate,
+        history: [PricePoint(startDate, 100), PricePoint(endDate, 110)],
+        operations: [
+          FundOperation(
+            isin: 'LF143-5-3',
+            date: startDate,
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+      );
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+      );
+
+      expect(metrics.mwrAnnualized, isNotNull);
+      expect(metrics.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        metrics.mwrAnnualizedGlobal,
+        closeTo(metrics.mwrAnnualized!, 0.000001),
+      );
+    });
+
+    test('LF-143.5.4: las inversiones históricas cerradas calculan '
+        'el MWR global sin fondos vigentes ni valor terminal', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2024, 1, 1);
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-5-4-HIST',
+        name: 'Inversión histórica cerrada',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-5-4-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-5-4-RED',
+          investmentUid: investment.uid,
+          date: endDate,
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvestedGlobal, 1000);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+      //expect(metrics.mwrAnnualized, isNull);
+      expect(metrics.mwrAnnualized, closeTo(0.20015, 0.0001));
+      expect(metrics.mwrAnnualizedGlobal, closeTo(0.20015, 0.0001));
+    });
+
+    test('LF-143.5.5: mwrAnnualizedGlobal refleja pérdidas históricas '
+        'sin fondos vigentes', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2024, 1, 1);
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-5-5-HIST',
+        name: 'Inversión histórica con pérdidas',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-5-5-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-5-5-RED',
+          investmentUid: investment.uid,
+          date: endDate,
+          type: HistoricalOperationType.redemption,
+          amount: 800,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvestedGlobal, 1000);
+      expect(metrics.profitAbsGlobal, -200);
+      expect(metrics.profitRelGlobal, -0.20);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+      expect(metrics.mwrAnnualized, closeTo(-0.20012, 0.0001));
+      expect(metrics.mwrAnnualizedGlobal, closeTo(-0.20012, 0.0001));
+    });
+
+    test('LF-143.5.6: las pérdidas históricas reducen el MWR global '
+        'sin alterar el MWR de los fondos vigentes', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2024, 1, 1);
+
+      final fund = FundData(
+        isin: 'LF143-5-6',
+        symbol: 'LF143',
+        name: 'Fondo vigente',
+        lastValue: 1100,
+        currency: 'EUR',
+        date: endDate,
+        history: [PricePoint(startDate, 100), PricePoint(endDate, 110)],
+        operations: [
+          FundOperation(
+            isin: 'LF143-5-6',
+            date: startDate,
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-5-6-HIST',
+        name: 'Inversión histórica con pérdidas',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-5-6-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-5-6-RED',
+          investmentUid: investment.uid,
+          date: endDate,
+          type: HistoricalOperationType.redemption,
+          amount: 800,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalValueGlobal, 1100);
+      expect(metrics.totalInvestedGlobal, 2000);
+      expect(metrics.profitAbsGlobal, -100);
+      expect(metrics.profitRelGlobal, -0.05);
+
+      expect(metrics.mwrAnnualized, isNotNull);
+      expect(metrics.mwrAnnualizedGlobal, isNotNull);
+
+      expect(metrics.mwrAnnualizedGlobal!, lessThan(metrics.mwrAnnualized!));
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {
