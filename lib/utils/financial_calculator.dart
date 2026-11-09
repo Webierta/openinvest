@@ -1017,28 +1017,6 @@ class FinancialCalculator {
             operation.type == HistoricalOperationType.subscription ||
             operation.type == HistoricalOperationType.transferIn;
 
-        /* final matchingTransferOuts = operation.transferUid == null
-            ? <HistoricalOperation>[]
-            : historicalOperations.where(
-                (candidate) =>
-                    candidate.transferUid == operation.transferUid &&
-                    candidate.investmentUid != operation.investmentUid &&
-                    candidate.type == HistoricalOperationType.transferOut &&
-                    candidate.date.isAtSameMomentAs(operation.date),
-              );
-
-        final matchingTransferIns = operation.transferUid == null
-            ? <HistoricalOperation>[]
-            : historicalOperations.where(
-                (candidate) =>
-                    candidate.transferUid == operation.transferUid &&
-                    candidate.type == HistoricalOperationType.transferIn &&
-                    candidate.date.isAtSameMomentAs(operation.date),
-              );
-
-        final isInternalTransfer =
-            matchingTransferOuts.length == 1 && matchingTransferIns.length == 1; */
-
         final isTransferOperation =
             operation.type == HistoricalOperationType.transferIn ||
             operation.type == HistoricalOperationType.transferOut;
@@ -1049,7 +1027,10 @@ class FinancialCalculator {
                 (candidate) =>
                     candidate.transferUid == operation.transferUid &&
                     candidate.type == HistoricalOperationType.transferOut &&
-                    candidate.date.isAtSameMomentAs(operation.date),
+                    candidate.date.year == operation.date.year &&
+                    candidate.date.month == operation.date.month &&
+                    candidate.date.day == operation.date.day,
+                //candidate.date.isAtSameMomentAs(operation.date),
               );
 
         final matchingTransferIns = operation.transferUid == null
@@ -1058,7 +1039,10 @@ class FinancialCalculator {
                 (candidate) =>
                     candidate.transferUid == operation.transferUid &&
                     candidate.type == HistoricalOperationType.transferIn &&
-                    candidate.date.isAtSameMomentAs(operation.date),
+                    candidate.date.year == operation.date.year &&
+                    candidate.date.month == operation.date.month &&
+                    candidate.date.day == operation.date.day,
+                //candidate.date.isAtSameMomentAs(operation.date),
               );
 
         final isInternalTransfer =
@@ -1079,19 +1063,10 @@ class FinancialCalculator {
           });
         }
 
-        /* cashFlows.add({
-          'amount': isContribution ? -operation.amount : operation.amount,
-          'date': operation.date,
-        }); */
-
         if (valuationDate == null || operation.date.isAfter(valuationDate)) {
           valuationDate = operation.date;
         }
 
-        /* if (isContribution &&
-            (firstOpDate == null || operation.date.isBefore(firstOpDate))) {
-          firstOpDate = operation.date;
-        } */
         if (isContribution &&
             operation.amount > 0 &&
             (firstOpDate == null || operation.date.isBefore(firstOpDate))) {

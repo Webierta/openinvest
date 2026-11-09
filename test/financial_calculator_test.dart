@@ -2779,6 +2779,1158 @@ void main() {
       expect(metrics.isAnnualized, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
+
+    test('LF-143.3.23: un traspaso interno con importes diferentes no duplica aportaciones globales', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-SOURCE',
+        name: 'Origen histórico',
+      );
+
+      final destination = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-DESTINATION',
+        name: 'Destino histórico',
+      );
+
+      final transferUid = 'LF143-TRANSFER-DIFFERENT-AMOUNTS';
+      final transferDate = DateTime(2023, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-OUT',
+          investmentUid: source.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-IN',
+          investmentUid: destination.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      //expect(metrics.profitAbs, 0);
+      //expect(metrics.profitRel, 0);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.24: un traspaso con origen y destino en la misma inversión '
+        'no se deduplica como traspaso interno', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-SOURCE',
+        name: 'Inversión origen',
+      );
+
+      const transferUid = 'LF143-TRANSFER-SAME-INVESTMENT';
+      final transferDate = DateTime(2023, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-OUT-SAME',
+          investmentUid: source.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-IN-SAME',
+          investmentUid: source.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 950);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.25: un traspaso entre inversiones distintas sin transferUid '
+        'no se deduplica', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-SOURCE',
+        name: 'Inversión origen',
+      );
+
+      final destination = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      final transferDate = DateTime(2023, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-OUT-NULL-UID',
+          investmentUid: source.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-IN-NULL-UID',
+          investmentUid: destination.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 950);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.26: un traspaso entre inversiones distintas con el mismo '
+        'transferUid pero fechas diferentes no se deduplica', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-SOURCE',
+        name: 'Inversión origen',
+      );
+
+      final destination = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      final transferUid = 'LF143-TRANSFER-DIFFERENT-DATES';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-OUT-DIFFERENT-DATES',
+          investmentUid: source.uid,
+          date: DateTime(2023, 1, 1),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-IN-DIFFERENT-DATES',
+          investmentUid: destination.uid,
+          date: DateTime(2023, 1, 2),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 950);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.27: dos traspasos entre las mismas inversiones con el mismo '
+        'transferUid y fecha generan un emparejamiento ambiguo', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-SOURCE',
+        name: 'Inversión origen',
+      );
+
+      final destination = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      const transferUid = 'LF143-TRANSFER-AMBIGUOUS-PAIRING';
+      final transferDate = DateTime(2023, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-OUT-1',
+          investmentUid: source.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-OUT-2',
+          investmentUid: source.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 500,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-IN-1',
+          investmentUid: destination.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-IN-2',
+          investmentUid: destination.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 450,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 1400);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 1400);
+      expect(metrics.profitAbs, 100);
+      expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test(
+      'LF-143.3.28: dos traspasos independientes entre las mismas inversiones '
+      'en la misma fecha se deduplican correctamente',
+      () {
+        final source = HistoricalInvestment(
+          uid: 'LF143-TRANSFER-SOURCE',
+          name: 'Inversión origen',
+        );
+
+        final destination = HistoricalInvestment(
+          uid: 'LF143-TRANSFER-DESTINATION',
+          name: 'Inversión destino',
+        );
+
+        final transferDate = DateTime(2023, 1, 1);
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'LF143-TRANSFER-OUT-1',
+            investmentUid: source.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferOut,
+            amount: 1000,
+            transferUid: 'LF143-TRANSFER-INDEPENDENT-1',
+          ),
+          HistoricalOperation(
+            uid: 'LF143-TRANSFER-IN-1',
+            investmentUid: destination.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferIn,
+            amount: 950,
+            transferUid: 'LF143-TRANSFER-INDEPENDENT-1',
+          ),
+          HistoricalOperation(
+            uid: 'LF143-TRANSFER-OUT-2',
+            investmentUid: source.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferOut,
+            amount: 500,
+            transferUid: 'LF143-TRANSFER-INDEPENDENT-2',
+          ),
+          HistoricalOperation(
+            uid: 'LF143-TRANSFER-IN-2',
+            investmentUid: destination.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferIn,
+            amount: 450,
+            transferUid: 'LF143-TRANSFER-INDEPENDENT-2',
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {'EUR': 1.0},
+          historicalInvestments: [source, destination],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 0);
+        expect(metrics.totalValueGlobal, 0);
+        expect(metrics.totalInvested, 1400);
+        expect(metrics.profitAbs, 100);
+        expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
+        expect(metrics.isAnnualized, isTrue);
+        expect(metrics.mwrAnnualized, isNull);
+      },
+    );
+
+    test('LF-143.3.29: un traspaso interno válido se deduplica aunque '
+        'la entrada aparezca antes que la salida', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-SOURCE',
+        name: 'Inversión origen',
+      );
+
+      final destination = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      const transferUid = 'LF143-TRANSFER-UNSORTED';
+      final transferDate = DateTime(2023, 1, 1);
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-IN-UNSORTED',
+          investmentUid: destination.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-OUT-UNSORTED',
+          investmentUid: source.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.30: un traspaso interno válido se deduplica '
+        'aunque las operaciones tengan horas diferentes el mismo día', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-SOURCE',
+        name: 'Inversión origen',
+      );
+
+      final destination = HistoricalInvestment(
+        uid: 'LF143-TRANSFER-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      const transferUid = 'LF143-TRANSFER-SAME-DAY';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-OUT-SAME-DAY',
+          investmentUid: source.uid,
+          date: DateTime(2023, 1, 1, 10, 30),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-TRANSFER-IN-SAME-DAY',
+          investmentUid: destination.uid,
+          date: DateTime(2023, 1, 1, 16, 45),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.31: dos salidas y dos entradas con el mismo UID '
+        'y día, pero horas diferentes, no se deduplican', () {
+      final source1 = HistoricalInvestment(
+        uid: 'LF143-31-SOURCE-1',
+        name: 'Inversión origen 1',
+      );
+      final source2 = HistoricalInvestment(
+        uid: 'LF143-31-SOURCE-2',
+        name: 'Inversión origen 2',
+      );
+      final destination1 = HistoricalInvestment(
+        uid: 'LF143-31-DESTINATION-1',
+        name: 'Inversión destino 1',
+      );
+      final destination2 = HistoricalInvestment(
+        uid: 'LF143-31-DESTINATION-2',
+        name: 'Inversión destino 2',
+      );
+
+      const transferUid = 'LF143-31-AMBIGUOUS';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-31-OUT-1',
+          investmentUid: source1.uid,
+          date: DateTime(2023, 1, 1, 9, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-31-OUT-2',
+          investmentUid: source2.uid,
+          date: DateTime(2023, 1, 1, 11, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 500,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-31-IN-1',
+          investmentUid: destination1.uid,
+          date: DateTime(2023, 1, 1, 14, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-31-IN-2',
+          investmentUid: destination2.uid,
+          date: DateTime(2023, 1, 1, 17, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 450,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source1, source2, destination1, destination2],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 1400);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 1400);
+      expect(metrics.profitAbs, 100);
+      expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.32: dos salidas y una entrada con el mismo UID '
+        'y día, pero horas diferentes, no se deduplican', () {
+      final source1 = HistoricalInvestment(
+        uid: 'LF143-32-SOURCE-1',
+        name: 'Inversión origen 1',
+      );
+      final source2 = HistoricalInvestment(
+        uid: 'LF143-32-SOURCE-2',
+        name: 'Inversión origen 2',
+      );
+      final destination = HistoricalInvestment(
+        uid: 'LF143-32-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      const transferUid = 'LF143-32-AMBIGUOUS';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-32-OUT-1',
+          investmentUid: source1.uid,
+          date: DateTime(2023, 1, 1, 9, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-32-OUT-2',
+          investmentUid: source2.uid,
+          date: DateTime(2023, 1, 1, 11, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 500,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-32-IN-1',
+          investmentUid: destination.uid,
+          date: DateTime(2023, 1, 1, 16, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source1, source2, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 950);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 550);
+      expect(metrics.profitRel, closeTo(550 / 950 * 100, 0.000001));
+      //expect(metrics.profitAbs, 50);
+      //expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.33: una salida y dos entradas con el mismo UID '
+        'y día, pero horas diferentes, no se deduplican', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-33-SOURCE',
+        name: 'Inversión origen',
+      );
+      final destination1 = HistoricalInvestment(
+        uid: 'LF143-33-DESTINATION-1',
+        name: 'Inversión destino 1',
+      );
+      final destination2 = HistoricalInvestment(
+        uid: 'LF143-33-DESTINATION-2',
+        name: 'Inversión destino 2',
+      );
+
+      const transferUid = 'LF143-33-AMBIGUOUS';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-33-OUT-1',
+          investmentUid: source.uid,
+          date: DateTime(2023, 1, 1, 9, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-33-IN-1',
+          investmentUid: destination1.uid,
+          date: DateTime(2023, 1, 1, 13, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-33-IN-2',
+          investmentUid: destination2.uid,
+          date: DateTime(2023, 1, 1, 17, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 450,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination1, destination2],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 1400);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 1400);
+      expect(metrics.profitAbs, -400);
+      expect(metrics.profitRel, closeTo(-400 / 1400 * 100, 0.000001));
+      //expect(metrics.profitAbs, 100);
+      //expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.34: dos traspasos internos independientes con '
+        'distintos UID y horas diferentes el mismo día se deduplican', () {
+      final source1 = HistoricalInvestment(
+        uid: 'LF143-34-SOURCE-1',
+        name: 'Inversión origen 1',
+      );
+      final destination1 = HistoricalInvestment(
+        uid: 'LF143-34-DESTINATION-1',
+        name: 'Inversión destino 1',
+      );
+      final source2 = HistoricalInvestment(
+        uid: 'LF143-34-SOURCE-2',
+        name: 'Inversión origen 2',
+      );
+      final destination2 = HistoricalInvestment(
+        uid: 'LF143-34-DESTINATION-2',
+        name: 'Inversión destino 2',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-34-OUT-1',
+          investmentUid: source1.uid,
+          date: DateTime(2023, 1, 1, 9, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: 'LF143-34-TRANSFER-1',
+        ),
+        HistoricalOperation(
+          uid: 'LF143-34-IN-1',
+          investmentUid: destination1.uid,
+          date: DateTime(2023, 1, 1, 12, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: 'LF143-34-TRANSFER-1',
+        ),
+        HistoricalOperation(
+          uid: 'LF143-34-OUT-2',
+          investmentUid: source2.uid,
+          date: DateTime(2023, 1, 1, 14, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 500,
+          transferUid: 'LF143-34-TRANSFER-2',
+        ),
+        HistoricalOperation(
+          uid: 'LF143-34-IN-2',
+          investmentUid: destination2.uid,
+          date: DateTime(2023, 1, 1, 18, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 450,
+          transferUid: 'LF143-34-TRANSFER-2',
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source1, destination1, source2, destination2],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 1400);
+      expect(metrics.profitAbs, 100);
+      expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.35: un traspaso con el mismo UID pero en días '
+        'diferentes no se deduplica aunque las horas sean distintas', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-35-SOURCE',
+        name: 'Inversión origen',
+      );
+      final destination = HistoricalInvestment(
+        uid: 'LF143-35-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      const transferUid = 'LF143-35-DIFFERENT-DAYS';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-35-OUT',
+          investmentUid: source.uid,
+          date: DateTime(2023, 1, 1, 23, 30),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-35-IN',
+          investmentUid: destination.uid,
+          date: DateTime(2023, 1, 2, 0, 30),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 950);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.36: un traspaso interno válido con horas diferentes '
+        'se deduplica aunque la entrada aparezca antes que la salida', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-36-SOURCE',
+        name: 'Inversión origen',
+      );
+      final destination = HistoricalInvestment(
+        uid: 'LF143-36-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      const transferUid = 'LF143-36-TRANSFER';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-36-IN',
+          investmentUid: destination.uid,
+          date: DateTime(2023, 1, 1, 16, 45),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-36-OUT',
+          investmentUid: source.uid,
+          date: DateTime(2023, 1, 1, 10, 30),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.37: un traspaso con origen y destino en la misma '
+        'inversión no se deduplica aunque tenga horas diferentes', () {
+      final investment = HistoricalInvestment(
+        uid: 'LF143-37-INVESTMENT',
+        name: 'Inversión única',
+      );
+
+      const transferUid = 'LF143-37-SAME-INVESTMENT';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-37-OUT',
+          investmentUid: investment.uid,
+          date: DateTime(2023, 1, 1, 10, 30),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-37-IN',
+          investmentUid: investment.uid,
+          date: DateTime(2023, 1, 1, 16, 45),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 950);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.38: un traspaso con el mismo UID que cruza el '
+        'cambio de año no se deduplica', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-38-SOURCE',
+        name: 'Inversión origen',
+      );
+      final destination = HistoricalInvestment(
+        uid: 'LF143-38-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      const transferUid = 'LF143-38-YEAR-BOUNDARY';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-38-OUT',
+          investmentUid: source.uid,
+          date: DateTime(2023, 12, 31, 23, 30),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-38-IN',
+          investmentUid: destination.uid,
+          date: DateTime(2024, 1, 1, 0, 30),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 950);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.39: dos traspasos internos con el mismo UID '
+        'en días diferentes se deduplican por separado', () {
+      final source1 = HistoricalInvestment(
+        uid: 'LF143-39-SOURCE-1',
+        name: 'Inversión origen 1',
+      );
+      final destination1 = HistoricalInvestment(
+        uid: 'LF143-39-DESTINATION-1',
+        name: 'Inversión destino 1',
+      );
+      final source2 = HistoricalInvestment(
+        uid: 'LF143-39-SOURCE-2',
+        name: 'Inversión origen 2',
+      );
+      final destination2 = HistoricalInvestment(
+        uid: 'LF143-39-DESTINATION-2',
+        name: 'Inversión destino 2',
+      );
+
+      const transferUid = 'LF143-39-REUSED-UID';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-39-OUT-1',
+          investmentUid: source1.uid,
+          date: DateTime(2023, 1, 1, 9, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-39-IN-1',
+          investmentUid: destination1.uid,
+          date: DateTime(2023, 1, 1, 16, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-39-OUT-2',
+          investmentUid: source2.uid,
+          date: DateTime(2023, 1, 2, 10, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 500,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-39-IN-2',
+          investmentUid: destination2.uid,
+          date: DateTime(2023, 1, 2, 17, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 450,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source1, destination1, source2, destination2],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 1400);
+      expect(metrics.profitAbs, 100);
+      expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.40: un traspaso interno válido se deduplica '
+        'aunque las operaciones tengan milisegundos diferentes', () {
+      final source = HistoricalInvestment(
+        uid: 'LF143-40-SOURCE',
+        name: 'Inversión origen',
+      );
+      final destination = HistoricalInvestment(
+        uid: 'LF143-40-DESTINATION',
+        name: 'Inversión destino',
+      );
+
+      const transferUid = 'LF143-40-TRANSFER';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-40-OUT',
+          investmentUid: source.uid,
+          date: DateTime(2023, 1, 1, 10, 30, 15, 123),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-40-IN',
+          investmentUid: destination.uid,
+          date: DateTime(2023, 1, 1, 16, 45, 30, 987),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source, destination],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      expect(metrics.profitAbs, 50);
+      expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.41: un traspaso válido no se deduplica parcialmente '
+        'cuando comparte UID y día con otro ambiguo', () {
+      final source1 = HistoricalInvestment(
+        uid: 'LF143-41-SOURCE-1',
+        name: 'Inversión origen 1',
+      );
+      final destination1 = HistoricalInvestment(
+        uid: 'LF143-41-DESTINATION-1',
+        name: 'Inversión destino 1',
+      );
+      final source2 = HistoricalInvestment(
+        uid: 'LF143-41-SOURCE-2',
+        name: 'Inversión origen 2',
+      );
+
+      const transferUid = 'LF143-41-SHARED-UID';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-41-OUT-1',
+          investmentUid: source1.uid,
+          date: DateTime(2023, 1, 1, 9, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-41-IN-1',
+          investmentUid: destination1.uid,
+          date: DateTime(2023, 1, 1, 12, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-41-OUT-2',
+          investmentUid: source2.uid,
+          date: DateTime(2023, 1, 1, 15, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 500,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [source1, destination1, source2],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 950);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 950);
+      //expect(metrics.profitAbs, -550);
+      //expect(metrics.profitRel, closeTo(-550 / 950 * 100, 0.000001));
+      expect(metrics.profitAbs, 550);
+      expect(metrics.profitRel, closeTo(550 / 950 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
+
+    test('LF-143.3.42: un traspaso válido se deduplica aunque otro '
+        'traspaso independiente del mismo día sea ambiguo', () {
+      final source1 = HistoricalInvestment(
+        uid: 'LF143-42-SOURCE-1',
+        name: 'Inversión origen 1',
+      );
+      final destination1 = HistoricalInvestment(
+        uid: 'LF143-42-DESTINATION-1',
+        name: 'Inversión destino 1',
+      );
+      final source2 = HistoricalInvestment(
+        uid: 'LF143-42-SOURCE-2',
+        name: 'Inversión origen 2',
+      );
+      final source3 = HistoricalInvestment(
+        uid: 'LF143-42-SOURCE-3',
+        name: 'Inversión origen 3',
+      );
+      final destination2 = HistoricalInvestment(
+        uid: 'LF143-42-DESTINATION-2',
+        name: 'Inversión destino 2',
+      );
+
+      final operations = [
+        // Traspaso válido.
+        HistoricalOperation(
+          uid: 'LF143-42-OUT-1',
+          investmentUid: source1.uid,
+          date: DateTime(2023, 1, 1, 9, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: 'LF143-42-VALID',
+        ),
+        HistoricalOperation(
+          uid: 'LF143-42-IN-1',
+          investmentUid: destination1.uid,
+          date: DateTime(2023, 1, 1, 12, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 950,
+          transferUid: 'LF143-42-VALID',
+        ),
+
+        // Traspaso ambiguo: dos salidas y una entrada.
+        HistoricalOperation(
+          uid: 'LF143-42-OUT-2',
+          investmentUid: source2.uid,
+          date: DateTime(2023, 1, 1, 10, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 500,
+          transferUid: 'LF143-42-AMBIGUOUS',
+        ),
+        HistoricalOperation(
+          uid: 'LF143-42-OUT-3',
+          investmentUid: source3.uid,
+          date: DateTime(2023, 1, 1, 14, 0),
+          type: HistoricalOperationType.transferOut,
+          amount: 300,
+          transferUid: 'LF143-42-AMBIGUOUS',
+        ),
+        HistoricalOperation(
+          uid: 'LF143-42-IN-2',
+          investmentUid: destination2.uid,
+          date: DateTime(2023, 1, 1, 17, 0),
+          type: HistoricalOperationType.transferIn,
+          amount: 450,
+          transferUid: 'LF143-42-AMBIGUOUS',
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [
+          source1,
+          destination1,
+          source2,
+          source3,
+          destination2,
+        ],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 450);
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvested, 1400);
+      expect(metrics.profitAbs, 400);
+      expect(metrics.profitRel, closeTo(400 / 1400 * 100, 0.000001));
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.mwrAnnualized, isNull);
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {
