@@ -68,7 +68,7 @@ class GlobalMetrics {
   // Trayectoria inversora
   final double totalValueGlobal;
   final double totalInvestedGlobal;
-  //final double profitAbsGlobal;
+  final double profitAbsGlobal;
   //final double profitRelGlobal;
   //final bool isAnnualizedGlobal;
   //final double? mwrAnnualizedGlobal;
@@ -82,6 +82,7 @@ class GlobalMetrics {
     this.mwrAnnualized,
     required this.totalValueGlobal,
     required this.totalInvestedGlobal,
+    required this.profitAbsGlobal,
   });
 }
 
@@ -1112,6 +1113,7 @@ class FinancialCalculator {
       mwrAnnualized: mwrAnnualized,
       totalValueGlobal: portfolioValue,
       totalInvestedGlobal: totalInvestedGlobal,
+      profitAbsGlobal: profitAbs,
     );
   }
 

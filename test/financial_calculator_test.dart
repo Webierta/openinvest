@@ -3931,6 +3931,96 @@ void main() {
       expect(metrics.isAnnualized, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
+
+    test('LF-143.4.1: profitAbsGlobal incluye el resultado '
+        'realizado de una inversión histórica cerrada', () {
+      final investment = HistoricalInvestment(
+        uid: 'LF143-4-1',
+        name: 'Inversión histórica',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-4-1-SUB',
+          investmentUid: investment.uid,
+          date: DateTime(2023, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-4-1-RED',
+          investmentUid: investment.uid,
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.totalInvestedGlobal, 1000);
+      expect(metrics.profitAbsGlobal, 200);
+    });
+
+    test('LF-143.4.2: profitAbsGlobal agrega beneficios y pérdidas '
+        'de distintas inversiones históricas', () {
+      final profitableInvestment = HistoricalInvestment(
+        uid: 'LF143-4-2-PROFIT',
+        name: 'Inversión con beneficio',
+      );
+
+      final losingInvestment = HistoricalInvestment(
+        uid: 'LF143-4-2-LOSS',
+        name: 'Inversión con pérdida',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-4-2-P-SUB',
+          investmentUid: profitableInvestment.uid,
+          date: DateTime(2023, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-4-2-P-RED',
+          investmentUid: profitableInvestment.uid,
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-4-2-L-SUB',
+          investmentUid: losingInvestment.uid,
+          date: DateTime(2023, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-4-2-L-RED',
+          investmentUid: losingInvestment.uid,
+          date: DateTime(2024, 1, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 850,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {'EUR': 1.0},
+        historicalInvestments: [profitableInvestment, losingInvestment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 2000);
+      expect(metrics.profitAbsGlobal, 50);
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {
