@@ -69,7 +69,7 @@ class GlobalMetrics {
   final double totalValueGlobal;
   final double totalInvestedGlobal;
   final double profitAbsGlobal;
-  //final double profitRelGlobal;
+  final double profitRelGlobal;
   //final bool isAnnualizedGlobal;
   //final double? mwrAnnualizedGlobal;
 
@@ -83,6 +83,7 @@ class GlobalMetrics {
     required this.totalValueGlobal,
     required this.totalInvestedGlobal,
     required this.profitAbsGlobal,
+    required this.profitRelGlobal,
   });
 }
 
@@ -1114,6 +1115,9 @@ class FinancialCalculator {
       totalValueGlobal: portfolioValue,
       totalInvestedGlobal: totalInvestedGlobal,
       profitAbsGlobal: profitAbs,
+      profitRelGlobal: totalInvestedGlobal > 0
+          ? profitAbs / totalInvestedGlobal
+          : 0.0,
     );
   }
 

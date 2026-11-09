@@ -4021,6 +4021,195 @@ void main() {
       expect(metrics.totalInvestedGlobal, 2000);
       expect(metrics.profitAbsGlobal, 50);
     });
+
+    test('LF-143.4.3: profitAbsGlobal combina el resultado de fondos '
+        'vigentes e inversiones históricas', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2024, 1, 1);
+
+      final fund = FundData(
+        isin: 'LF143-4-3',
+        symbol: 'LF143',
+        name: 'Fondo vigente',
+        lastValue: 90,
+        currency: 'EUR',
+        date: endDate,
+        history: [PricePoint(startDate, 100), PricePoint(endDate, 90)],
+        operations: [
+          FundOperation(
+            isin: 'LF143-4-3',
+            date: startDate,
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-4-3-HIST',
+        name: 'Inversión histórica',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-4-3-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-4-3-RED',
+          investmentUid: investment.uid,
+          date: endDate,
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalValueGlobal, 900);
+      expect(metrics.totalInvestedGlobal, 2000);
+      expect(metrics.profitAbsGlobal, 100);
+    });
+
+    test('LF-143.4.4: profitRelGlobal calcula la rentabilidad '
+        'sobre el capital histórico invertido', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2024, 1, 1);
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-4-4-HIST',
+        name: 'Inversión histórica',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-4-4-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-4-4-RED',
+          investmentUid: investment.uid,
+          date: endDate,
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        const [],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 1000);
+      expect(metrics.profitAbsGlobal, 200);
+      expect(metrics.profitRelGlobal, closeTo(0.20, 0.000001));
+    });
+
+    test('LF-143.4.5: profitRelGlobal refleja pérdidas '
+        'de inversiones históricas', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2024, 1, 1);
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-4-5-HIST',
+        name: 'Inversión histórica',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-4-5-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-4-5-RED',
+          investmentUid: investment.uid,
+          date: endDate,
+          type: HistoricalOperationType.redemption,
+          amount: 850,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        const [],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 1000);
+      expect(metrics.profitAbsGlobal, -150);
+      expect(metrics.profitRelGlobal, closeTo(-0.15, 0.000001));
+    });
+
+    test('LF-143.4.6: profitRelGlobal es cero cuando no existe '
+        'capital histórico invertido', () {
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        const [],
+        const {'EUR': 1.0},
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.profitAbsGlobal, 0);
+      expect(metrics.profitRelGlobal, 0);
+      expect(metrics.profitRelGlobal.isFinite, isTrue);
+    });
+
+    test('LF-143.5.1: mwrAnnualizedGlobal calcula la rentabilidad '
+        'de una inversión histórica cerrada', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2024, 1, 1);
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-5-1-HIST',
+        name: 'Inversión histórica',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'LF143-5-1-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-5-1-RED',
+          investmentUid: investment.uid,
+          date: endDate,
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        const [],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalValueGlobal, 0);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+      expect(metrics.mwrAnnualizedGlobal, closeTo(0.20, 0.0001));
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {
@@ -4073,64 +4262,4 @@ void main() {
       expect(metrics.twrAnnualized, lessThan(0)); // Debe ser negativo
     });
   });
-
-  /* group('FinancialCalculator Tests', () {
-    final baseDate = DateTime(2023, 1, 1);
-    final mockHistory = [
-      PricePoint(baseDate, 10.0),
-      PricePoint(baseDate.add(const Duration(days: 30)), 12.0),
-    ];
-
-    test('calculateFundMetrics should correctly calculate units and value', () {
-      final fund = FundData(
-        isin: 'TEST',
-        symbol: 'TST',
-        name: 'Test Fund',
-        lastValue: 12.0,
-        currency: 'EUR',
-        date: baseDate.add(const Duration(days: 30)),
-        history: mockHistory,
-        operations: [
-          FundOperation(
-            isin: 'TEST',
-            date: baseDate,
-            type: OperationType.buy,
-            units: 10,
-            price: 10,
-            amount: 100,
-          ),
-          FundOperation(
-            isin: 'TEST',
-            date: baseDate.add(const Duration(days: 10)),
-            type: OperationType.sell,
-            units: 2,
-            price: 11,
-            amount: 22,
-          ),
-        ],
-      );
-
-      final metrics = FinancialCalculator.calculateFundMetrics(fund);
-      // (10 - 2) * 12 = 8 * 12 = 96
-      expect(metrics.currentValue, 96.0);
-      expect(metrics.totalUnits, 8.0);
-    });
-
-    test('calculateFundMetrics should handle no investment correctly', () {
-      final fund = FundData(
-        isin: 'TEST',
-        symbol: 'TST',
-        name: 'Test Fund',
-        lastValue: 12.0,
-        currency: 'EUR',
-        date: baseDate,
-        history: mockHistory,
-        operations: [],
-      );
-
-      final metrics = FinancialCalculator.calculateFundMetrics(fund);
-      expect(metrics.tae, 0);
-      expect(metrics.currentValue, 0);
-    });
-  }); */
 }
