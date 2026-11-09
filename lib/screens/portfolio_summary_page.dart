@@ -120,6 +120,14 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                         ),
                       ),
                       const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                      // Pesos
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const .fromLTRB(16, 8, 16, 16),
+                          child: _buildPesos(provider, portfolioMetrics),
+                        ),
+                      ),
+
                       // 2. CUADRÍCULA DE ACCIONES RÁPIDAS
                       SliverToBoxAdapter(
                         child: Padding(
@@ -392,7 +400,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                 ],
               ),
             //const SizedBox(height: 10),
-            if (metrics.totalValue > 0 && isPortfolio == true) ...[
+            /* if (metrics.totalValue > 0 && isPortfolio == true) ...[
               const SizedBox(height: 10),
               Text(
                 l10n.weightsLabel,
@@ -434,8 +442,74 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                   ),
                 ),
               ),
-            ],
+            ], */
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPesos(FundProvider provider, GlobalMetrics metrics) {
+    if (metrics.totalValue <= 0) {
+      return SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: .start,
+        children: [
+          Text(
+            l10n.weightsLabel,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 18,
+              width: double.infinity,
+              child: Row(
+                children: provider.portfolio.map((item) {
+                  final calculateFundMetrics =
+                      FinancialCalculator.calculateFundMetrics(item);
+                  final double rate =
+                      provider.exchangeRates[item.currency] ?? 1.0;
+                  final fundValue = calculateFundMetrics.currentValue * rate;
+                  final weight = fundValue / metrics.totalValue;
+                  if (weight <= 0) return const SizedBox.shrink();
+                  return Expanded(
+                    flex: (weight * 1000).toInt(),
+                    child: Tooltip(
+                      message:
+                          '${item.name}\n${l10n.weightLabel}: ${percentFormat.format(weight * 100)}%',
+                      triggerMode: TooltipTriggerMode.tap,
+                      preferBelow: false,
+                      child: Container(
+                        color: CircleAvatarFund(fund: item).getFundColor,
+                        margin: const .symmetric(horizontal: 0.5),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
         ],
       ),
     );
