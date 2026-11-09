@@ -15,7 +15,8 @@ import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
 import 'fund_search_page.dart';
 import 'historical_investment_form_page.dart';
-import 'portfolio_history_form_page.dart';
+
+//import 'portfolio_history_form_page.dart';
 
 class PortfolioSummaryPage extends StatefulWidget {
   const PortfolioSummaryPage({super.key});
@@ -43,7 +44,19 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     final provider = context.watch<FundProvider>();
     final funds = provider.portfolio;
 
+    /* final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
+      provider.portfolio,
+      provider.exchangeRates,
+    ); */
+
     final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
+      provider.portfolio,
+      provider.exchangeRates,
+      historicalInvestments: provider.historicalInvestments,
+      historicalOperations: provider.historicalOperations,
+    );
+
+    final portfolioMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
       provider.exchangeRates,
     );
@@ -71,11 +84,39 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                   onRefresh: provider.loadPortfolio,
                   child: CustomScrollView(
                     slivers: [
+                      // TOTAL VALUE
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: .all(16.0),
+                          child: _buildTotalValue(provider, portfolioMetrics),
+                        ),
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
                       // 1. TARJETA DE RESUMEN GLOBAL (HERO)
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .all(16.0),
-                          child: _buildSummaryCard(provider, globalMetrics),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _buildSummaryCard(
+                                  false,
+                                  'Trayectoria inversora',
+                                  provider,
+                                  globalMetrics,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildSummaryCard(
+                                  true,
+                                  'Cartera actual',
+                                  provider,
+                                  portfolioMetrics,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       const SliverToBoxAdapter(child: SizedBox(height: 8)),
@@ -162,14 +203,81 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
   }
 
   // --- WIDGETS AUXILIARES DE DISEÑO ---
-  Widget _buildSummaryCard(FundProvider provider, GlobalMetrics globalMetrics) {
-    final globalProfitColor = globalMetrics.profitAbs >= 0
+
+  Widget _buildTotalValue(
+    FundProvider provider,
+    GlobalMetrics portfolioMetrics,
+  ) {
+    final portfolioProfitColor = portfolioMetrics.profitAbs >= 0
         ? Colors.greenAccent[400]!
         : Colors.redAccent[200]!;
-    final bool hayInversion = globalMetrics.totalInvested > 0;
 
-    final accumulatedReturn = globalMetrics.totalInvested > 0
-        ? globalMetrics.profitAbs / globalMetrics.totalInvested * 100
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: .start,
+        children: [
+          Text(
+            l10n.currentPortfolioValue,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                portfolioMetrics.profitAbs >= 0
+                    ? Icons.trending_up
+                    : Icons.trending_down,
+                color: portfolioProfitColor,
+                size: 40,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${smartFormat.format(portfolioMetrics.totalValue)} €',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -1,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(
+    bool? isPortfolio,
+    String title,
+    FundProvider provider,
+    GlobalMetrics metrics,
+  ) {
+    final globalProfitColor = metrics.profitAbs >= 0
+        ? Colors.greenAccent[400]!
+        : Colors.redAccent[200]!;
+    final bool hayInversion = metrics.totalInvested > 0;
+
+    final accumulatedReturn = metrics.totalInvested > 0
+        ? metrics.profitAbs / metrics.totalInvested * 100
         : 0.0;
 
     return Container(
@@ -187,39 +295,9 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: .start,
         children: [
-          Text(
-            l10n.currentPortfolioValue,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                globalMetrics.profitAbs >= 0
-                    ? Icons.trending_up
-                    : Icons.trending_down,
-                color: globalProfitColor,
-                size: 40,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${smartFormat.format(globalMetrics.totalValue)} €',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -1,
-                ),
-              ),
-            ],
-          ),
+          Text(title),
           if (hayInversion) ...[
             const SizedBox(height: 10),
             const Divider(color: Colors.white24),
@@ -236,7 +314,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                   ),
                 ),
                 Text(
-                  '${smartFormat.format(globalMetrics.totalInvested)} €',
+                  '${smartFormat.format(metrics.totalInvested)} €',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -258,7 +336,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                   ),
                 ),
                 Text(
-                  '${globalMetrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(globalMetrics.profitAbs)} €',
+                  '${metrics.profitAbs > 0 ? '+' : ''}${smartFormat.format(metrics.profitAbs)} €',
                   style: TextStyle(
                     color: globalProfitColor,
                     fontSize: 18,
@@ -291,7 +369,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
             ),
             const SizedBox(height: 10),
             // MWR ANUALIZADO
-            if (globalMetrics.mwrAnnualized != null)
+            if (metrics.mwrAnnualized != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -303,8 +381,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                     ),
                   ),
                   Text(
-                    '${globalMetrics.mwrAnnualized! > 0 ? '+' : ''}'
-                    '${smartFormat.format(globalMetrics.mwrAnnualized! * 100)} %',
+                    '${metrics.mwrAnnualized! > 0 ? '+' : ''}'
+                    '${smartFormat.format(metrics.mwrAnnualized! * 100)} %',
                     style: TextStyle(
                       color: globalProfitColor,
                       fontSize: 18,
@@ -314,27 +392,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                 ],
               ),
             //const SizedBox(height: 10),
-            /* Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.relativeReturnLabel,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  '${globalMetrics.profitRel > 0 ? '+' : ''}${percentFormat.format(globalMetrics.profitRel)}%',
-                  style: TextStyle(
-                    color: globalProfitColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ), */
-            if (globalMetrics.totalValue > 0) ...[
+            if (metrics.totalValue > 0 && isPortfolio == true) ...[
               const SizedBox(height: 10),
               Text(
                 l10n.weightsLabel,
@@ -351,13 +409,13 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                   width: double.infinity,
                   child: Row(
                     children: provider.portfolio.map((item) {
-                      final metrics = FinancialCalculator.calculateFundMetrics(
-                        item,
-                      );
+                      final calculateFundMetrics =
+                          FinancialCalculator.calculateFundMetrics(item);
                       final double rate =
                           provider.exchangeRates[item.currency] ?? 1.0;
-                      final fundValue = metrics.currentValue * rate;
-                      final weight = fundValue / globalMetrics.totalValue;
+                      final fundValue =
+                          calculateFundMetrics.currentValue * rate;
+                      final weight = fundValue / metrics.totalValue;
                       if (weight <= 0) return const SizedBox.shrink();
                       return Expanded(
                         flex: (weight * 1000).toInt(),
@@ -368,7 +426,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                           preferBelow: false,
                           child: Container(
                             color: CircleAvatarFund(fund: item).getFundColor,
-                            margin: const EdgeInsets.symmetric(horizontal: 0.5),
+                            margin: const .symmetric(horizontal: 0.5),
                           ),
                         ),
                       );
@@ -484,7 +542,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
             }
           },
         ),
-        _buildActionCard(
+        /* _buildActionCard(
           context,
           provider,
           icon: Icons.history,
@@ -499,14 +557,14 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               ),
             );
           },
-        ),
+        ), */
 
         _buildActionCard(
           context,
           provider,
           icon: Icons.history,
           title: 'Histórico',
-          subtitle: 'Reconstruir inversiones',
+          subtitle: 'Trayectoria inversora',
           color: Colors.green,
           onTap: () {
             Navigator.push(

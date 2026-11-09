@@ -126,15 +126,16 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     /* final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
       provider.exchangeRates,
-    ); */
-
-    final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
-      provider.portfolio,
-      provider.exchangeRates,
       historicalInvestments: provider.historicalInvestments,
       historicalOperations: provider.historicalOperations,
+    ); */
+
+    final portfolioMetrics = FinancialCalculator.calculateGlobalMetrics(
+      provider.portfolio,
+      provider.exchangeRates,
     );
-    final bool showPortfolioSummary = globalMetrics.totalInvested > 0;
+
+    final bool showPortfolioSummary = portfolioMetrics.totalInvested > 0;
 
     // Variación global entre las dos últimas valoraciones disponibles
     // de cada fondo, convertidas a euros.
@@ -258,7 +259,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               itemBuilder: (context, index) {
                                 if (showPortfolioSummary && index == 0) {
                                   return _buildPortfolioHeader(
-                                    globalMetrics,
+                                    portfolioMetrics,
                                     dailyChangeAbs,
                                     dailyChangePercent,
                                     provider,
