@@ -932,7 +932,9 @@ void main() {
         historicalOperations: operations,
       );
 
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
     });
 
     test('una suscripción futura no modifica la antigüedad de la cartera', () {
@@ -966,7 +968,9 @@ void main() {
       );
 
       expect(metrics.totalInvested, 1000);
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
     });
 
     test('ignora reembolsos históricos posteriores a la fecha actual', () {
@@ -1165,7 +1169,10 @@ void main() {
         closeTo(openPortfolioMetrics.profitRel, 0.0001),
       );
       expect(metrics.mwrAnnualized, isNotNull);
-      expect(metrics.mwrAnnualized, closeTo(0.0536, 0.0002));
+      expect(
+        metrics.mwrAnnualized,
+        closeTo(openPortfolioMetrics.mwrAnnualized!, 0.0002),
+      );
     });
 
     test('mantiene las métricas históricas independientes del instante '
@@ -1810,10 +1817,18 @@ void main() {
         historicalOperations: historicalOperations,
       );
 
+      final openPortfolioMetrics = FinancialCalculator.calculateGlobalMetrics(
+        [currentFund],
+        const {'EUR': 1.0},
+      );
+
       expect(metrics.totalValue, closeTo(1220, 0.0001));
       expect(metrics.totalValueGlobal, closeTo(120, 0.0001));
       expect(metrics.mwrAnnualized, isNotNull);
-      expect(metrics.mwrAnnualized!, closeTo(0.1076, 0.0002));
+      expect(
+        metrics.mwrAnnualized,
+        closeTo(openPortfolioMetrics.mwrAnnualized!, 0.0002),
+      );
     });
     test('LF-143.3.4: calcula el MWR histórico cuando no hay '
         'cartera vigente', () {
@@ -1963,7 +1978,9 @@ void main() {
         historicalOperations: operationsWithFuture,
       );
 
-      expect(baseline.isAnnualized, isTrue);
+      //expect(baseline.isAnnualized, isTrue);
+      expect(baseline.isAnnualized, isFalse);
+      expect(baseline.isAnnualizedGlobal, isTrue);
       expect(withFutureOperation.isAnnualized, baseline.isAnnualized);
     });
 
@@ -2527,7 +2544,9 @@ void main() {
       expect(metrics.totalInvested, 1000);
       expect(metrics.profitAbs, 0);
       expect(metrics.profitRel, 0);
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -2578,7 +2597,9 @@ void main() {
       expect(metrics.totalInvested, 1000);
       expect(metrics.profitAbs, 0);
       expect(metrics.profitRel, 0);
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
     });
 
     test(
@@ -2641,7 +2662,9 @@ void main() {
         expect(metrics.totalInvested, 1000);
         expect(metrics.profitAbs, 0);
         expect(metrics.profitRel, 0);
-        expect(metrics.isAnnualized, isTrue);
+        //expect(metrics.isAnnualized, isTrue);
+        expect(metrics.isAnnualized, isFalse);
+        expect(metrics.isAnnualizedGlobal, isTrue);
       },
     );
 
@@ -2705,7 +2728,9 @@ void main() {
         expect(metrics.totalInvested, 1000);
         expect(metrics.profitAbs, 0);
         expect(metrics.profitRel, 0);
-        expect(metrics.isAnnualized, isTrue);
+        //expect(metrics.isAnnualized, isTrue);
+        expect(metrics.isAnnualized, isFalse);
+        expect(metrics.isAnnualizedGlobal, isTrue);
       },
     );
 
@@ -2776,7 +2801,9 @@ void main() {
       expect(metrics.totalInvested, 1000);
       expect(metrics.profitAbs, 0);
       expect(metrics.profitRel, 0);
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -2827,7 +2854,9 @@ void main() {
       //expect(metrics.profitRel, 0);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -2872,7 +2901,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -2919,7 +2950,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -2968,7 +3001,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3034,7 +3069,9 @@ void main() {
       expect(metrics.totalInvested, 1400);
       expect(metrics.profitAbs, 100);
       expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3101,7 +3138,9 @@ void main() {
         expect(metrics.totalInvested, 1400);
         expect(metrics.profitAbs, 100);
         expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
-        expect(metrics.isAnnualized, isTrue);
+        //expect(metrics.isAnnualized, isTrue);
+        expect(metrics.isAnnualized, isFalse);
+        expect(metrics.isAnnualizedGlobal, isTrue);
         expect(metrics.mwrAnnualized, isNull);
       },
     );
@@ -3152,7 +3191,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3201,7 +3242,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3273,7 +3316,9 @@ void main() {
       expect(metrics.totalInvested, 1400);
       expect(metrics.profitAbs, 100);
       expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3335,7 +3380,9 @@ void main() {
       expect(metrics.profitRel, closeTo(550 / 950 * 100, 0.000001));
       //expect(metrics.profitAbs, 50);
       //expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3397,7 +3444,9 @@ void main() {
       expect(metrics.profitRel, closeTo(-400 / 1400 * 100, 0.000001));
       //expect(metrics.profitAbs, 100);
       //expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3467,7 +3516,9 @@ void main() {
       expect(metrics.totalInvested, 1400);
       expect(metrics.profitAbs, 100);
       expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3515,7 +3566,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3563,7 +3616,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3607,7 +3662,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3655,7 +3712,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3727,7 +3786,9 @@ void main() {
       expect(metrics.totalInvested, 1400);
       expect(metrics.profitAbs, 100);
       expect(metrics.profitRel, closeTo(100 / 1400 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3775,7 +3836,9 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3837,7 +3900,9 @@ void main() {
       //expect(metrics.profitRel, closeTo(-550 / 950 * 100, 0.000001));
       expect(metrics.profitAbs, 550);
       expect(metrics.profitRel, closeTo(550 / 950 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -3928,7 +3993,9 @@ void main() {
       expect(metrics.totalInvested, 1400);
       expect(metrics.profitAbs, 400);
       expect(metrics.profitRel, closeTo(400 / 1400 * 100, 0.000001));
-      expect(metrics.isAnnualized, isTrue);
+      //expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
     });
 
@@ -4403,7 +4470,7 @@ void main() {
         isin: 'LF143-5-6',
         symbol: 'LF143',
         name: 'Fondo vigente',
-        lastValue: 1100,
+        lastValue: 110,
         currency: 'EUR',
         date: endDate,
         history: [PricePoint(startDate, 100), PricePoint(endDate, 110)],
@@ -4457,6 +4524,136 @@ void main() {
       expect(metrics.mwrAnnualizedGlobal, isNotNull);
 
       expect(metrics.mwrAnnualizedGlobal!, lessThan(metrics.mwrAnnualized!));
+    });
+
+    test('LF-143.5.7: mwrAnnualized solo considera los fondos vigentes '
+        'aunque existan inversiones históricas cerradas', () {
+      final startDate = DateTime(2023, 1, 1);
+      final endDate = DateTime(2025, 1, 1);
+
+      final fund = FundData(
+        isin: 'LF143-5-7',
+        symbol: 'LF143',
+        name: 'Fondo vigente',
+        lastValue: 12.1,
+        currency: 'EUR',
+        date: endDate,
+        history: [PricePoint(startDate, 10), PricePoint(endDate, 12.1)],
+        operations: [
+          FundOperation(
+            isin: 'LF143-5-7',
+            date: startDate,
+            type: OperationType.buy,
+            units: 10,
+            price: 10,
+            amount: 100,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-5-7-HIST',
+        name: 'Inversión histórica cerrada',
+      );
+
+      final historicalOperations = [
+        HistoricalOperation(
+          uid: 'LF143-5-7-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-5-7-RED',
+          investmentUid: investment.uid,
+          date: endDate,
+          type: HistoricalOperationType.redemption,
+          amount: 1100,
+        ),
+      ];
+
+      final openMetrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+      );
+
+      final mixedMetrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: historicalOperations,
+      );
+
+      expect(openMetrics.mwrAnnualized, isNotNull);
+      expect(mixedMetrics.mwrAnnualized, isNotNull);
+      expect(mixedMetrics.mwrAnnualized, openMetrics.mwrAnnualized);
+
+      expect(mixedMetrics.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        mixedMetrics.mwrAnnualizedGlobal!,
+        isNot(openMetrics.mwrAnnualized),
+      );
+    });
+
+    test('LF-143.5.8: la antigüedad de la cartera vigente es independiente '
+        'de la trayectoria histórica global', () {
+      final now = DateTime.now();
+      final fundStartDate = now.subtract(const Duration(days: 10));
+      final historicalStartDate = now.subtract(const Duration(days: 60));
+      final historicalEndDate = now.subtract(const Duration(days: 40));
+
+      final fund = FundData(
+        isin: 'LF143-5-8',
+        symbol: 'LF143',
+        name: 'Fondo vigente reciente',
+        lastValue: 101,
+        currency: 'EUR',
+        date: now,
+        history: [PricePoint(fundStartDate, 100), PricePoint(now, 101)],
+        operations: [
+          FundOperation(
+            isin: 'LF143-5-8',
+            date: fundStartDate,
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-5-8-HIST',
+        name: 'Inversión histórica cerrada',
+      );
+
+      final historicalOperations = [
+        HistoricalOperation(
+          uid: 'LF143-5-8-SUB',
+          investmentUid: investment.uid,
+          date: historicalStartDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-5-8-RED',
+          investmentUid: investment.uid,
+          date: historicalEndDate,
+          type: HistoricalOperationType.redemption,
+          amount: 1100,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: historicalOperations,
+      );
+
+      expect(metrics.isAnnualized, isFalse);
+      expect(metrics.isAnnualizedGlobal, isTrue);
     });
   });
 

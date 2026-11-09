@@ -937,8 +937,11 @@ class FinancialCalculator {
     double profitAbs = 0;
     //double weightedTaeSum = 0;
     DateTime? firstOpDate;
+    DateTime? firstPortfolioOpDate;
     DateTime? valuationDate;
+
     final cashFlows = <Map<String, Object>>[];
+    final portfolioCashFlows = <Map<String, Object>>[];
 
     double portfolioInvested = 0;
     double portfolioProfitAbs = 0;
@@ -974,11 +977,19 @@ class FinancialCalculator {
           totalInvestedGlobal += operation.amount * rate;
         }
 
-        cashFlows.add({
+        /* cashFlows.add({
           'amount':
               (isInvestment ? -operation.amount : operation.amount) * rate,
           'date': operation.date,
-        });
+        }); */
+        final cashFlow = {
+          'amount':
+              (isInvestment ? -operation.amount : operation.amount) * rate,
+          'date': operation.date,
+        };
+
+        portfolioCashFlows.add(cashFlow);
+        cashFlows.add(cashFlow);
 
         if (valuationDate == null || operation.date.isAfter(valuationDate)) {
           valuationDate = operation.date;
@@ -989,7 +1000,17 @@ class FinancialCalculator {
         weightedTaeSum += metrics.tae * fundValueConverted;
       } */
 
+      /* if (metrics.firstOpDate != null) {
+        if (firstOpDate == null || metrics.firstOpDate!.isBefore(firstOpDate)) {
+          firstOpDate = metrics.firstOpDate;
+        }
+      } */
       if (metrics.firstOpDate != null) {
+        if (firstPortfolioOpDate == null ||
+            metrics.firstOpDate!.isBefore(firstPortfolioOpDate)) {
+          firstPortfolioOpDate = metrics.firstOpDate;
+        }
+
         if (firstOpDate == null || metrics.firstOpDate!.isBefore(firstOpDate)) {
           firstOpDate = metrics.firstOpDate;
         }
@@ -1085,28 +1106,34 @@ class FinancialCalculator {
         ? (profitAbs / totalInvested) * 100
         : 0.0;
 
-    bool isAnnualized = false;
+    /* bool isAnnualized = false;
     if (firstOpDate != null) {
       isAnnualized = DateTime.now().difference(firstOpDate).inDays >= 30;
+    } */
+    bool isAnnualized = false;
+    if (firstPortfolioOpDate != null) {
+      isAnnualized =
+          DateTime.now().difference(firstPortfolioOpDate).inDays >= 30;
     }
 
     double? mwrAnnualized;
 
-    if (cashFlows.isNotEmpty) {
-      final portfolioCashFlows = List<Map<String, Object>>.from(cashFlows);
+    final flowsForPortfolio = portfolioCashFlows.isNotEmpty
+        ? portfolioCashFlows
+        : cashFlows;
+
+    if (flowsForPortfolio.isNotEmpty) {
+      final portfolioFlows = List<Map<String, Object>>.from(flowsForPortfolio);
 
       if (portfolioValue > 0 && valuationDate != null) {
-        portfolioCashFlows.add({
-          'amount': portfolioValue,
-          'date': valuationDate,
-        });
+        portfolioFlows.add({'amount': portfolioValue, 'date': valuationDate});
       }
 
-      portfolioCashFlows.sort(
+      portfolioFlows.sort(
         (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime),
       );
 
-      final irr = _calculateIRR(portfolioCashFlows);
+      final irr = _calculateIRR(portfolioFlows);
       if (!irr.isNaN) {
         mwrAnnualized = irr;
       }
