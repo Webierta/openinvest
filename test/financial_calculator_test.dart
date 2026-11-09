@@ -4655,6 +4655,66 @@ void main() {
       expect(metrics.isAnnualized, isFalse);
       expect(metrics.isAnnualizedGlobal, isTrue);
     });
+
+    test('LF-143.5.9: las operaciones históricas recientes no alteran '
+        'la antigüedad de los fondos vigentes', () {
+      final now = DateTime.now();
+      final fundStartDate = now.subtract(const Duration(days: 60));
+      final historicalStartDate = now.subtract(const Duration(days: 10));
+      final historicalEndDate = now.subtract(const Duration(days: 5));
+
+      final fund = FundData(
+        isin: 'LF143-5-9',
+        symbol: 'LF143',
+        name: 'Fondo vigente antiguo',
+        lastValue: 101,
+        currency: 'EUR',
+        date: now,
+        history: [PricePoint(fundStartDate, 100), PricePoint(now, 101)],
+        operations: [
+          FundOperation(
+            isin: 'LF143-5-9',
+            date: fundStartDate,
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-5-9-HIST',
+        name: 'Inversión histórica reciente',
+      );
+
+      final historicalOperations = [
+        HistoricalOperation(
+          uid: 'LF143-5-9-SUB',
+          investmentUid: investment.uid,
+          date: historicalStartDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-5-9-RED',
+          investmentUid: investment.uid,
+          date: historicalEndDate,
+          type: HistoricalOperationType.redemption,
+          amount: 1050,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: historicalOperations,
+      );
+
+      expect(metrics.isAnnualized, isTrue);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {
