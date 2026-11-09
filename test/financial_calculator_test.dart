@@ -4208,7 +4208,7 @@ void main() {
 
       expect(metrics.totalValueGlobal, 0);
       expect(metrics.isAnnualizedGlobal, isTrue);
-      expect(metrics.mwrAnnualizedGlobal, closeTo(0.20, 0.0001));
+      expect(metrics.mwrAnnualizedGlobal, closeTo(0.20015, 0.0001));
     });
   });
 

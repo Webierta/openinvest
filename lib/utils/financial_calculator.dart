@@ -70,8 +70,8 @@ class GlobalMetrics {
   final double totalInvestedGlobal;
   final double profitAbsGlobal;
   final double profitRelGlobal;
-  //final bool isAnnualizedGlobal;
-  //final double? mwrAnnualizedGlobal;
+  final bool isAnnualizedGlobal;
+  final double? mwrAnnualizedGlobal;
 
   GlobalMetrics({
     required this.totalValue,
@@ -84,6 +84,8 @@ class GlobalMetrics {
     required this.totalInvestedGlobal,
     required this.profitAbsGlobal,
     required this.profitRelGlobal,
+    required this.isAnnualizedGlobal,
+    this.mwrAnnualizedGlobal,
   });
 }
 
@@ -1105,6 +1107,29 @@ class FinancialCalculator {
       }
     }
 
+    final bool isAnnualizedGlobal =
+        firstOpDate != null &&
+        DateTime.now().difference(firstOpDate).inDays >= 30;
+
+    double? mwrAnnualizedGlobal;
+
+    if (cashFlows.isNotEmpty) {
+      final globalCashFlows = List<Map<String, Object>>.from(cashFlows);
+
+      if (portfolioValue > 0 && valuationDate != null) {
+        globalCashFlows.add({'amount': portfolioValue, 'date': valuationDate});
+      }
+
+      globalCashFlows.sort(
+        (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime),
+      );
+
+      final irr = _calculateIRR(globalCashFlows);
+      if (!irr.isNaN) {
+        mwrAnnualizedGlobal = irr;
+      }
+    }
+
     return GlobalMetrics(
       totalValue: totalValue,
       totalInvested: totalInvested,
@@ -1118,6 +1143,8 @@ class FinancialCalculator {
       profitRelGlobal: totalInvestedGlobal > 0
           ? profitAbs / totalInvestedGlobal
           : 0.0,
+      isAnnualizedGlobal: isAnnualizedGlobal,
+      mwrAnnualizedGlobal: mwrAnnualizedGlobal,
     );
   }
 
