@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
+import '../providers/fund_provider.dart';
 import '../services/database_service.dart';
 import '../utils/historical_investment_validator.dart';
 import '../widgets/gradient_background.dart';
@@ -188,6 +190,9 @@ class _HistoricalInvestmentFormPageState
           DatabaseService.saveHistoricalInvestmentWithOperations;
 
       await saveInvestment(investment, operations);
+      if (mounted) {
+        await context.read<FundProvider>().loadPortfolio();
+      }
 
       if (!mounted) return;
 
