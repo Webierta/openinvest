@@ -1005,6 +1005,11 @@ class FinancialCalculator {
 
     // Integra las inversiones históricas cerradas.
     final now = DateTime.now();
+
+    final historicalInvestmentUids = historicalInvestments
+        .map((investment) => investment.uid)
+        .toSet();
+
     for (final investment in historicalInvestments) {
       final investmentOperations = historicalOperations
           .where(
@@ -1036,6 +1041,9 @@ class FinancialCalculator {
             ? <HistoricalOperation>[]
             : historicalOperations.where(
                 (candidate) =>
+                    historicalInvestmentUids.contains(
+                      candidate.investmentUid,
+                    ) &&
                     candidate.transferUid == operation.transferUid &&
                     candidate.type == HistoricalOperationType.transferOut &&
                     candidate.date.year == operation.date.year &&
@@ -1048,6 +1056,9 @@ class FinancialCalculator {
             ? <HistoricalOperation>[]
             : historicalOperations.where(
                 (candidate) =>
+                    historicalInvestmentUids.contains(
+                      candidate.investmentUid,
+                    ) &&
                     candidate.transferUid == operation.transferUid &&
                     candidate.type == HistoricalOperationType.transferIn &&
                     candidate.date.year == operation.date.year &&
@@ -1061,7 +1072,9 @@ class FinancialCalculator {
             matchingTransferOuts.length == 1 &&
             matchingTransferIns.length == 1 &&
             matchingTransferOuts.first.investmentUid !=
-                matchingTransferIns.first.investmentUid;
+                matchingTransferIns.first.investmentUid &&
+            matchingTransferOuts.first.amount ==
+                matchingTransferIns.first.amount;
 
         if (isContribution && !isInternalTransfer) {
           totalInvestedGlobal += operation.amount;

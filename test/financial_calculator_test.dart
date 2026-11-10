@@ -4997,8 +4997,133 @@ void main() {
       );
     });
 
+    test('LF-143.6.4: un traspaso interno puede establecer la antigüedad global sin incrementar aportaciones', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      const transferUid = 'TRANSFER-A-B';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-A-01',
+          investmentUid: investmentA.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-B-01',
+          investmentUid: investmentB.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA, investmentB],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test('LF-143.6.5: no empareja traspasos con inversiones históricas no registradas', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      const transferUid = 'TRANSFER-EXTERNAL-B';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-EXTERNAL-01',
+          investmentUid: 'INVESTMENT-EXTERNA',
+          date: transferDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-B-01',
+          investmentUid: investmentB.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentB],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 1000);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test('LF-143.6.6: no empareja entradas de inversiones históricas no registradas', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      const transferUid = 'TRANSFER-A-EXTERNAL';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-A-01',
+          investmentUid: investmentA.uid,
+          date: transferDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-EXTERNAL-01',
+          investmentUid: 'INVESTMENT-EXTERNA',
+          date: transferDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.isAnnualizedGlobal, isFalse);
+    });
+
     test(
-      'LF-143.6.4: un traspaso interno no establece la antigüedad global',
+      'LF-143.6.7: empareja traspasos del mismo día con horas diferentes',
       () {
         final transferDate = DateTime.now().subtract(const Duration(days: 60));
 
@@ -5014,11 +5139,27 @@ void main() {
 
         const transferUid = 'TRANSFER-A-B';
 
+        final transferOutDate = DateTime(
+          transferDate.year,
+          transferDate.month,
+          transferDate.day,
+          10,
+          15,
+        );
+
+        final transferInDate = DateTime(
+          transferDate.year,
+          transferDate.month,
+          transferDate.day,
+          18,
+          45,
+        );
+
         final operations = [
           HistoricalOperation(
             uid: 'OP-A-01',
             investmentUid: investmentA.uid,
-            date: transferDate,
+            date: transferOutDate,
             type: HistoricalOperationType.transferOut,
             amount: 1000,
             transferUid: transferUid,
@@ -5026,7 +5167,7 @@ void main() {
           HistoricalOperation(
             uid: 'OP-B-01',
             investmentUid: investmentB.uid,
-            date: transferDate,
+            date: transferInDate,
             type: HistoricalOperationType.transferIn,
             amount: 1000,
             transferUid: transferUid,
@@ -5040,9 +5181,844 @@ void main() {
           historicalOperations: operations,
         );
 
-        expect(metrics.isAnnualizedGlobal, isFalse);
+        expect(metrics.totalInvestedGlobal, 0);
+        expect(metrics.isAnnualizedGlobal, isTrue);
       },
     );
+
+    test('LF-143.6.8: no empareja traspasos de días naturales distintos', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      const transferUid = 'TRANSFER-A-B';
+
+      final transferOutDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        10,
+        15,
+      );
+
+      final nextDay = transferDate.add(const Duration(days: 1));
+
+      final transferInDate = DateTime(
+        nextDay.year,
+        nextDay.month,
+        nextDay.day,
+        18,
+        45,
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-A-01',
+          investmentUid: investmentA.uid,
+          date: transferOutDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-B-01',
+          investmentUid: investmentB.uid,
+          date: transferInDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA, investmentB],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 1000);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test('LF-143.6.9: no empareja traspasos con importes diferentes', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      const transferUid = 'TRANSFER-A-B';
+
+      final transferOutDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        10,
+        15,
+      );
+
+      final transferInDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        18,
+        45,
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-A-01',
+          investmentUid: investmentA.uid,
+          date: transferOutDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 1000,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-B-01',
+          investmentUid: investmentB.uid,
+          date: transferInDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA, investmentB],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 999);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test('LF-143.6.10: empareja traspasos parciales con importes iguales', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      const transferUid = 'TRANSFER-A-B';
+
+      final transferOutDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        10,
+        15,
+      );
+
+      final transferInDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        18,
+        45,
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-A-01',
+          investmentUid: investmentA.uid,
+          date: transferOutDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-B-01',
+          investmentUid: investmentB.uid,
+          date: transferInDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA, investmentB],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test(
+      'LF-143.6.11: no empareja traspasos parciales con importes diferentes',
+      () {
+        final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+        final transferOutDate = DateTime(
+          transferDate.year,
+          transferDate.month,
+          transferDate.day,
+          10,
+          15,
+        );
+
+        final transferInDate = DateTime(
+          transferDate.year,
+          transferDate.month,
+          transferDate.day,
+          18,
+          45,
+        );
+
+        final investmentA = HistoricalInvestment(
+          uid: 'INVESTMENT-A',
+          name: 'Inversión A',
+        );
+
+        final investmentB = HistoricalInvestment(
+          uid: 'INVESTMENT-B',
+          name: 'Inversión B',
+        );
+
+        const transferUid = 'TRANSFER-PARTIAL-001';
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-OUT-001',
+            investmentUid: investmentA.uid,
+            date: transferOutDate,
+            type: HistoricalOperationType.transferOut,
+            amount: 999,
+            transferUid: transferUid,
+          ),
+          HistoricalOperation(
+            uid: 'OP-IN-001',
+            investmentUid: investmentB.uid,
+            date: transferInDate,
+            type: HistoricalOperationType.transferIn,
+            amount: 998,
+            transferUid: transferUid,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {},
+          historicalInvestments: [investmentA, investmentB],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 998);
+        expect(metrics.isAnnualizedGlobal, isTrue);
+      },
+    );
+
+    test('LF-143.6.12: no empareja traspasos con varias salidas posibles', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final transferOutDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        10,
+        15,
+      );
+
+      final secondTransferOutDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        12,
+        30,
+      );
+
+      final transferInDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        18,
+        45,
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      final investmentC = HistoricalInvestment(
+        uid: 'INVESTMENT-C',
+        name: 'Inversión C',
+      );
+
+      const transferUid = 'TRANSFER-AMBIGUOUS-001';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-OUT-001',
+          investmentUid: investmentA.uid,
+          date: transferOutDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-OUT-002',
+          investmentUid: investmentB.uid,
+          date: secondTransferOutDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-IN-001',
+          investmentUid: investmentC.uid,
+          date: transferInDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA, investmentB, investmentC],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 999);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test('LF-143.6.13: no empareja traspasos con varias entradas posibles', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final transferOutDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        10,
+        15,
+      );
+
+      final firstTransferInDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        12,
+        30,
+      );
+
+      final secondTransferInDate = DateTime(
+        transferDate.year,
+        transferDate.month,
+        transferDate.day,
+        18,
+        45,
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      final investmentC = HistoricalInvestment(
+        uid: 'INVESTMENT-C',
+        name: 'Inversión C',
+      );
+
+      const transferUid = 'TRANSFER-AMBIGUOUS-002';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-OUT-001',
+          investmentUid: investmentA.uid,
+          date: transferOutDate,
+          type: HistoricalOperationType.transferOut,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-IN-001',
+          investmentUid: investmentB.uid,
+          date: firstTransferInDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-IN-002',
+          investmentUid: investmentC.uid,
+          date: secondTransferInDate,
+          type: HistoricalOperationType.transferIn,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA, investmentB, investmentC],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 1998);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test(
+      'LF-143.6.14: empareja varios traspasos independientes el mismo día',
+      () {
+        final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+        final investmentA = HistoricalInvestment(
+          uid: 'INVESTMENT-A',
+          name: 'Inversión A',
+        );
+
+        final investmentB = HistoricalInvestment(
+          uid: 'INVESTMENT-B',
+          name: 'Inversión B',
+        );
+
+        final investmentC = HistoricalInvestment(
+          uid: 'INVESTMENT-C',
+          name: 'Inversión C',
+        );
+
+        final investmentD = HistoricalInvestment(
+          uid: 'INVESTMENT-D',
+          name: 'Inversión D',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-OUT-A',
+            investmentUid: investmentA.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              10,
+              15,
+            ),
+            type: HistoricalOperationType.transferOut,
+            amount: 999,
+            transferUid: 'TRANSFER-A',
+          ),
+          HistoricalOperation(
+            uid: 'OP-IN-B',
+            investmentUid: investmentB.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              10,
+              45,
+            ),
+            type: HistoricalOperationType.transferIn,
+            amount: 999,
+            transferUid: 'TRANSFER-A',
+          ),
+          HistoricalOperation(
+            uid: 'OP-OUT-C',
+            investmentUid: investmentC.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              12,
+              30,
+            ),
+            type: HistoricalOperationType.transferOut,
+            amount: 500,
+            transferUid: 'TRANSFER-C',
+          ),
+          HistoricalOperation(
+            uid: 'OP-IN-D',
+            investmentUid: investmentD.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              13,
+              15,
+            ),
+            type: HistoricalOperationType.transferIn,
+            amount: 500,
+            transferUid: 'TRANSFER-C',
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {},
+          historicalInvestments: [
+            investmentA,
+            investmentB,
+            investmentC,
+            investmentD,
+          ],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 0);
+        expect(metrics.isAnnualizedGlobal, isTrue);
+      },
+    );
+
+    test(
+      'LF-143.6.15: rechaza emparejamientos ambiguos con un mismo transferUid',
+      () {
+        final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+        final investmentA = HistoricalInvestment(
+          uid: 'INVESTMENT-A',
+          name: 'Inversión A',
+        );
+
+        final investmentB = HistoricalInvestment(
+          uid: 'INVESTMENT-B',
+          name: 'Inversión B',
+        );
+
+        final investmentC = HistoricalInvestment(
+          uid: 'INVESTMENT-C',
+          name: 'Inversión C',
+        );
+
+        final investmentD = HistoricalInvestment(
+          uid: 'INVESTMENT-D',
+          name: 'Inversión D',
+        );
+
+        const transferUid = 'TRANSFER-AMBIGUOUS-003';
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-OUT-A',
+            investmentUid: investmentA.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              10,
+              15,
+            ),
+            type: HistoricalOperationType.transferOut,
+            amount: 999,
+            transferUid: transferUid,
+          ),
+          HistoricalOperation(
+            uid: 'OP-OUT-B',
+            investmentUid: investmentB.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              11,
+              15,
+            ),
+            type: HistoricalOperationType.transferOut,
+            amount: 999,
+            transferUid: transferUid,
+          ),
+          HistoricalOperation(
+            uid: 'OP-IN-C',
+            investmentUid: investmentC.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              12,
+              15,
+            ),
+            type: HistoricalOperationType.transferIn,
+            amount: 999,
+            transferUid: transferUid,
+          ),
+          HistoricalOperation(
+            uid: 'OP-IN-D',
+            investmentUid: investmentD.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              13,
+              15,
+            ),
+            type: HistoricalOperationType.transferIn,
+            amount: 999,
+            transferUid: transferUid,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {},
+          historicalInvestments: [
+            investmentA,
+            investmentB,
+            investmentC,
+            investmentD,
+          ],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 1998);
+        expect(metrics.isAnnualizedGlobal, isTrue);
+      },
+    );
+
+    test('LF-143.6.16: no empareja traspasos de una misma inversión', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      const transferUid = 'TRANSFER-SAME-INVESTMENT-001';
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-OUT-001',
+          investmentUid: investmentA.uid,
+          date: DateTime(
+            transferDate.year,
+            transferDate.month,
+            transferDate.day,
+            10,
+            15,
+          ),
+          type: HistoricalOperationType.transferOut,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'OP-IN-001',
+          investmentUid: investmentA.uid,
+          date: DateTime(
+            transferDate.year,
+            transferDate.month,
+            transferDate.day,
+            18,
+            45,
+          ),
+          type: HistoricalOperationType.transferIn,
+          amount: 999,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 999);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test('LF-143.6.17: no empareja traspasos sin transferUid', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-OUT-001',
+          investmentUid: investmentA.uid,
+          date: DateTime(
+            transferDate.year,
+            transferDate.month,
+            transferDate.day,
+            10,
+            15,
+          ),
+          type: HistoricalOperationType.transferOut,
+          amount: 999,
+          transferUid: null,
+        ),
+        HistoricalOperation(
+          uid: 'OP-IN-001',
+          investmentUid: investmentB.uid,
+          date: DateTime(
+            transferDate.year,
+            transferDate.month,
+            transferDate.day,
+            18,
+            45,
+          ),
+          type: HistoricalOperationType.transferIn,
+          amount: 999,
+          transferUid: null,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA, investmentB],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 999);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test('LF-143.6.18: no empareja traspasos con distintos transferUid', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-OUT-001',
+          investmentUid: investmentA.uid,
+          date: DateTime(
+            transferDate.year,
+            transferDate.month,
+            transferDate.day,
+            10,
+            15,
+          ),
+          type: HistoricalOperationType.transferOut,
+          amount: 999,
+          transferUid: 'TRANSFER-A',
+        ),
+        HistoricalOperation(
+          uid: 'OP-IN-001',
+          investmentUid: investmentB.uid,
+          date: DateTime(
+            transferDate.year,
+            transferDate.month,
+            transferDate.day,
+            18,
+            45,
+          ),
+          type: HistoricalOperationType.transferIn,
+          amount: 999,
+          transferUid: 'TRANSFER-B',
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA, investmentB],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 999);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
+
+    test('LF-143.6.19: empareja traspasos con transferUid normalizado', () {
+      final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'OP-OUT-001',
+          investmentUid: investmentA.uid,
+          date: DateTime(
+            transferDate.year,
+            transferDate.month,
+            transferDate.day,
+            10,
+            15,
+          ),
+          type: HistoricalOperationType.transferOut,
+          amount: 999,
+          transferUid: ' TRANSFER-001 ',
+        ),
+        HistoricalOperation(
+          uid: 'OP-IN-001',
+          investmentUid: investmentB.uid,
+          date: DateTime(
+            transferDate.year,
+            transferDate.month,
+            transferDate.day,
+            18,
+            45,
+          ),
+          type: HistoricalOperationType.transferIn,
+          amount: 999,
+          transferUid: 'TRANSFER-001',
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [],
+        const {},
+        historicalInvestments: [investmentA, investmentB],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 0);
+      expect(metrics.isAnnualizedGlobal, isTrue);
+    });
 
     /* test('LF-143.7.1: empareja traspasos con el mismo UID aunque las fechas sean distintas', () {
       final fund = FundData(
