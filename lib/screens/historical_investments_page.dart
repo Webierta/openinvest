@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
+import '../providers/fund_provider.dart';
 import '../services/database_service.dart';
 import '../utils/historical_investment_validator.dart';
 import '../widgets/gradient_background.dart';
@@ -29,7 +31,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     _loadInvestments();
   }
 
-  void _loadInvestments() {
+  void _loadInvestments() async {
     _investmentsFuture = DatabaseService.getHistoricalInvestments();
   }
 
@@ -410,7 +412,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
 
   Widget _buildInvestment(HistoricalInvestment investment) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const .symmetric(horizontal: 12, vertical: 6),
       child: FutureBuilder<List<HistoricalOperation>>(
         future: DatabaseService.getHistoricalOperations(investment.uid),
         builder: (context, snapshot) {
@@ -560,7 +562,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
               onRefresh: _refresh,
               child: ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const .symmetric(vertical: 8),
                 itemCount: investments.length,
                 itemBuilder: (context, index) {
                   return _buildInvestment(investments[index]);

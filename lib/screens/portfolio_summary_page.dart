@@ -409,12 +409,17 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       child: Column(
         crossAxisAlignment: .start,
         children: [
-          Center(child: Icon(icon, size: 52, color: accentColor)),
+          Center(
+            child: Container(
+              padding: const .all(10),
+              decoration: BoxDecoration(color: Colors.white, shape: .circle),
+              child: Icon(icon, size: 40, color: accentColor),
+            ),
+          ),
+          const SizedBox(height: 8),
           Text(title, style: TextStyle(fontSize: 18)),
           Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.white60)),
           if (hayInversion) ...[
-            //const SizedBox(height: 10),
-            //const Divider(color: Colors.white24),
             Divider(color: accentColor),
             const SizedBox(height: 10),
 
@@ -690,7 +695,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                 Container(
                   padding: const .all(10),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
+                    //color: color.withValues(alpha: 0.15),
+                    color: Colors.white,
                     shape: .circle,
                   ),
                   child: Icon(icon, color: color, size: 32),
