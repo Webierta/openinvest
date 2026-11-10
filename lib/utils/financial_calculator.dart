@@ -1072,9 +1072,10 @@ class FinancialCalculator {
             matchingTransferOuts.length == 1 &&
             matchingTransferIns.length == 1 &&
             matchingTransferOuts.first.investmentUid !=
-                matchingTransferIns.first.investmentUid &&
-            matchingTransferOuts.first.amount ==
-                matchingTransferIns.first.amount;
+                matchingTransferIns.first.investmentUid;
+        //      &&
+        // matchingTransferOuts.first.amount ==
+        //     matchingTransferIns.first.amount;
 
         if (isContribution && !isInternalTransfer) {
           totalInvestedGlobal += operation.amount;

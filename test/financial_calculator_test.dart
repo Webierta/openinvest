@@ -5249,7 +5249,7 @@ void main() {
       expect(metrics.isAnnualizedGlobal, isTrue);
     });
 
-    test('LF-143.6.9: no empareja traspasos con importes diferentes', () {
+    test('LF-143.6.9: empareja traspasos con importes diferentes', () {
       final transferDate = DateTime.now().subtract(const Duration(days: 60));
 
       final investmentA = HistoricalInvestment(
@@ -5306,7 +5306,7 @@ void main() {
         historicalOperations: operations,
       );
 
-      expect(metrics.totalInvestedGlobal, 999);
+      expect(metrics.totalInvestedGlobal, 0.0);
       expect(metrics.isAnnualizedGlobal, isTrue);
     });
 
@@ -5372,7 +5372,7 @@ void main() {
     });
 
     test(
-      'LF-143.6.11: no empareja traspasos parciales con importes diferentes',
+      'LF-143.6.11: empareja traspasos parciales con importes diferentes',
       () {
         final transferDate = DateTime.now().subtract(const Duration(days: 60));
 
@@ -5430,7 +5430,7 @@ void main() {
           historicalOperations: operations,
         );
 
-        expect(metrics.totalInvestedGlobal, 998);
+        expect(metrics.totalInvestedGlobal, 0.0);
         expect(metrics.isAnnualizedGlobal, isTrue);
       },
     );
