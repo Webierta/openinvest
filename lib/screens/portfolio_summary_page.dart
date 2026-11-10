@@ -91,11 +91,17 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                               final cards = [
                                 _buildSummaryCard(
                                   title: 'Cartera actual',
+                                  subtitle: 'Fondos vigentes',
+                                  icon: Icons.account_balance_wallet_outlined,
+                                  accentColor: Colors.blueAccent,
                                   provider: provider,
                                   metrics: portfolioMetrics,
                                 ),
                                 _buildSummaryCard(
                                   title: 'Trayectoria inversora',
+                                  subtitle: 'Cartera + inversiones históricas',
+                                  icon: Icons.history,
+                                  accentColor: Colors.deepPurpleAccent,
                                   provider: provider,
                                   metrics: globalMetrics,
                                   isPortfolio: false,
@@ -352,6 +358,9 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
 
   Widget _buildSummaryCard({
     required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color accentColor,
     required FundProvider provider,
     required GlobalMetrics metrics,
     bool isPortfolio = true,
@@ -369,10 +378,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     final rendimientoAbsoluto = isGlobal
         ? metrics.profitAbsGlobal
         : metrics.profitAbs;
-
-    /* final accumulatedReturn = inversion > 0
-        ? rendimientoAbsoluto / inversion * 100
-        : 0.0; */
 
     final rentabilidadSimple = isGlobal
         ? metrics.profitRelGlobal
@@ -403,10 +408,13 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       child: Column(
         crossAxisAlignment: .start,
         children: [
-          Text(title, style: TextStyle(fontSize: 16)),
+          Center(child: Icon(icon, size: 52, color: accentColor)),
+          Text(title, style: TextStyle(fontSize: 18)),
+          Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.white60)),
           if (hayInversion) ...[
-            const SizedBox(height: 10),
-            const Divider(color: Colors.white24),
+            //const SizedBox(height: 10),
+            //const Divider(color: Colors.white24),
+            Divider(color: accentColor),
             const SizedBox(height: 10),
 
             // TOTAL INVERTIDO
@@ -457,11 +465,16 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
             Column(
               crossAxisAlignment: .start,
               children: [
-                Text(
-                  'Rentabilidad simple acumulada',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 13,
+                Tooltip(
+                  message:
+                      'Beneficio absoluto dividido por el capital invertido.\n'
+                      'Rentabilidad que no está anualizada ni considera flujos de capital',
+                  child: Text(
+                    'Rentabilidad simple acumulada',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 13,
+                    ),
                   ),
                 ),
                 Text(
