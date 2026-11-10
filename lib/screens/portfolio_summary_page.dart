@@ -354,37 +354,37 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     required String title,
     required FundProvider provider,
     required GlobalMetrics metrics,
-    bool? isPortfolio = true,
+    bool isPortfolio = true,
   }) {
     if (isPortfolio == false && provider.historicalInvestments.isEmpty) {
       return SizedBox.shrink();
     }
 
-    final bool hayInversionCartera = metrics.totalInvested > 0;
+    final bool isGlobal = isPortfolio == false;
 
-    double inversion = metrics.totalInvested;
-    double rendimientoAbsoluto = metrics.profitAbs;
-    //double rentabilidadSimple = metrics.profitRel;
-    double accumulatedReturn = inversion > 0
+    final inversion = isGlobal
+        ? metrics.totalInvestedGlobal
+        : metrics.totalInvested;
+
+    final rendimientoAbsoluto = isGlobal
+        ? metrics.profitAbsGlobal
+        : metrics.profitAbs;
+
+    /* final accumulatedReturn = inversion > 0
         ? rendimientoAbsoluto / inversion * 100
-        : 0.0;
-    double? mwr = metrics.mwrAnnualized;
-    Color profitColor = metrics.profitAbs >= 0
+        : 0.0; */
+
+    final rentabilidadSimple = isGlobal
+        ? metrics.profitRelGlobal
+        : metrics.profitRel;
+
+    final mwr = isGlobal ? metrics.mwrAnnualizedGlobal : metrics.mwrAnnualized;
+
+    final hayInversion = inversion > 0;
+
+    final profitColor = rendimientoAbsoluto >= 0
         ? Colors.greenAccent[400]!
         : Colors.redAccent[200]!;
-
-    if (isPortfolio == false) {
-      inversion = metrics.totalInvestedGlobal;
-      rendimientoAbsoluto = metrics.profitAbsGlobal;
-      //rentabilidadSimple = metrics.profitRelGlobal;
-      accumulatedReturn = inversion > 0
-          ? rendimientoAbsoluto / inversion * 100
-          : 0.0;
-      mwr = metrics.mwrAnnualizedGlobal;
-      profitColor = metrics.profitAbsGlobal >= 0
-          ? Colors.greenAccent[400]!
-          : Colors.redAccent[200]!;
-    }
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -404,7 +404,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         crossAxisAlignment: .start,
         children: [
           Text(title, style: TextStyle(fontSize: 16)),
-          if (hayInversionCartera) ...[
+          if (hayInversion) ...[
             const SizedBox(height: 10),
             const Divider(color: Colors.white24),
             const SizedBox(height: 10),
@@ -465,7 +465,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                   ),
                 ),
                 Text(
-                  '${accumulatedReturn > 0 ? '+' : ''}${percentFormat.format(accumulatedReturn)} %',
+                  '${rentabilidadSimple > 0 ? '+' : ''}${percentFormat.format(rentabilidadSimple)} %',
                   style: TextStyle(
                     color: profitColor,
                     fontSize: 18,
@@ -476,7 +476,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
             ),
             const SizedBox(height: 10),
             // MWR ANUALIZADO
-            if (metrics.mwrAnnualized != null)
+            if (mwr != null)
               Column(
                 crossAxisAlignment: .start,
                 children: [
@@ -488,7 +488,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                     ),
                   ),
                   Text(
-                    '${mwr! > 0 ? '+' : ''}'
+                    '${mwr > 0 ? '+' : ''}'
                     '${smartFormat.format(mwr * 100)} %',
                     style: TextStyle(
                       color: profitColor,
