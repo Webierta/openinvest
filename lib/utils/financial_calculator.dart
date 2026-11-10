@@ -1172,11 +1172,8 @@ class FinancialCalculator {
       totalValueGlobal: portfolioValue,
       totalInvestedGlobal: totalInvestedGlobal,
       profitAbsGlobal: profitAbs,
-      /*  profitRelGlobal: totalInvestedGlobal > 0
-          ? profitAbs / totalInvestedGlobal
-          : 0.0, */
       profitRelGlobal: totalInvestedGlobal > 0
-          ? (profitAbs / totalInvestedGlobal) * 100
+          ? profitAbs / totalInvestedGlobal
           : 0.0,
       isAnnualizedGlobal: isAnnualizedGlobal,
       mwrAnnualizedGlobal: mwrAnnualizedGlobal,

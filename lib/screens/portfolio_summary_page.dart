@@ -92,7 +92,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                                 _buildSummaryCard(
                                   title: 'Cartera actual',
                                   subtitle: 'Fondos vigentes',
-                                  icon: Icons.account_balance_wallet_outlined,
+                                  icon: Icons.assessment_outlined,
                                   accentColor: Colors.blueAccent,
                                   provider: provider,
                                   metrics: portfolioMetrics,
@@ -100,7 +100,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                                 _buildSummaryCard(
                                   title: 'Trayectoria inversora',
                                   subtitle: 'Cartera + inversiones históricas',
-                                  icon: Icons.history,
+                                  icon: Icons.history_outlined,
                                   accentColor: Colors.deepPurpleAccent,
                                   provider: provider,
                                   metrics: globalMetrics,
@@ -380,7 +380,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         : metrics.profitAbs;
 
     final rentabilidadSimple = isGlobal
-        ? metrics.profitRelGlobal
+        ? metrics.profitRelGlobal * 100
         : metrics.profitRel;
 
     final mwr = isGlobal ? metrics.mwrAnnualizedGlobal : metrics.mwrAnnualized;
@@ -394,7 +394,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        //color: Colors.white.withValues(alpha: 0.08),
+        color: accentColor.withValues(alpha: 0.2),
         borderRadius: .circular(20),
         border: .all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
@@ -521,14 +522,22 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     // Responsive: 2 columnas en móvil, 4 en escritorio (Linux/Windows)
     //final int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
-    final int crossAxisCount = screenWidth > 1000 ? 6 : 3;
+    final int crossAxisCount = screenWidth > 1000
+        ? 6
+        : screenWidth > 650
+        ? 3
+        : 2;
     // En pantallas muy pequeñas (<360px), hacemos las tarjetas un poco más altas
     //(aspectRatio < 1.0) para evitar que el texto se desborde si ocupa 2 líneas.
     final double aspectRatio = screenWidth > 1000
+        ? 1.0
+        : screenWidth > 650
         ? 1.5
-        : screenWidth < 360
-        ? 0.95
-        : 1.4; //1.1.
+        : 2.0;
+
+    // : screenWidth < 360
+    // ? 0.95
+    // : 1.4;
 
     return GridView.count(
       shrinkWrap: true,
@@ -667,7 +676,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         child: Container(
           padding: const .all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            //color: Colors.white.withValues(alpha: 0.05),
+            color: color.withValues(alpha: 0.2),
             borderRadius: .circular(16),
             border: .all(color: Colors.white.withValues(alpha: 0.1)),
           ),
@@ -683,7 +693,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                     color: color.withValues(alpha: 0.15),
                     shape: .circle,
                   ),
-                  child: Icon(icon, color: color, size: 26),
+                  child: Icon(icon, color: color, size: 32),
                 ),
                 const SizedBox(height: 10),
                 Text(

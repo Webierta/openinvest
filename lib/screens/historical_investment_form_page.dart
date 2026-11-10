@@ -190,7 +190,13 @@ class _HistoricalInvestmentFormPageState
           DatabaseService.saveHistoricalInvestmentWithOperations;
 
       await saveInvestment(investment, operations);
-      if (mounted) {
+      /* if (mounted) {
+        await context.read<FundProvider>().loadPortfolio();
+      } */
+      // La recarga de cartera corresponde al flujo de persistencia real.
+      // Cuando se inyecta un saver (por ejemplo, en los tests), no se
+      // fuerza una recarga adicional del proveedor.
+      if (widget.saveInvestment == null && mounted) {
         await context.read<FundProvider>().loadPortfolio();
       }
 
