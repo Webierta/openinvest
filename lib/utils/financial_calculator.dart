@@ -1088,6 +1088,7 @@ class FinancialCalculator {
         }
 
         if (isContribution &&
+            //!isInternalTransfer &&
             operation.amount > 0 &&
             (firstOpDate == null || operation.date.isBefore(firstOpDate))) {
           firstOpDate = operation.date;

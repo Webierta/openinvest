@@ -4997,6 +4997,53 @@ void main() {
       );
     });
 
+    test(
+      'LF-143.6.4: un traspaso interno no establece la antigüedad global',
+      () {
+        final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+        final investmentA = HistoricalInvestment(
+          uid: 'INVESTMENT-A',
+          name: 'Inversión A',
+        );
+
+        final investmentB = HistoricalInvestment(
+          uid: 'INVESTMENT-B',
+          name: 'Inversión B',
+        );
+
+        const transferUid = 'TRANSFER-A-B';
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-A-01',
+            investmentUid: investmentA.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferOut,
+            amount: 1000,
+            transferUid: transferUid,
+          ),
+          HistoricalOperation(
+            uid: 'OP-B-01',
+            investmentUid: investmentB.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferIn,
+            amount: 1000,
+            transferUid: transferUid,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {},
+          historicalInvestments: [investmentA, investmentB],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.isAnnualizedGlobal, isFalse);
+      },
+    );
+
     /* test('LF-143.7.1: empareja traspasos con el mismo UID aunque las fechas sean distintas', () {
       final fund = FundData(
         isin: 'CURRENT-FUND',
