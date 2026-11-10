@@ -4715,6 +4715,385 @@ void main() {
       expect(metrics.isAnnualized, isTrue);
       expect(metrics.isAnnualizedGlobal, isTrue);
     });
+
+    /* test('LF-143.6.1: los traspasos históricos no incrementan '
+        'el capital invertido global, estén emparejados o no', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      final transferUid = 'TRANSFER-A-B';
+
+      final operations = [
+        // Inversión A
+        HistoricalOperation(
+          uid: 'A-01',
+          investmentUid: investmentA.uid,
+          date: DateTime(2006, 1, 26),
+          type: HistoricalOperationType.subscription,
+          amount: 6000,
+        ),
+        HistoricalOperation(
+          uid: 'A-02',
+          investmentUid: investmentA.uid,
+          date: DateTime(2010, 4, 14),
+          type: HistoricalOperationType.transferOut,
+          amount: 5096.84,
+          transferUid: transferUid,
+        ),
+
+        // Inversión B
+        HistoricalOperation(
+          uid: 'B-01',
+          investmentUid: investmentB.uid,
+          date: DateTime(2010, 4, 19),
+          type: HistoricalOperationType.transferIn,
+          amount: 5096.84,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'B-02',
+          investmentUid: investmentB.uid,
+          date: DateTime(2011, 5, 24),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'B-03',
+          investmentUid: investmentB.uid,
+          date: DateTime(2011, 6, 10),
+          type: HistoricalOperationType.transferOut,
+          amount: 6026.67,
+        ),
+      ];
+
+      final metrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investmentA, investmentB],
+        historicalOperations: operations,
+      );
+
+      expect(metrics.totalInvestedGlobal, 27000);
+    }); */
+
+    test('LF-143.6.2: los traspasos históricos no alteran el MWR global', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      //final transferUid = 'TRANSFER-A-B';
+
+      final subscriptions = [
+        HistoricalOperation(
+          uid: 'A-01',
+          investmentUid: investmentA.uid,
+          date: DateTime(2006, 1, 26),
+          type: HistoricalOperationType.subscription,
+          amount: 6000,
+        ),
+        HistoricalOperation(
+          uid: 'B-01',
+          investmentUid: investmentB.uid,
+          date: DateTime(2011, 5, 24),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+      ];
+
+      final transfers = [
+        HistoricalOperation(
+          uid: 'A-02',
+          investmentUid: investmentA.uid,
+          date: DateTime(2010, 4, 14),
+          type: HistoricalOperationType.transferOut,
+          amount: 5096.84,
+          transferUid: 'TRANSFER-A-B',
+        ),
+        HistoricalOperation(
+          uid: 'B-01',
+          investmentUid: investmentB.uid,
+          date: DateTime(2010, 4, 14),
+          type: HistoricalOperationType.transferIn,
+          amount: 5096.84,
+          transferUid: 'TRANSFER-A-B',
+        ),
+      ];
+
+      final investments = [investmentA, investmentB];
+
+      final metricsWithoutTransfers =
+          FinancialCalculator.calculateGlobalMetrics(
+            [fund],
+            const {'EUR': 1.0},
+            historicalInvestments: investments,
+            historicalOperations: subscriptions,
+          );
+
+      final metricsWithTransfers = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [...subscriptions, ...transfers],
+      );
+
+      expect(metricsWithoutTransfers.mwrAnnualizedGlobal, isNotNull);
+
+      expect(
+        metricsWithTransfers.mwrAnnualizedGlobal,
+        closeTo(metricsWithoutTransfers.mwrAnnualizedGlobal!, 1e-10),
+      );
+
+      expect(
+        metricsWithTransfers.totalInvestedGlobal,
+        metricsWithoutTransfers.totalInvestedGlobal,
+      );
+
+      expect(metricsWithTransfers.totalInvestedGlobal, 27000);
+    });
+
+    test('LF-143.6.3: un transferOut histórico sin contraparte no altera el MWR global', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      //final transferUid = 'TRANSFER-A-B';
+
+      final subscriptions = [
+        HistoricalOperation(
+          uid: 'A-01',
+          investmentUid: investmentA.uid,
+          date: DateTime(2006, 1, 26),
+          type: HistoricalOperationType.subscription,
+          amount: 6000,
+        ),
+        HistoricalOperation(
+          uid: 'B-01',
+          investmentUid: investmentB.uid,
+          date: DateTime(2011, 5, 24),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+      ];
+
+      final transfers = [
+        HistoricalOperation(
+          uid: 'A-02',
+          investmentUid: investmentA.uid,
+          date: DateTime(2010, 4, 14),
+          type: HistoricalOperationType.transferOut,
+          amount: 5096.84,
+          transferUid: 'TRANSFER-A-B',
+        ),
+        HistoricalOperation(
+          uid: 'B-01',
+          investmentUid: investmentB.uid,
+          date: DateTime(2010, 4, 14),
+          type: HistoricalOperationType.transferIn,
+          amount: 5096.84,
+          transferUid: 'TRANSFER-A-B',
+        ),
+      ];
+
+      final investments = [investmentA, investmentB];
+
+      final metricsWithoutUnmatchedTransferOut =
+          FinancialCalculator.calculateGlobalMetrics(
+            [fund],
+            const {'EUR': 1.0},
+            historicalInvestments: investments,
+            historicalOperations: subscriptions,
+          );
+
+      final metricsWithUnmatchedTransferOut =
+          FinancialCalculator.calculateGlobalMetrics(
+            [fund],
+            const {'EUR': 1.0},
+            historicalInvestments: investments,
+            historicalOperations: [...subscriptions, transfers.first],
+          );
+
+      expect(metricsWithoutUnmatchedTransferOut.mwrAnnualizedGlobal, isNotNull);
+      expect(metricsWithUnmatchedTransferOut.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        metricsWithUnmatchedTransferOut.mwrAnnualizedGlobal,
+        closeTo(metricsWithoutUnmatchedTransferOut.mwrAnnualizedGlobal!, 1e-10),
+      );
+    });
+
+    /* test('LF-143.7.1: empareja traspasos con el mismo UID aunque las fechas sean distintas', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión A',
+      );
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión B',
+      );
+
+      final transferUid = 'TRANSFER-A-B';
+
+      final subscriptions = [
+        HistoricalOperation(
+          uid: 'A-01',
+          investmentUid: investmentA.uid,
+          date: DateTime(2006, 1, 26),
+          type: HistoricalOperationType.subscription,
+          amount: 6000,
+        ),
+        HistoricalOperation(
+          uid: 'B-01',
+          investmentUid: investmentB.uid,
+          date: DateTime(2011, 5, 24),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+      ];
+
+      final transfers = [
+        HistoricalOperation(
+          uid: 'A-02',
+          investmentUid: investmentA.uid,
+          date: DateTime(2010, 4, 14),
+          type: HistoricalOperationType.transferOut,
+          amount: 5096.84,
+          transferUid: transferUid,
+        ),
+        HistoricalOperation(
+          uid: 'B-02',
+          investmentUid: investmentB.uid,
+          date: DateTime(2010, 4, 19),
+          type: HistoricalOperationType.transferIn,
+          amount: 5096.84,
+          transferUid: transferUid,
+        ),
+      ];
+
+      final investments = [investmentA, investmentB];
+
+      final metricsWithoutTransfers =
+          FinancialCalculator.calculateGlobalMetrics(
+            [fund],
+            const {'EUR': 1.0},
+            historicalInvestments: investments,
+            historicalOperations: subscriptions,
+          );
+
+      final metricsWithTransfers = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [...subscriptions, ...transfers],
+      );
+
+      expect(
+        metricsWithTransfers.totalInvestedGlobal,
+        metricsWithoutTransfers.totalInvestedGlobal,
+      );
+
+      expect(metricsWithTransfers.totalInvestedGlobal, 27000);
+
+      expect(
+        metricsWithTransfers.mwrAnnualizedGlobal,
+        closeTo(metricsWithoutTransfers.mwrAnnualizedGlobal!, 1e-10),
+      );
+    }); */
   });
 
   group('FinancialCalculator - TWR Accuracy', () {

@@ -31,13 +31,19 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     _loadInvestments();
   }
 
-  void _loadInvestments() async {
+  void _loadInvestments() {
     _investmentsFuture = DatabaseService.getHistoricalInvestments();
   }
 
   Future<void> _refresh() async {
-    setState(_loadInvestments);
+    _loadInvestments();
+    setState(() {});
     await _investmentsFuture;
+  }
+
+  Future<void> _reloadPortfolio() async {
+    if (!mounted) return;
+    await context.read<FundProvider>().loadPortfolio();
   }
 
   static int _uidCounter = 0;
@@ -111,9 +117,9 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       );
 
       await DatabaseService.saveHistoricalOperation(operation);
+      await _reloadPortfolio();
 
       if (!mounted) return;
-
       setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -146,10 +152,11 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       );
 
       await DatabaseService.updateHistoricalInvestment(updated);
+      await _reloadPortfolio();
 
       if (!mounted) return;
-
-      setState(_loadInvestments);
+      _loadInvestments();
+      setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -196,10 +203,11 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
 
     try {
       await DatabaseService.deleteHistoricalInvestment(investment.uid);
+      await _reloadPortfolio();
 
       if (!mounted) return;
-
-      setState(_loadInvestments);
+      _loadInvestments();
+      setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -208,7 +216,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       );
     } catch (error) {
       if (!mounted) return;
-
+      debugPrint(error.toString());
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No se pudo eliminar la inversión: $error')),
       );
@@ -256,9 +264,9 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       HistoricalInvestmentValidator.validateUpdate(operations, updated);
 
       await DatabaseService.updateHistoricalOperation(updated);
+      await _reloadPortfolio();
 
       if (!mounted) return;
-
       setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -311,9 +319,9 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       HistoricalInvestmentValidator.validateDeletion(operations, operation.uid);
 
       await DatabaseService.deleteHistoricalOperation(operation);
+      await _reloadPortfolio();
 
       if (!mounted) return;
-
       setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -535,7 +543,8 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: () {
-                        setState(_loadInvestments);
+                        _loadInvestments();
+                        setState(() {});
                       },
                       child: const Text('Reintentar'),
                     ),

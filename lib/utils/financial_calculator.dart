@@ -977,11 +977,6 @@ class FinancialCalculator {
           totalInvestedGlobal += operation.amount * rate;
         }
 
-        /* cashFlows.add({
-          'amount':
-              (isInvestment ? -operation.amount : operation.amount) * rate,
-          'date': operation.date,
-        }); */
         final cashFlow = {
           'amount':
               (isInvestment ? -operation.amount : operation.amount) * rate,
@@ -996,15 +991,6 @@ class FinancialCalculator {
         }
       }
 
-      /* if (fundValueConverted > 0) {
-        weightedTaeSum += metrics.tae * fundValueConverted;
-      } */
-
-      /* if (metrics.firstOpDate != null) {
-        if (firstOpDate == null || metrics.firstOpDate!.isBefore(firstOpDate)) {
-          firstOpDate = metrics.firstOpDate;
-        }
-      } */
       if (metrics.firstOpDate != null) {
         if (firstPortfolioOpDate == null ||
             metrics.firstOpDate!.isBefore(firstPortfolioOpDate)) {
@@ -1081,14 +1067,23 @@ class FinancialCalculator {
           totalInvestedGlobal += operation.amount;
         }
 
-        if (!isInternalTransfer) {
+        final isExternalCashFlow =
+            !isInternalTransfer &&
+            operation.type != HistoricalOperationType.transferOut;
+
+        if (isExternalCashFlow) {
           cashFlows.add({
             'amount': isContribution ? -operation.amount : operation.amount,
             'date': operation.date,
           });
         }
 
-        if (valuationDate == null || operation.date.isAfter(valuationDate)) {
+        /* if (valuationDate == null || operation.date.isAfter(valuationDate)) {
+          valuationDate = operation.date;
+        } */
+
+        if (isExternalCashFlow &&
+            (valuationDate == null || operation.date.isAfter(valuationDate))) {
           valuationDate = operation.date;
         }
 
@@ -1106,10 +1101,6 @@ class FinancialCalculator {
         ? (profitAbs / totalInvested) * 100
         : 0.0;
 
-    /* bool isAnnualized = false;
-    if (firstOpDate != null) {
-      isAnnualized = DateTime.now().difference(firstOpDate).inDays >= 30;
-    } */
     bool isAnnualized = false;
     if (firstPortfolioOpDate != null) {
       isAnnualized =
