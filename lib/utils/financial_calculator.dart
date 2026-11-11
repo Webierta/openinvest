@@ -947,6 +947,8 @@ class FinancialCalculator {
     double portfolioProfitAbs = 0;
     double totalInvestedGlobal = 0;
 
+    var internalTransferProfitAdjustment = 0.0;
+
     for (var fund in portfolio) {
       final metrics = calculateFundMetrics(fund);
       final double rate = exchangeRates[fund.currency] ?? 1.0;
@@ -1077,6 +1079,12 @@ class FinancialCalculator {
         // matchingTransferOuts.first.amount ==
         //     matchingTransferIns.first.amount;
 
+        if (isInternalTransfer &&
+            operation.type == HistoricalOperationType.transferOut) {
+          internalTransferProfitAdjustment +=
+              operation.amount - matchingTransferIns.first.amount;
+        }
+
         if (isContribution && !isInternalTransfer) {
           totalInvestedGlobal += operation.amount;
         }
@@ -1169,6 +1177,8 @@ class FinancialCalculator {
         mwrAnnualizedGlobal = irr;
       }
     }
+
+    profitAbs -= internalTransferProfitAdjustment;
 
     return GlobalMetrics(
       totalValue: totalValue,
