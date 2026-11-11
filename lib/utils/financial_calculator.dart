@@ -925,6 +925,176 @@ class FinancialCalculator {
     // La fecha objetivo es anterior a cualquier dato de IPC disponible
   }
 
+  // static Set<String> _resolveInternalTransferOperationUids(
+  static Map<String, HistoricalOperation> _resolveInternalTransferOperations(
+    List<HistoricalOperation> operations,
+    Set<String> investmentUids,
+  ) {
+    final grouped = <String, List<HistoricalOperation>>{};
+
+    for (final operation in operations) {
+      final transferUid = operation.transferUid;
+
+      if (transferUid == null ||
+          transferUid.isEmpty ||
+          !investmentUids.contains(operation.investmentUid)) {
+        continue;
+      }
+
+      if (operation.type != HistoricalOperationType.transferOut &&
+          operation.type != HistoricalOperationType.transferIn) {
+        continue;
+      }
+
+      grouped.putIfAbsent(transferUid, () => []).add(operation);
+    }
+
+    DateTime dayOnly(DateTime date) =>
+        DateTime(date.year, date.month, date.day);
+
+    //final matchedUids = <String>{};
+    final matchedOperations = <String, HistoricalOperation>{};
+
+    for (final group in grouped.values) {
+      final outs =
+          group
+              .where((op) => op.type == HistoricalOperationType.transferOut)
+              .toList()
+            ..sort((a, b) => a.date.compareTo(b.date));
+
+      final ins =
+          group
+              .where((op) => op.type == HistoricalOperationType.transferIn)
+              .toList()
+            ..sort((a, b) => a.date.compareTo(b.date));
+
+      if (outs.isEmpty || ins.isEmpty) continue;
+
+      // Aristas: una salida puede emparejarse con una entrada posterior
+      // o del mismo día, en otra inversión y hasta diez días naturales después.
+      final adjacency = List.generate(outs.length, (_) => <int>[]);
+      final reverseAdjacency = List.generate(ins.length, (_) => <int>[]);
+
+      for (var outIndex = 0; outIndex < outs.length; outIndex++) {
+        for (var inIndex = 0; inIndex < ins.length; inIndex++) {
+          final out = outs[outIndex];
+          final input = ins[inIndex];
+
+          final dayDifference = dayOnly(input.date)
+              .difference(dayOnly(out.date))
+              .inDays;
+
+          if (out.investmentUid != input.investmentUid &&
+              dayDifference >= 0 &&
+              dayDifference <= 10) {
+            adjacency[outIndex].add(inIndex);
+            reverseAdjacency[inIndex].add(outIndex);
+          }
+        }
+      }
+
+      // Resuelve cada componente conectado por separado.
+      final visitedOuts = <int>{};
+      final visitedIns = <int>{};
+
+      for (var start = 0; start < outs.length; start++) {
+        if (visitedOuts.contains(start) || adjacency[start].isEmpty) {
+          continue;
+        }
+
+        final componentOuts = <int>{};
+        final componentIns = <int>{};
+        final pendingOuts = <int>[start];
+
+        while (pendingOuts.isNotEmpty) {
+          final outIndex = pendingOuts.removeLast();
+
+          if (!componentOuts.add(outIndex)) continue;
+          visitedOuts.add(outIndex);
+
+          for (final inIndex in adjacency[outIndex]) {
+            if (!componentIns.add(inIndex)) continue;
+            visitedIns.add(inIndex);
+
+            for (final connectedOut in reverseAdjacency[inIndex]) {
+              if (!componentOuts.contains(connectedOut)) {
+                pendingOuts.add(connectedOut);
+              }
+            }
+          }
+        }
+
+        // Devuelve un emparejamiento máximo. El parámetro forbidden
+        // permite comprobar si existe otra solución de igual cardinalidad.
+        Map<int, int> maximumMatching({(int, int)? forbidden}) {
+          final matchInToOut = <int, int>{};
+
+          bool augment(int outIndex, Set<int> seenIns) {
+            for (final inIndex in adjacency[outIndex]) {
+              if (!componentIns.contains(inIndex) ||
+                  (forbidden?.$1 == outIndex && forbidden?.$2 == inIndex) ||
+                  !seenIns.add(inIndex)) {
+                continue;
+              }
+
+              final previousOut = matchInToOut[inIndex];
+
+              if (previousOut == null || augment(previousOut, seenIns)) {
+                matchInToOut[inIndex] = outIndex;
+                return true;
+              }
+            }
+
+            return false;
+          }
+
+          for (final outIndex in componentOuts) {
+            augment(outIndex, <int>{});
+          }
+
+          return matchInToOut;
+        }
+
+        final matching = maximumMatching();
+
+        if (matching.isEmpty) continue;
+
+        // Si al retirar cualquier arista emparejada se conserva
+        // la cardinalidad máxima, existe otra solución: es ambiguo.
+        var isUnique = true;
+
+        for (final entry in matching.entries) {
+          final alternative = maximumMatching(
+            forbidden: (entry.value, entry.key),
+          );
+
+          if (alternative.length == matching.length) {
+            isUnique = false;
+            break;
+          }
+        }
+
+        if (!isUnique) continue;
+
+        /* for (final entry in matching.entries) {
+          matchedUids.add(outs[entry.value].uid);
+          matchedUids.add(ins[entry.key].uid);
+        } */
+
+        for (final entry in matching.entries) {
+          final transferOut = outs[entry.value];
+          final transferIn = ins[entry.key];
+
+          matchedOperations[transferOut.uid] = transferIn;
+          matchedOperations[transferIn.uid] = transferOut;
+        }
+      }
+    }
+
+    //return matchedUids;
+    return matchedOperations;
+  }
+
   static GlobalMetrics calculateGlobalMetrics(
     List<FundData> portfolio,
     Map<String, double> exchangeRates, {
@@ -1012,6 +1182,24 @@ class FinancialCalculator {
         .map((investment) => investment.uid)
         .toSet();
 
+    final eligibleHistoricalOperations = historicalOperations
+        .where(
+          (operation) =>
+              historicalInvestmentUids.contains(operation.investmentUid) &&
+              !operation.date.isAfter(now),
+        )
+        .toList();
+
+    /* final internalTransferOperationUids = _resolveInternalTransferOperationUids(
+      eligibleHistoricalOperations,
+      historicalInvestmentUids,
+    ); */
+
+    final internalTransferOperations = _resolveInternalTransferOperations(
+      eligibleHistoricalOperations,
+      historicalInvestmentUids,
+    );
+
     for (final investment in historicalInvestments) {
       final investmentOperations = historicalOperations
           .where(
@@ -1039,44 +1227,15 @@ class FinancialCalculator {
             operation.type == HistoricalOperationType.transferIn ||
             operation.type == HistoricalOperationType.transferOut;
 
-        /* final matchingTransferOuts = operation.transferUid == null
-            ? <HistoricalOperation>[]
-            : historicalOperations.where(
-                (candidate) =>
-                    historicalInvestmentUids.contains(
-                      candidate.investmentUid,
-                    ) &&
-                    candidate.transferUid == operation.transferUid &&
-                    candidate.type == HistoricalOperationType.transferOut &&
-                    candidate.date.year == operation.date.year &&
-                    candidate.date.month == operation.date.month &&
-                    candidate.date.day == operation.date.day,
-                //candidate.date.isAtSameMomentAs(operation.date),
-              );
-
-        final matchingTransferIns = operation.transferUid == null
-            ? <HistoricalOperation>[]
-            : historicalOperations.where(
-                (candidate) =>
-                    historicalInvestmentUids.contains(
-                      candidate.investmentUid,
-                    ) &&
-                    candidate.transferUid == operation.transferUid &&
-                    candidate.type == HistoricalOperationType.transferIn &&
-                    candidate.date.year == operation.date.year &&
-                    candidate.date.month == operation.date.month &&
-                    candidate.date.day == operation.date.day,
-                //candidate.date.isAtSameMomentAs(operation.date),
-              );
+        /* final isInternalTransfer =
+            isTransferOperation &&
+            internalTransferOperationUids.contains(operation.uid); */
 
         final isInternalTransfer =
             isTransferOperation &&
-            matchingTransferOuts.length == 1 &&
-            matchingTransferIns.length == 1 &&
-            matchingTransferOuts.first.investmentUid !=
-                matchingTransferIns.first.investmentUid; */
+            internalTransferOperations.containsKey(operation.uid);
 
-        final matchingTransferOuts = operation.transferUid == null
+        /* final matchingTransferOuts = operation.transferUid == null
             ? <HistoricalOperation>[]
             : historicalOperations.where((candidate) {
                 final dayDifference =
@@ -1135,12 +1294,16 @@ class FinancialCalculator {
             matchingTransferOuts.length == 1 &&
             matchingTransferIns.length == 1 &&
             matchingTransferOuts.first.investmentUid !=
-                matchingTransferIns.first.investmentUid;
+                matchingTransferIns.first.investmentUid; */
 
         if (isInternalTransfer &&
             operation.type == HistoricalOperationType.transferOut) {
+          // internalTransferProfitAdjustment +=
+          //     operation.amount - matchingTransferIns.first.amount;
+
           internalTransferProfitAdjustment +=
-              operation.amount - matchingTransferIns.first.amount;
+              operation.amount -
+              internalTransferOperations[operation.uid]!.amount;
         }
 
         if (isContribution && !isInternalTransfer) {
