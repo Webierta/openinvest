@@ -6117,6 +6117,66 @@ void main() {
         closeTo(metricsWithoutTransfers.mwrAnnualizedGlobal!, 1e-10),
       );
     }); */
+
+    test(
+      'LF-143.7.1: no empareja con contrapartes de inversiones excluidas',
+      () {
+        final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+        final includedInvestment = HistoricalInvestment(
+          uid: 'INVESTMENT-INCLUDED',
+          name: 'Inversión incluida',
+        );
+
+        final excludedInvestment = HistoricalInvestment(
+          uid: 'INVESTMENT-EXCLUDED',
+          name: 'Inversión excluida',
+        );
+
+        const transferUid = 'TRANSFER-EXCLUDED-001';
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-IN-001',
+            investmentUid: includedInvestment.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              10,
+              15,
+            ),
+            type: HistoricalOperationType.transferIn,
+            amount: 999,
+            transferUid: transferUid,
+          ),
+          HistoricalOperation(
+            uid: 'OP-OUT-001',
+            investmentUid: excludedInvestment.uid,
+            date: DateTime(
+              transferDate.year,
+              transferDate.month,
+              transferDate.day,
+              18,
+              45,
+            ),
+            type: HistoricalOperationType.transferOut,
+            amount: 999,
+            transferUid: transferUid,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {},
+          historicalInvestments: [includedInvestment],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 999);
+        expect(metrics.isAnnualizedGlobal, isTrue);
+      },
+    );
   });
 
   group('FinancialCalculator - TWR Accuracy', () {
