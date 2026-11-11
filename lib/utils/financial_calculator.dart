@@ -1120,6 +1120,8 @@ class FinancialCalculator {
       }
     }
 
+    //profitAbs -= internalTransferProfitAdjustment;
+
     final double profitRel = portfolioInvested > 0
         ? (portfolioProfitAbs / portfolioInvested) * 100
         : totalInvested > 0
@@ -1178,7 +1180,7 @@ class FinancialCalculator {
       }
     }
 
-    profitAbs -= internalTransferProfitAdjustment;
+    final profitAbsGlobal = profitAbs - internalTransferProfitAdjustment;
 
     return GlobalMetrics(
       totalValue: totalValue,
@@ -1189,9 +1191,13 @@ class FinancialCalculator {
       mwrAnnualized: mwrAnnualized,
       totalValueGlobal: portfolioValue,
       totalInvestedGlobal: totalInvestedGlobal,
-      profitAbsGlobal: profitAbs,
+      //profitAbsGlobal: profitAbs,
+      // profitRelGlobal: totalInvestedGlobal > 0
+      //     ? profitAbs / totalInvestedGlobal
+      //     : 0.0,
+      profitAbsGlobal: profitAbsGlobal,
       profitRelGlobal: totalInvestedGlobal > 0
-          ? profitAbs / totalInvestedGlobal
+          ? profitAbsGlobal / totalInvestedGlobal
           : 0.0,
       isAnnualizedGlobal: isAnnualizedGlobal,
       mwrAnnualizedGlobal: mwrAnnualizedGlobal,

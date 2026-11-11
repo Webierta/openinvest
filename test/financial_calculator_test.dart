@@ -7069,6 +7069,88 @@ void main() {
         closeTo(withoutTransfer.profitAbsGlobal, 0.01),
       );
     });
+
+    test('LF-143.8.10: un traspaso interno con importes diferentes no altera las métricas legacy', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión histórica A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión histórica B',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'OP-SUB-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final transferOut = HistoricalOperation(
+        uid: 'OP-OUT-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferOut,
+        amount: 5096.84,
+        transferUid: 'INTERNAL-TRANSFER-001',
+      );
+
+      final transferIn = HistoricalOperation(
+        uid: 'OP-IN-001',
+        investmentUid: investmentB.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferIn,
+        amount: 4800.00,
+        transferUid: 'INTERNAL-TRANSFER-001',
+      );
+
+      final investments = [investmentA, investmentB];
+
+      final withoutTransfer = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [subscription],
+      );
+
+      final withTransfer = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [subscription, transferOut, transferIn],
+      );
+
+      // Las métricas legacy conservan su comportamiento anterior:
+      // reflejan la diferencia entre los importes de salida y entrada.
+      expect(
+        withTransfer.profitAbs,
+        closeTo(withoutTransfer.profitAbs + 296.84, 0.01),
+      );
+      expect(withTransfer.profitRel, closeTo(withoutTransfer.profitRel, 1e-10));
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {
