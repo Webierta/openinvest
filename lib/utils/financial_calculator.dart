@@ -1081,9 +1081,11 @@ class FinancialCalculator {
           totalInvestedGlobal += operation.amount;
         }
 
-        final isExternalCashFlow =
-            !isInternalTransfer &&
-            operation.type != HistoricalOperationType.transferOut;
+        // final isExternalCashFlow =
+        //     !isInternalTransfer &&
+        //     operation.type != HistoricalOperationType.transferOut;
+
+        final isExternalCashFlow = !isInternalTransfer;
 
         if (isExternalCashFlow) {
           cashFlows.add({

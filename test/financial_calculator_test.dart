@@ -4903,7 +4903,7 @@ void main() {
       expect(metricsWithTransfers.totalInvestedGlobal, 27000);
     });
 
-    test('LF-143.6.3: un transferOut histórico sin contraparte no altera el MWR global', () {
+    test('LF-143.6.3: un transferOut histórico sin contraparte altera el MWR global', () {
       final fund = FundData(
         isin: 'CURRENT-FUND',
         symbol: 'CUR',
@@ -4989,11 +4989,20 @@ void main() {
             historicalOperations: [...subscriptions, transfers.first],
           );
 
-      expect(metricsWithoutUnmatchedTransferOut.mwrAnnualizedGlobal, isNotNull);
+      /* expect(metricsWithoutUnmatchedTransferOut.mwrAnnualizedGlobal, isNotNull);
       expect(metricsWithUnmatchedTransferOut.mwrAnnualizedGlobal, isNotNull);
       expect(
         metricsWithUnmatchedTransferOut.mwrAnnualizedGlobal,
         closeTo(metricsWithoutUnmatchedTransferOut.mwrAnnualizedGlobal!, 1e-10),
+      ); */
+
+      expect(metricsWithoutUnmatchedTransferOut.mwrAnnualizedGlobal, isNotNull);
+      expect(metricsWithUnmatchedTransferOut.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        metricsWithoutUnmatchedTransferOut.mwrAnnualizedGlobal,
+        isNot(
+          closeTo(metricsWithUnmatchedTransferOut.mwrAnnualizedGlobal!, 1e-10),
+        ),
       );
     });
 
@@ -6177,6 +6186,808 @@ void main() {
         expect(metrics.isAnnualizedGlobal, isTrue);
       },
     );
+
+    test('LF-143.8.1: un transferOut sin contraparte afecta al beneficio y al MWR global', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión histórica A',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'OP-SUB-001',
+        investmentUid: investment.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final unmatchedTransferOut = HistoricalOperation(
+        uid: 'OP-OUT-001',
+        investmentUid: investment.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferOut,
+        amount: 5096.84,
+        transferUid: 'TRANSFER-WITHOUT-COUNTERPART',
+      );
+
+      final withoutTransferOut = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: [subscription],
+      );
+
+      final withTransferOut = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: [subscription, unmatchedTransferOut],
+      );
+
+      // El transferOut no incrementa las aportaciones globales.
+      expect(
+        withTransferOut.totalInvestedGlobal,
+        withoutTransferOut.totalInvestedGlobal,
+      );
+
+      // Caracterizamos el efecto actual sobre el beneficio absoluto:
+      // se contabiliza como retorno histórico.
+      expect(
+        withTransferOut.profitAbsGlobal,
+        closeTo(
+          withoutTransferOut.profitAbsGlobal + unmatchedTransferOut.amount,
+          0.01,
+        ),
+      );
+
+      // El beneficio relativo utiliza las aportaciones globales.
+      expect(
+        withTransferOut.profitRelGlobal,
+        closeTo(
+          withTransferOut.profitAbsGlobal / withTransferOut.totalInvestedGlobal,
+          1e-10,
+        ),
+      );
+
+      // El transferOut sin contraparte no altera el MWR global.
+      /* expect(
+        withTransferOut.mwrAnnualizedGlobal,
+        closeTo(withoutTransferOut.mwrAnnualizedGlobal!, 1e-10),
+      ); */
+      expect(withoutTransferOut.mwrAnnualizedGlobal, isNotNull);
+      expect(withTransferOut.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        withTransferOut.mwrAnnualizedGlobal,
+        isNot(closeTo(withoutTransferOut.mwrAnnualizedGlobal!, 1e-10)),
+      );
+    });
+
+    test('LF-143.8.2: un transferIn sin contraparte cuenta como aportación '
+        'y afecta al MWR global', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión histórica A',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'OP-SUB-001',
+        investmentUid: investment.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final unmatchedTransferIn = HistoricalOperation(
+        uid: 'OP-IN-001',
+        investmentUid: investment.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferIn,
+        amount: 5096.84,
+        transferUid: 'TRANSFER-WITHOUT-COUNTERPART',
+      );
+
+      final withoutTransferIn = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: [subscription],
+      );
+
+      final withTransferIn = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: [subscription, unmatchedTransferIn],
+      );
+
+      // El transferIn sin contraparte se contabiliza como aportación.
+      expect(
+        withTransferIn.totalInvestedGlobal,
+        closeTo(
+          withoutTransferIn.totalInvestedGlobal + unmatchedTransferIn.amount,
+          0.01,
+        ),
+      );
+
+      // La aportación también reduce el beneficio absoluto histórico.
+      expect(
+        withTransferIn.profitAbsGlobal,
+        closeTo(
+          withoutTransferIn.profitAbsGlobal - unmatchedTransferIn.amount,
+          0.01,
+        ),
+      );
+
+      // El beneficio relativo mantiene la misma proporción.
+      expect(
+        withTransferIn.profitRelGlobal,
+        closeTo(
+          withTransferIn.profitAbsGlobal / withTransferIn.totalInvestedGlobal,
+          1e-10,
+        ),
+      );
+
+      // Al incorporarse como flujo externo, modifica el MWR global.
+      expect(withoutTransferIn.mwrAnnualizedGlobal, isNotNull);
+      expect(withTransferIn.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        withTransferIn.mwrAnnualizedGlobal,
+        isNot(closeTo(withoutTransferIn.mwrAnnualizedGlobal!, 1e-10)),
+      );
+    });
+
+    test('LF-143.8.3: una redemption histórica cuenta como retorno '
+        'y afecta al MWR global', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión histórica A',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'OP-SUB-001',
+        investmentUid: investment.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final redemption = HistoricalOperation(
+        uid: 'OP-RED-001',
+        investmentUid: investment.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.redemption,
+        amount: 5096.84,
+      );
+
+      final withoutRedemption = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: [subscription],
+      );
+
+      final withRedemption = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: [subscription, redemption],
+      );
+
+      // El reembolso no representa una nueva aportación.
+      expect(
+        withRedemption.totalInvestedGlobal,
+        withoutRedemption.totalInvestedGlobal,
+      );
+
+      // El reembolso se contabiliza como retorno.
+      expect(
+        withRedemption.profitAbsGlobal,
+        closeTo(withoutRedemption.profitAbsGlobal + redemption.amount, 0.01),
+      );
+
+      // El beneficio relativo se recalcula sobre el mismo capital aportado.
+      expect(
+        withRedemption.profitRelGlobal,
+        closeTo(
+          withRedemption.profitAbsGlobal / withRedemption.totalInvestedGlobal,
+          1e-10,
+        ),
+      );
+
+      // El reembolso se incorpora como flujo de caja externo al MWR.
+      expect(withoutRedemption.mwrAnnualizedGlobal, isNotNull);
+      expect(withRedemption.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        withRedemption.mwrAnnualizedGlobal,
+        isNot(closeTo(withoutRedemption.mwrAnnualizedGlobal!, 1e-10)),
+      );
+    });
+
+    test('LF-143.8.4: un transferOut sin contraparte afecta al MWR global', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión histórica A',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'OP-SUB-001',
+        investmentUid: investment.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final unmatchedTransferOut = HistoricalOperation(
+        uid: 'OP-OUT-001',
+        investmentUid: investment.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferOut,
+        amount: 5096.84,
+        transferUid: 'TRANSFER-WITHOUT-COUNTERPART',
+      );
+
+      final withoutTransferOut = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: [subscription],
+      );
+
+      final withTransferOut = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: [subscription, unmatchedTransferOut],
+      );
+
+      // El transferOut sin contraparte no es una aportación.
+      expect(
+        withTransferOut.totalInvestedGlobal,
+        withoutTransferOut.totalInvestedGlobal,
+      );
+
+      // Sigue contabilizándose como retorno en el beneficio absoluto.
+      expect(
+        withTransferOut.profitAbsGlobal,
+        closeTo(
+          withoutTransferOut.profitAbsGlobal + unmatchedTransferOut.amount,
+          0.01,
+        ),
+      );
+
+      // El beneficio relativo mantiene la coherencia con ambas métricas.
+      expect(
+        withTransferOut.profitRelGlobal,
+        closeTo(
+          withTransferOut.profitAbsGlobal / withTransferOut.totalInvestedGlobal,
+          1e-10,
+        ),
+      );
+
+      // El retorno externo debe modificar el MWR global.
+      expect(withoutTransferOut.mwrAnnualizedGlobal, isNotNull);
+      expect(withTransferOut.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        withTransferOut.mwrAnnualizedGlobal,
+        isNot(closeTo(withoutTransferOut.mwrAnnualizedGlobal!, 1e-10)),
+      );
+    });
+
+    test('LF-143.8.5: un traspaso interno no altera las métricas globales', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión histórica A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión histórica B',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'OP-SUB-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final transferOut = HistoricalOperation(
+        uid: 'OP-OUT-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferOut,
+        amount: 5096.84,
+        transferUid: 'INTERNAL-TRANSFER-001',
+      );
+
+      final transferIn = HistoricalOperation(
+        uid: 'OP-IN-001',
+        investmentUid: investmentB.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferIn,
+        amount: 5096.84,
+        transferUid: 'INTERNAL-TRANSFER-001',
+      );
+
+      final investments = [investmentA, investmentB];
+
+      final withoutTransfer = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [subscription],
+      );
+
+      final withTransfer = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [subscription, transferOut, transferIn],
+      );
+
+      // El traspaso interno no incrementa el capital aportado.
+      expect(
+        withTransfer.totalInvestedGlobal,
+        closeTo(withoutTransfer.totalInvestedGlobal, 0.01),
+      );
+
+      // La salida y la entrada internas no alteran el beneficio absoluto.
+      expect(
+        withTransfer.profitAbsGlobal,
+        closeTo(withoutTransfer.profitAbsGlobal, 0.01),
+      );
+
+      // Tampoco alteran el beneficio relativo.
+      expect(
+        withTransfer.profitRelGlobal,
+        closeTo(withoutTransfer.profitRelGlobal, 1e-10),
+      );
+
+      // Ninguno de los dos movimientos genera un flujo externo para el MWR.
+      expect(withoutTransfer.mwrAnnualizedGlobal, isNotNull);
+      expect(withTransfer.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        withTransfer.mwrAnnualizedGlobal,
+        closeTo(withoutTransfer.mwrAnnualizedGlobal!, 1e-10),
+      );
+    });
+
+    test('LF-143.8.6: un transferOut con contrapartes ambiguas afecta al MWR global', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión histórica A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión histórica B',
+      );
+
+      final investmentC = HistoricalInvestment(
+        uid: 'INVESTMENT-C',
+        name: 'Inversión histórica C',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'OP-SUB-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final transferOut = HistoricalOperation(
+        uid: 'OP-OUT-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferOut,
+        amount: 5096.84,
+        transferUid: 'AMBIGUOUS-TRANSFER-001',
+      );
+
+      final transferInB = HistoricalOperation(
+        uid: 'OP-IN-001',
+        investmentUid: investmentB.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferIn,
+        amount: 5096.84,
+        transferUid: 'AMBIGUOUS-TRANSFER-001',
+      );
+
+      final transferInC = HistoricalOperation(
+        uid: 'OP-IN-002',
+        investmentUid: investmentC.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferIn,
+        amount: 5096.84,
+        transferUid: 'AMBIGUOUS-TRANSFER-001',
+      );
+
+      final investments = [investmentA, investmentB, investmentC];
+
+      final withoutTransfer = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        //historicalOperations: [subscription],
+        historicalOperations: [subscription, transferInB, transferInC],
+      );
+
+      final withAmbiguousTransfer = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [
+          subscription,
+          transferOut,
+          transferInB,
+          transferInC,
+        ],
+      );
+
+      // La salida ambigua no se considera un traspaso interno válido.
+      // Por tanto, se contabiliza como retorno externo.
+      expect(
+        withAmbiguousTransfer.profitAbsGlobal,
+        closeTo(withoutTransfer.profitAbsGlobal + transferOut.amount, 0.01),
+      );
+
+      // El retorno externo no incrementa las aportaciones.
+      expect(
+        withAmbiguousTransfer.totalInvestedGlobal,
+        closeTo(withoutTransfer.totalInvestedGlobal, 0.01),
+      );
+
+      // La salida externa debe incorporarse al MWR.
+      expect(withoutTransfer.mwrAnnualizedGlobal, isNotNull);
+      expect(withAmbiguousTransfer.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        withAmbiguousTransfer.mwrAnnualizedGlobal,
+        isNot(closeTo(withoutTransfer.mwrAnnualizedGlobal!, 1e-10)),
+      );
+    });
+
+    test('LF-143.8.7: un transferIn con contrapartes ambiguas cuenta como '
+        'aportación externa y afecta al MWR global', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión histórica A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión histórica B',
+      );
+
+      final investmentC = HistoricalInvestment(
+        uid: 'INVESTMENT-C',
+        name: 'Inversión histórica C',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'OP-SUB-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final transferIn = HistoricalOperation(
+        uid: 'OP-IN-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferIn,
+        amount: 5096.84,
+        transferUid: 'AMBIGUOUS-TRANSFER-002',
+      );
+
+      final transferOutB = HistoricalOperation(
+        uid: 'OP-OUT-001',
+        investmentUid: investmentB.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferOut,
+        amount: 5096.84,
+        transferUid: 'AMBIGUOUS-TRANSFER-002',
+      );
+
+      final transferOutC = HistoricalOperation(
+        uid: 'OP-OUT-002',
+        investmentUid: investmentC.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferOut,
+        amount: 5096.84,
+        transferUid: 'AMBIGUOUS-TRANSFER-002',
+      );
+
+      final investments = [investmentA, investmentB, investmentC];
+
+      final withoutTransferIn = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [subscription, transferOutB, transferOutC],
+      );
+
+      final withAmbiguousTransferIn =
+          FinancialCalculator.calculateGlobalMetrics(
+            [fund],
+            const {'EUR': 1.0},
+            historicalInvestments: investments,
+            historicalOperations: [
+              subscription,
+              transferOutB,
+              transferOutC,
+              transferIn,
+            ],
+          );
+
+      // La entrada ambigua se contabiliza como aportación externa.
+      expect(
+        withAmbiguousTransferIn.totalInvestedGlobal,
+        closeTo(
+          withoutTransferIn.totalInvestedGlobal + transferIn.amount,
+          0.01,
+        ),
+      );
+
+      // La aportación reduce el beneficio absoluto.
+      expect(
+        withAmbiguousTransferIn.profitAbsGlobal,
+        closeTo(withoutTransferIn.profitAbsGlobal - transferIn.amount, 0.01),
+      );
+
+      // El beneficio relativo conserva la coherencia entre ambas métricas.
+      expect(
+        withAmbiguousTransferIn.profitRelGlobal,
+        closeTo(
+          withAmbiguousTransferIn.profitAbsGlobal /
+              withAmbiguousTransferIn.totalInvestedGlobal,
+          1e-10,
+        ),
+      );
+
+      // La aportación externa modifica el MWR como flujo negativo.
+      expect(withoutTransferIn.mwrAnnualizedGlobal, isNotNull);
+      expect(withAmbiguousTransferIn.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        withAmbiguousTransferIn.mwrAnnualizedGlobal,
+        isNot(closeTo(withoutTransferIn.mwrAnnualizedGlobal!, 1e-10)),
+      );
+    });
+
+    test('LF-143.8.8: un traspaso interno con importes diferentes no altera las métricas globales', () {
+      final fund = FundData(
+        isin: 'CURRENT-FUND',
+        symbol: 'CUR',
+        name: 'Fondo vigente',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2006, 1, 1), 1)],
+        operations: [
+          FundOperation(
+            isin: 'CURRENT-FUND',
+            date: DateTime(2006, 1, 1),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final investmentA = HistoricalInvestment(
+        uid: 'INVESTMENT-A',
+        name: 'Inversión histórica A',
+      );
+
+      final investmentB = HistoricalInvestment(
+        uid: 'INVESTMENT-B',
+        name: 'Inversión histórica B',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'OP-SUB-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final transferOut = HistoricalOperation(
+        uid: 'OP-OUT-001',
+        investmentUid: investmentA.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferOut,
+        amount: 5096.84,
+        transferUid: 'INTERNAL-TRANSFER-001',
+      );
+
+      final transferIn = HistoricalOperation(
+        uid: 'OP-IN-001',
+        investmentUid: investmentB.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferIn,
+        amount: 4800.00,
+        transferUid: 'INTERNAL-TRANSFER-001',
+      );
+
+      final investments = [investmentA, investmentB];
+
+      final withoutTransfer = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [subscription],
+      );
+
+      final withTransfer = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: investments,
+        historicalOperations: [subscription, transferOut, transferIn],
+      );
+
+      expect(
+        withTransfer.totalInvestedGlobal,
+        closeTo(withoutTransfer.totalInvestedGlobal, 0.01),
+      );
+      expect(
+        withTransfer.profitAbsGlobal,
+        closeTo(withoutTransfer.profitAbsGlobal, 0.01),
+      );
+      expect(
+        withTransfer.profitRelGlobal,
+        closeTo(withoutTransfer.profitRelGlobal, 1e-10),
+      );
+      expect(withoutTransfer.mwrAnnualizedGlobal, isNotNull);
+      expect(withTransfer.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        withTransfer.mwrAnnualizedGlobal,
+        closeTo(withoutTransfer.mwrAnnualizedGlobal!, 1e-10),
+      );
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {
