@@ -1039,7 +1039,7 @@ class FinancialCalculator {
             operation.type == HistoricalOperationType.transferIn ||
             operation.type == HistoricalOperationType.transferOut;
 
-        final matchingTransferOuts = operation.transferUid == null
+        /* final matchingTransferOuts = operation.transferUid == null
             ? <HistoricalOperation>[]
             : historicalOperations.where(
                 (candidate) =>
@@ -1074,10 +1074,68 @@ class FinancialCalculator {
             matchingTransferOuts.length == 1 &&
             matchingTransferIns.length == 1 &&
             matchingTransferOuts.first.investmentUid !=
+                matchingTransferIns.first.investmentUid; */
+
+        final matchingTransferOuts = operation.transferUid == null
+            ? <HistoricalOperation>[]
+            : historicalOperations.where((candidate) {
+                final dayDifference =
+                    DateTime(
+                          operation.date.year,
+                          operation.date.month,
+                          operation.date.day,
+                        )
+                        .difference(
+                          DateTime(
+                            candidate.date.year,
+                            candidate.date.month,
+                            candidate.date.day,
+                          ),
+                        )
+                        .inDays;
+
+                return historicalInvestmentUids.contains(
+                      candidate.investmentUid,
+                    ) &&
+                    candidate.transferUid == operation.transferUid &&
+                    candidate.type == HistoricalOperationType.transferOut &&
+                    dayDifference >= 0 &&
+                    dayDifference <= 10;
+              });
+
+        final matchingTransferIns = operation.transferUid == null
+            ? <HistoricalOperation>[]
+            : historicalOperations.where((candidate) {
+                final dayDifference =
+                    DateTime(
+                          candidate.date.year,
+                          candidate.date.month,
+                          candidate.date.day,
+                        )
+                        .difference(
+                          DateTime(
+                            operation.date.year,
+                            operation.date.month,
+                            operation.date.day,
+                          ),
+                        )
+                        .inDays;
+
+                return historicalInvestmentUids.contains(
+                      candidate.investmentUid,
+                    ) &&
+                    candidate.transferUid == operation.transferUid &&
+                    candidate.type == HistoricalOperationType.transferIn &&
+                    dayDifference >= 0 &&
+                    dayDifference <= 10;
+              });
+
+        final isInternalTransfer =
+            isTransferOperation &&
+            matchingTransferOuts.length == 1 &&
+            matchingTransferIns.length == 1 &&
+            matchingTransferOuts.first.investmentUid !=
                 matchingTransferIns.first.investmentUid;
-        //      &&
-        // matchingTransferOuts.first.amount ==
-        //     matchingTransferIns.first.amount;
 
         if (isInternalTransfer &&
             operation.type == HistoricalOperationType.transferOut) {
