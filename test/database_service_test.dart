@@ -5334,4 +5334,55 @@ void main() {
 
     expect(HistoricalInvestmentValidator.isClosed(recovered), isTrue);
   });
+
+  /* test(
+    'LF-143.10.4: rechaza guardar un traspaso de entrada sin salida emparejada',
+    () async {
+      final investment = HistoricalInvestment(
+        uid: 'investment-lf143-10-4',
+        name: 'Inversión con traspaso sin pareja',
+      );
+
+      final operations = [
+        HistoricalOperation(
+          uid: 'operation-lf143-10-4-1',
+          investmentUid: investment.uid,
+          date: DateTime(2020, 1, 1),
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'operation-lf143-10-4-2',
+          investmentUid: investment.uid,
+          date: DateTime(2020, 2, 1),
+          type: HistoricalOperationType.transferIn,
+          amount: 500,
+          transferUid: 'TRANSFER-SIN-SALIDA',
+        ),
+        HistoricalOperation(
+          uid: 'operation-lf143-10-4-3',
+          investmentUid: investment.uid,
+          date: DateTime(2020, 3, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1500,
+        ),
+      ];
+
+      await expectLater(
+        DatabaseService.saveHistoricalInvestmentWithOperations(
+          investment,
+          operations,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      final investments = await DatabaseService.getHistoricalInvestments();
+      expect(investments, isEmpty);
+
+      final savedOperations = await DatabaseService.getHistoricalOperations(
+        investment.uid,
+      );
+      expect(savedOperations, isEmpty);
+    },
+  ); */
 }
