@@ -29,6 +29,7 @@ class HistoricalInvestmentFormPage extends StatefulWidget {
 
 class _HistoricalInvestmentFormPageState
     extends State<HistoricalInvestmentFormPage> {
+  late final String _investmentUid;
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
@@ -43,6 +44,12 @@ class _HistoricalInvestmentFormPageState
   String get _locale => Localizations.localeOf(context).toString();
 
   DateFormat get _dateFormat => DateFormat.yMMMd(_locale);
+
+  @override
+  void initState() {
+    super.initState();
+    _investmentUid = _newUid('investment');
+  }
 
   String _newUid(String prefix) {
     return '${prefix}_${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}'
@@ -126,7 +133,7 @@ class _HistoricalInvestmentFormPageState
     setState(() => _operations[index] = draft);
   }
 
-  Future<HistoricalOperationDraft?> _showOperationDialog({
+  /* Future<HistoricalOperationDraft?> _showOperationDialog({
     HistoricalOperationDraft? operation,
   }) {
     return showDialog<HistoricalOperationDraft>(
@@ -138,6 +145,41 @@ class _HistoricalInvestmentFormPageState
         parseNumber: _parseNumber,
         validateNumber: _validateNumber,
         generateTransferUid: () => _newUid('transfer'),
+      ),
+    );
+  } */
+
+  Future<HistoricalOperationDraft?> _showOperationDialog({
+    HistoricalOperationDraft? operation,
+  }) async {
+    final investments = await DatabaseService.getHistoricalInvestments();
+
+    final groups = await Future.wait(
+      investments.map(
+        (investment) => DatabaseService.getHistoricalOperations(investment.uid),
+      ),
+    );
+
+    final transferOperations = groups.expand((group) => group).toList();
+
+    final investmentNames = {
+      for (final investment in investments) investment.uid: investment.name,
+    };
+
+    if (!mounted) return null;
+
+    return showDialog<HistoricalOperationDraft>(
+      context: context,
+      builder: (_) => HistoricalOperationDialog(
+        operation: operation,
+        dateFormat: _dateFormat,
+        pickDate: _pickDate,
+        parseNumber: _parseNumber,
+        validateNumber: _validateNumber,
+        generateTransferUid: () => _newUid('transfer'),
+        receivingInvestmentUid: _investmentUid,
+        transferOperations: transferOperations,
+        investmentNames: investmentNames,
       ),
     );
   }
@@ -156,7 +198,8 @@ class _HistoricalInvestmentFormPageState
 
     setState(() => _saving = true);
 
-    final investmentUid = _newUid('investment');
+    //final investmentUid = _newUid('investment');
+    final investmentUid = _investmentUid;
 
     try {
       final investment = HistoricalInvestment(

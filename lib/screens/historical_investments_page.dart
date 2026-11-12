@@ -89,7 +89,31 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     );
   }
 
+  Future<({List<HistoricalOperation> operations, Map<String, String> names})>
+  _loadTransferData({String? excludeOperationUid}) async {
+    final investments = await DatabaseService.getHistoricalInvestments();
+
+    final groups = await Future.wait(
+      investments.map(
+        (investment) => DatabaseService.getHistoricalOperations(investment.uid),
+      ),
+    );
+
+    final operations = groups
+        .expand((group) => group)
+        .where((operation) => operation.uid != excludeOperationUid)
+        .toList();
+
+    final names = {
+      for (final investment in investments) investment.uid: investment.name,
+    };
+
+    return (operations: operations, names: names);
+  }
+
   Future<void> _addOperation(HistoricalInvestment investment) async {
+    final transferData = await _loadTransferData();
+    if (!mounted) return;
     final draft = await showDialog<HistoricalOperationDraft>(
       context: context,
       builder: (_) => HistoricalOperationDialog(
@@ -99,6 +123,9 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         parseNumber: _parseNumber,
         validateNumber: _validateNumber,
         generateTransferUid: () => _newUid('transfer'),
+        receivingInvestmentUid: investment.uid,
+        transferOperations: transferData.operations,
+        investmentNames: transferData.names,
       ),
     );
 
@@ -225,6 +252,10 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
   }
 
   Future<void> _editOperation(HistoricalOperation operation) async {
+    final transferData = await _loadTransferData(
+      excludeOperationUid: operation.uid,
+    );
+    if (!mounted) return;
     final draft = await showDialog<HistoricalOperationDraft>(
       context: context,
       builder: (_) => HistoricalOperationDialog(
@@ -242,6 +273,9 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         parseNumber: _parseNumber,
         validateNumber: _validateNumber,
         generateTransferUid: () => _newUid('transfer'),
+        receivingInvestmentUid: operation.investmentUid,
+        transferOperations: transferData.operations,
+        investmentNames: transferData.names,
       ),
     );
 
