@@ -1095,6 +1095,70 @@ class FinancialCalculator {
     return matchedOperations;
   }
 
+  /// Devuelve las salidas que podrían asociarse de forma inequívoca
+  /// a una nueva entrada en la inversión y fecha indicadas.
+  static List<HistoricalOperation> getAvailableHistoricalTransferOuts({
+    required String receivingInvestmentUid,
+    required DateTime receivingDate,
+    required List<HistoricalOperation> operations,
+    required Set<String> investmentUids,
+  }) {
+    DateTime dayOnly(DateTime date) =>
+        DateTime(date.year, date.month, date.day);
+
+    final eligibleOuts = operations.where((operation) {
+      final transferUid = operation.transferUid;
+
+      if (operation.type != HistoricalOperationType.transferOut ||
+          transferUid == null ||
+          transferUid.isEmpty ||
+          operation.investmentUid == receivingInvestmentUid) {
+        return false;
+      }
+
+      final dayDifference = dayOnly(receivingDate)
+          .difference(dayOnly(operation.date))
+          .inDays;
+
+      return dayDifference >= 0 && dayDifference <= 10;
+    }).toList();
+
+    final availableOuts = <HistoricalOperation>[];
+
+    for (final candidate in eligibleOuts) {
+      var candidateUid = '\u0000transfer-in-candidate-${candidate.uid}';
+
+      while (operations.any((operation) => operation.uid == candidateUid)) {
+        candidateUid = '$candidateUid-';
+      }
+
+      final candidateInput = HistoricalOperation(
+        uid: candidateUid,
+        investmentUid: receivingInvestmentUid,
+        date: receivingDate,
+        type: HistoricalOperationType.transferIn,
+        amount: 0,
+        transferUid: candidate.transferUid,
+      );
+
+      final resolved = _resolveInternalTransferOperations(
+        [...operations, candidateInput],
+        {...investmentUids, receivingInvestmentUid},
+      );
+
+      if (resolved[candidateUid]?.uid == candidate.uid) {
+        availableOuts.add(candidate);
+      }
+    }
+
+    availableOuts.sort((a, b) {
+      final dateComparison = a.date.compareTo(b.date);
+      return dateComparison != 0 ? dateComparison : a.uid.compareTo(b.uid);
+    });
+
+    return availableOuts;
+  }
+
   static GlobalMetrics calculateGlobalMetrics(
     List<FundData> portfolio,
     Map<String, double> exchangeRates, {

@@ -137,6 +137,7 @@ class _HistoricalInvestmentFormPageState
         pickDate: _pickDate,
         parseNumber: _parseNumber,
         validateNumber: _validateNumber,
+        generateTransferUid: () => _newUid('transfer'),
       ),
     );
   }

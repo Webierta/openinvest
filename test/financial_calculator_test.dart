@@ -7302,6 +7302,67 @@ void main() {
       expect(metrics.totalInvestedGlobal, 1700);
       expect(metrics.isAnnualizedGlobal, isTrue);
     });
+
+    test(
+      'LF-143.9.10: dos salidas posibles para una entrada no se emparejan',
+      () {
+        final transferDate = DateTime.now().subtract(const Duration(days: 60));
+
+        final investmentA = HistoricalInvestment(
+          uid: 'INVESTMENT-A',
+          name: 'Inversión A',
+        );
+
+        final investmentB = HistoricalInvestment(
+          uid: 'INVESTMENT-B',
+          name: 'Inversión B',
+        );
+
+        final investmentC = HistoricalInvestment(
+          uid: 'INVESTMENT-C',
+          name: 'Inversión C',
+        );
+
+        const transferUid = 'TRANSFER-A-B-C';
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-A-01',
+            investmentUid: investmentA.uid,
+            date: transferDate,
+            type: HistoricalOperationType.transferOut,
+            amount: 1000,
+            transferUid: transferUid,
+          ),
+          HistoricalOperation(
+            uid: 'OP-B-01',
+            investmentUid: investmentB.uid,
+            date: transferDate.add(const Duration(days: 2)),
+            type: HistoricalOperationType.transferOut,
+            amount: 800,
+            transferUid: transferUid,
+          ),
+          HistoricalOperation(
+            uid: 'OP-C-01',
+            investmentUid: investmentC.uid,
+            date: transferDate.add(const Duration(days: 4)),
+            type: HistoricalOperationType.transferIn,
+            amount: 900,
+            transferUid: transferUid,
+          ),
+        ];
+
+        final metrics = FinancialCalculator.calculateGlobalMetrics(
+          [],
+          const {},
+          historicalInvestments: [investmentA, investmentB, investmentC],
+          historicalOperations: operations,
+        );
+
+        expect(metrics.totalInvestedGlobal, 900);
+        expect(metrics.isAnnualizedGlobal, isTrue);
+      },
+    );
   });
 
   group('FinancialCalculator - TWR Accuracy', () {

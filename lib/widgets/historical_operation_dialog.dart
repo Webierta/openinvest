@@ -29,6 +29,7 @@ class HistoricalOperationDialog extends StatefulWidget {
   final Future<DateTime?> Function(DateTime) pickDate;
   final double? Function(String) parseNumber;
   final String? Function(String?, {required String label}) validateNumber;
+  final String Function() generateTransferUid;
 
   const HistoricalOperationDialog({
     super.key,
@@ -37,6 +38,7 @@ class HistoricalOperationDialog extends StatefulWidget {
     required this.pickDate,
     required this.parseNumber,
     required this.validateNumber,
+    required this.generateTransferUid,
   });
 
   @override
@@ -55,6 +57,8 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
 
   late HistoricalOperationType _selectedType;
   late DateTime _selectedDate;
+
+  String? _generatedTransferUid;
 
   @override
   void initState() {
@@ -79,6 +83,9 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
     );
 
     _selectedType = operation?.type ?? HistoricalOperationType.subscription;
+    if (_selectedType == HistoricalOperationType.transferOut) {
+      _generatedTransferUid = operation?.transferUid;
+    }
     _selectedDate = operation?.date ?? DateTime.now();
 
     _unitsController.addListener(_updateCalculatedAmount);
@@ -165,9 +172,17 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
-        transferUid: _transferController.text.trim().isEmpty
+        /* transferUid: _transferController.text.trim().isEmpty
             ? null
-            : _transferController.text.trim(),
+            : _transferController.text.trim(), */
+        transferUid: switch (_selectedType) {
+          HistoricalOperationType.transferOut => _generatedTransferUid,
+          HistoricalOperationType.transferIn =>
+            _transferController.text.trim().isEmpty
+                ? null
+                : _transferController.text.trim(),
+          _ => null,
+        },
       ),
     );
   }
@@ -216,9 +231,17 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                     ),
                   ],
                   onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedType = value);
-                    }
+                    if (value == null) return;
+                    setState(() {
+                      if (value == HistoricalOperationType.transferOut) {
+                        _generatedTransferUid ??= widget.generateTransferUid();
+                        _transferController.text = _generatedTransferUid!;
+                      } else if (_selectedType ==
+                          HistoricalOperationType.transferOut) {
+                        _transferController.clear();
+                      }
+                      _selectedType = value;
+                    });
                   },
                 ),
                 const SizedBox(height: 14),
@@ -301,13 +324,32 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                   maxLines: 2,
                 ),
                 const SizedBox(height: 14),
-                TextFormField(
+                /* TextFormField(
                   controller: _transferController,
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     labelText: 'UID de transferencia (opcional)',
                   ),
-                ),
+                ), */
+                if (_selectedType == HistoricalOperationType.transferOut)
+                  TextFormField(
+                    key: const ValueKey('generated-transfer-uid'),
+                    initialValue: _generatedTransferUid,
+                    readOnly: true,
+                    style: const TextStyle(color: Colors.white70),
+                    decoration: const InputDecoration(
+                      labelText: 'UID de transferencia (generado)',
+                      helperText: 'Identificador que deberá asociarse al traspaso recibido',
+                    ),
+                  )
+                else if (_selectedType == HistoricalOperationType.transferIn)
+                  TextFormField(
+                    controller: _transferController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'UID de transferencia',
+                    ),
+                  ),
               ],
             ),
           ),

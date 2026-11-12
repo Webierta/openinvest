@@ -98,6 +98,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         pickDate: _pickDate,
         parseNumber: _parseNumber,
         validateNumber: _validateNumber,
+        generateTransferUid: () => _newUid('transfer'),
       ),
     );
 
@@ -240,6 +241,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         pickDate: _pickDate,
         parseNumber: _parseNumber,
         validateNumber: _validateNumber,
+        generateTransferUid: () => _newUid('transfer'),
       ),
     );
 
