@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:investing/screens/portfolio_summary_page.dart';
-//import 'package:investing/screens/correlation_matrix_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:investing/l10n/app_localizations.dart';
 

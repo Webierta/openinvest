@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../models/fund_data.dart';
@@ -11,14 +11,7 @@ import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart'; // Tu widget existente
 
 class CorrelationMatrixPage extends StatefulWidget {
-  //final List<FundData> funds;
-  //final PortfolioCorrelationMatrix matrix;
-
-  const CorrelationMatrixPage({
-    super.key,
-    //required this.funds,
-    //required this.matrix,
-  });
+  const CorrelationMatrixPage({super.key});
 
   @override
   State<CorrelationMatrixPage> createState() => _CorrelationMatrixPageState();

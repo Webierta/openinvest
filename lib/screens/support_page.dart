@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:investing/l10n/app_localizations.dart';
@@ -127,9 +127,7 @@ class SupportPage extends StatelessWidget {
                               const ClipboardData(text: btcAddress),
                             );
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.bitcoinCopied),
-                              ),
+                              SnackBar(content: Text(l10n.bitcoinCopied)),
                             );
                           },
                           tooltip: l10n.copyAddress,
@@ -141,11 +139,9 @@ class SupportPage extends StatelessWidget {
                   color: Colors.orangeAccent.withValues(alpha: 0.1),
                   onPressed: () {
                     Clipboard.setData(const ClipboardData(text: btcAddress));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(l10n.bitcoinCopied),
-                      ),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(l10n.bitcoinCopied)));
                   },
                 ),
 
