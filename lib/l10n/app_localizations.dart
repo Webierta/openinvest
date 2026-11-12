@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
+
+import 'package:flutter/foundation.dart';
+
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
