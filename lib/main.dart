@@ -67,11 +67,11 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         //GlobalCupertinoLocalizations.delegate,
       ], */
-      /*  localizationsDelegates: [
+      localizationsDelegates: [
         AppLocalizations.delegate,
         ...GlobalMaterialLocalizations.delegates,
-      ], */
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      ],
+      //localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: provider.locale,
       navigatorObservers: [routeObserver],

@@ -69,7 +69,10 @@ void main() {
             value: provider,
             child: MaterialApp(
               locale: const Locale('en'),
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              localizationsDelegates: [
+                AppLocalizations.delegate,
+                ...GlobalMaterialLocalizations.delegates,
+              ],
               supportedLocales: AppLocalizations.supportedLocales,
               home: const FundSearchPage(),
             ),
@@ -212,7 +215,10 @@ void main() {
           value: provider,
           child: MaterialApp(
             locale: const Locale('en'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
             supportedLocales: AppLocalizations.supportedLocales,
             home: const FundSearchPage(),
           ),
@@ -352,7 +358,10 @@ void main() {
           value: provider,
           child: MaterialApp(
             locale: const Locale('en'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
             supportedLocales: AppLocalizations.supportedLocales,
             home: const FundSearchPage(),
           ),
@@ -492,7 +501,10 @@ void main() {
           value: provider,
           child: MaterialApp(
             locale: const Locale('en'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
             supportedLocales: AppLocalizations.supportedLocales,
             home: const FundSearchPage(),
           ),
@@ -631,7 +643,10 @@ void main() {
           value: provider,
           child: MaterialApp(
             locale: const Locale('en'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
             supportedLocales: AppLocalizations.supportedLocales,
             home: const FundSearchPage(),
           ),

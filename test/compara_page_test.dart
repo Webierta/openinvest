@@ -220,7 +220,10 @@ Widget _app(FundProvider provider, {TextScaler? textScaler}) =>
       value: provider,
       child: MaterialApp(
         locale: const Locale('es'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
         supportedLocales: AppLocalizations.supportedLocales,
         home: textScaler == null
             ? const ComparaPage()

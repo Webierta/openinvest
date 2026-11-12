@@ -43,13 +43,10 @@ void main() {
       ChangeNotifierProvider<FundProvider>.value(
         value: provider,
         child: MaterialApp(
-          /* localizationsDelegates: const [
+          localizationsDelegates: [
             AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ], */
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: FundOperationsList(fund: fund)),
         ),

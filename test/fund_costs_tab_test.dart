@@ -51,13 +51,10 @@ void main() {
         value: provider,
         child: MaterialApp(
           locale: const Locale('es'),
-          /* localizationsDelegates: const [
+          localizationsDelegates: [
             AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ], */
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: FundCostsTab(fund: testFund ?? fund)),
         ),
@@ -94,13 +91,10 @@ void main() {
         value: provider,
         child: MaterialApp(
           locale: const Locale('es'),
-          /* localizationsDelegates: const [
+          localizationsDelegates: [
             AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ], */
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: FundMarketTab(fund: fund)),
         ),

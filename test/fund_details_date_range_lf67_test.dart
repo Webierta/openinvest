@@ -53,7 +53,10 @@ void main() {
         value: provider,
         child: MaterialApp(
           locale: const Locale('es'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           home: const FundDetailsPage(),
         ),
@@ -248,7 +251,10 @@ void main() {
           value: provider,
           child: MaterialApp(
             locale: const Locale('es'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
             supportedLocales: AppLocalizations.supportedLocales,
             home: const FundDetailsPage(),
           ),
