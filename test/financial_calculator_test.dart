@@ -1431,7 +1431,7 @@ void main() {
       },
     );
 
-    /*  test(
+    test(
       'LF-143.2.4: no empareja traspasos históricos de fechas distintas',
       () {
         final sourceInvestment = HistoricalInvestment(
@@ -1477,9 +1477,9 @@ void main() {
           historicalOperations: historicalOperations,
         );
 
-        expect(metrics.totalInvestedGlobal, 1300);
+        expect(metrics.totalInvestedGlobal, 1000);
       },
-    ); */
+    );
 
     test(
       'LF-143.2.5: un traspaso de salida futuro no anula una entrada histórica',
@@ -3559,7 +3559,6 @@ void main() {
       expect(metrics.totalInvested, 950);
       expect(metrics.profitAbs, 50);
       expect(metrics.profitRel, closeTo(50 / 950 * 100, 0.000001));
-      //expect(metrics.isAnnualized, isTrue);
       expect(metrics.isAnnualized, isFalse);
       expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
@@ -3619,11 +3618,8 @@ void main() {
       expect(metrics.totalInvestedGlobal, 950);
       expect(metrics.totalValueGlobal, 0);
       expect(metrics.totalInvested, 950);
-      //expect(metrics.profitAbs, -550);
-      //expect(metrics.profitRel, closeTo(-550 / 950 * 100, 0.000001));
       expect(metrics.profitAbs, 550);
       expect(metrics.profitRel, closeTo(550 / 950 * 100, 0.000001));
-      //expect(metrics.isAnnualized, isTrue);
       expect(metrics.isAnnualized, isFalse);
       expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
@@ -3716,7 +3712,6 @@ void main() {
       expect(metrics.totalInvested, 1400);
       expect(metrics.profitAbs, 400);
       expect(metrics.profitRel, closeTo(400 / 1400 * 100, 0.000001));
-      //expect(metrics.isAnnualized, isTrue);
       expect(metrics.isAnnualized, isFalse);
       expect(metrics.isAnnualizedGlobal, isTrue);
       expect(metrics.mwrAnnualized, isNull);
