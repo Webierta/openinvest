@@ -133,57 +133,6 @@ class _HistoricalInvestmentFormPageState
     setState(() => _operations[index] = draft);
   }
 
-  /* Future<HistoricalOperationDraft?> _showOperationDialog({
-    HistoricalOperationDraft? operation,
-  }) {
-    return showDialog<HistoricalOperationDraft>(
-      context: context,
-      builder: (_) => HistoricalOperationDialog(
-        operation: operation,
-        dateFormat: _dateFormat,
-        pickDate: _pickDate,
-        parseNumber: _parseNumber,
-        validateNumber: _validateNumber,
-        generateTransferUid: () => _newUid('transfer'),
-      ),
-    );
-  } */
-
-  /* Future<HistoricalOperationDraft?> _showOperationDialog({
-    HistoricalOperationDraft? operation,
-  }) async {
-    final investments = await DatabaseService.getHistoricalInvestments();
-
-    final groups = await Future.wait(
-      investments.map(
-        (investment) => DatabaseService.getHistoricalOperations(investment.uid),
-      ),
-    );
-
-    final transferOperations = groups.expand((group) => group).toList();
-
-    final investmentNames = {
-      for (final investment in investments) investment.uid: investment.name,
-    };
-
-    if (!mounted) return null;
-
-    return showDialog<HistoricalOperationDraft>(
-      context: context,
-      builder: (_) => HistoricalOperationDialog(
-        operation: operation,
-        dateFormat: _dateFormat,
-        pickDate: _pickDate,
-        parseNumber: _parseNumber,
-        validateNumber: _validateNumber,
-        generateTransferUid: () => _newUid('transfer'),
-        receivingInvestmentUid: _investmentUid,
-        transferOperations: transferOperations,
-        investmentNames: investmentNames,
-      ),
-    );
-  } */
-
   Future<HistoricalOperationDraft?> _showOperationDialog({
     HistoricalOperationDraft? operation,
   }) async {
@@ -241,7 +190,6 @@ class _HistoricalInvestmentFormPageState
 
     setState(() => _saving = true);
 
-    //final investmentUid = _newUid('investment');
     final investmentUid = _investmentUid;
 
     try {
@@ -277,9 +225,7 @@ class _HistoricalInvestmentFormPageState
           DatabaseService.saveHistoricalInvestmentWithOperations;
 
       await saveInvestment(investment, operations);
-      /* if (mounted) {
-        await context.read<FundProvider>().loadPortfolio();
-      } */
+
       // La recarga de cartera corresponde al flujo de persistencia real.
       // Cuando se inyecta un saver (por ejemplo, en los tests), no se
       // fuerza una recarga adicional del proveedor.
@@ -298,8 +244,6 @@ class _HistoricalInvestmentFormPageState
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HistoricalInvestmentsPage()),
       );
-
-      //Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
 
@@ -318,15 +262,15 @@ class _HistoricalInvestmentFormPageState
       filled: true,
       fillColor: const Color(0xFF0F172A),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderRadius: .circular(12),
+        borderSide: .none,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: .circular(12),
         borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: .circular(12),
         borderSide: const BorderSide(color: Colors.amber),
       ),
       errorMaxLines: 2,
@@ -343,11 +287,11 @@ class _HistoricalInvestmentFormPageState
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B).withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        borderRadius: .circular(18),
+        border: .all(color: Colors.white.withValues(alpha: 0.07)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: .start,
         children: [
           Row(
             children: [
@@ -359,11 +303,10 @@ class _HistoricalInvestmentFormPageState
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: .bold,
                   ),
                 ),
               ),
-              // if (action != null) action,
               ?action,
             ],
           ),
@@ -391,7 +334,7 @@ class _HistoricalInvestmentFormPageState
         const SizedBox(height: 14),
         TextFormField(
           controller: _isinController,
-          textCapitalization: TextCapitalization.characters,
+          textCapitalization: .characters,
           style: const TextStyle(color: Colors.white),
           decoration: _inputDecoration('ISIN (opcional)'),
         ),
@@ -409,11 +352,11 @@ class _HistoricalInvestmentFormPageState
   Widget _buildOperationList() {
     if (_operations.isEmpty) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 18),
+        padding: .symmetric(vertical: 18),
         child: Center(
           child: Text(
             'Todavía no hay operaciones.\nAñade la primera para construir el histórico.',
-            textAlign: TextAlign.center,
+            textAlign: .center,
             style: TextStyle(color: Colors.white54, height: 1.5),
           ),
         ),
@@ -447,10 +390,7 @@ class _HistoricalInvestmentFormPageState
             ),
             title: Text(
               title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(color: Colors.white, fontWeight: .w600),
             ),
             subtitle: Text(
               '${_dateFormat.format(operation.date)}'
@@ -459,7 +399,7 @@ class _HistoricalInvestmentFormPageState
             ),
             isThreeLine: operation.description != null,
             trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: .min,
               children: [
                 Text(
                   NumberFormat.currency(
@@ -468,7 +408,7 @@ class _HistoricalInvestmentFormPageState
                   ).format(operation.amount),
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: .bold,
                   ),
                 ),
                 PopupMenuButton<String>(
@@ -509,7 +449,7 @@ class _HistoricalInvestmentFormPageState
                 ),
                 body: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.all(14),
+                    padding: const .all(14),
                     child: Column(
                       children: [
                         Text(
@@ -617,10 +557,7 @@ class _HistoricalInvestmentFormPageState
                           : const Icon(Icons.save_outlined),
                       label: Text(
                         _saving ? 'Guardando…' : 'Guardar',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontSize: 16, fontWeight: .bold),
                       ),
                     ),
                   ],
