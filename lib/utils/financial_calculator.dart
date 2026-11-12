@@ -1173,6 +1173,7 @@ class FinancialCalculator {
     DateTime? firstOpDate;
     DateTime? firstPortfolioOpDate;
     DateTime? valuationDate;
+    DateTime? portfolioValuationDate;
 
     final cashFlows = <Map<String, Object>>[];
     final portfolioCashFlows = <Map<String, Object>>[];
@@ -1203,6 +1204,10 @@ class FinancialCalculator {
       if (valuationDate == null || fund.date.isAfter(valuationDate)) {
         valuationDate = fund.date;
       }
+      if (portfolioValuationDate == null ||
+          fund.date.isAfter(portfolioValuationDate)) {
+        portfolioValuationDate = fund.date;
+      }
 
       for (final operation in fund.operations) {
         final isInvestment =
@@ -1224,6 +1229,11 @@ class FinancialCalculator {
 
         if (valuationDate == null || operation.date.isAfter(valuationDate)) {
           valuationDate = operation.date;
+        }
+
+        if (portfolioValuationDate == null ||
+            fund.date.isAfter(portfolioValuationDate)) {
+          portfolioValuationDate = fund.date;
         }
       }
 
@@ -1428,8 +1438,18 @@ class FinancialCalculator {
     if (flowsForPortfolio.isNotEmpty) {
       final portfolioFlows = List<Map<String, Object>>.from(flowsForPortfolio);
 
-      if (portfolioValue > 0 && valuationDate != null) {
+      final portfolioTerminalDate = portfolioCashFlows.isNotEmpty
+          ? portfolioValuationDate
+          : valuationDate;
+
+      /* if (portfolioValue > 0 && valuationDate != null) {
         portfolioFlows.add({'amount': portfolioValue, 'date': valuationDate});
+      } */
+      if (portfolioValue > 0 && portfolioTerminalDate != null) {
+        portfolioFlows.add({
+          'amount': portfolioValue,
+          'date': portfolioTerminalDate,
+        });
       }
 
       portfolioFlows.sort(
