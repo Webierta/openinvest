@@ -925,7 +925,6 @@ class FinancialCalculator {
     // La fecha objetivo es anterior a cualquier dato de IPC disponible
   }
 
-  // static Set<String> _resolveInternalTransferOperationUids(
   static Map<String, HistoricalOperation> _resolveInternalTransferOperations(
     List<HistoricalOperation> operations,
     Set<String> investmentUids,
@@ -952,7 +951,6 @@ class FinancialCalculator {
     DateTime dayOnly(DateTime date) =>
         DateTime(date.year, date.month, date.day);
 
-    //final matchedUids = <String>{};
     final matchedOperations = <String, HistoricalOperation>{};
 
     for (final group in grouped.values) {
@@ -1076,11 +1074,6 @@ class FinancialCalculator {
 
         if (!isUnique) continue;
 
-        /* for (final entry in matching.entries) {
-          matchedUids.add(outs[entry.value].uid);
-          matchedUids.add(ins[entry.key].uid);
-        } */
-
         for (final entry in matching.entries) {
           final transferOut = outs[entry.value];
           final transferIn = ins[entry.key];
@@ -1091,7 +1084,6 @@ class FinancialCalculator {
       }
     }
 
-    //return matchedUids;
     return matchedOperations;
   }
 
@@ -1264,11 +1256,6 @@ class FinancialCalculator {
         )
         .toList();
 
-    /* final internalTransferOperationUids = _resolveInternalTransferOperationUids(
-      eligibleHistoricalOperations,
-      historicalInvestmentUids,
-    ); */
-
     final internalTransferOperations = _resolveInternalTransferOperations(
       eligibleHistoricalOperations,
       historicalInvestmentUids,
@@ -1301,80 +1288,12 @@ class FinancialCalculator {
             operation.type == HistoricalOperationType.transferIn ||
             operation.type == HistoricalOperationType.transferOut;
 
-        /* final isInternalTransfer =
-            isTransferOperation &&
-            internalTransferOperationUids.contains(operation.uid); */
-
         final isInternalTransfer =
             isTransferOperation &&
             internalTransferOperations.containsKey(operation.uid);
 
-        /* final matchingTransferOuts = operation.transferUid == null
-            ? <HistoricalOperation>[]
-            : historicalOperations.where((candidate) {
-                final dayDifference =
-                    DateTime(
-                          operation.date.year,
-                          operation.date.month,
-                          operation.date.day,
-                        )
-                        .difference(
-                          DateTime(
-                            candidate.date.year,
-                            candidate.date.month,
-                            candidate.date.day,
-                          ),
-                        )
-                        .inDays;
-
-                return historicalInvestmentUids.contains(
-                      candidate.investmentUid,
-                    ) &&
-                    candidate.transferUid == operation.transferUid &&
-                    candidate.type == HistoricalOperationType.transferOut &&
-                    dayDifference >= 0 &&
-                    dayDifference <= 10;
-              });
-
-        final matchingTransferIns = operation.transferUid == null
-            ? <HistoricalOperation>[]
-            : historicalOperations.where((candidate) {
-                final dayDifference =
-                    DateTime(
-                          candidate.date.year,
-                          candidate.date.month,
-                          candidate.date.day,
-                        )
-                        .difference(
-                          DateTime(
-                            operation.date.year,
-                            operation.date.month,
-                            operation.date.day,
-                          ),
-                        )
-                        .inDays;
-
-                return historicalInvestmentUids.contains(
-                      candidate.investmentUid,
-                    ) &&
-                    candidate.transferUid == operation.transferUid &&
-                    candidate.type == HistoricalOperationType.transferIn &&
-                    dayDifference >= 0 &&
-                    dayDifference <= 10;
-              });
-
-        final isInternalTransfer =
-            isTransferOperation &&
-            matchingTransferOuts.length == 1 &&
-            matchingTransferIns.length == 1 &&
-            matchingTransferOuts.first.investmentUid !=
-                matchingTransferIns.first.investmentUid; */
-
         if (isInternalTransfer &&
             operation.type == HistoricalOperationType.transferOut) {
-          // internalTransferProfitAdjustment +=
-          //     operation.amount - matchingTransferIns.first.amount;
-
           internalTransferProfitAdjustment +=
               operation.amount -
               internalTransferOperations[operation.uid]!.amount;
@@ -1384,10 +1303,6 @@ class FinancialCalculator {
           totalInvestedGlobal += operation.amount;
         }
 
-        // final isExternalCashFlow =
-        //     !isInternalTransfer &&
-        //     operation.type != HistoricalOperationType.transferOut;
-
         final isExternalCashFlow = !isInternalTransfer;
 
         if (isExternalCashFlow) {
@@ -1396,10 +1311,6 @@ class FinancialCalculator {
             'date': operation.date,
           });
         }
-
-        /* if (valuationDate == null || operation.date.isAfter(valuationDate)) {
-          valuationDate = operation.date;
-        } */
 
         if (isExternalCashFlow &&
             (valuationDate == null || operation.date.isAfter(valuationDate))) {
@@ -1496,10 +1407,6 @@ class FinancialCalculator {
       mwrAnnualized: mwrAnnualized,
       totalValueGlobal: portfolioValue,
       totalInvestedGlobal: totalInvestedGlobal,
-      //profitAbsGlobal: profitAbs,
-      // profitRelGlobal: totalInvestedGlobal > 0
-      //     ? profitAbs / totalInvestedGlobal
-      //     : 0.0,
       profitAbsGlobal: profitAbsGlobal,
       profitRelGlobal: totalInvestedGlobal > 0
           ? profitAbsGlobal / totalInvestedGlobal

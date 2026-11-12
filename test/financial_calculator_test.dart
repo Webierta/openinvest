@@ -7424,6 +7424,77 @@ void main() {
         closeTo(portfolioMetrics.mwrAnnualized!, 1e-10),
       );
     });
+
+    test('LF-143.11.2: las operaciones históricas sí afectan al MWR global '
+        'sin alterar el MWR de la cartera vigente', () {
+      final startDate = DateTime(2023, 1, 1);
+      final valuationDate = DateTime(2024, 1, 1);
+
+      final fund = FundData(
+        isin: 'LF143-11-2',
+        symbol: 'LF143',
+        name: 'Fondo vigente',
+        lastValue: 110,
+        currency: 'EUR',
+        date: valuationDate,
+        history: [PricePoint(startDate, 100), PricePoint(valuationDate, 110)],
+        operations: [
+          FundOperation(
+            isin: 'LF143-11-2',
+            date: startDate,
+            type: OperationType.buy,
+            units: 10,
+            price: 100,
+            amount: 1000,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'LF143-11-2-HIST',
+        name: 'Inversión histórica',
+      );
+
+      final historicalOperations = [
+        HistoricalOperation(
+          uid: 'LF143-11-2-SUB',
+          investmentUid: investment.uid,
+          date: startDate,
+          type: HistoricalOperationType.subscription,
+          amount: 1000,
+        ),
+        HistoricalOperation(
+          uid: 'LF143-11-2-RED',
+          investmentUid: investment.uid,
+          date: DateTime(2025, 1, 1),
+          type: HistoricalOperationType.redemption,
+          amount: 1200,
+        ),
+      ];
+
+      final portfolioMetrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+      );
+
+      final combinedMetrics = FinancialCalculator.calculateGlobalMetrics(
+        [fund],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: historicalOperations,
+      );
+
+      expect(
+        combinedMetrics.mwrAnnualized,
+        closeTo(portfolioMetrics.mwrAnnualized!, 1e-10),
+      );
+      expect(combinedMetrics.mwrAnnualizedGlobal, isNotNull);
+      expect(
+        combinedMetrics.mwrAnnualizedGlobal,
+        isNot(closeTo(portfolioMetrics.mwrAnnualized!, 1e-10)),
+      );
+      expect(combinedMetrics.totalValueGlobal, 1100);
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {
