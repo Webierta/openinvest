@@ -149,7 +149,7 @@ class _HistoricalInvestmentFormPageState
     );
   } */
 
-  Future<HistoricalOperationDraft?> _showOperationDialog({
+  /* Future<HistoricalOperationDraft?> _showOperationDialog({
     HistoricalOperationDraft? operation,
   }) async {
     final investments = await DatabaseService.getHistoricalInvestments();
@@ -165,6 +165,49 @@ class _HistoricalInvestmentFormPageState
     final investmentNames = {
       for (final investment in investments) investment.uid: investment.name,
     };
+
+    if (!mounted) return null;
+
+    return showDialog<HistoricalOperationDraft>(
+      context: context,
+      builder: (_) => HistoricalOperationDialog(
+        operation: operation,
+        dateFormat: _dateFormat,
+        pickDate: _pickDate,
+        parseNumber: _parseNumber,
+        validateNumber: _validateNumber,
+        generateTransferUid: () => _newUid('transfer'),
+        receivingInvestmentUid: _investmentUid,
+        transferOperations: transferOperations,
+        investmentNames: investmentNames,
+      ),
+    );
+  } */
+
+  Future<HistoricalOperationDraft?> _showOperationDialog({
+    HistoricalOperationDraft? operation,
+  }) async {
+    List<HistoricalOperation> transferOperations = [];
+    Map<String, String> investmentNames = {};
+
+    // En el modo de guardado inyectado (aislamiento de pruebas),
+    // no se consulta SQLite para cargar los posibles traspasos.
+    if (widget.saveInvestment == null) {
+      final investments = await DatabaseService.getHistoricalInvestments();
+
+      final groups = await Future.wait(
+        investments.map(
+          (investment) =>
+              DatabaseService.getHistoricalOperations(investment.uid),
+        ),
+      );
+
+      transferOperations = groups.expand((group) => group).toList();
+
+      investmentNames = {
+        for (final investment in investments) investment.uid: investment.name,
+      };
+    }
 
     if (!mounted) return null;
 

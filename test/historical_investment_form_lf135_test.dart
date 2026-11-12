@@ -130,6 +130,34 @@ void main() {
           ),
         );
 
+        await tester.pumpWidget(
+          MaterialApp(
+            home: HistoricalInvestmentFormPage(
+              saveInvestment: (investment, operations) async {
+                savedInvestment = investment;
+                savedOperations = operations;
+              },
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final buildException = tester.takeException();
+        expect(
+          buildException,
+          isNull,
+          reason: 'El formulario debe construirse sin excepciones',
+        );
+
+        expect(find.byType(TextFormField), findsNWidgets(3));
+        expect(find.byType(EditableText), findsNWidgets(3));
+
+        await tester.enterText(
+          find.byType(TextFormField).first,
+          'Inversión válida',
+        );
+
         await tester.enterText(
           find.byType(TextFormField).first,
           'Inversión válida',
