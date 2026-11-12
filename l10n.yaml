@@ -1,3 +1,2 @@
 arb-dir: lib/l10n
 template-arb-file: app_es.arb
-header: "// ignore_for_file: deprecated_member_use"

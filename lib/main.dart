@@ -1,12 +1,12 @@
 import 'dart:io' show Platform;
 
-import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'
-    show GlobalWidgetsLocalizations;
+//import 'package:flutter_localizations/flutter_localizations.dart' show GlobalWidgetsLocalizations;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:provider/provider.dart';
+
 import 'package:investing/l10n/app_localizations.dart';
+//import 'l10n/app_localizations.dart';
 
 import 'providers/fund_provider.dart';
 import 'screens/portfolio_page.dart';
@@ -61,12 +61,17 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'OpenInvest',
       debugShowCheckedModeBanner: false,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
+      /* localizationsDelegates: const [
+        AppLocalizations.delegate,        
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+        //GlobalCupertinoLocalizations.delegate,
+      ], */
+      /*  localizationsDelegates: [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ], */
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: provider.locale,
       navigatorObservers: [routeObserver],
