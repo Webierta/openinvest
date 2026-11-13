@@ -925,6 +925,15 @@ class FinancialCalculator {
     // La fecha objetivo es anterior a cualquier dato de IPC disponible
   }
 
+  /// Devuelve las operaciones contraparte de los traspasos internos
+  /// que pueden emparejarse de forma inequívoca.
+  static Map<String, HistoricalOperation> resolveHistoricalTransferCounterparts(
+    List<HistoricalOperation> operations,
+    Set<String> investmentUids,
+  ) {
+    return _resolveInternalTransferOperations(operations, investmentUids);
+  }
+
   static Map<String, HistoricalOperation> _resolveInternalTransferOperations(
     List<HistoricalOperation> operations,
     Set<String> investmentUids,
