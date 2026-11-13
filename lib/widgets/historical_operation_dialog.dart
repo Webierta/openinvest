@@ -34,6 +34,7 @@ class HistoricalOperationDialog extends StatefulWidget {
   final String receivingInvestmentUid;
   final List<HistoricalOperation> transferOperations;
   final Map<String, String> investmentNames;
+  final String sourceInvestmentName;
 
   const HistoricalOperationDialog({
     super.key,
@@ -46,6 +47,7 @@ class HistoricalOperationDialog extends StatefulWidget {
     required this.receivingInvestmentUid,
     required this.transferOperations,
     required this.investmentNames,
+    required this.sourceInvestmentName,
   });
 
   @override
@@ -158,9 +160,13 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
 
     final amount = operation.amount.toStringAsFixed(2).replaceAll('.', ',');
 
+    // return '$investmentName · '
+    //     '${widget.dateFormat.format(operation.date)} · '
+    //     '$amount € · ${operation.transferUid}';
+
     return '$investmentName · '
         '${widget.dateFormat.format(operation.date)} · '
-        '$amount € · ${operation.transferUid}';
+        '$amount €';
   }
 
   Widget _buildTransferInSelector() {
@@ -335,7 +341,6 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                           _transferController.clear();
                         }
                       }
-
                       _selectedType = value;
                     });
                   },
@@ -443,7 +448,7 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                     labelText: 'UID de transferencia (opcional)',
                   ),
                 ), */
-                if (_selectedType == HistoricalOperationType.transferOut)
+                /* if (_selectedType == HistoricalOperationType.transferOut)
                   TextFormField(
                     key: const ValueKey('generated-transfer-uid'),
                     initialValue: _generatedTransferUid,
@@ -452,6 +457,44 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                     decoration: const InputDecoration(
                       labelText: 'UID de transferencia (generado)',
                       helperText: 'Identificador que deberá asociarse al traspaso recibido',
+                    ),
+                  )
+                else if (_selectedType == HistoricalOperationType.transferIn)
+                  _buildTransferInSelector(), */
+                /* if (_selectedType == HistoricalOperationType.transferOut)
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Referencia del traspaso',
+                    ),
+                    child: Text(
+                      '${widget.sourceInvestmentName} · '
+                      '${widget.dateFormat.format(_selectedDate)} · '
+                      '${_amountController.text.isEmpty ? '—' : '${_amountController.text} €'}',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  )
+                else if (_selectedType == HistoricalOperationType.transferIn)
+                  _buildTransferInSelector(), */
+                if (_selectedType == HistoricalOperationType.transferOut)
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Referencia del traspaso',
+                    ),
+                    child: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _amountController,
+                      builder: (context, value, child) {
+                        final amount = widget.parseNumber(value.text);
+                        final formattedAmount = amount == null
+                            ? '—'
+                            : amount.toStringAsFixed(2).replaceAll('.', ',');
+
+                        return Text(
+                          '${widget.sourceInvestmentName} · '
+                          '${widget.dateFormat.format(_selectedDate)} · '
+                          '$formattedAmount €',
+                          style: const TextStyle(color: Colors.white70),
+                        );
+                      },
                     ),
                   )
                 else if (_selectedType == HistoricalOperationType.transferIn)

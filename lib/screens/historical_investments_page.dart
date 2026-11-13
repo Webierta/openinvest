@@ -126,6 +126,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         receivingInvestmentUid: investment.uid,
         transferOperations: transferData.operations,
         investmentNames: transferData.names,
+        sourceInvestmentName: investment.name,
       ),
     );
 
@@ -276,6 +277,9 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         receivingInvestmentUid: operation.investmentUid,
         transferOperations: transferData.operations,
         investmentNames: transferData.names,
+        sourceInvestmentName:
+            transferData.names[operation.investmentUid] ??
+            operation.investmentUid,
       ),
     );
 

@@ -172,6 +172,7 @@ class _HistoricalInvestmentFormPageState
         receivingInvestmentUid: _investmentUid,
         transferOperations: transferOperations,
         investmentNames: investmentNames,
+        sourceInvestmentName: _nameController.text.trim(),
       ),
     );
   }
