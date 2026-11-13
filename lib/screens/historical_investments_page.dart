@@ -6,10 +6,19 @@ import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
 import '../providers/fund_provider.dart';
 import '../services/database_service.dart';
+import '../utils/financial_calculator.dart';
 import '../utils/historical_investment_validator.dart';
 import '../widgets/gradient_background.dart';
 import '../widgets/historical_investment_dialog.dart';
 import '../widgets/historical_operation_dialog.dart';
+
+typedef _HistoricalPageData = ({
+  List<HistoricalInvestment> investments,
+  List<HistoricalOperation> operations,
+  Map<String, List<HistoricalOperation>> operationsByInvestment,
+  Map<String, String> names,
+  Map<String, HistoricalOperation> counterparts,
+});
 
 class HistoricalInvestmentsPage extends StatefulWidget {
   const HistoricalInvestmentsPage({super.key});
@@ -20,7 +29,8 @@ class HistoricalInvestmentsPage extends StatefulWidget {
 }
 
 class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
-  late Future<List<HistoricalInvestment>> _investmentsFuture;
+  //late Future<List<HistoricalInvestment>> _investmentsFuture;
+  late Future<_HistoricalPageData> _pageDataFuture;
 
   final _numberFormat = NumberFormat('#,##0.00', 'es_ES');
   final _dateFormat = DateFormat('dd/MM/yyyy');
@@ -28,17 +38,61 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
   @override
   void initState() {
     super.initState();
-    _loadInvestments();
+    //_loadInvestments();
+    _pageDataFuture = _loadPageData();
   }
 
-  void _loadInvestments() {
+  /* void _loadInvestments() {
     _investmentsFuture = DatabaseService.getHistoricalInvestments();
+  } */
+
+  Future<_HistoricalPageData> _loadPageData() async {
+    final investments = await DatabaseService.getHistoricalInvestments();
+
+    final groups = await Future.wait(
+      investments.map(
+        (investment) => DatabaseService.getHistoricalOperations(investment.uid),
+      ),
+    );
+
+    final operationsByInvestment = {
+      for (var i = 0; i < investments.length; i++)
+        investments[i].uid: groups[i],
+    };
+
+    final operations = groups.expand((group) => group).toList();
+
+    final names = {
+      for (final investment in investments) investment.uid: investment.name,
+    };
+
+    final counterparts =
+        FinancialCalculator.resolveHistoricalTransferCounterparts(
+          operations,
+          investments.map((investment) => investment.uid).toSet(),
+        );
+
+    return (
+      investments: investments,
+      operations: operations,
+      operationsByInvestment: operationsByInvestment,
+      names: names,
+      counterparts: counterparts,
+    );
   }
 
-  Future<void> _refresh() async {
+  /* Future<void> _refresh() async {
     _loadInvestments();
     setState(() {});
     await _investmentsFuture;
+  } */
+
+  Future<void> _refresh() async {
+    final future = _loadPageData();
+    setState(() {
+      _pageDataFuture = future;
+    });
+    await future;
   }
 
   Future<void> _reloadPortfolio() async {
@@ -89,7 +143,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     );
   }
 
-  Future<({List<HistoricalOperation> operations, Map<String, String> names})>
+  /* Future<({List<HistoricalOperation> operations, Map<String, String> names})>
   _loadTransferData({String? excludeOperationUid}) async {
     final investments = await DatabaseService.getHistoricalInvestments();
 
@@ -109,6 +163,17 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     };
 
     return (operations: operations, names: names);
+  } */
+
+  Future<({List<HistoricalOperation> operations, Map<String, String> names})>
+  _loadTransferData({String? excludeOperationUid}) async {
+    final data = await _pageDataFuture;
+
+    final operations = data.operations
+        .where((operation) => operation.uid != excludeOperationUid)
+        .toList();
+
+    return (operations: operations, names: data.names);
   }
 
   Future<void> _addOperation(HistoricalInvestment investment) async {
@@ -149,7 +214,10 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      setState(() {});
+      //setState(() {});
+      setState(() {
+        _pageDataFuture = _loadPageData();
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -184,8 +252,11 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      _loadInvestments();
-      setState(() {});
+      //_loadInvestments();
+      //setState(() {});
+      setState(() {
+        _pageDataFuture = _loadPageData();
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -235,8 +306,11 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      _loadInvestments();
-      setState(() {});
+      // _loadInvestments();
+      // setState(() {});
+      setState(() {
+        _pageDataFuture = _loadPageData();
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -296,7 +370,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         transferUid: draft.transferUid,
       );
 
-      //await DatabaseService.updateHistoricalOperation(updated);
       final operations = await DatabaseService.getHistoricalOperations(
         operation.investmentUid,
       );
@@ -307,7 +380,10 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      setState(() {});
+      //setState(() {});
+      setState(() {
+        _pageDataFuture = _loadPageData();
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -351,7 +427,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     if (confirmed != true || !mounted) return;
 
     try {
-      //await DatabaseService.deleteHistoricalOperation(operation);
       final operations = await DatabaseService.getHistoricalOperations(
         operation.investmentUid,
       );
@@ -362,7 +437,10 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      setState(() {});
+      //setState(() {});
+      setState(() {
+        _pageDataFuture = _loadPageData();
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Operación histórica eliminada')),
@@ -402,7 +480,17 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     }
   }
 
-  Widget _buildOperation(HistoricalOperation operation) {
+  //Widget _buildOperation(HistoricalOperation operation) {
+
+  Widget _buildOperation(
+    HistoricalOperation operation,
+    _HistoricalPageData data,
+  ) {
+    final counterpart = data.counterparts[operation.uid];
+    final counterpartName = counterpart == null
+        ? null
+        : data.names[counterpart.investmentUid];
+
     return ListTile(
       dense: true,
       leading: Icon(_operationTypeIcon(operation.type), size: 21),
@@ -415,6 +503,12 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
           if (operation.price != null)
             'Precio: ${_numberFormat.format(operation.price)}',
           if (operation.description?.isNotEmpty == true) operation.description!,
+          if (counterpartName != null &&
+              operation.type == HistoricalOperationType.transferOut)
+            'Hacia: $counterpartName',
+          if (counterpartName != null &&
+              operation.type == HistoricalOperationType.transferIn)
+            'Desde: $counterpartName',
         ].join(' · '),
       ),
       trailing: Row(
@@ -458,7 +552,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     );
   }
 
-  Widget _buildInvestment(HistoricalInvestment investment) {
+  /* Widget _buildInvestment(HistoricalInvestment investment) {
     return Card(
       margin: const .symmetric(horizontal: 12, vertical: 6),
       child: FutureBuilder<List<HistoricalOperation>>(
@@ -560,9 +654,177 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         },
       ),
     );
+  } */
+
+  // Widget _buildInvestment(
+  //   HistoricalInvestment investment,
+  //   List<HistoricalOperation> operations,
+  // ) {
+  //   final isClosed = HistoricalInvestmentValidator.isClosed(operations);
+
+  Widget _buildInvestment(
+    HistoricalInvestment investment,
+    _HistoricalPageData data,
+  ) {
+    final operations = data.operationsByInvestment[investment.uid] ?? [];
+    final isClosed = HistoricalInvestmentValidator.isClosed(operations);
+
+    return Card(
+      margin: const .symmetric(horizontal: 12, vertical: 6),
+      child: ExpansionTile(
+        leading: const Icon(Icons.bar_chart),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                investment.name,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            PopupMenuButton<String>(
+              tooltip: 'Acciones de la inversión',
+              onSelected: (action) {
+                switch (action) {
+                  case 'add':
+                    _addOperation(investment);
+                  case 'edit':
+                    _editInvestment(investment);
+                  case 'delete':
+                    _deleteInvestment(investment);
+                }
+              },
+              itemBuilder: (context) => [
+                if (!isClosed)
+                  const PopupMenuItem(
+                    value: 'add',
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(Icons.add_circle_outline),
+                      title: Text('Añadir operación'),
+                    ),
+                  ),
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: ListTile(
+                    dense: true,
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('Editar inversión'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: ListTile(
+                    dense: true,
+                    leading: Icon(Icons.delete_outline, color: Colors.red),
+                    title: Text(
+                      'Eliminar inversión',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        subtitle: Text(
+          [
+            if (investment.isin?.isNotEmpty == true) investment.isin!,
+            '${operations.length} operaciones',
+          ].join(' · '),
+        ),
+        children: [
+          if (operations.isEmpty)
+            const ListTile(title: Text('No hay operaciones registradas'))
+          else
+            ...operations.map((operation) => _buildOperation(operation, data)),
+          //...operations.map(_buildOperation),
+          if (investment.description?.isNotEmpty == true)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  investment.description!,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Histórico de inversiones')),
+      body: GradientBackground(
+        child: FutureBuilder<_HistoricalPageData>(
+          future: _pageDataFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('No se pudo cargar el histórico'),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          _pageDataFuture = _loadPageData();
+                        });
+                      },
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final data = snapshot.data!;
+            final investments = data.investments;
+
+            if (investments.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Todavía no hay inversiones históricas guardadas.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const .symmetric(vertical: 8),
+                itemCount: investments.length,
+                itemBuilder: (context, index) {
+                  //return _buildInvestment(investments[index]);
+                  final investment = investments[index];
+                  /* return _buildInvestment(
+                    investment,
+                    data.operationsByInvestment[investment.uid] ?? [],
+                  ); */
+                  return _buildInvestment(investment, data);
+                },
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /*  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Histórico de inversiones')),
@@ -622,5 +884,5 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         ),
       ),
     );
-  }
+  } */
 }
