@@ -145,7 +145,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const .fromLTRB(16, 8, 16, 16),
+                          padding: const .fromLTRB(16, 8, 16, 8),
                           child: _buildActionGrid(context, provider),
                         ),
                       ),
@@ -216,7 +216,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                         ),
                       ),
                       // Espacio final para que el FAB no tape el último elemento
-                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                      const SliverToBoxAdapter(child: SizedBox(height: 42)),
                     ],
                   ),
                 ),
@@ -534,15 +534,13 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         : 2;
     // En pantallas muy pequeñas (<360px), hacemos las tarjetas un poco más altas
     //(aspectRatio < 1.0) para evitar que el texto se desborde si ocupa 2 líneas.
-    final double aspectRatio = screenWidth > 1000
-        ? 1.0
+    /* final double aspectRatio = screenWidth > 1000
+        ? 0.5 // 1.0
         : screenWidth > 650
-        ? 1.5
-        : 2.0;
+        ? 1.0 // 1.5
+        : 1.5; //2.0; */
 
-    // : screenWidth < 360
-    // ? 0.95
-    // : 1.4;
+    final double aspectRatio = 1;
 
     return GridView.count(
       shrinkWrap: true,
@@ -679,53 +677,50 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         onTap: onTap,
         borderRadius: .circular(16),
         child: Container(
-          padding: const .all(12),
+          padding: const .all(10),
           decoration: BoxDecoration(
             //color: Colors.white.withValues(alpha: 0.05),
             color: color.withValues(alpha: 0.2),
             borderRadius: .circular(16),
             border: .all(color: Colors.white.withValues(alpha: 0.1)),
           ),
-          child: FittedBox(
-            fit: .scaleDown,
-            child: Column(
-              mainAxisAlignment: .center,
-              mainAxisSize: .min, // Clave: no forzar altura extra
-              children: [
-                Container(
-                  padding: const .all(10),
-                  decoration: BoxDecoration(
-                    //color: color.withValues(alpha: 0.15),
-                    color: Colors.white,
-                    shape: .circle,
-                  ),
-                  child: Icon(icon, color: color, size: 32),
+          child: Column(
+            mainAxisAlignment: .center,
+            mainAxisSize: .min, // Clave: no forzar altura extra
+            children: [
+              Container(
+                padding: const .all(10),
+                decoration: BoxDecoration(
+                  //color: color.withValues(alpha: 0.15),
+                  color: Colors.white,
+                  shape: .circle,
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: .ellipsis,
-                  textAlign: .center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                child: Icon(icon, color: color, size: 32),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: .ellipsis,
+                textAlign: .center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: .ellipsis,
-                  textAlign: .center,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 14,
-                  ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: .ellipsis,
+                textAlign: .center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  fontSize: 14,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -941,6 +936,11 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     BuildContext context,
     List<HistoricalInvestment> allInvestments,
   ) {
+    if (allInvestments.isEmpty) {
+      return const SizedBox.shrink();
+      // No mostramos nada si no hay inversiones históricas
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
