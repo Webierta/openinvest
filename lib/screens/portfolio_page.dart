@@ -19,6 +19,9 @@ import '../utils/route_observer.dart';
 import '../utils/financial_calculator.dart';
 import 'portfolio_summary_page.dart';
 
+typedef _DatedPricePoint = ({DateTime date, PricePoint point, int index});
+typedef _DatedUnitChange = ({DateTime date, double units, int index});
+
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
 
@@ -61,46 +64,92 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     List<FundData> funds,
     Map<String, double> exchangeRates,
   ) {
+    DateTime dateOnly(DateTime date) =>
+        DateTime(date.year, date.month, date.day);
+
     final dates = <DateTime>{};
+    final histories = <List<_DatedPricePoint>>[];
+    final unitChanges = <List<_DatedUnitChange>>[];
 
     for (final fund in funds) {
-      for (final point in fund.history) {
+      final history = <_DatedPricePoint>[];
+      for (var index = 0; index < fund.history.length; index++) {
+        final point = fund.history[index];
+        final date = dateOnly(point.date);
+        history.add((date: date, point: point, index: index));
         if (point.price > 0 && point.price.isFinite) {
-          dates.add(
-            DateTime(point.date.year, point.date.month, point.date.day),
-          );
+          dates.add(date);
         }
       }
+      history.sort((a, b) {
+        final dateComparison = a.date.compareTo(b.date);
+        return dateComparison != 0
+            ? dateComparison
+            : a.index.compareTo(b.index);
+      });
+      histories.add(history);
+
+      final changes = <_DatedUnitChange>[];
+      for (var index = 0; index < fund.operations.length; index++) {
+        final operation = fund.operations[index];
+        final isInvestment =
+            operation.type == OperationType.buy ||
+            operation.type == OperationType.inTransfer;
+        changes.add((
+          date: dateOnly(operation.date),
+          units: isInvestment ? operation.units : -operation.units,
+          index: index,
+        ));
+      }
+      changes.sort((a, b) {
+        final dateComparison = a.date.compareTo(b.date);
+        return dateComparison != 0
+            ? dateComparison
+            : a.index.compareTo(b.index);
+      });
+      unitChanges.add(changes);
     }
 
     final sortedDates = dates.toList()..sort();
     final result = <({DateTime date, double value})>[];
+    final historyIndexes = List<int>.filled(funds.length, 0);
+    final operationIndexes = List<int>.filled(funds.length, 0);
+    final quotes = List<PricePoint?>.filled(funds.length, null);
+    final units = List<double>.filled(funds.length, 0);
 
     for (final date in sortedDates) {
       var portfolioValue = 0.0;
 
-      for (final fund in funds) {
-        final units = FinancialCalculator.calculateUnitsAt(fund, date);
-        if (units <= 0) continue;
-
-        PricePoint? quote;
-        for (final point in fund.history) {
-          final pointDate = DateTime(
-            point.date.year,
-            point.date.month,
-            point.date.day,
-          );
-
-          if (pointDate.isAfter(date)) break;
+      for (var fundIndex = 0; fundIndex < funds.length; fundIndex++) {
+        final history = histories[fundIndex];
+        var historyIndex = historyIndexes[fundIndex];
+        var quote = quotes[fundIndex];
+        while (historyIndex < history.length &&
+            !history[historyIndex].date.isAfter(date)) {
+          final point = history[historyIndex].point;
           if (point.price > 0 && point.price.isFinite) {
             quote = point;
           }
+          historyIndex++;
         }
+        historyIndexes[fundIndex] = historyIndex;
+        quotes[fundIndex] = quote;
 
-        if (quote == null) continue;
+        final changes = unitChanges[fundIndex];
+        var operationIndex = operationIndexes[fundIndex];
+        var fundUnits = units[fundIndex];
+        while (operationIndex < changes.length &&
+            !changes[operationIndex].date.isAfter(date)) {
+          fundUnits += changes[operationIndex].units;
+          operationIndex++;
+        }
+        operationIndexes[fundIndex] = operationIndex;
+        units[fundIndex] = fundUnits;
 
-        final exchangeRate = exchangeRates[fund.currency] ?? 1.0;
-        portfolioValue += units * quote.price * exchangeRate;
+        if (fundUnits <= 0 || quote == null) continue;
+
+        final exchangeRate = exchangeRates[funds[fundIndex].currency] ?? 1.0;
+        portfolioValue += fundUnits * quote.price * exchangeRate;
       }
 
       if (portfolioValue > 0 && portfolioValue.isFinite) {

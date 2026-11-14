@@ -7495,6 +7495,95 @@ void main() {
       );
       expect(combinedMetrics.totalValueGlobal, 1100);
     });
+
+    test('LF-143.12.1: el transferIn de un fondo vigente no duplica '
+        'las aportaciones de la trayectoria inversora', () {
+      final cobas = FundData(
+        isin: 'COBAS-TEST',
+        symbol: 'COBAS',
+        name: 'Cobas Internacional',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2026, 11, 10), 1)],
+        operations: [
+          FundOperation(
+            isin: 'COBAS-TEST',
+            date: DateTime(2026, 3, 24),
+            type: OperationType.buy,
+            units: 20000,
+            price: 1,
+            amount: 20000,
+          ),
+        ],
+      );
+
+      final magallanes = FundData(
+        isin: 'MAGALLANES-TEST',
+        symbol: 'MAG',
+        name: 'Magallanes European Equity',
+        lastValue: 1,
+        currency: 'EUR',
+        date: DateTime(2026, 11, 10),
+        history: [PricePoint(DateTime(2026, 11, 10), 1)],
+        operations: [
+          FundOperation(
+            isin: 'MAGALLANES-TEST',
+            date: DateTime(2026, 10, 23),
+            type: OperationType.inTransfer,
+            units: 20982.07,
+            price: 1,
+            amount: 20982.07,
+          ),
+        ],
+      );
+
+      final investment = HistoricalInvestment(
+        uid: 'HISTORICAL-TRANSFER-OUT',
+        name: 'Inversión histórica',
+      );
+
+      final subscription = HistoricalOperation(
+        uid: 'HIST-SUB-001',
+        investmentUid: investment.uid,
+        date: DateTime(2006, 1, 26),
+        type: HistoricalOperationType.subscription,
+        amount: 6000,
+      );
+
+      final unmatchedTransferOut = HistoricalOperation(
+        uid: 'HIST-OUT-001',
+        investmentUid: investment.uid,
+        date: DateTime(2010, 4, 14),
+        type: HistoricalOperationType.transferOut,
+        amount: 5096.84,
+        transferUid: 'TRANSFER-WITHOUT-COUNTERPART',
+      );
+
+      final portfolioMetrics = FinancialCalculator.calculateGlobalMetrics(
+        [cobas, magallanes],
+        const {'EUR': 1.0},
+      );
+
+      final trajectoryMetrics = FinancialCalculator.calculateGlobalMetrics(
+        [cobas, magallanes],
+        const {'EUR': 1.0},
+        historicalInvestments: [investment],
+        historicalOperations: [subscription, unmatchedTransferOut],
+      );
+
+      // La cartera actual sí contabiliza el traspaso de entrada.
+      expect(portfolioMetrics.totalInvestedGlobal, closeTo(40982.07, 0.01));
+
+      // La trayectoria solo contabiliza las aportaciones originales:
+      // 20.000 € de Cobas + 6.000 € de la inversión histórica.
+      // El transferIn de Magallanes no es una nueva aportación.
+      expect(trajectoryMetrics.totalInvestedGlobal, closeTo(26000, 0.01));
+      expect(
+        trajectoryMetrics.profitRelGlobal,
+        closeTo(-903.16 / 26000, 0.000001),
+      );
+    });
   });
 
   group('FinancialCalculator - TWR Accuracy', () {

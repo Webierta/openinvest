@@ -1181,7 +1181,10 @@ class FinancialCalculator {
 
     double portfolioInvested = 0;
     double portfolioProfitAbs = 0;
+    // Trayectoria: buy + aportaciones históricas externas.
     double totalInvestedGlobal = 0;
+    // Cartera vigente: buy + inTransfer.
+    double portfolioInvestedGlobal = 0;
 
     var internalTransferProfitAdjustment = 0.0;
 
@@ -1215,8 +1218,15 @@ class FinancialCalculator {
             operation.type == OperationType.buy ||
             operation.type == OperationType.inTransfer;
 
-        if (isInvestment) {
+        /* if (isInvestment) {
           totalInvestedGlobal += operation.amount * rate;
+        } */
+        if (isInvestment) {
+          portfolioInvestedGlobal += operation.amount * rate;
+
+          if (operation.type == OperationType.buy) {
+            totalInvestedGlobal += operation.amount * rate;
+          }
         }
 
         final cashFlow = {
@@ -1415,7 +1425,10 @@ class FinancialCalculator {
       isAnnualized: isAnnualized,
       mwrAnnualized: mwrAnnualized,
       totalValueGlobal: portfolioValue,
-      totalInvestedGlobal: totalInvestedGlobal,
+      //totalInvestedGlobal: totalInvestedGlobal,
+      totalInvestedGlobal: historicalInvestments.isEmpty
+          ? portfolioInvestedGlobal
+          : totalInvestedGlobal,
       profitAbsGlobal: profitAbsGlobal,
       profitRelGlobal: totalInvestedGlobal > 0
           ? profitAbsGlobal / totalInvestedGlobal

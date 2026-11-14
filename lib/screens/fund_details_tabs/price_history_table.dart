@@ -691,7 +691,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         : absVar < 0
         ? Colors.redAccent[200]
         : null;
-    final fecha = widget.dateFormat.format(date);
+    //final fecha = widget.dateFormat.format(date);
     double partes = FinancialCalculator.calculateUnitsAt(widget.fund, date);
     final precio = row['price'] as double;
     final rendimiento = precio * partes;
@@ -721,9 +721,10 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                 child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: Text(
-                    fecha.substring(0, fecha.length - 3) +
-                        fecha.substring(fecha.length - 1),
-                    //DateFormat('dd/MM/yy').format(date),
+                    //fecha.substring(0, fecha.length - 3) +
+                    //    fecha.substring(fecha.length - 1),
+                    DateFormat('dd/MM/yy').format(date),
+                    //widget.dateFormat.format(date),
                     style: const TextStyle(fontSize: 11, color: Colors.white70),
                   ),
                 ),
