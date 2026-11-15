@@ -949,8 +949,7 @@ class FinancialCalculator {
         continue;
       }
 
-      if (operation.type != HistoricalOperationType.transferOut &&
-          operation.type != HistoricalOperationType.transferIn) {
+      if (operation.type != .transferOut && operation.type != .transferIn) {
         continue;
       }
 
@@ -963,17 +962,11 @@ class FinancialCalculator {
     final matchedOperations = <String, HistoricalOperation>{};
 
     for (final group in grouped.values) {
-      final outs =
-          group
-              .where((op) => op.type == HistoricalOperationType.transferOut)
-              .toList()
-            ..sort((a, b) => a.date.compareTo(b.date));
+      final outs = group.where((op) => op.type == .transferOut).toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
 
-      final ins =
-          group
-              .where((op) => op.type == HistoricalOperationType.transferIn)
-              .toList()
-            ..sort((a, b) => a.date.compareTo(b.date));
+      final ins = group.where((op) => op.type == .transferIn).toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
 
       if (outs.isEmpty || ins.isEmpty) continue;
 
@@ -1110,7 +1103,7 @@ class FinancialCalculator {
     final eligibleOuts = operations.where((operation) {
       final transferUid = operation.transferUid;
 
-      if (operation.type != HistoricalOperationType.transferOut ||
+      if (operation.type != .transferOut ||
           transferUid == null ||
           transferUid.isEmpty ||
           operation.investmentUid == receivingInvestmentUid) {
@@ -1137,7 +1130,7 @@ class FinancialCalculator {
         uid: candidateUid,
         investmentUid: receivingInvestmentUid,
         date: receivingDate,
-        type: HistoricalOperationType.transferIn,
+        type: .transferIn,
         amount: 0,
         transferUid: candidate.transferUid,
       );
@@ -1215,8 +1208,7 @@ class FinancialCalculator {
 
       for (final operation in fund.operations) {
         final isInvestment =
-            operation.type == OperationType.buy ||
-            operation.type == OperationType.inTransfer;
+            operation.type == .buy || operation.type == .inTransfer;
 
         /* if (isInvestment) {
           totalInvestedGlobal += operation.amount * rate;
@@ -1224,7 +1216,7 @@ class FinancialCalculator {
         if (isInvestment) {
           portfolioInvestedGlobal += operation.amount * rate;
 
-          if (operation.type == OperationType.buy) {
+          if (operation.type == .buy) {
             totalInvestedGlobal += operation.amount * rate;
           }
         }
@@ -1300,19 +1292,16 @@ class FinancialCalculator {
 
       for (final operation in investmentOperations) {
         final isContribution =
-            operation.type == HistoricalOperationType.subscription ||
-            operation.type == HistoricalOperationType.transferIn;
+            operation.type == .subscription || operation.type == .transferIn;
 
         final isTransferOperation =
-            operation.type == HistoricalOperationType.transferIn ||
-            operation.type == HistoricalOperationType.transferOut;
+            operation.type == .transferIn || operation.type == .transferOut;
 
         final isInternalTransfer =
             isTransferOperation &&
             internalTransferOperations.containsKey(operation.uid);
 
-        if (isInternalTransfer &&
-            operation.type == HistoricalOperationType.transferOut) {
+        if (isInternalTransfer && operation.type == .transferOut) {
           internalTransferProfitAdjustment +=
               operation.amount -
               internalTransferOperations[operation.uid]!.amount;
@@ -1372,9 +1361,6 @@ class FinancialCalculator {
           ? portfolioValuationDate
           : valuationDate;
 
-      /* if (portfolioValue > 0 && valuationDate != null) {
-        portfolioFlows.add({'amount': portfolioValue, 'date': valuationDate});
-      } */
       if (portfolioValue > 0 && portfolioTerminalDate != null) {
         portfolioFlows.add({
           'amount': portfolioValue,
@@ -1425,7 +1411,6 @@ class FinancialCalculator {
       isAnnualized: isAnnualized,
       mwrAnnualized: mwrAnnualized,
       totalValueGlobal: portfolioValue,
-      //totalInvestedGlobal: totalInvestedGlobal,
       totalInvestedGlobal: historicalInvestments.isEmpty
           ? portfolioInvestedGlobal
           : totalInvestedGlobal,

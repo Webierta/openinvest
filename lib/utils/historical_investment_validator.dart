@@ -66,8 +66,8 @@ class HistoricalInvestmentValidator {
 
     final lastOperation = orderedOperations.last.value;
 
-    return lastOperation.type == HistoricalOperationType.redemption ||
-        lastOperation.type == HistoricalOperationType.transferOut;
+    return lastOperation.type == .redemption ||
+        lastOperation.type == .transferOut;
   }
 
   static void validate(List<HistoricalOperation> operations) {
@@ -100,8 +100,8 @@ class HistoricalInvestmentValidator {
     final firstOperation = orderedOperations.first.value;
 
     final isEntry =
-        firstOperation.type == HistoricalOperationType.subscription ||
-        firstOperation.type == HistoricalOperationType.transferIn;
+        firstOperation.type == .subscription ||
+        firstOperation.type == .transferIn;
 
     if (!isEntry) {
       throw ArgumentError(
@@ -112,8 +112,7 @@ class HistoricalInvestmentValidator {
     final lastOperation = orderedOperations.last.value;
 
     final isExit =
-        lastOperation.type == HistoricalOperationType.redemption ||
-        lastOperation.type == HistoricalOperationType.transferOut;
+        lastOperation.type == .redemption || lastOperation.type == .transferOut;
 
     if (!isExit) {
       throw ArgumentError(

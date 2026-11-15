@@ -285,7 +285,7 @@ class _HistoricalInvestmentFormPageState
     Widget? action,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const .all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B).withValues(alpha: 0.88),
         borderRadius: .circular(18),
@@ -377,13 +377,12 @@ class _HistoricalInvestmentFormPageState
 
         return Card(
           color: const Color(0xFF0F172A),
-          margin: const EdgeInsets.only(bottom: 10),
+          margin: const .only(bottom: 10),
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: Colors.amber.withValues(alpha: 0.12),
               child: Icon(
-                operation.type == HistoricalOperationType.redemption ||
-                        operation.type == HistoricalOperationType.transferOut
+                operation.type == .redemption || operation.type == .transferOut
                     ? Icons.south_west
                     : Icons.north_east,
                 color: Colors.amber,
@@ -505,7 +504,7 @@ class _HistoricalInvestmentFormPageState
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+              padding: const .fromLTRB(16, 20, 16, 32),
               children: [
                 // IDENTIFICACIÖN FONDO
                 _buildSection(

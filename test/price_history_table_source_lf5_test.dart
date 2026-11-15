@@ -25,11 +25,46 @@ void main() {
         PricePoint(date2, 110.0, source: PricePointSource.manual),
         PricePoint(date3, 120.0, source: PricePointSource.cnmv),
       ],
+      operations: [
+        FundOperation(
+          isin: 'TEST-LF-5',
+          date: date1.subtract(const Duration(days: 1)),
+          type: OperationType.buy,
+          units: 10,
+          price: 100,
+          amount: 1000,
+        ),
+        FundOperation(
+          isin: 'TEST-LF-5',
+          date: date2,
+          type: OperationType.buy,
+          units: 10,
+          price: 110,
+          amount: 1100,
+        ),
+        FundOperation(
+          isin: 'TEST-LF-5',
+          date: date3,
+          type: OperationType.sell,
+          units: 5,
+          price: 120,
+          amount: 600,
+        ),
+      ],
       valuationSource: FundSource.financialTimes,
     );
   }
 
-  Future<void> mountTable(WidgetTester tester, FundData fund) async {
+  Future<void> mountTable(
+    WidgetTester tester,
+    FundData fund, {
+    double viewportWidth = 1000,
+  }) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = Size(viewportWidth, 900);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('es'),
@@ -41,7 +76,7 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             height: 700,
-            width: 900,
+            width: 1000,
             child: PriceHistoryTable(
               fund: fund,
               priceFormat: NumberFormat('#,##0.00', 'es_ES'),
@@ -58,6 +93,19 @@ void main() {
   }
 
   group('LF-5: visualización del origen de los precios', () {
+    testWidgets('muestra la variación absoluta del capital', (tester) async {
+      await mountTable(tester, createFund());
+
+      expect(find.text('+1.200,00'), findsOneWidget);
+      expect(find.text('-400,00'), findsOneWidget);
+      expect(
+        tester.getCenter(find.text('Rendimiento')).dx,
+        lessThan(tester.getCenter(find.text('Origen')).dx),
+      );
+
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
       'LF-5.1: muestra el origen individual de cada precio histórico',
       (tester) async {
@@ -97,5 +145,26 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets('evita overflow y permite scroll en una ventana estrecha', (
+      tester,
+    ) async {
+      await mountTable(tester, createFund(), viewportWidth: 800);
+
+      final horizontalScrollable = find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.right,
+      );
+      expect(horizontalScrollable, findsOneWidget);
+      final horizontalPosition = tester
+          .state<ScrollableState>(horizontalScrollable)
+          .position;
+
+      await tester.drag(horizontalScrollable, const Offset(-300, 0));
+      await tester.pumpAndSettle();
+
+      expect(horizontalPosition.pixels, greaterThan(0));
+      expect(tester.takeException(), isNull);
+    });
   });
 }

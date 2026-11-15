@@ -172,13 +172,6 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   Widget build(BuildContext context) {
     final provider = context.watch<FundProvider>();
 
-    /* final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
-      provider.portfolio,
-      provider.exchangeRates,
-      historicalInvestments: provider.historicalInvestments,
-      historicalOperations: provider.historicalOperations,
-    ); */
-
     final portfolioMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
       provider.exchangeRates,
@@ -405,27 +398,19 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
       context.read<FundProvider>().exchangeRates,
     );
 
-    /* debugPrint(
-      'Inversión: ${metrics.totalInvested.toStringAsFixed(2)} €\n'
-      'Valor: ${metrics.totalValue.toStringAsFixed(2)} €\n'
-      'Beneficio: ${metrics.profitAbs.toStringAsFixed(2)} €\n'
-      'Rentabilidad: ${metrics.profitRel.toStringAsFixed(2)} %\n'
-      'MWR: ${metrics.mwrAnnualized?.toStringAsFixed(4) ?? "N/D"}',
-    ); */
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const .fromLTRB(16, 12, 16, 16),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const .all(18),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: .circular(20),
           gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: .topLeft,
+            end: .bottomRight,
             colors: [Color(0xFF263750), Color(0xFF172337)],
           ),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: .all(color: Colors.white.withValues(alpha: 0.08)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.15),
@@ -437,14 +422,6 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         child: Column(
           children: [
             // CABECERA
-            /* Text(
-              'Inversión: ${metrics.totalInvested.toStringAsFixed(2)} €\n'
-              'Valor: ${metrics.totalValue.toStringAsFixed(2)} €\n'
-              'Beneficio: ${metrics.profitAbs.toStringAsFixed(2)} €\n'
-              'Rentabilidad: ${metrics.profitRel.toStringAsFixed(2)} %\n'
-              'MWR: ${metrics.mwrAnnualized?.toStringAsFixed(4) ?? "N/D"}',
-            ), */
-
             Row(
               children: [
                 CircleAvatar(
@@ -457,7 +434,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 18,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: .w400,
                   ),
                 ),
               ],
@@ -479,7 +456,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                       child: Text(
                         currencyFormat.format(metrics.totalValue),
                         style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                            ?.copyWith(fontWeight: .w700),
                       ),
                     ),
                     if (dailyChangePercent != null)
@@ -493,7 +470,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                         '${percentFormat.format(dailyChangePercent)} %',
                         style: TextStyle(
                           color: dailyColor,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: .w600,
                           fontSize: 16,
                         ),
                       ),
@@ -515,6 +492,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                 ),
               ),
             ],
+
             // MÉTRICAS
             ...[
               const SizedBox(height: 9),
@@ -574,7 +552,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                     width: 1,
                     height: 48,
                     color: Colors.white30,
-                    margin: const EdgeInsets.symmetric(horizontal: 9),
+                    margin: const .symmetric(horizontal: 9),
                   ),
                   // MWR
                   Expanded(
@@ -590,7 +568,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              border: Border.all(
+                              border: .all(
                                 color: profitColor.withValues(alpha: 0.8),
                               ),
                               borderRadius: .circular(16),
@@ -601,7 +579,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               style: TextStyle(
                                 color: profitColor,
                                 fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: .bold,
                               ),
                             ),
                           ),
@@ -616,7 +594,6 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
             // Marquesina
             const SizedBox(height: 10),
             const Divider(height: 1, color: Colors.white12),
-            //const SizedBox(height: 9),
             MarqueeTicker(
               funds: provider.portfolio,
               priceFormat: priceFormat,
@@ -625,7 +602,6 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
             ),
 
             // PIE
-            //const SizedBox(height: 10),
             const Divider(height: 1, color: Colors.white12),
             const SizedBox(height: 9),
             Row(
@@ -706,8 +682,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     final cardDecoration = BoxDecoration(
       borderRadius: .circular(20),
       gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+        begin: .topLeft,
+        end: .bottomRight,
         colors: [Color(0xFF192A40), Color(0xFF101C30)],
       ),
       border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
@@ -780,7 +756,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 15,
-                                          fontWeight: FontWeight.w400,
+                                          fontWeight: .w400,
                                         ),
                                       ),
                                     ],
@@ -827,7 +803,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               child: Text(
                                 '${priceFormat.format(fund.lastValue)} ${fund.currency}',
                                 style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(fontWeight: FontWeight.w700),
+                                    ?.copyWith(fontWeight: .w700),
                               ),
                             ),
                             Text(
@@ -841,7 +817,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                               style: TextStyle(
                                 color:
                                     dailyVarColor ?? Colors.blueGrey.shade200,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: .w600,
                                 fontSize: 16,
                               ),
                             ),
@@ -939,7 +915,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                 MetricLabel('TWR'),
                                 FittedBox(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(
+                                    padding: const .symmetric(
                                       horizontal: 7,
                                       vertical: 4,
                                     ),
@@ -960,7 +936,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                       style: TextStyle(
                                         color: profitColor,
                                         fontSize: 11,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: .bold,
                                       ),
                                     ),
                                   ),
@@ -1032,7 +1008,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: .min,
             crossAxisAlignment: .start,
             children: [
               Text(
@@ -1079,7 +1055,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                 Text(
                                   alert.fund.name,
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: .bold,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -1172,8 +1148,8 @@ class _HistoryChartPainter extends CustomPainter {
       fillPath,
       Paint()
         ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+          begin: .topCenter,
+          end: .bottomCenter,
           colors: [fillColor, fillColor.withValues(alpha: 0)],
         ).createShader(Offset.zero & size),
     );
@@ -1370,7 +1346,7 @@ class _MarqueeTickerState extends State<MarqueeTicker> {
                   variacion,
                   style: TextStyle(
                     color: dailyVarColor ?? Colors.blueGrey.shade200,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: .w600,
                     fontSize: 18,
                   ),
                 ),
@@ -1378,7 +1354,7 @@ class _MarqueeTickerState extends State<MarqueeTicker> {
                   fund.name,
                   style: const TextStyle(
                     color: Colors.white70,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: .w400,
                   ),
                 ),
                 const SizedBox(width: 6),

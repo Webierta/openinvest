@@ -160,10 +160,6 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
 
     final amount = operation.amount.toStringAsFixed(2).replaceAll('.', ',');
 
-    // return '$investmentName · '
-    //     '${widget.dateFormat.format(operation.date)} · '
-    //     '$amount € · ${operation.transferUid}';
-
     return '$investmentName · '
         '${widget.dateFormat.format(operation.date)} · '
         '$amount €';
@@ -223,8 +219,7 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
   }
 
   void _submit() {
-    if (_selectedType == HistoricalOperationType.transferIn &&
-        _availableTransferOuts.isEmpty) {
+    if (_selectedType == .transferIn && _availableTransferOuts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No hay ningún traspaso de salida válido para asociar'),
@@ -269,12 +264,9 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
-        /* transferUid: _transferController.text.trim().isEmpty
-            ? null
-            : _transferController.text.trim(), */
         transferUid: switch (_selectedType) {
-          HistoricalOperationType.transferOut => _generatedTransferUid,
-          HistoricalOperationType.transferIn =>
+          .transferOut => _generatedTransferUid,
+          .transferIn =>
             _transferController.text.trim().isEmpty
                 ? null
                 : _transferController.text.trim(),
@@ -300,7 +292,7 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: .min,
               children: [
                 DropdownButtonFormField<HistoricalOperationType>(
                   initialValue: _selectedType,
@@ -331,13 +323,12 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                     if (value == null) return;
 
                     setState(() {
-                      if (value == HistoricalOperationType.transferOut) {
+                      if (value == .transferOut) {
                         _generatedTransferUid ??= widget.generateTransferUid();
                         _transferController.text = _generatedTransferUid!;
                       } else {
-                        if (_selectedType ==
-                                HistoricalOperationType.transferOut ||
-                            value != HistoricalOperationType.transferIn) {
+                        if (_selectedType == .transferOut ||
+                            value != .transferIn) {
                           _transferController.clear();
                         }
                       }
@@ -347,7 +338,7 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                 ),
                 const SizedBox(height: 14),
                 ListTile(
-                  contentPadding: EdgeInsets.zero,
+                  contentPadding: .zero,
                   leading: const Icon(
                     Icons.calendar_today,
                     color: Colors.white70,
@@ -367,12 +358,10 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                   onTap: () async {
                     final date = await widget.pickDate(_selectedDate);
                     if (date != null && mounted) {
-                      //setState(() => _selectedDate = date);
                       setState(() {
                         _selectedDate = date;
 
-                        if (_selectedType ==
-                            HistoricalOperationType.transferIn) {
+                        if (_selectedType == .transferIn) {
                           final availableUids = _availableTransferOuts
                               .map((operation) => operation.transferUid)
                               .toSet();
@@ -390,9 +379,7 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: const .numberWithOptions(decimal: true),
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(labelText: 'Importe'),
                   validator: (value) =>
@@ -401,9 +388,7 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _unitsController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: const .numberWithOptions(decimal: true),
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     labelText: 'Participaciones (opcional)',
@@ -419,9 +404,7 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _priceController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: const .numberWithOptions(decimal: true),
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     labelText: 'Precio (opcional)',
@@ -441,41 +424,8 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                   maxLines: 2,
                 ),
                 const SizedBox(height: 14),
-                /* TextFormField(
-                  controller: _transferController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'UID de transferencia (opcional)',
-                  ),
-                ), */
-                /* if (_selectedType == HistoricalOperationType.transferOut)
-                  TextFormField(
-                    key: const ValueKey('generated-transfer-uid'),
-                    initialValue: _generatedTransferUid,
-                    readOnly: true,
-                    style: const TextStyle(color: Colors.white70),
-                    decoration: const InputDecoration(
-                      labelText: 'UID de transferencia (generado)',
-                      helperText: 'Identificador que deberá asociarse al traspaso recibido',
-                    ),
-                  )
-                else if (_selectedType == HistoricalOperationType.transferIn)
-                  _buildTransferInSelector(), */
-                /* if (_selectedType == HistoricalOperationType.transferOut)
-                  InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Referencia del traspaso',
-                    ),
-                    child: Text(
-                      '${widget.sourceInvestmentName} · '
-                      '${widget.dateFormat.format(_selectedDate)} · '
-                      '${_amountController.text.isEmpty ? '—' : '${_amountController.text} €'}',
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  )
-                else if (_selectedType == HistoricalOperationType.transferIn)
-                  _buildTransferInSelector(), */
-                if (_selectedType == HistoricalOperationType.transferOut)
+
+                if (_selectedType == .transferOut)
                   InputDecorator(
                     decoration: const InputDecoration(
                       labelText: 'Referencia del traspaso',
@@ -497,7 +447,7 @@ class HistoricalOperationDialogState extends State<HistoricalOperationDialog> {
                       },
                     ),
                   )
-                else if (_selectedType == HistoricalOperationType.transferIn)
+                else if (_selectedType == .transferIn)
                   _buildTransferInSelector(),
               ],
             ),

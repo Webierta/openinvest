@@ -64,7 +64,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               ? Center(
                   child: Text(
                     l10n.portfolioLoadError,
-                    textAlign: TextAlign.center,
+                    textAlign: .center,
                     style: const TextStyle(color: Colors.white70),
                   ),
                 )
@@ -98,7 +98,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                                   metrics: portfolioMetrics,
                                 ),
                                 _buildSummaryCard(
-                                  title: 'Trayectoria inversora',
+                                  title: 'Trayectoria',
                                   subtitle: 'Cartera + inversiones históricas',
                                   icon: Icons.history_outlined,
                                   accentColor: Colors.deepPurpleAccent,
@@ -236,10 +236,10 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         : Colors.redAccent[200]!;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const .all(24),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: .circular(20),
         border: .all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
@@ -277,10 +277,18 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 26,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: .bold,
                   letterSpacing: -1,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.assessment, color: Colors.white70, size: 24),
+              const SizedBox(width: 8),
+              Text(l10n.countFunds(provider.portfolio.length)),
             ],
           ),
           const SizedBox(height: 8),
@@ -296,10 +304,10 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const .all(24),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: .circular(20),
         border: .all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
@@ -321,7 +329,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           ),
           const SizedBox(height: 4),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: .circular(8),
             child: SizedBox(
               height: 18,
               width: double.infinity,
@@ -339,7 +347,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                     child: Tooltip(
                       message:
                           '${item.name}\n${l10n.weightLabel}: ${percentFormat.format(weight * 100)}%',
-                      triggerMode: TooltipTriggerMode.tap,
+                      triggerMode: .tap,
                       preferBelow: false,
                       child: Container(
                         color: CircleAvatarFund(fund: item).getFundColor,
@@ -409,16 +417,24 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       child: Column(
         crossAxisAlignment: .start,
         children: [
-          Center(
-            child: Container(
-              padding: const .all(10),
-              decoration: BoxDecoration(color: Colors.white, shape: .circle),
-              child: Icon(icon, size: 40, color: accentColor),
-            ),
+          Row(
+            children: [
+              Icon(icon, size: 40, color: Colors.white),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: .start,
+                children: [
+                  Text(title, style: TextStyle(fontSize: 18)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.white60),
+                  ),
+                ],
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          Text(title, style: TextStyle(fontSize: 18)),
-          Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.white60)),
+
           if (hayInversion) ...[
             Divider(color: accentColor),
             const SizedBox(height: 10),
@@ -525,8 +541,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
 
   Widget _buildActionGrid(BuildContext context, FundProvider provider) {
     final screenWidth = MediaQuery.of(context).size.width;
-    // Responsive: 2 columnas en móvil, 4 en escritorio (Linux/Windows)
-    //final int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 4 : 2;
+    // Responsive: 6, 3 y 2 columnas
     final int crossAxisCount = screenWidth > 1000
         ? 6
         : screenWidth > 650
@@ -539,7 +554,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         : screenWidth > 650
         ? 1.0 // 1.5
         : 1.5; //2.0; */
-
     final double aspectRatio = 1;
 
     return GridView.count(
@@ -858,16 +872,16 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     IconData icon = Icons.add_box_outlined;
     //add_circle_outline;
     String tooltip = l10n.subscription;
-    if (op.type == OperationType.sell) {
+    if (op.type == .sell) {
       color = Colors.redAccent;
       icon = Icons.indeterminate_check_box_outlined;
       //remove_circle_outline;
       tooltip = l10n.redemption;
-    } else if (op.type == OperationType.outTransfer) {
+    } else if (op.type == .outTransfer) {
       color = Colors.redAccent.shade100;
       icon = Icons.output_outlined;
       tooltip = l10n.outTransfer;
-    } else if (op.type == OperationType.inTransfer) {
+    } else if (op.type == .inTransfer) {
       color = Colors.greenAccent.shade100;
       icon = Icons.input_outlined;
       tooltip = l10n.inTransfer;
@@ -886,7 +900,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           padding: const .all(8),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
+            shape: .circle,
           ),
           child: Icon(icon, color: color, size: 24),
         ),
@@ -942,7 +956,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: .start,
       children: [
         Padding(
           padding: const .symmetric(horizontal: 16.0),

@@ -29,7 +29,6 @@ class HistoricalInvestmentsPage extends StatefulWidget {
 }
 
 class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
-  //late Future<List<HistoricalInvestment>> _investmentsFuture;
   late Future<_HistoricalPageData> _pageDataFuture;
 
   final _numberFormat = NumberFormat('#,##0.00', 'es_ES');
@@ -38,17 +37,11 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
   @override
   void initState() {
     super.initState();
-    //_loadInvestments();
     _pageDataFuture = _loadPageData();
   }
 
-  /* void _loadInvestments() {
-    _investmentsFuture = DatabaseService.getHistoricalInvestments();
-  } */
-
   Future<_HistoricalPageData> _loadPageData() async {
     final investments = await DatabaseService.getHistoricalInvestments();
-
     final groups = await Future.wait(
       investments.map(
         (investment) => DatabaseService.getHistoricalOperations(investment.uid),
@@ -80,12 +73,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       counterparts: counterparts,
     );
   }
-
-  /* Future<void> _refresh() async {
-    _loadInvestments();
-    setState(() {});
-    await _investmentsFuture;
-  } */
 
   Future<void> _refresh() async {
     final future = _loadPageData();
@@ -143,28 +130,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     );
   }
 
-  /* Future<({List<HistoricalOperation> operations, Map<String, String> names})>
-  _loadTransferData({String? excludeOperationUid}) async {
-    final investments = await DatabaseService.getHistoricalInvestments();
-
-    final groups = await Future.wait(
-      investments.map(
-        (investment) => DatabaseService.getHistoricalOperations(investment.uid),
-      ),
-    );
-
-    final operations = groups
-        .expand((group) => group)
-        .where((operation) => operation.uid != excludeOperationUid)
-        .toList();
-
-    final names = {
-      for (final investment in investments) investment.uid: investment.name,
-    };
-
-    return (operations: operations, names: names);
-  } */
-
   Future<({List<HistoricalOperation> operations, Map<String, String> names})>
   _loadTransferData({String? excludeOperationUid}) async {
     final data = await _pageDataFuture;
@@ -214,7 +179,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      //setState(() {});
       setState(() {
         _pageDataFuture = _loadPageData();
       });
@@ -252,8 +216,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      //_loadInvestments();
-      //setState(() {});
       setState(() {
         _pageDataFuture = _loadPageData();
       });
@@ -306,8 +268,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      // _loadInvestments();
-      // setState(() {});
       setState(() {
         _pageDataFuture = _loadPageData();
       });
@@ -380,7 +340,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      //setState(() {});
       setState(() {
         _pageDataFuture = _loadPageData();
       });
@@ -437,7 +396,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       await _reloadPortfolio();
 
       if (!mounted) return;
-      //setState(() {});
       setState(() {
         _pageDataFuture = _loadPageData();
       });
@@ -456,31 +414,29 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
 
   String _operationTypeLabel(HistoricalOperationType type) {
     switch (type) {
-      case HistoricalOperationType.subscription:
+      case .subscription:
         return 'Suscripción';
-      case HistoricalOperationType.redemption:
+      case .redemption:
         return 'Reembolso';
-      case HistoricalOperationType.transferIn:
+      case .transferIn:
         return 'Traspaso recibido';
-      case HistoricalOperationType.transferOut:
+      case .transferOut:
         return 'Traspaso enviado';
     }
   }
 
   IconData _operationTypeIcon(HistoricalOperationType type) {
     switch (type) {
-      case HistoricalOperationType.subscription:
+      case .subscription:
         return Icons.add_circle_outline;
-      case HistoricalOperationType.redemption:
+      case .redemption:
         return Icons.remove_circle_outline;
-      case HistoricalOperationType.transferIn:
+      case .transferIn:
         return Icons.call_received;
-      case HistoricalOperationType.transferOut:
+      case .transferOut:
         return Icons.call_made;
     }
   }
-
-  //Widget _buildOperation(HistoricalOperation operation) {
 
   Widget _buildOperation(
     HistoricalOperation operation,
@@ -512,11 +468,11 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         ].join(' · '),
       ),
       trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: .min,
         children: [
           Text(
             _numberFormat.format(operation.amount),
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(fontWeight: .w600),
           ),
           PopupMenuButton<String>(
             tooltip: 'Acciones de la operación',
@@ -552,116 +508,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     );
   }
 
-  /* Widget _buildInvestment(HistoricalInvestment investment) {
-    return Card(
-      margin: const .symmetric(horizontal: 12, vertical: 6),
-      child: FutureBuilder<List<HistoricalOperation>>(
-        future: DatabaseService.getHistoricalOperations(investment.uid),
-        builder: (context, snapshot) {
-          final operations = snapshot.data ?? [];
-
-          return ExpansionTile(
-            leading: const Icon(Icons.bar_chart),
-            title: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    investment.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  enabled:
-                      snapshot.connectionState == ConnectionState.done &&
-                      !snapshot.hasError,
-                  tooltip: 'Acciones de la inversión',
-                  onSelected: (action) {
-                    switch (action) {
-                      case 'add':
-                        _addOperation(investment);
-                      case 'edit':
-                        _editInvestment(investment);
-                      case 'delete':
-                        _deleteInvestment(investment);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    if (snapshot.connectionState == ConnectionState.done &&
-                        !snapshot.hasError &&
-                        !HistoricalInvestmentValidator.isClosed(operations))
-                      const PopupMenuItem(
-                        value: 'add',
-                        child: ListTile(
-                          dense: true,
-                          leading: Icon(Icons.add_circle_outline),
-                          title: Text('Añadir operación'),
-                        ),
-                      ),
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.edit_outlined),
-                        title: Text('Editar inversión'),
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.delete_outline, color: Colors.red),
-                        title: Text(
-                          'Eliminar inversión',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            subtitle: Text(
-              [
-                if (investment.isin?.isNotEmpty == true) investment.isin!,
-                '${operations.length} operaciones',
-              ].join(' · '),
-            ),
-            children: [
-              if (snapshot.connectionState == ConnectionState.waiting)
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
-                )
-              else if (snapshot.hasError)
-                const ListTile(title: Text('Error al cargar las operaciones'))
-              else if (operations.isEmpty)
-                const ListTile(title: Text('No hay operaciones registradas'))
-              else
-                ...operations.map(_buildOperation),
-              if (investment.description?.isNotEmpty == true)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      investment.description!,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  } */
-
-  // Widget _buildInvestment(
-  //   HistoricalInvestment investment,
-  //   List<HistoricalOperation> operations,
-  // ) {
-  //   final isClosed = HistoricalInvestmentValidator.isClosed(operations);
-
   Widget _buildInvestment(
     HistoricalInvestment investment,
     _HistoricalPageData data,
@@ -678,7 +524,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
             Expanded(
               child: Text(
                 investment.name,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: const TextStyle(fontWeight: .w600),
               ),
             ),
             PopupMenuButton<String>(
@@ -737,12 +583,12 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
             const ListTile(title: Text('No hay operaciones registradas'))
           else
             ...operations.map((operation) => _buildOperation(operation, data)),
-          //...operations.map(_buildOperation),
+
           if (investment.description?.isNotEmpty == true)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const .fromLTRB(16, 8, 16, 16),
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: .centerLeft,
                 child: Text(
                   investment.description!,
                   style: Theme.of(context).textTheme.bodySmall,
@@ -762,14 +608,14 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         child: FutureBuilder<_HistoricalPageData>(
           future: _pageDataFuture,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            if (snapshot.connectionState == .waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
             if (snapshot.hasError) {
               return Center(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisSize: .min,
                   children: [
                     const Text('No se pudo cargar el histórico'),
                     const SizedBox(height: 12),
@@ -792,10 +638,10 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
             if (investments.isEmpty) {
               return const Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: .all(24),
                   child: Text(
                     'Todavía no hay inversiones históricas guardadas.',
-                    textAlign: TextAlign.center,
+                    textAlign: .center,
                   ),
                 ),
               );
@@ -808,12 +654,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
                 padding: const .symmetric(vertical: 8),
                 itemCount: investments.length,
                 itemBuilder: (context, index) {
-                  //return _buildInvestment(investments[index]);
                   final investment = investments[index];
-                  /* return _buildInvestment(
-                    investment,
-                    data.operationsByInvestment[investment.uid] ?? [],
-                  ); */
                   return _buildInvestment(investment, data);
                 },
               ),
@@ -823,66 +664,4 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       ),
     );
   }
-
-  /*  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Histórico de inversiones')),
-      body: GradientBackground(
-        child: FutureBuilder<List<HistoricalInvestment>>(
-          future: _investmentsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('No se pudo cargar el histórico'),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () {
-                        _loadInvestments();
-                        setState(() {});
-                      },
-                      child: const Text('Reintentar'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            final investments = snapshot.data ?? [];
-
-            if (investments.isEmpty) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text(
-                    'Todavía no hay inversiones históricas guardadas.',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              );
-            }
-
-            return RefreshIndicator(
-              onRefresh: _refresh,
-              child: ListView.builder(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const .symmetric(vertical: 8),
-                itemCount: investments.length,
-                itemBuilder: (context, index) {
-                  return _buildInvestment(investments[index]);
-                },
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  } */
 }

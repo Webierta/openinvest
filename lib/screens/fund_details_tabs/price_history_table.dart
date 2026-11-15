@@ -302,9 +302,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                 TextFormField(
                   autofocus: true,
                   initialValue: priceText,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: const .numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: l10n.priceLabel,
                     hintText: '0.00',
@@ -359,7 +357,6 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                     source: isEdit
                         ? pointToEdit.source
                         : PricePointSource.manual,
-                    //source: PricePointSource.manual,
                   ),
                 );
               },
@@ -417,6 +414,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
 
     for (int i = 0; i < widget.fund.history.length; i++) {
       final point = widget.fund.history[i];
+
       double? absVar;
       double? variation;
       if (i > 0) {
@@ -424,19 +422,31 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         absVar = point.price - previous;
         if (previous != 0) variation = (absVar / previous) * 100;
       }
+
       double partes = FinancialCalculator.calculateUnitsAt(
         widget.fund,
         point.date,
       );
       double rendimiento = partes * point.price;
+      double? absVarRendimiento;
+      if (i > 0) {
+        final previousPoint = widget.fund.history[i - 1];
+        final previousPartes = FinancialCalculator.calculateUnitsAt(
+          widget.fund,
+          previousPoint.date,
+        );
+        final previousRendimiento = previousPoint.price * previousPartes;
+        absVarRendimiento = rendimiento - previousRendimiento;
+      }
+
       tableData.add({
         'index': i + 1,
         'date': point.date,
         'price': point.price,
         'absVar': absVar,
         'variation': variation,
+        'absVarRendimiento': absVarRendimiento,
         'source': point.source,
-        'rendimiento': rendimiento,
       });
     }
 
@@ -468,8 +478,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
           );
           break;
         case 5:
-          comparison = (a['rendimiento'] as double? ?? 0).compareTo(
-            b['rendimiento'] as double? ?? 0,
+          comparison = (a['absVarRendimiento'] as double? ?? 0).compareTo(
+            b['absVarRendimiento'] as double? ?? 0,
           );
           break;
         default:
@@ -482,7 +492,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
       backgroundColor: Colors.transparent,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          const minTableWidth = 640.0;
+          const minTableWidth = 1000.0;
           final tableWidth = constraints.maxWidth < minTableWidth
               ? minTableWidth
               : constraints.maxWidth;
@@ -496,16 +506,14 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white10,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(8),
-                      ),
+                      borderRadius: const .vertical(top: Radius.circular(8)),
                       border: const Border(
                         top: BorderSide(color: Colors.white10, width: 0.5),
                         bottom: BorderSide(color: Colors.white10, width: 0.5),
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const .symmetric(horizontal: 8),
                       child: Row(
                         children: [
                           Expanded(
@@ -560,20 +568,6 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                           ),
                           Expanded(
                             flex: 14,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Text(
-                                'Origen',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 18,
                             child: _SortableHeader(
                               label: l10n.performanceColumn,
                               index: 5,
@@ -582,13 +576,27 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               onSort: _onSort,
                             ),
                           ),
+                          Expanded(
+                            flex: 14,
+                            child: Padding(
+                              padding: const .all(8),
+                              child: Text(
+                                'Origen',
+                                style: const TextStyle(
+                                  fontWeight: .bold,
+                                  fontSize: 11,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const .symmetric(horizontal: 8),
                       child: Container(
                         decoration: BoxDecoration(
                           border: const Border(
@@ -597,9 +605,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               width: 0.5,
                             ),
                           ),
-                          borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(8),
-                          ),
+                          borderRadius: const .vertical(bottom: .circular(8)),
                         ),
                         child: ListView.separated(
                           physics: const AlwaysScrollableScrollPhysics(),
@@ -683,6 +689,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
     final row = rows[index];
     final absVar = row['absVar'] as double?;
     final variation = row['variation'] as double?;
+    final absVarRendimiento = row['absVarRendimiento'] as double?;
     final date = row['date'] as DateTime;
     final color = absVar == null
         ? null
@@ -691,10 +698,13 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
         : absVar < 0
         ? Colors.redAccent[200]
         : null;
-    //final fecha = widget.dateFormat.format(date);
-    double partes = FinancialCalculator.calculateUnitsAt(widget.fund, date);
-    final precio = row['price'] as double;
-    final rendimiento = precio * partes;
+    final rendimientoColor = absVarRendimiento == null
+        ? null
+        : absVarRendimiento > 0
+        ? Colors.greenAccent[400]
+        : absVarRendimiento < 0
+        ? Colors.redAccent[200]
+        : null;
     final selected = _selectedPriceDates.contains(_day(date));
 
     return InkWell(
@@ -719,7 +729,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 14,
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const .all(4),
                   child: Text(
                     //fecha.substring(0, fecha.length - 3) +
                     //    fecha.substring(fecha.length - 1),
@@ -732,7 +742,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 14,
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const .all(4),
                   child: Text(
                     widget.priceFormat.format(row['price']),
                     style: const TextStyle(fontSize: 11, color: Colors.white),
@@ -742,14 +752,14 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 14,
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const .all(4),
                   child: Text(
                     absVar == null
                         ? '-'
                         : '${absVar > 0 ? '+' : ''}${widget.priceFormat.format(absVar)}',
                     style: TextStyle(
                       color: color,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: .bold,
                       fontSize: 10,
                     ),
                   ),
@@ -758,14 +768,14 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 14,
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const .all(4),
                   child: Text(
                     variation == null
                         ? '-'
                         : '${variation > 0 ? '+' : ''}${widget.percentFormat.format(variation)}%',
                     style: TextStyle(
                       color: color,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: .bold,
                       fontSize: 10,
                     ),
                   ),
@@ -774,24 +784,26 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
               Expanded(
                 flex: 14,
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const .all(4),
                   child: Text(
-                    (row['source'] as PricePointSource?)?.name ?? '—',
-                    style: const TextStyle(fontSize: 10, color: Colors.white70),
+                    absVarRendimiento == null
+                        ? '-'
+                        : '${absVarRendimiento > 0 ? '+' : ''}${widget.smartFormat.format(absVarRendimiento)}',
+                    style: TextStyle(
+                      color: rendimientoColor,
+                      fontWeight: .bold,
+                      fontSize: 10,
+                    ),
                   ),
                 ),
               ),
               Expanded(
-                flex: 18,
+                flex: 14,
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const .all(4),
                   child: Text(
-                    widget.smartFormat.format(rendimiento),
-                    style: TextStyle(
-                      //color: color,
-                      //fontWeight: FontWeight.bold,
-                      fontSize: 10,
-                    ),
+                    (row['source'] as PricePointSource?)?.name ?? '—',
+                    style: const TextStyle(fontSize: 10, color: Colors.white70),
                   ),
                 ),
               ),
@@ -824,14 +836,14 @@ class _SortableHeader extends StatelessWidget {
     return InkWell(
       onTap: () => onSort(index),
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const .all(8),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: .min,
           children: [
             Text(
               label,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: .bold,
                 fontSize: 11,
                 color: Colors.white70,
               ),

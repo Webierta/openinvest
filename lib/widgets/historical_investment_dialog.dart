@@ -74,15 +74,15 @@ class HistoricalInvestmentDialogState
       filled: true,
       fillColor: const Color(0xFF0F172A),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderRadius: .circular(12),
+        borderSide: .none,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: .circular(12),
         borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: .circular(12),
         borderSide: const BorderSide(color: Colors.amber),
       ),
       errorMaxLines: 2,
@@ -103,7 +103,7 @@ class HistoricalInvestmentDialogState
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: .min,
               children: [
                 TextFormField(
                   controller: _nameController,
@@ -119,7 +119,7 @@ class HistoricalInvestmentDialogState
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _isinController,
-                  textCapitalization: TextCapitalization.characters,
+                  textCapitalization: .characters,
                   style: const TextStyle(color: Colors.white),
                   decoration: _inputDecoration('ISIN (opcional)'),
                 ),
