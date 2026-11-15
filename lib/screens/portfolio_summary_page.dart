@@ -51,6 +51,15 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       provider.exchangeRates,
     );
 
+    final fechasCotizacion = provider.portfolio
+        .where((fund) => fund.history.isNotEmpty)
+        .map((fund) => fund.history.last.date)
+        .toList();
+
+    final DateTime? ultimaFecha = fechasCotizacion.isEmpty
+        ? null
+        : fechasCotizacion.reduce((a, b) => a.isAfter(b) ? a : b);
+
     final historicalMetrics =
         FinancialCalculator.calculateHistoricalInvestmentsMetrics(
           provider.historicalInvestments,
@@ -85,7 +94,11 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: .all(16.0),
-                          child: _buildTotalValue(provider, portfolioMetrics),
+                          child: _buildTotalValue(
+                            provider,
+                            portfolioMetrics,
+                            ultimaFecha: ultimaFecha,
+                          ),
                         ),
                       ),
 
@@ -93,107 +106,13 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .all(16),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              /* final cards = [
-                                _buildSummaryCard(
-                                  title: 'Cartera actual',
-                                  subtitle: 'Fondos vigentes',
-                                  icon: Icons.assessment_outlined,
-                                  accentColor: Colors.blueAccent,
-                                  provider: provider,
-                                  metrics: portfolioMetrics,
-                                ),
-                                _buildSummaryCard(
-                                  title: 'Trayectoria',
-                                  subtitle: 'Cartera + inversiones históricas',
-                                  icon: Icons.history_outlined,
-                                  accentColor: Colors.deepPurpleAccent,
-                                  provider: provider,
-                                  metrics: globalMetrics,
-                                  isPortfolio: false,
-                                ),
-                              ]; */
-                              final cards = [
-                                _buildSummaryCard(
-                                  title: 'Cartera',
-                                  subtitle: 'Fondos vigentes',
-                                  icon: Icons.assessment_outlined,
-                                  accentColor: Colors.blueAccent,
-                                  inversion: portfolioMetrics.totalInvested,
-                                  rendimientoAbsoluto:
-                                      portfolioMetrics.profitAbs,
-                                  rentabilidadSimple:
-                                      portfolioMetrics.profitRel,
-                                  mwr: portfolioMetrics.mwrAnnualized,
-                                ),
-                                if (provider.historicalInvestments.isNotEmpty)
-                                  _buildSummaryCard(
-                                    title: 'Histórico',
-                                    subtitle: 'Trayectoria inversora',
-                                    icon: Icons.history_outlined,
-                                    accentColor: Colors.green,
-                                    inversion:
-                                        historicalMetrics.totalContributions,
-                                    rendimientoAbsoluto:
-                                        historicalMetrics.profitAbs,
-                                    rentabilidadSimple:
-                                        historicalMetrics.profitRel ?? 0,
-                                    mwr: historicalMetrics.mwrAnnualized,
-                                  ),
-                                if (provider.historicalInvestments.isNotEmpty)
-                                  _buildSummaryCard(
-                                    title: 'Global',
-                                    subtitle: 'Balance inversor',
-                                    icon: Icons.account_balance_outlined,
-                                    accentColor: Colors.deepPurpleAccent,
-                                    inversion:
-                                        globalMetrics.totalInvestedGlobal,
-                                    rendimientoAbsoluto:
-                                        globalMetrics.profitAbsGlobal,
-                                    rentabilidadSimple:
-                                        globalMetrics.profitRelGlobal * 100,
-                                    mwr: globalMetrics.mwrAnnualizedGlobal,
-                                  ),
-                              ];
-                              /* if (constraints.maxWidth >= 650) {
-                                return Row(
-                                  crossAxisAlignment: .start,
-                                  children: [
-                                    Expanded(child: cards[0]),
-                                    const SizedBox(width: 16),
-                                    Expanded(child: cards[1]),
-                                  ],
-                                );
-                              } */
-                              if (constraints.maxWidth >= 1000) {
-                                return Row(
-                                  crossAxisAlignment: .start,
-                                  children: [
-                                    for (int i = 0; i < cards.length; i++) ...[
-                                      if (i > 0) const SizedBox(width: 16),
-                                      Expanded(child: cards[i]),
-                                    ],
-                                  ],
-                                );
-                              } else {
-                                return Column(
-                                  children: [
-                                    for (int i = 0; i < cards.length; i++) ...[
-                                      if (i > 0) const SizedBox(height: 16),
-                                      cards[i],
-                                    ],
-                                  ],
-                                );
-                              }
-                              /* return Column(
-                                children: [
-                                  cards[0],
-                                  const SizedBox(height: 16),
-                                  cards[1],
-                                ],
-                              ); */
-                            },
+                          child: _buildSummaryPanel(
+                            portfolioMetrics: portfolioMetrics,
+                            historicalMetrics: historicalMetrics,
+                            globalMetrics: globalMetrics,
+                            showHistorical:
+                                provider.historicalInvestments.isNotEmpty,
+                            provider: provider,
                           ),
                         ),
                       ),
@@ -303,18 +222,20 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
 
   Widget _buildTotalValue(
     FundProvider provider,
-    GlobalMetrics portfolioMetrics,
-  ) {
+    GlobalMetrics portfolioMetrics, {
+    required DateTime? ultimaFecha,
+  }) {
     final portfolioProfitColor = portfolioMetrics.profitAbs >= 0
         ? Colors.greenAccent[400]!
         : Colors.redAccent[200]!;
 
     return Container(
-      padding: const .all(24),
+      //padding: const .all(24),
+      padding: .fromLTRB(24, 24, 24, 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: .circular(20),
-        border: .all(color: Colors.white.withValues(alpha: 0.1)),
+        border: .all(color: Colors.white.withValues(alpha: 0.12)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -352,7 +273,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                   color: Colors.white,
                   fontSize: 26,
                   fontWeight: .bold,
-                  letterSpacing: -1,
+                  //letterSpacing: -1,
                 ),
               ),
             ],
@@ -365,8 +286,22 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               Text(l10n.countFunds(provider.portfolio.length)),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _buildPesos(provider, portfolioMetrics),
+          const SizedBox(height: 12),
+          if (ultimaFecha != null)
+            Row(
+              mainAxisAlignment: .end,
+              children: [
+                Text(
+                  'Datos a fecha de ${dateFormat.format(ultimaFecha)}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -438,60 +373,19 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     );
   }
 
-  /* Widget _buildSummaryCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color accentColor,
+  Widget _buildSummaryPanel({
+    required GlobalMetrics portfolioMetrics,
+    required HistoricalInvestmentMetrics historicalMetrics,
+    required GlobalMetrics globalMetrics,
+    required bool showHistorical,
     required FundProvider provider,
-    required GlobalMetrics metrics,
-    bool isPortfolio = true,
-  }) { */
-
-  Widget _buildSummaryCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color accentColor,
-    required double inversion,
-    required double rendimientoAbsoluto,
-    required double rentabilidadSimple,
-    required double? mwr,
   }) {
-    /*
-    if (isPortfolio == false && provider.historicalInvestments.isEmpty) {
-      return SizedBox.shrink();
-    }
-
-    final bool isGlobal = isPortfolio == false;
-
-    final inversion = isGlobal
-        ? metrics.totalInvestedGlobal
-        : metrics.totalInvested;
-
-    final rendimientoAbsoluto = isGlobal
-        ? metrics.profitAbsGlobal
-        : metrics.profitAbs;
-
-    final rentabilidadSimple = isGlobal
-        ? metrics.profitRelGlobal * 100
-        : metrics.profitRel;
-
-    final mwr = isGlobal ? metrics.mwrAnnualizedGlobal : metrics.mwrAnnualized; */
-
-    final hayInversion = inversion > 0;
-
-    final profitColor = rendimientoAbsoluto >= 0
-        ? Colors.greenAccent[400]!
-        : Colors.redAccent[200]!;
-
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const .all(24),
       decoration: BoxDecoration(
-        //color: Colors.white.withValues(alpha: 0.08),
-        color: accentColor.withValues(alpha: 0.2),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: .circular(20),
-        border: .all(color: Colors.white.withValues(alpha: 0.1)),
+        border: .all(color: Colors.white.withValues(alpha: 0.12)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -503,125 +397,266 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       child: Column(
         crossAxisAlignment: .start,
         children: [
+          Text(
+            'Resumen de inversiones',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildSummarySection(
+            title: 'Cartera',
+            subtitle: 'Fondos en seguimiento',
+            icon: Icons.assessment_outlined,
+            accentColor: Colors.blueAccent,
+            inversion: portfolioMetrics.totalInvested,
+            rendimientoAbsoluto: portfolioMetrics.profitAbs,
+            rentabilidadSimple: portfolioMetrics.profitRel,
+            mwr: portfolioMetrics.mwrAnnualized,
+            countInv: provider.portfolio.length,
+          ),
+          if (showHistorical) ...[
+            /* Divider(
+              height: 1,
+              indent: 20,
+              endIndent: 20,
+              color: Colors.white.withValues(alpha: 0.15),
+            ), */
+            _buildSummarySection(
+              title: 'Histórico',
+              subtitle: 'Trayectoria inversora',
+              icon: Icons.history_outlined,
+              accentColor: Colors.green,
+              inversion: historicalMetrics.totalContributions,
+              rendimientoAbsoluto: historicalMetrics.profitAbs,
+              rentabilidadSimple: historicalMetrics.profitRel ?? 0,
+              mwr: historicalMetrics.mwrAnnualized,
+              countInv: provider.historicalInvestments.length,
+            ),
+            /* Divider(
+              height: 1,
+              indent: 20,
+              endIndent: 20,
+              color: Colors.white.withValues(alpha: 0.15),
+            ), */
+            _buildSummarySection(
+              title: 'Global',
+              subtitle: 'Balance inversor',
+              //icon: Icons.language_outlined,
+              icon: Icons.account_balance_outlined,
+              accentColor: Colors.deepPurpleAccent,
+              inversion: globalMetrics.totalInvestedGlobal,
+              rendimientoAbsoluto: globalMetrics.profitAbsGlobal,
+              rentabilidadSimple: globalMetrics.profitRelGlobal * 100,
+              mwr: globalMetrics.mwrAnnualizedGlobal,
+            ),
+          ],
+          Divider(
+            height: 1,
+            indent: 4,
+            endIndent: 4,
+            color: Colors.white.withValues(alpha: 0.15),
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
-              Icon(icon, size: 40, color: Colors.white),
+              Icon(Icons.info_outline_rounded, color: Colors.white38, size: 20),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: .start,
-                children: [
-                  Text(title, style: TextStyle(fontSize: 18)),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.white60),
-                  ),
-                ],
+              Expanded(
+                child: Text(
+                  'La rentabilidad simple no está anualizada ni considera flujos de capital',
+                  style: TextStyle(fontSize: 11, color: Colors.white38),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildSummarySection({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color accentColor,
+    required double inversion,
+    required double rendimientoAbsoluto,
+    required double rentabilidadSimple,
+    required double? mwr,
+    int? countInv,
+  }) {
+    final hayInversion = inversion > 0;
+
+    final profitColor = rendimientoAbsoluto >= 0
+        ? Colors.greenAccent[400]! //accentColor
+        : Colors.redAccent[200]!;
+
+    final profitRelColor = rentabilidadSimple >= 0
+        ? Colors.greenAccent[400]! //accentColor
+        : Colors.redAccent[200]!;
+
+    final mwrColor = (mwr != null && mwr >= 0)
+        ? Colors.greenAccent[400]!
+        : Colors.redAccent[200]!;
+
+    final metrics = <Widget>[
+      _buildSummaryMetric(
+        label: l10n.invested,
+        value: '${smartFormat.format(inversion)} €',
+        valueColor: Colors.white,
+      ),
+      _buildSummaryMetric(
+        label: l10n.absoluteReturnLabel,
+        value:
+            '${rendimientoAbsoluto > 0 ? '+' : ''}'
+            '${smartFormat.format(rendimientoAbsoluto)} €',
+        valueColor: profitColor,
+      ),
+      _buildSummaryMetric(
+        label: 'Rentabilidad simple acumulada',
+        value:
+            '${rentabilidadSimple > 0 ? '+' : ''}'
+            '${percentFormat.format(rentabilidadSimple)} %',
+        valueColor: profitRelColor,
+      ),
+      if (mwr != null)
+        _buildSummaryMetric(
+          label: 'MWR anualizado',
+          value:
+              '${mwr > 0 ? '+' : ''}'
+              '${smartFormat.format(mwr * 100)} %',
+          valueColor: mwrColor,
+        ),
+    ];
+
+    return Padding(
+      padding: const .symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // CABECERA DE LA SECCIÓN
+          Container(
+            padding: const .symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.16),
+              //borderRadius: .circular(12),
+              borderRadius: .vertical(top: .circular(16)),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, size: 52, color: accentColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: .start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 20,
+                          fontWeight: .bold,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (countInv != null)
+                  CircleAvatar(
+                    backgroundColor: accentColor,
+                    child: Text(
+                      countInv.toString(),
+                      style: TextStyle(color: Colors.white, fontWeight: .bold),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // MÉTRICAS
           if (hayInversion) ...[
-            Divider(color: accentColor),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= 760) {
+                  return Row(
+                    crossAxisAlignment: .start,
+                    children: [
+                      for (int i = 0; i < metrics.length; i++) ...[
+                        if (i > 0)
+                          Container(
+                            width: 1,
+                            height: 65,
+                            margin: const .symmetric(horizontal: 12),
+                            color: Colors.white.withValues(alpha: 0.12),
+                          ),
+                        Expanded(child: metrics[i]),
+                      ],
+                    ],
+                  );
+                }
 
-            // TOTAL INVERTIDO
-            Column(
-              crossAxisAlignment: .start,
-              children: [
-                Text(
-                  l10n.invested,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  '${smartFormat.format(inversion)} €',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: .bold,
-                  ),
-                ),
-              ],
+                final columns = constraints.maxWidth >= 420 ? 2 : 1;
+                final itemWidth = columns == 2
+                    ? (constraints.maxWidth - 16) / 2
+                    : constraints.maxWidth;
+
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    for (final metric in metrics)
+                      SizedBox(width: itemWidth, child: metric),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 10),
-            // RENDIMIENTO ABSOLUTO
-            Column(
-              crossAxisAlignment: .start,
-              children: [
-                Text(
-                  l10n.absoluteReturnLabel,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  '${rendimientoAbsoluto > 0 ? '+' : ''}${smartFormat.format(rendimientoAbsoluto)} €',
-                  style: TextStyle(
-                    color: profitColor,
-                    fontSize: 18,
-                    fontWeight: .bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // RENTABILIDAD SIMPLE ACUMULADA
-            Column(
-              crossAxisAlignment: .start,
-              children: [
-                Tooltip(
-                  message:
-                      'Beneficio absoluto dividido por el capital invertido.\n'
-                      'Rentabilidad que no está anualizada ni considera flujos de capital',
-                  child: Text(
-                    'Rentabilidad simple acumulada',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${rentabilidadSimple > 0 ? '+' : ''}${percentFormat.format(rentabilidadSimple)} %',
-                  style: TextStyle(
-                    color: profitColor,
-                    fontSize: 18,
-                    fontWeight: .bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // MWR ANUALIZADO
-            if (mwr != null)
-              Column(
-                crossAxisAlignment: .start,
-                children: [
-                  Text(
-                    'MWR anualizado',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    '${mwr > 0 ? '+' : ''}'
-                    '${smartFormat.format(mwr * 100)} %',
-                    style: TextStyle(
-                      color: profitColor,
-                      fontSize: 18,
-                      fontWeight: .bold,
-                    ),
-                  ),
-                ],
-              ),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildSummaryMetric({
+    required String label,
+    required String value,
+    required Color valueColor,
+    String? tooltip,
+  }) {
+    final labelWidget = Text(
+      label,
+      style: TextStyle(
+        color: Colors.white.withValues(alpha: 0.7),
+        fontSize: 13,
+      ),
+      maxLines: 1,
+      overflow: .ellipsis,
+    );
+
+    return Column(
+      crossAxisAlignment: .start,
+      children: [
+        if (tooltip != null)
+          Tooltip(message: tooltip, child: labelWidget)
+        else
+          labelWidget,
+        const SizedBox(height: 6),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: .ellipsis,
+          style: TextStyle(color: valueColor, fontSize: 18, fontWeight: .bold),
+        ),
+      ],
     );
   }
 

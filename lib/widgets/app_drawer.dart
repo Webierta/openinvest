@@ -1,3 +1,4 @@
+import 'package:investing/screens/historical_investment_form_page.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:investing/screens/portfolio_summary_page.dart';
@@ -65,6 +66,22 @@ class AppDrawer extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ComparaPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.history, color: Colors.white70),
+            title: Text(
+              'Histórico',
+              style: const TextStyle(color: Colors.white),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HistoricalInvestmentFormPage(),
+                ),
               );
             },
           ),
