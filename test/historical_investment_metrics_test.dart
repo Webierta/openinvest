@@ -1607,5 +1607,65 @@ void main() {
       expect(metrics.mwrAnnualized, isNotNull);
       expect(metrics.mwrAnnualized!, greaterThan(2.0));
     });
+
+    test(
+      'no duplica aportaciones ni recuperaciones por traspasos internos',
+      () {
+        final investment1 = HistoricalInvestment(
+          uid: 'INV-INTERNAL-001',
+          name: 'Inversión de origen',
+        );
+
+        final investment2 = HistoricalInvestment(
+          uid: 'INV-INTERNAL-002',
+          name: 'Inversión de destino',
+        );
+
+        final operations = [
+          HistoricalOperation(
+            uid: 'OP-INTERNAL-001',
+            investmentUid: investment1.uid,
+            date: DateTime(2023, 1, 1),
+            type: HistoricalOperationType.subscription,
+            amount: 1000,
+          ),
+          HistoricalOperation(
+            uid: 'OP-INTERNAL-002',
+            investmentUid: investment1.uid,
+            date: DateTime(2023, 7, 1),
+            type: HistoricalOperationType.transferOut,
+            amount: 1000,
+            transferUid: 'TRANSFER-INTERNAL-001',
+          ),
+          HistoricalOperation(
+            uid: 'OP-INTERNAL-003',
+            investmentUid: investment2.uid,
+            date: DateTime(2023, 7, 1),
+            type: HistoricalOperationType.transferIn,
+            amount: 1000,
+            transferUid: 'TRANSFER-INTERNAL-001',
+          ),
+          HistoricalOperation(
+            uid: 'OP-INTERNAL-004',
+            investmentUid: investment2.uid,
+            date: DateTime(2024, 1, 1),
+            type: HistoricalOperationType.redemption,
+            amount: 1200,
+          ),
+        ];
+
+        final metrics =
+            FinancialCalculator.calculateHistoricalInvestmentsMetrics([
+              investment1,
+              investment2,
+            ], operations);
+
+        expect(metrics.totalContributions, 1000);
+        expect(metrics.totalReturns, 1200);
+        expect(metrics.profitAbs, 200);
+        expect(metrics.profitRel, closeTo(20, 0.0001));
+        expect(metrics.mwrAnnualized, closeTo(0.20015, 0.0005));
+      },
+    );
   });
 }

@@ -51,6 +51,12 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       provider.exchangeRates,
     );
 
+    final historicalMetrics =
+        FinancialCalculator.calculateHistoricalInvestmentsMetrics(
+          provider.historicalInvestments,
+          provider.historicalOperations,
+        );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.portfolioTitle),
@@ -68,8 +74,9 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                     style: const TextStyle(color: Colors.white70),
                   ),
                 )
-              : funds.isEmpty
-              ? _buildEmptyState(context) // NO HAY FONDOS
+              : funds.isEmpty && provider.historicalInvestments.isEmpty
+              // sin fondos vigentes ni inversiones históricas
+              ? _buildEmptyState(context)
               : RefreshIndicator(
                   onRefresh: provider.loadPortfolio,
                   child: CustomScrollView(
@@ -88,7 +95,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                           padding: const .all(16),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final cards = [
+                              /* final cards = [
                                 _buildSummaryCard(
                                   title: 'Cartera actual',
                                   subtitle: 'Fondos vigentes',
@@ -106,8 +113,50 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                                   metrics: globalMetrics,
                                   isPortfolio: false,
                                 ),
+                              ]; */
+                              final cards = [
+                                _buildSummaryCard(
+                                  title: 'Cartera',
+                                  subtitle: 'Fondos vigentes',
+                                  icon: Icons.assessment_outlined,
+                                  accentColor: Colors.blueAccent,
+                                  inversion: portfolioMetrics.totalInvested,
+                                  rendimientoAbsoluto:
+                                      portfolioMetrics.profitAbs,
+                                  rentabilidadSimple:
+                                      portfolioMetrics.profitRel,
+                                  mwr: portfolioMetrics.mwrAnnualized,
+                                ),
+                                if (provider.historicalInvestments.isNotEmpty)
+                                  _buildSummaryCard(
+                                    title: 'Histórico',
+                                    subtitle: 'Trayectoria inversora',
+                                    icon: Icons.history_outlined,
+                                    accentColor: Colors.green,
+                                    inversion:
+                                        historicalMetrics.totalContributions,
+                                    rendimientoAbsoluto:
+                                        historicalMetrics.profitAbs,
+                                    rentabilidadSimple:
+                                        historicalMetrics.profitRel ?? 0,
+                                    mwr: historicalMetrics.mwrAnnualized,
+                                  ),
+                                if (provider.historicalInvestments.isNotEmpty)
+                                  _buildSummaryCard(
+                                    title: 'Global',
+                                    subtitle: 'Balance inversor',
+                                    icon: Icons.account_balance_outlined,
+                                    accentColor: Colors.deepPurpleAccent,
+                                    inversion:
+                                        globalMetrics.totalInvestedGlobal,
+                                    rendimientoAbsoluto:
+                                        globalMetrics.profitAbsGlobal,
+                                    rentabilidadSimple:
+                                        globalMetrics.profitRelGlobal * 100,
+                                    mwr: globalMetrics.mwrAnnualizedGlobal,
+                                  ),
                               ];
-                              if (constraints.maxWidth >= 650) {
+                              /* if (constraints.maxWidth >= 650) {
                                 return Row(
                                   crossAxisAlignment: .start,
                                   children: [
@@ -116,14 +165,34 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                                     Expanded(child: cards[1]),
                                   ],
                                 );
+                              } */
+                              if (constraints.maxWidth >= 1000) {
+                                return Row(
+                                  crossAxisAlignment: .start,
+                                  children: [
+                                    for (int i = 0; i < cards.length; i++) ...[
+                                      if (i > 0) const SizedBox(width: 16),
+                                      Expanded(child: cards[i]),
+                                    ],
+                                  ],
+                                );
+                              } else {
+                                return Column(
+                                  children: [
+                                    for (int i = 0; i < cards.length; i++) ...[
+                                      if (i > 0) const SizedBox(height: 16),
+                                      cards[i],
+                                    ],
+                                  ],
+                                );
                               }
-                              return Column(
+                              /* return Column(
                                 children: [
                                   cards[0],
                                   const SizedBox(height: 16),
                                   cards[1],
                                 ],
-                              );
+                              ); */
                             },
                           ),
                         ),
@@ -166,15 +235,20 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                         ),
                       ),
                       if (provider.hasPortfolioLoadError)
-                        Center(
-                          child: Text(
-                            l10n.portfolioLoadError,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white70),
+                        SliverToBoxAdapter(
+                          child: Center(
+                            child: Text(
+                              l10n.portfolioLoadError,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white70),
+                            ),
                           ),
                         )
                       else if (provider.portfolio.isEmpty)
-                        Center(child: Text(l10n.emptyPortfolio))
+                        //Center(child: Text(l10n.emptyPortfolio))
+                        SliverToBoxAdapter(
+                          child: Center(child: Text(l10n.emptyPortfolio)),
+                        )
                       else
                         SliverPadding(
                           padding: .fromLTRB(8, 0, 8, 16),
@@ -364,7 +438,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     );
   }
 
-  Widget _buildSummaryCard({
+  /* Widget _buildSummaryCard({
     required String title,
     required String subtitle,
     required IconData icon,
@@ -372,7 +446,19 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     required FundProvider provider,
     required GlobalMetrics metrics,
     bool isPortfolio = true,
+  }) { */
+
+  Widget _buildSummaryCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color accentColor,
+    required double inversion,
+    required double rendimientoAbsoluto,
+    required double rentabilidadSimple,
+    required double? mwr,
   }) {
+    /*
     if (isPortfolio == false && provider.historicalInvestments.isEmpty) {
       return SizedBox.shrink();
     }
@@ -391,7 +477,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ? metrics.profitRelGlobal * 100
         : metrics.profitRel;
 
-    final mwr = isGlobal ? metrics.mwrAnnualizedGlobal : metrics.mwrAnnualized;
+    final mwr = isGlobal ? metrics.mwrAnnualizedGlobal : metrics.mwrAnnualized; */
 
     final hayInversion = inversion > 0;
 

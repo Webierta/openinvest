@@ -528,7 +528,7 @@ class FinancialCalculator {
     );
   }
 
-  static HistoricalInvestmentMetrics calculateHistoricalInvestmentsMetrics(
+  /* static HistoricalInvestmentMetrics calculateHistoricalInvestmentsMetrics(
     List<HistoricalInvestment> investments,
     List<HistoricalOperation> operations,
   ) {
@@ -563,6 +563,77 @@ class FinancialCalculator {
       if (!investments.any(
         (investment) => investment.uid == operation.investmentUid,
       )) {
+        continue;
+      }
+
+      final isContribution =
+          operation.type == HistoricalOperationType.subscription ||
+          operation.type == HistoricalOperationType.transferIn;
+
+      cashFlows.add({
+        'amount': isContribution ? -operation.amount : operation.amount,
+        'date': operation.date,
+      });
+    }
+
+    final irr = _calculateIRR(cashFlows);
+    final double? mwrAnnualized = irr.isNaN ? null : irr;
+
+    return HistoricalInvestmentMetrics(
+      totalContributions: totalContributions,
+      totalReturns: totalReturns,
+      profitAbs: profitAbs,
+      profitRel: profitRel,
+      mwrAnnualized: mwrAnnualized,
+    );
+  } */
+
+  static HistoricalInvestmentMetrics calculateHistoricalInvestmentsMetrics(
+    List<HistoricalInvestment> investments,
+    List<HistoricalOperation> operations,
+  ) {
+    var totalContributions = 0.0;
+    var totalReturns = 0.0;
+
+    final uniqueInvestments = {
+      for (final investment in investments) investment.uid: investment,
+    }.values;
+
+    final investmentUids = uniqueInvestments
+        .map((investment) => investment.uid)
+        .toSet();
+
+    final internalTransfers = _resolveInternalTransferOperations(
+      operations,
+      investmentUids,
+    );
+
+    final filteredOperations = operations
+        .where((operation) => !internalTransfers.containsKey(operation.uid))
+        .toList();
+
+    for (final investment in uniqueInvestments) {
+      final metrics = calculateHistoricalInvestmentMetrics(
+        investment,
+        filteredOperations,
+      );
+
+      totalContributions += metrics.totalContributions;
+      totalReturns += metrics.totalReturns;
+    }
+
+    final profitAbs = totalReturns - totalContributions;
+
+    final double? profitRel = totalContributions > 0
+        ? (profitAbs / totalContributions) * 100
+        : totalReturns == 0
+        ? 0.0
+        : null;
+
+    final cashFlows = <Map<String, Object>>[];
+
+    for (final operation in filteredOperations) {
+      if (!investmentUids.contains(operation.investmentUid)) {
         continue;
       }
 
