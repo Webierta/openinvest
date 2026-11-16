@@ -120,7 +120,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       // CUADRÍCULA DE ACCIONES RÁPIDAS
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const .symmetric(horizontal: 16.0),
+                          padding: const .symmetric(horizontal: 32.0),
                           child: Text(
                             l10n.actionsLabel,
                             style: Theme.of(context).textTheme.titleMedium
@@ -133,16 +133,16 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const .fromLTRB(16, 8, 16, 8),
+                          padding: const .fromLTRB(20, 8, 16, 0),
                           child: _buildActionGrid(context, provider),
                         ),
                       ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
                       // 3. LISTADO DE FONDOS
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const .symmetric(horizontal: 16.0),
+                          padding: const .symmetric(horizontal: 32.0),
                           child: Text(
                             l10n.yourFundsTitle('${funds.length}'),
                             style: Theme.of(context).textTheme.titleMedium
@@ -170,7 +170,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                         )
                       else
                         SliverPadding(
-                          padding: .fromLTRB(8, 0, 8, 16),
+                          //padding: .fromLTRB(8, 0, 8, 16),
+                          padding: .symmetric(horizontal: 16, vertical: 4),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate((
                               context,
@@ -186,6 +187,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                           ),
                         ),
 
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
                       // Listado de Operaciones recientes
                       SliverToBoxAdapter(
                         child: Padding(
@@ -230,8 +232,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         : Colors.redAccent[200]!;
 
     return Container(
-      //padding: const .all(24),
-      padding: .fromLTRB(24, 24, 24, 8),
+      padding: const .all(12),
+      //padding: .fromLTRB(24, 24, 24, 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: .circular(20),
@@ -244,65 +246,69 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: .start,
-        children: [
-          Text(
-            l10n.currentPortfolioValue,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 14,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          crossAxisAlignment: .start,
+          children: [
+            Text(
+              l10n.currentPortfolioValue,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 14,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                portfolioMetrics.profitAbs >= 0
-                    ? Icons.trending_up
-                    : Icons.trending_down,
-                color: portfolioProfitColor,
-                size: 40,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${smartFormat.format(portfolioMetrics.totalValue)} €',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: .bold,
-                  //letterSpacing: -1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.assessment, color: Colors.white70, size: 24),
-              const SizedBox(width: 8),
-              Text(l10n.countFunds(provider.portfolio.length)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildPesos(provider, portfolioMetrics),
-          const SizedBox(height: 12),
-          if (ultimaFecha != null)
+            const SizedBox(height: 8),
             Row(
-              mainAxisAlignment: .end,
               children: [
+                Icon(
+                  portfolioMetrics.profitAbs >= 0
+                      ? Icons.trending_up
+                      : Icons.trending_down,
+                  color: portfolioProfitColor,
+                  size: 40,
+                ),
+                const SizedBox(width: 8),
                 Text(
-                  'Datos a fecha de ${dateFormat.format(ultimaFecha)}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 12,
+                  '${smartFormat.format(portfolioMetrics.totalValue)} €',
+                  maxLines: 1,
+                  overflow: .ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: .bold,
+                    //letterSpacing: -1,
                   ),
                 ),
               ],
             ),
-        ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.assessment, color: Colors.white70, size: 24),
+                const SizedBox(width: 8),
+                Text(l10n.countFunds(provider.portfolio.length)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildPesos(provider, portfolioMetrics),
+            if (ultimaFecha != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: .end,
+                children: [
+                  Text(
+                    'Datos a fecha de ${dateFormat.format(ultimaFecha)}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -381,7 +387,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     required FundProvider provider,
   }) {
     return Container(
-      padding: const .all(24),
+      padding: const .all(12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: .circular(20),
@@ -397,14 +403,16 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       child: Column(
         crossAxisAlignment: .start,
         children: [
-          Text(
-            'Resumen de inversiones',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 14,
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Text(
+              'Resumen de inversiones',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 14,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
           _buildSummarySection(
             title: 'Cartera',
             subtitle: 'Fondos en seguimiento',
@@ -427,7 +435,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               title: 'Histórico',
               subtitle: 'Trayectoria inversora',
               icon: Icons.history_outlined,
-              accentColor: Colors.green,
+              accentColor: Colors.yellowAccent.shade700,
               inversion: historicalMetrics.totalContributions,
               rendimientoAbsoluto: historicalMetrics.profitAbs,
               rentabilidadSimple: historicalMetrics.profitRel ?? 0,
@@ -445,7 +453,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               subtitle: 'Balance inversor',
               //icon: Icons.language_outlined,
               icon: Icons.account_balance_outlined,
-              accentColor: Colors.deepPurpleAccent,
+              accentColor: Colors.tealAccent,
               inversion: globalMetrics.totalInvestedGlobal,
               rendimientoAbsoluto: globalMetrics.profitAbsGlobal,
               rentabilidadSimple: globalMetrics.profitRelGlobal * 100,
@@ -465,7 +473,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'La rentabilidad simple no está anualizada ni considera flujos de capital',
+                  'La rentabilidad acumulada no está anualizada ni considera flujos de capital',
                   style: TextStyle(fontSize: 11, color: Colors.white38),
                 ),
               ),
@@ -515,7 +523,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         valueColor: profitColor,
       ),
       _buildSummaryMetric(
-        label: 'Rentabilidad simple acumulada',
+        label: 'Rentabilidad acumulada',
         value:
             '${rentabilidadSimple > 0 ? '+' : ''}'
             '${percentFormat.format(rentabilidadSimple)} %',
@@ -562,10 +570,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       ),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: accentColor, fontSize: 12),
                       ),
                     ],
                   ),
@@ -575,7 +580,10 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                     backgroundColor: accentColor,
                     child: Text(
                       countInv.toString(),
-                      style: TextStyle(color: Colors.white, fontWeight: .bold),
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontWeight: .bold,
+                      ),
                     ),
                   ),
               ],
@@ -584,41 +592,62 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
 
           // MÉTRICAS
           if (hayInversion) ...[
-            const SizedBox(height: 20),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth >= 760) {
-                  return Row(
-                    crossAxisAlignment: .start,
-                    children: [
-                      for (int i = 0; i < metrics.length; i++) ...[
-                        if (i > 0)
-                          Container(
-                            width: 1,
-                            height: 65,
-                            margin: const .symmetric(horizontal: 12),
-                            color: Colors.white.withValues(alpha: 0.12),
-                          ),
-                        Expanded(child: metrics[i]),
-                      ],
-                    ],
-                  );
-                }
-
-                final columns = constraints.maxWidth >= 420 ? 2 : 1;
-                final itemWidth = columns == 2
-                    ? (constraints.maxWidth - 16) / 2
-                    : constraints.maxWidth;
-
-                return Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: [
-                    for (final metric in metrics)
-                      SizedBox(width: itemWidth, child: metric),
+            Container(
+              //padding: .all(8),
+              padding: const .symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  // Dirección del degradado (puedes ajustarla según necesites)
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    accentColor.withValues(alpha: 0.16),
+                    Colors.transparent, // Se desvanece a transparente
                   ],
-                );
-              },
+                  // Opcional: puedes controlar en qué punto de la caja ocurre la transición
+                  // stops: [0.0, 1.0],
+                ),
+              ),
+              child: Column(
+                children: [
+                  //const SizedBox(height: 20),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (constraints.maxWidth >= 760) {
+                        return Row(
+                          crossAxisAlignment: .start,
+                          children: [
+                            for (int i = 0; i < metrics.length; i++) ...[
+                              if (i > 0)
+                                Container(
+                                  width: 1,
+                                  height: 65,
+                                  margin: const .symmetric(horizontal: 12),
+                                  color: Colors.white.withValues(alpha: 0.12),
+                                ),
+                              Expanded(child: metrics[i]),
+                            ],
+                          ],
+                        );
+                      }
+
+                      final columns = constraints.maxWidth >= 420 ? 2 : 1;
+                      final itemWidth = columns == 2
+                          ? (constraints.maxWidth - 8) / 2
+                          : constraints.maxWidth;
+
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final metric in metrics)
+                            SizedBox(width: itemWidth, child: metric),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -633,11 +662,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     String? tooltip,
   }) {
     final labelWidget = Text(
-      label,
-      style: TextStyle(
-        color: Colors.white.withValues(alpha: 0.7),
-        fontSize: 13,
-      ),
+      label.toUpperCase(),
+      style: TextStyle(color: Colors.white70, fontSize: 10),
       maxLines: 1,
       overflow: .ellipsis,
     );
@@ -649,7 +675,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           Tooltip(message: tooltip, child: labelWidget)
         else
           labelWidget,
-        const SizedBox(height: 6),
+        //const SizedBox(height: 6),
         Text(
           value,
           maxLines: 1,
@@ -662,12 +688,14 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
 
   Widget _buildActionGrid(BuildContext context, FundProvider provider) {
     final screenWidth = MediaQuery.of(context).size.width;
-    // Responsive: 6, 3 y 2 columnas
+    // Responsive: 6, 3, 2 y 1 columnas
     final int crossAxisCount = screenWidth > 1000
         ? 6
         : screenWidth > 650
         ? 3
-        : 2;
+        : screenWidth > 350
+        ? 2
+        : 1;
     // En pantallas muy pequeñas (<360px), hacemos las tarjetas un poco más altas
     //(aspectRatio < 1.0) para evitar que el texto se desborde si ocupa 2 líneas.
     /* final double aspectRatio = screenWidth > 1000
@@ -675,7 +703,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         : screenWidth > 650
         ? 1.0 // 1.5
         : 1.5; //2.0; */
-    final double aspectRatio = 1;
+    //final double aspectRatio = 1;
 
     return GridView.count(
       shrinkWrap: true,
@@ -683,7 +711,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       crossAxisCount: crossAxisCount,
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: aspectRatio,
+      mainAxisExtent: 160,
+      //childAspectRatio: aspectRatio,
       children: [
         _buildActionCard(
           context,
@@ -869,7 +898,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
   ) {
     final metrics = FinancialCalculator.calculateFundMetrics(fund);
     return Card(
-      margin: const .symmetric(horizontal: 12, vertical: 6),
+      //margin: const .symmetric(horizontal: 12, vertical: 6),
       color: Colors.white.withValues(alpha: 0.03),
       child: InkWell(
         borderRadius: .circular(16),
@@ -959,7 +988,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       crossAxisAlignment: .start,
       children: [
         Padding(
-          padding: const .symmetric(horizontal: 16.0),
+          padding: const .symmetric(horizontal: 24.0),
           child: Text(
             l10n.recentOperationsTitle,
             style: Theme.of(context).textTheme.titleMedium
@@ -1080,7 +1109,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       crossAxisAlignment: .start,
       children: [
         Padding(
-          padding: const .symmetric(horizontal: 16.0),
+          padding: const .symmetric(horizontal: 24.0),
           child: Text(
             'Inversiones históricas',
             style: Theme.of(context).textTheme.titleMedium

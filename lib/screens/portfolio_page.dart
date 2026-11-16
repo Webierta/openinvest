@@ -506,7 +506,9 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                     child: Column(
                       crossAxisAlignment: .start,
                       children: [
-                        FittedBox(child: MetricLabel(l10n.invested)),
+                        FittedBox(
+                          child: MetricLabel(l10n.invested.toUpperCase()),
+                        ),
                         FittedBox(
                           child: MetricValue(
                             '${smartFormat.format(metrics.totalInvested)} €',
