@@ -3,20 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:investing/l10n/app_localizations.dart';
 
-import '../models/fund_data.dart';
 import '../providers/fund_provider.dart';
+import '../widgets/build_fund_card.dart';
 import '../widgets/build_portfolio_header.dart';
-import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart';
-import '../widgets/history_chart_painter.dart';
 import '../widgets/portfolio_appbar.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/updating_indicator.dart';
 import 'fund_search_page.dart';
-import 'fund_details_page.dart';
 import '../utils/route_observer.dart';
-import '../utils/financial_calculator.dart';
 
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
@@ -168,6 +164,8 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
 
                                 // TARJETAS FONDOS
                                 final item = provider.portfolio[index - 1];
+                                return BuildFundCard(fund: item);
+                                /* final item = provider.portfolio[index - 1];
                                 final metrics =
                                     FinancialCalculator.calculateFundMetrics(
                                       item,
@@ -187,15 +185,14 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                       dailyVarColor = Colors.redAccent[200];
                                     }
                                   }
-                                }
-
+                                }                                
                                 return _buildFundCard(
                                   item,
                                   metrics,
                                   dailyVariation,
                                   dailyVarColor,
                                   provider,
-                                );
+                                ); */
                               },
                             ),
                           ),
@@ -223,7 +220,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   }
 
   // TARJETA FONDO
-  Widget _buildFundCard(
+  /* Widget _buildFundCard(
     FundData fund,
     FundMetrics metrics,
     double? dailyVariation,
@@ -567,7 +564,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         ),
       ),
     );
-  }
+  } */
 
   void _showTriggeredAlertsDialog(BuildContext context, FundProvider provider) {
     showDialog(
@@ -668,7 +665,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   }
 }
 
-class MetricLabel extends StatelessWidget {
+/* class MetricLabel extends StatelessWidget {
   final String value;
   const MetricLabel(this.value, {super.key});
 
@@ -681,9 +678,9 @@ class MetricLabel extends StatelessWidget {
       style: const TextStyle(fontSize: 11, color: Colors.white70),
     );
   }
-}
+} */
 
-class MetricValue extends StatelessWidget {
+/* class MetricValue extends StatelessWidget {
   final String value;
   final Color? color;
   final bool? bold;
@@ -709,9 +706,9 @@ class MetricValue extends StatelessWidget {
       ),
     );
   }
-}
+} */
 
-class MetricRelative extends StatelessWidget {
+/* class MetricRelative extends StatelessWidget {
   final String value;
   final Color color;
   const MetricRelative(this.value, this.color, {super.key});
@@ -727,4 +724,4 @@ class MetricRelative extends StatelessWidget {
       child: Text(value, style: TextStyle(color: color, fontSize: 11)),
     );
   }
-}
+} */
