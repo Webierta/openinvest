@@ -68,13 +68,6 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   Widget build(BuildContext context) {
     final provider = context.watch<FundProvider>();
 
-    final portfolioMetrics = FinancialCalculator.calculateGlobalMetrics(
-      provider.portfolio,
-      provider.exchangeRates,
-    );
-
-    final bool showPortfolioSummary = portfolioMetrics.totalInvested > 0;
-
     return Stack(
       children: [
         Scaffold(
@@ -166,18 +159,15 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                             onRefresh: provider.loadPortfolio,
                             child: ListView.builder(
                               padding: const .only(bottom: 100, top: 12),
-                              itemCount:
-                                  provider.portfolio.length +
-                                  (showPortfolioSummary ? 1 : 0),
+                              itemCount: provider.portfolio.length + 1,
                               itemBuilder: (context, index) {
-                                if (showPortfolioSummary && index == 0) {
-                                  // ENCABEZADO CARTERA
+                                // TARJETA ENCABEZADO CARTERA
+                                if (index == 0) {
                                   return const BuildPortfolioHeader();
                                 }
 
-                                final item =
-                                    provider.portfolio[index -
-                                        (showPortfolioSummary ? 1 : 0)];
+                                // TARJETAS FONDOS
+                                final item = provider.portfolio[index - 1];
                                 final metrics =
                                     FinancialCalculator.calculateFundMetrics(
                                       item,

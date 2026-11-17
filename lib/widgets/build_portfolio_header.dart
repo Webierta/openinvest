@@ -28,6 +28,11 @@ class BuildPortfolioHeader extends StatelessWidget {
           inputs.exchangeRates,
         );
 
+        // Si no hay inversión, no mostramos el encabezado
+        if (metrics.totalInvested <= 0) {
+          return const SizedBox.shrink();
+        }
+
         // Variación global entre las dos últimas valoraciones disponibles
         // de cada fondo, convertidas a euros.
         double dailyChangeAbs = 0;
