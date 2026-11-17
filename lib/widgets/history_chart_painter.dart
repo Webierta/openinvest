@@ -21,7 +21,7 @@ class HistoryChartPainter extends CustomPainter {
 
     final sampled = <double>[];
     final step = (values.length - 1) / 49;
-
+    // reduce la serie a 50 puntos equidistantes (ampliar?)
     for (var i = 0; i < 50; i++) {
       sampled.add(values[(i * step).round()]);
     }
@@ -65,10 +65,10 @@ class HistoryChartPainter extends CustomPainter {
       linePath,
       Paint()
         ..color = lineColor
-        ..style = PaintingStyle.stroke
+        ..style = .stroke
         ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
+        ..strokeCap = .round
+        ..strokeJoin = .round,
     );
   }
 

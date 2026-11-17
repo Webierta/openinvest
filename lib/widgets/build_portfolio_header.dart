@@ -22,11 +22,14 @@ class BuildPortfolioHeader extends StatelessWidget {
       selector: (_, provider) => _PortfolioHeaderInputs.fromProvider(provider),
       shouldRebuild: (previous, next) => !previous.hasSameDataAs(next),
       builder: (context, inputs, _) {
+        // portfolioMetrics
         final metrics = FinancialCalculator.calculateGlobalMetrics(
           inputs.portfolio,
           inputs.exchangeRates,
         );
 
+        // Variación global entre las dos últimas valoraciones disponibles
+        // de cada fondo, convertidas a euros.
         double dailyChangeAbs = 0;
         double previousPortfolioValue = 0;
 
@@ -41,6 +44,7 @@ class BuildPortfolioHeader extends StatelessWidget {
               fundMetrics.totalUnits *
               (fund.lastValue - previousPrice) *
               exchangeRate;
+
           previousPortfolioValue +=
               fundMetrics.totalUnits * previousPrice * exchangeRate;
         }
@@ -48,6 +52,7 @@ class BuildPortfolioHeader extends StatelessWidget {
         final dailyChangePercent = previousPortfolioValue > 0
             ? dailyChangeAbs / previousPortfolioValue * 100
             : null;
+
         final portfolioHistory = _buildPortfolioHistory(
           inputs.portfolio,
           inputs.exchangeRates,
@@ -100,8 +105,7 @@ class BuildPortfolioHeader extends StatelessWidget {
       for (var index = 0; index < fund.operations.length; index++) {
         final operation = fund.operations[index];
         final isInvestment =
-            operation.type == OperationType.buy ||
-            operation.type == OperationType.inTransfer;
+            operation.type == .buy || operation.type == .inTransfer;
         changes.add((
           date: dateOnly(operation.date),
           units: isInvestment ? operation.units : -operation.units,
@@ -220,6 +224,7 @@ class BuildPortfolioHeader extends StatelessWidget {
         ),
         child: Column(
           children: [
+            // CABECERA
             Row(
               children: [
                 CircleAvatar(
@@ -238,6 +243,7 @@ class BuildPortfolioHeader extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
+            // VALOR Y VARIACIÓN DIARIA
             Card(
               elevation: 1,
               shape: RoundedRectangleBorder(borderRadius: .circular(16)),
@@ -273,6 +279,7 @@ class BuildPortfolioHeader extends StatelessWidget {
                 ),
               ),
             ),
+            // GRAFICO
             if (portfolioHistory.length >= 2) ...[
               SizedBox(
                 height: 65,
@@ -285,11 +292,13 @@ class BuildPortfolioHeader extends StatelessWidget {
                 ),
               ),
             ],
+            // MÉTRICAS
             const SizedBox(height: 9),
             const Divider(height: 1, color: Colors.white12),
             const SizedBox(height: 12),
             Row(
               children: [
+                // Inversión
                 Expanded(
                   flex: 4,
                   child: Column(
@@ -310,6 +319,7 @@ class BuildPortfolioHeader extends StatelessWidget {
                   color: Colors.white30,
                   margin: const .symmetric(horizontal: 9),
                 ),
+                // Rentabilidad
                 Expanded(
                   flex: 6,
                   child: Column(
@@ -342,6 +352,7 @@ class BuildPortfolioHeader extends StatelessWidget {
                   color: Colors.white30,
                   margin: const .symmetric(horizontal: 9),
                 ),
+                // MWR
                 Expanded(
                   flex: 2,
                   child: Column(
@@ -373,6 +384,7 @@ class BuildPortfolioHeader extends StatelessWidget {
                 ),
               ],
             ),
+            // MARQUESINA
             const SizedBox(height: 10),
             const Divider(height: 1, color: Colors.white12),
             _PortfolioMarqueeTicker(
@@ -381,6 +393,7 @@ class BuildPortfolioHeader extends StatelessWidget {
               percentFormat: percentFormat,
               velocity: 60,
             ),
+            // PIE
             const Divider(height: 1, color: Colors.white12),
             const SizedBox(height: 9),
             Row(
@@ -525,11 +538,14 @@ class _PortfolioMarqueeTickerState extends State<_PortfolioMarqueeTicker> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    // Espera a que el widget se renderice para iniciar la animación
     WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
   }
 
   void _startScrolling() {
     if (!mounted || !_scrollController.hasClients) return;
+
+    // Calculamos el tiempo basado en el desplazamiento máximo y la velocidad deseada
 
     final maxScrollExtent = _scrollController.position.maxScrollExtent;
     if (maxScrollExtent <= 0) return;
@@ -542,9 +558,11 @@ class _PortfolioMarqueeTickerState extends State<_PortfolioMarqueeTicker> {
           maxScrollExtent,
           duration: Duration(milliseconds: durationInMs),
           curve: Curves.linear,
+          // Movimiento fluido y lineal sin aceleraciones
         )
         .then((_) {
           if (!mounted) return;
+          // vuelve al inicio
           _scrollController.jumpTo(0);
           _startScrolling();
         });
@@ -552,6 +570,7 @@ class _PortfolioMarqueeTickerState extends State<_PortfolioMarqueeTicker> {
 
   @override
   void dispose() {
+    // _timer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -567,8 +586,10 @@ class _PortfolioMarqueeTickerState extends State<_PortfolioMarqueeTicker> {
         child: ListView.builder(
           controller: _scrollController,
           scrollDirection: Axis.horizontal,
+          // Multiplicamos la lista para simular un bucle continuo fluido
           itemCount: widget.funds.length * 100,
           itemBuilder: (context, index) {
+            // Conseguimos el índice real usando el operador módulo
             final fund = widget.funds[index % widget.funds.length];
             double? dailyVariation;
             Color? dailyVarColor;
@@ -590,6 +611,7 @@ class _PortfolioMarqueeTickerState extends State<_PortfolioMarqueeTicker> {
             final variationArrow = dailyVariation == null
                 ? ''
                 : '${dailyVariation > 0 ? '\u25B2' : '\u25BC'} ';
+
             return Row(
               children: [
                 const SizedBox(width: 12),
@@ -635,6 +657,7 @@ class _PortfolioMarqueeTickerState extends State<_PortfolioMarqueeTicker> {
                     ),
                   ),
                 const SizedBox(width: 12),
+                // Separador visual entre cotizaciones
                 const Text('|', style: TextStyle(color: Colors.white54)),
               ],
             );
