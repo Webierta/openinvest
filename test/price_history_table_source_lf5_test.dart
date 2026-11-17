@@ -76,7 +76,7 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             height: 700,
-            width: 1000,
+            width: viewportWidth,
             child: PriceHistoryTable(
               fund: fund,
               priceFormat: NumberFormat('#,##0.00', 'es_ES'),
@@ -99,7 +99,7 @@ void main() {
       expect(find.text('+1.200,00'), findsOneWidget);
       expect(find.text('-400,00'), findsOneWidget);
       expect(
-        tester.getCenter(find.text('Rendimiento')).dx,
+        tester.getCenter(find.text('± €')).dx,
         lessThan(tester.getCenter(find.text('Origen')).dx),
       );
 
@@ -149,7 +149,7 @@ void main() {
     testWidgets('evita overflow y permite scroll en una ventana estrecha', (
       tester,
     ) async {
-      await mountTable(tester, createFund(), viewportWidth: 800);
+      await mountTable(tester, createFund(), viewportWidth: 240);
 
       final horizontalScrollable = find.byWidgetPredicate(
         (widget) =>

@@ -488,14 +488,29 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
       return _isAscending ? comparison : -comparison;
     });
 
+    final columnWidths = _calculateColumnWidths(context, tableData, l10n);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          const minTableWidth = 1000.0;
-          final tableWidth = constraints.maxWidth < minTableWidth
-              ? minTableWidth
+          //const columnFlexes = [6, 14, 15, 16, 14, 20, 15];
+          const columnFlexes = [10, 14, 20, 16, 16, 16, 14];
+          const horizontalPadding = 8.0;
+          final contentWidth = columnWidths.fold<double>(
+            0,
+            (total, width) => total + width,
+          );
+          final minimumTableWidth = contentWidth + horizontalPadding;
+          final tableWidth = constraints.maxWidth < minimumTableWidth
+              ? minimumTableWidth
               : constraints.maxWidth;
+          final extraWidth = tableWidth - minimumTableWidth;
+          final totalFlex = columnFlexes.reduce((sum, flex) => sum + flex);
+          final expandedColumnWidths = [
+            for (var i = 0; i < columnWidths.length; i++)
+              columnWidths[i] + extraWidth * columnFlexes[i] / totalFlex,
+          ];
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -513,11 +528,11 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                       ),
                     ),
                     child: Padding(
-                      padding: const .symmetric(horizontal: 8),
+                      padding: const .symmetric(horizontal: 4),
                       child: Row(
                         children: [
-                          Expanded(
-                            flex: 8,
+                          SizedBox(
+                            width: expandedColumnWidths[0],
                             child: _SortableHeader(
                               label: l10n.numberLabel,
                               index: 0,
@@ -526,8 +541,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               onSort: _onSort,
                             ),
                           ),
-                          Expanded(
-                            flex: 14,
+                          SizedBox(
+                            width: expandedColumnWidths[1],
                             child: _SortableHeader(
                               label: l10n.dateLabel,
                               index: 1,
@@ -536,8 +551,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               onSort: _onSort,
                             ),
                           ),
-                          Expanded(
-                            flex: 14,
+                          SizedBox(
+                            width: expandedColumnWidths[2],
                             child: _SortableHeader(
                               label: l10n.priceLabel,
                               index: 2,
@@ -546,8 +561,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               onSort: _onSort,
                             ),
                           ),
-                          Expanded(
-                            flex: 14,
+                          SizedBox(
+                            width: expandedColumnWidths[3],
                             child: _SortableHeader(
                               label: l10n.diffLabel,
                               index: 3,
@@ -556,8 +571,8 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               onSort: _onSort,
                             ),
                           ),
-                          Expanded(
-                            flex: 14,
+                          SizedBox(
+                            width: expandedColumnWidths[4],
                             child: _SortableHeader(
                               label: l10n.varLabel,
                               index: 4,
@@ -566,27 +581,33 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                               onSort: _onSort,
                             ),
                           ),
-                          Expanded(
-                            flex: 14,
+                          SizedBox(
+                            width: expandedColumnWidths[5],
                             child: _SortableHeader(
-                              label: l10n.performanceColumn,
+                              //label: l10n.performanceColumn,
+                              label: '± €',
                               index: 5,
                               selectedIndex: _sortColumnIndex,
                               ascending: _isAscending,
                               onSort: _onSort,
                             ),
                           ),
-                          Expanded(
-                            flex: 14,
+                          SizedBox(
+                            width: expandedColumnWidths[6],
                             child: Padding(
-                              padding: const .all(8),
+                              padding: const .symmetric(
+                                horizontal: 2,
+                                vertical: 6,
+                              ),
                               child: Text(
                                 'Origen',
                                 style: const TextStyle(
                                   fontWeight: .bold,
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   color: Colors.white70,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
@@ -596,7 +617,7 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const .symmetric(horizontal: 8),
+                      padding: const .symmetric(horizontal: 4),
                       child: Container(
                         decoration: BoxDecoration(
                           border: const Border(
@@ -612,8 +633,12 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                           itemCount: tableData.length,
                           separatorBuilder: (context, index) =>
                               const Divider(height: 1, color: Colors.white10),
-                          itemBuilder: (context, index) =>
-                              _buildRow(context, tableData, index),
+                          itemBuilder: (context, index) => _buildRow(
+                            context,
+                            tableData,
+                            index,
+                            expandedColumnWidths,
+                          ),
                         ),
                       ),
                     ),
@@ -681,10 +706,86 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
     );
   }
 
+  List<double> _calculateColumnWidths(
+    BuildContext context,
+    List<Map<String, dynamic>> rows,
+    AppLocalizations l10n,
+  ) {
+    const cellStyles = [
+      TextStyle(fontSize: 10),
+      TextStyle(fontSize: 10),
+      TextStyle(fontSize: 11),
+      TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+      TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+      TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+      TextStyle(fontSize: 10),
+    ];
+    const headerStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.bold);
+    const horizontalCellPadding = 5.0;
+    final textDirection = Directionality.of(context);
+    final textScaler = MediaQuery.textScalerOf(context);
+    final defaultStyle = DefaultTextStyle.of(context).style;
+
+    double measure(String text, TextStyle style) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: defaultStyle.merge(style)),
+        textDirection: textDirection,
+        textScaler: textScaler,
+        maxLines: 1,
+      )..layout();
+      return painter.width + horizontalCellPadding;
+    }
+
+    final headers = [
+      l10n.numberLabel,
+      l10n.dateLabel,
+      l10n.priceLabel,
+      l10n.diffLabel,
+      l10n.varLabel,
+      //l10n.performanceColumn,
+      '± €',
+      'Origen',
+    ];
+    final widths = [
+      for (var i = 0; i < headers.length; i++)
+        measure(headers[i], headerStyle) +
+            (_sortColumnIndex == i && i < headers.length - 1 ? 14 : 0),
+    ];
+
+    for (final row in rows) {
+      final date = row['date'] as DateTime;
+      final absVar = row['absVar'] as double?;
+      final variation = row['variation'] as double?;
+      final absVarRendimiento = row['absVarRendimiento'] as double?;
+      final values = [
+        row['index'].toString(),
+        DateFormat('dd/MM/yy').format(date),
+        widget.priceFormat.format(row['price']),
+        absVar == null
+            ? '-'
+            : '${absVar > 0 ? '+' : ''}${widget.priceFormat.format(absVar)}',
+        variation == null
+            ? '-'
+            : '${variation > 0 ? '+' : ''}${widget.percentFormat.format(variation)}%',
+        absVarRendimiento == null
+            ? '-'
+            : '${absVarRendimiento > 0 ? '+' : ''}${widget.smartFormat.format(absVarRendimiento)}',
+        (row['source'] as PricePointSource?)?.name ?? '—',
+      ];
+      for (var i = 0; i < values.length; i++) {
+        final valueWidth = measure(values[i], cellStyles[i]);
+        if (valueWidth > widths[i]) widths[i] = valueWidth;
+      }
+    }
+
+    return widths;
+  }
+
   Widget _buildRow(
     BuildContext context,
     List<Map<String, dynamic>> rows,
     int index,
+    List<double> columnWidths,
   ) {
     final row = rows[index];
     final absVar = row['absVar'] as double?;
@@ -716,43 +817,49 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             children: [
-              Expanded(
-                flex: 8,
+              SizedBox(
+                width: columnWidths[0],
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const .symmetric(horizontal: 2, vertical: 4),
                   child: Text(
                     row['index'].toString(),
                     style: const TextStyle(fontSize: 10, color: Colors.white24),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
-              Expanded(
-                flex: 14,
+              SizedBox(
+                width: columnWidths[1],
                 child: Padding(
-                  padding: const .all(4),
+                  padding: const .symmetric(horizontal: 2, vertical: 4),
                   child: Text(
                     //fecha.substring(0, fecha.length - 3) +
                     //    fecha.substring(fecha.length - 1),
                     DateFormat('dd/MM/yy').format(date),
                     //widget.dateFormat.format(date),
-                    style: const TextStyle(fontSize: 11, color: Colors.white70),
+                    style: const TextStyle(fontSize: 10, color: Colors.white70),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
-              Expanded(
-                flex: 14,
+              SizedBox(
+                width: columnWidths[2],
                 child: Padding(
-                  padding: const .all(4),
+                  padding: const .symmetric(horizontal: 2, vertical: 4),
                   child: Text(
                     widget.priceFormat.format(row['price']),
                     style: const TextStyle(fontSize: 11, color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
-              Expanded(
-                flex: 14,
+              SizedBox(
+                width: columnWidths[3],
                 child: Padding(
-                  padding: const .all(4),
+                  padding: const .symmetric(horizontal: 2, vertical: 4),
                   child: Text(
                     absVar == null
                         ? '-'
@@ -762,13 +869,15 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                       fontWeight: .bold,
                       fontSize: 10,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
-              Expanded(
-                flex: 14,
+              SizedBox(
+                width: columnWidths[4],
                 child: Padding(
-                  padding: const .all(4),
+                  padding: const .symmetric(horizontal: 2, vertical: 4),
                   child: Text(
                     variation == null
                         ? '-'
@@ -778,13 +887,15 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                       fontWeight: .bold,
                       fontSize: 10,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
-              Expanded(
-                flex: 14,
+              SizedBox(
+                width: columnWidths[5],
                 child: Padding(
-                  padding: const .all(4),
+                  padding: const .symmetric(horizontal: 2, vertical: 4),
                   child: Text(
                     absVarRendimiento == null
                         ? '-'
@@ -794,16 +905,20 @@ class _PriceHistoryTableState extends State<PriceHistoryTable> {
                       fontWeight: .bold,
                       fontSize: 10,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
-              Expanded(
-                flex: 14,
+              SizedBox(
+                width: columnWidths[6],
                 child: Padding(
-                  padding: const .all(4),
+                  padding: const .symmetric(horizontal: 2, vertical: 4),
                   child: Text(
                     (row['source'] as PricePointSource?)?.name ?? '—',
                     style: const TextStyle(fontSize: 10, color: Colors.white70),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -836,16 +951,19 @@ class _SortableHeader extends StatelessWidget {
     return InkWell(
       onTap: () => onSort(index),
       child: Padding(
-        padding: const .all(8),
+        padding: const .symmetric(horizontal: 2, vertical: 6),
         child: Row(
-          mainAxisSize: .min,
           children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: .bold,
-                fontSize: 11,
-                color: Colors.white70,
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: .bold,
+                  fontSize: 10,
+                  color: Colors.white70,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (selected)
