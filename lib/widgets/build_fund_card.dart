@@ -121,7 +121,7 @@ class BuildFundCard extends StatelessWidget {
     }
 
     return Padding(
-      padding: const .fromLTRB(12, 9, 12, 9),
+      padding: const .fromLTRB(16, 9, 16, 9),
       child: Container(
         decoration: cardDecoration,
         child: Material(
