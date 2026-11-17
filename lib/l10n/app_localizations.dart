@@ -1391,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteOperationTitle.
   ///
   /// In es, this message translates to:
-  /// **'Eliminar Operación'**
+  /// **'Eliminar operación'**
   String get deleteOperationTitle;
 
   /// No description provided for @areYouSure.
@@ -1463,7 +1463,7 @@ abstract class AppLocalizations {
   /// No description provided for @unitsLabel.
   ///
   /// In es, this message translates to:
-  /// **'Participaciones'**
+  /// **'número de participaciones'**
   String get unitsLabel;
 
   /// No description provided for @totalAmountLabel.
@@ -2851,6 +2851,360 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Pesos'**
   String get weightsLabel;
+
+  /// No description provided for @portfolioDataAsOf.
+  ///
+  /// In es, this message translates to:
+  /// **'Datos a fecha de {date}'**
+  String portfolioDataAsOf(String date);
+
+  /// No description provided for @investmentSummaryTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen de inversiones'**
+  String get investmentSummaryTitle;
+
+  /// No description provided for @activeFundsSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Fondos activos'**
+  String get activeFundsSubtitle;
+
+  /// No description provided for @investmentHistoryTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Histórico'**
+  String get investmentHistoryTitle;
+
+  /// No description provided for @investmentJourneySubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Trayectoria inversora'**
+  String get investmentJourneySubtitle;
+
+  /// No description provided for @globalSummaryTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Global'**
+  String get globalSummaryTitle;
+
+  /// No description provided for @investorBalanceSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Balance inversor'**
+  String get investorBalanceSubtitle;
+
+  /// No description provided for @cumulativeReturnDisclaimer.
+  ///
+  /// In es, this message translates to:
+  /// **'La rentabilidad acumulada no está anualizada ni considera flujos de capital'**
+  String get cumulativeReturnDisclaimer;
+
+  /// No description provided for @cumulativeReturnLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Rentabilidad acumulada'**
+  String get cumulativeReturnLabel;
+
+  /// No description provided for @annualizedMwrLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'MWR anualizado'**
+  String get annualizedMwrLabel;
+
+  /// No description provided for @annualReportTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Informe anual'**
+  String get annualReportTitle;
+
+  /// No description provided for @operationsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Operaciones'**
+  String get operationsTitle;
+
+  /// No description provided for @csvSpreadsheetSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Hoja CSV'**
+  String get csvSpreadsheetSubtitle;
+
+  /// No description provided for @historicalInvestmentsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Inversiones históricas'**
+  String get historicalInvestmentsTitle;
+
+  /// No description provided for @newHistoricalInvestmentTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva inversión histórica'**
+  String get newHistoricalInvestmentTitle;
+
+  /// No description provided for @identificationSectionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Identificación'**
+  String get identificationSectionTitle;
+
+  /// No description provided for @historicalOperationsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Operaciones históricas'**
+  String get historicalOperationsTitle;
+
+  /// No description provided for @addOperationTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir operación'**
+  String get addOperationTooltip;
+
+  /// No description provided for @operationDateLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha de la operación'**
+  String get operationDateLabel;
+
+  /// No description provided for @accept.
+  ///
+  /// In es, this message translates to:
+  /// **'Aceptar'**
+  String get accept;
+
+  /// No description provided for @amountLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'importe'**
+  String get amountLabel;
+
+  /// No description provided for @enterValidNumber.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce un {label} válido'**
+  String enterValidNumber(String label);
+
+  /// No description provided for @addHistoricalOperationFirst.
+  ///
+  /// In es, this message translates to:
+  /// **'Añade al menos una operación histórica'**
+  String get addHistoricalOperationFirst;
+
+  /// No description provided for @historicalInvestmentSaved.
+  ///
+  /// In es, this message translates to:
+  /// **'Inversión histórica guardada correctamente'**
+  String get historicalInvestmentSaved;
+
+  /// No description provided for @historicalInvestmentSaveError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo guardar el histórico: {error}'**
+  String historicalInvestmentSaveError(String error);
+
+  /// No description provided for @investmentNameLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre de la inversión'**
+  String get investmentNameLabel;
+
+  /// No description provided for @enterInvestmentName.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce un nombre para la inversión'**
+  String get enterInvestmentName;
+
+  /// No description provided for @optionalIsinLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'ISIN (opcional)'**
+  String get optionalIsinLabel;
+
+  /// No description provided for @optionalDescriptionLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Descripción (opcional)'**
+  String get optionalDescriptionLabel;
+
+  /// No description provided for @noHistoricalOperationsHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no hay operaciones.\nAñade la primera para construir el histórico.'**
+  String get noHistoricalOperationsHint;
+
+  /// No description provided for @historicalInvestmentInfoParagraphOne.
+  ///
+  /// In es, this message translates to:
+  /// **'OpenInvest calcula la rentabilidad de la cartera global en base a los fondos que actualmente la componen. Pero cuando la inversión en alguno de estos fondos deriva de un traspaso desde otro fondo, se pierde información acumulada por el fondo de origen. También se pierde si se elimina un fondo con inversiones.'**
+  String get historicalInvestmentInfoParagraphOne;
+
+  /// No description provided for @historicalInvestmentInfoParagraphTwo.
+  ///
+  /// In es, this message translates to:
+  /// **'Para evitarlo, este registro permite reconstruir el histórico de inversiones pasadas (por ejemplo después de reembolsos o traspasos) e incorporar sus rentabilidades a los cálculos de la cartera aunque esos fondos no formen parte actualmente de ella o nunca lo hayan hecho.'**
+  String get historicalInvestmentInfoParagraphTwo;
+
+  /// No description provided for @saving.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardando…'**
+  String get saving;
+
+  /// No description provided for @historicalOperationAdded.
+  ///
+  /// In es, this message translates to:
+  /// **'Operación histórica añadida correctamente'**
+  String get historicalOperationAdded;
+
+  /// No description provided for @historicalOperationAddError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo añadir la operación: {error}'**
+  String historicalOperationAddError(String error);
+
+  /// No description provided for @historicalInvestmentUpdated.
+  ///
+  /// In es, this message translates to:
+  /// **'Inversión histórica actualizada correctamente'**
+  String get historicalInvestmentUpdated;
+
+  /// No description provided for @historicalInvestmentUpdateError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo actualizar la inversión: {error}'**
+  String historicalInvestmentUpdateError(String error);
+
+  /// No description provided for @deleteHistoricalInvestmentTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar inversión histórica'**
+  String get deleteHistoricalInvestmentTitle;
+
+  /// No description provided for @deleteHistoricalInvestmentConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quieres eliminar \"{investmentName}\"?\n\nTambién se eliminarán todas las operaciones históricas asociadas a esta inversión.\n\nEsta acción no se puede deshacer.'**
+  String deleteHistoricalInvestmentConfirm(String investmentName);
+
+  /// No description provided for @historicalInvestmentDeleted.
+  ///
+  /// In es, this message translates to:
+  /// **'Inversión histórica eliminada correctamente'**
+  String get historicalInvestmentDeleted;
+
+  /// No description provided for @historicalInvestmentDeleteError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo eliminar la inversión: {error}'**
+  String historicalInvestmentDeleteError(String error);
+
+  /// No description provided for @historicalOperationUpdated.
+  ///
+  /// In es, this message translates to:
+  /// **'Operación histórica actualizada correctamente'**
+  String get historicalOperationUpdated;
+
+  /// No description provided for @historicalOperationUpdateError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo actualizar la operación: {error}'**
+  String historicalOperationUpdateError(String error);
+
+  /// No description provided for @deleteHistoricalOperationConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quieres eliminar esta operación histórica?\n\n{operationType} · {amount}\n\nEsta acción no se puede deshacer.'**
+  String deleteHistoricalOperationConfirm(String operationType, String amount);
+
+  /// No description provided for @historicalOperationDeleted.
+  ///
+  /// In es, this message translates to:
+  /// **'Operación histórica eliminada'**
+  String get historicalOperationDeleted;
+
+  /// No description provided for @historicalOperationDeleteError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo eliminar la operación: {error}'**
+  String historicalOperationDeleteError(String error);
+
+  /// No description provided for @receivedTransfer.
+  ///
+  /// In es, this message translates to:
+  /// **'Traspaso recibido'**
+  String get receivedTransfer;
+
+  /// No description provided for @sentTransfer.
+  ///
+  /// In es, this message translates to:
+  /// **'Traspaso enviado'**
+  String get sentTransfer;
+
+  /// No description provided for @operationPriceLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Precio: {price}'**
+  String operationPriceLabel(String price);
+
+  /// No description provided for @transferToLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Hacia: {fundName}'**
+  String transferToLabel(String fundName);
+
+  /// No description provided for @transferFromLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Desde: {fundName}'**
+  String transferFromLabel(String fundName);
+
+  /// No description provided for @operationActionsTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Acciones de la operación'**
+  String get operationActionsTooltip;
+
+  /// No description provided for @investmentActionsTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Acciones de la inversión'**
+  String get investmentActionsTooltip;
+
+  /// No description provided for @editHistoricalInvestment.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar inversión'**
+  String get editHistoricalInvestment;
+
+  /// No description provided for @deleteHistoricalInvestmentAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar inversión'**
+  String get deleteHistoricalInvestmentAction;
+
+  /// No description provided for @historicalOperationsCount.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =1{1 operación} other{{count} operaciones}}'**
+  String historicalOperationsCount(num count);
+
+  /// No description provided for @noHistoricalOperationsRegistered.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay operaciones registradas'**
+  String get noHistoricalOperationsRegistered;
+
+  /// No description provided for @historicalInvestmentsLoadError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar el histórico'**
+  String get historicalInvestmentsLoadError;
+
+  /// No description provided for @noHistoricalInvestmentsSaved.
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no hay inversiones históricas guardadas.'**
+  String get noHistoricalInvestmentsSaved;
 
   /// No description provided for @addAction.
   ///

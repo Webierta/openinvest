@@ -557,6 +557,138 @@
   "absoluteReturnLabel": "Rendimiento absoluto",
   "relativeReturnLabel": "Rendimiento relativo",
   "weightsLabel": "Pesos",
+  "portfolioDataAsOf": "Datos a fecha de {date}",
+  "@portfolioDataAsOf": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "investmentSummaryTitle": "Resumen de inversiones",
+  "activeFundsSubtitle": "Fondos activos",
+  "investmentHistoryTitle": "Histórico",
+  "investmentJourneySubtitle": "Trayectoria inversora",
+  "globalSummaryTitle": "Global",
+  "investorBalanceSubtitle": "Balance inversor",
+  "cumulativeReturnDisclaimer": "La rentabilidad acumulada no está anualizada ni considera flujos de capital",
+  "cumulativeReturnLabel": "Rentabilidad acumulada",
+  "annualizedMwrLabel": "MWR anualizado",
+  "annualReportTitle": "Informe anual",
+  "operationsTitle": "Operaciones",
+  "csvSpreadsheetSubtitle": "Hoja CSV",
+  "historicalInvestmentsTitle": "Inversiones históricas",
+  "newHistoricalInvestmentTitle": "Nueva inversión histórica",
+  "identificationSectionTitle": "Identificación",
+  "historicalOperationsTitle": "Operaciones históricas",
+  "addOperationTooltip": "Añadir operación",
+  "operationDateLabel": "Fecha de la operación",
+  "accept": "Aceptar",
+  "amountLabel": "importe",
+  "unitsLabel": "número de participaciones",
+  "enterValidNumber": "Introduce un {label} válido",
+  "@enterValidNumber": {
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
+  "addHistoricalOperationFirst": "Añade al menos una operación histórica",
+  "historicalInvestmentSaved": "Inversión histórica guardada correctamente",
+  "historicalInvestmentSaveError": "No se pudo guardar el histórico: {error}",
+  "@historicalInvestmentSaveError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "investmentNameLabel": "Nombre de la inversión",
+  "enterInvestmentName": "Introduce un nombre para la inversión",
+  "optionalIsinLabel": "ISIN (opcional)",
+  "optionalDescriptionLabel": "Descripción (opcional)",
+  "noHistoricalOperationsHint": "Todavía no hay operaciones.\nAñade la primera para construir el histórico.",
+  "historicalInvestmentInfoParagraphOne": "OpenInvest calcula la rentabilidad de la cartera global en base a los fondos que actualmente la componen. Pero cuando la inversión en alguno de estos fondos deriva de un traspaso desde otro fondo, se pierde información acumulada por el fondo de origen. También se pierde si se elimina un fondo con inversiones.",
+  "historicalInvestmentInfoParagraphTwo": "Para evitarlo, este registro permite reconstruir el histórico de inversiones pasadas (por ejemplo después de reembolsos o traspasos) e incorporar sus rentabilidades a los cálculos de la cartera aunque esos fondos no formen parte actualmente de ella o nunca lo hayan hecho.",
+  "saving": "Guardando…",
+  "historicalOperationAdded": "Operación histórica añadida correctamente",
+  "historicalOperationAddError": "No se pudo añadir la operación: {error}",
+  "@historicalOperationAddError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "historicalInvestmentUpdated": "Inversión histórica actualizada correctamente",
+  "historicalInvestmentUpdateError": "No se pudo actualizar la inversión: {error}",
+  "@historicalInvestmentUpdateError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "deleteHistoricalInvestmentTitle": "Eliminar inversión histórica",
+  "deleteHistoricalInvestmentConfirm": "¿Quieres eliminar \"{investmentName}\"?\n\nTambién se eliminarán todas las operaciones históricas asociadas a esta inversión.\n\nEsta acción no se puede deshacer.",
+  "@deleteHistoricalInvestmentConfirm": {
+    "placeholders": {
+      "investmentName": { "type": "String" }
+    }
+  },
+  "historicalInvestmentDeleted": "Inversión histórica eliminada correctamente",
+  "historicalInvestmentDeleteError": "No se pudo eliminar la inversión: {error}",
+  "@historicalInvestmentDeleteError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "historicalOperationUpdated": "Operación histórica actualizada correctamente",
+  "historicalOperationUpdateError": "No se pudo actualizar la operación: {error}",
+  "@historicalOperationUpdateError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "deleteOperationTitle": "Eliminar operación",
+  "deleteHistoricalOperationConfirm": "¿Quieres eliminar esta operación histórica?\n\n{operationType} · {amount}\n\nEsta acción no se puede deshacer.",
+  "@deleteHistoricalOperationConfirm": {
+    "placeholders": {
+      "operationType": { "type": "String" },
+      "amount": { "type": "String" }
+    }
+  },
+  "historicalOperationDeleted": "Operación histórica eliminada",
+  "historicalOperationDeleteError": "No se pudo eliminar la operación: {error}",
+  "@historicalOperationDeleteError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "receivedTransfer": "Traspaso recibido",
+  "sentTransfer": "Traspaso enviado",
+  "operationPriceLabel": "Precio: {price}",
+  "@operationPriceLabel": {
+    "placeholders": {
+      "price": { "type": "String" }
+    }
+  },
+  "transferToLabel": "Hacia: {fundName}",
+  "transferFromLabel": "Desde: {fundName}",
+  "@transferToLabel": {
+    "placeholders": {
+      "fundName": { "type": "String" }
+    }
+  },
+  "@transferFromLabel": {
+    "placeholders": {
+      "fundName": { "type": "String" }
+    }
+  },
+  "operationActionsTooltip": "Acciones de la operación",
+  "investmentActionsTooltip": "Acciones de la inversión",
+  "editHistoricalInvestment": "Editar inversión",
+  "deleteHistoricalInvestmentAction": "Eliminar inversión",
+  "historicalOperationsCount": "{count, plural, =1{1 operación} other{{count} operaciones}}",
+  "@historicalOperationsCount": {
+    "placeholders": {
+      "count": { "type": "num" }
+    }
+  },
+  "noHistoricalOperationsRegistered": "No hay operaciones registradas",
+  "historicalInvestmentsLoadError": "No se pudo cargar el histórico",
+  "noHistoricalInvestmentsSaved": "Todavía no hay inversiones históricas guardadas.",
   "addAction": "Añadir",
   "newFundSubtitle": "Nuevo Fondo",
   "twoFundsSubtitle": "2 Fondos",

@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 import 'package:investing/widgets/historical_operation_dialog.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:investing/l10n/app_localizations.dart';
 import 'package:investing/models/historical_operation.dart';
 import 'package:investing/screens/historical_investment_form_page.dart';
 
@@ -12,6 +13,12 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          locale: const Locale('es'),
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
           home: HistoricalInvestmentFormPage(saveInvestment: (_, _) async {}),
         ),
       );

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
 import '../providers/fund_provider.dart';
@@ -31,8 +32,10 @@ class HistoricalInvestmentsPage extends StatefulWidget {
 class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
   late Future<_HistoricalPageData> _pageDataFuture;
 
-  final _numberFormat = NumberFormat('#,##0.00', 'es_ES');
-  final _dateFormat = DateFormat('dd/MM/yyyy');
+  AppLocalizations get _l10n => AppLocalizations.of(context)!;
+  String get _locale => Localizations.localeOf(context).toString();
+  NumberFormat get _numberFormat => NumberFormat('#,##0.00', _locale);
+  DateFormat get _dateFormat => DateFormat('dd/MM/yyyy', _locale);
 
   @override
   void initState() {
@@ -94,8 +97,6 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         '_${_uidCounter++}';
   }
 
-  String get _locale => Localizations.localeOf(context).toString();
-
   DateFormat get _dialogDateFormat => DateFormat.yMMMd(_locale);
 
   double? _parseNumber(String value) {
@@ -112,7 +113,13 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     final number = _parseNumber(value ?? '');
 
     if (number == null || !number.isFinite || number < 0) {
-      return 'Introduce un $label válido';
+      final localizedLabel = switch (label) {
+        'importe' => _l10n.amountLabel,
+        'número de participaciones' => _l10n.unitsLabel,
+        'precio' => _l10n.priceLabel,
+        _ => label,
+      };
+      return _l10n.enterValidNumber(localizedLabel);
     }
 
     return null;
@@ -124,9 +131,9 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       initialDate: initialDate,
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
-      helpText: 'Fecha de la operación',
-      cancelText: 'Cancelar',
-      confirmText: 'Aceptar',
+      helpText: _l10n.operationDateLabel,
+      cancelText: _l10n.cancel,
+      confirmText: _l10n.accept,
     );
   }
 
@@ -183,16 +190,14 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         _pageDataFuture = _loadPageData();
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Operación histórica añadida correctamente'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.historicalOperationAdded)));
     } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo añadir la operación: $error')),
+        SnackBar(content: Text(_l10n.historicalOperationAddError('$error'))),
       );
     }
   }
@@ -221,15 +226,15 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Inversión histórica actualizada correctamente'),
-        ),
+        SnackBar(content: Text(_l10n.historicalInvestmentUpdated)),
       );
     } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo actualizar la inversión: $error')),
+        SnackBar(
+          content: Text(_l10n.historicalInvestmentUpdateError('$error')),
+        ),
       );
     }
   }
@@ -238,24 +243,19 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar inversión histórica'),
-        content: Text(
-          '¿Quieres eliminar "${investment.name}"?\n\n'
-          'También se eliminarán todas las operaciones históricas '
-          'asociadas a esta inversión.\n\n'
-          'Esta acción no se puede deshacer.',
-        ),
+        title: Text(_l10n.deleteHistoricalInvestmentTitle),
+        content: Text(_l10n.deleteHistoricalInvestmentConfirm(investment.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(_l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Eliminar'),
+            child: Text(_l10n.delete),
           ),
         ],
       ),
@@ -273,15 +273,15 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Inversión histórica eliminada correctamente'),
-        ),
+        SnackBar(content: Text(_l10n.historicalInvestmentDeleted)),
       );
     } catch (error) {
       if (!mounted) return;
       debugPrint(error.toString());
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo eliminar la inversión: $error')),
+        SnackBar(
+          content: Text(_l10n.historicalInvestmentDeleteError('$error')),
+        ),
       );
     }
   }
@@ -344,16 +344,14 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         _pageDataFuture = _loadPageData();
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Operación histórica actualizada correctamente'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.historicalOperationUpdated)));
     } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo actualizar la operación: $error')),
+        SnackBar(content: Text(_l10n.historicalOperationUpdateError('$error'))),
       );
     }
   }
@@ -362,22 +360,22 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar operación'),
+        title: Text(_l10n.deleteOperationTitle),
         content: Text(
-          '¿Quieres eliminar esta operación histórica?\n\n'
-          '${_operationTypeLabel(operation.type)} · '
-          '${_numberFormat.format(operation.amount)}\n\n'
-          'Esta acción no se puede deshacer.',
+          _l10n.deleteHistoricalOperationConfirm(
+            _operationTypeLabel(operation.type),
+            _numberFormat.format(operation.amount),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
+            child: Text(_l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Eliminar'),
+            child: Text(_l10n.delete),
           ),
         ],
       ),
@@ -400,14 +398,14 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         _pageDataFuture = _loadPageData();
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Operación histórica eliminada')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.historicalOperationDeleted)));
     } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo eliminar la operación: $error')),
+        SnackBar(content: Text(_l10n.historicalOperationDeleteError('$error'))),
       );
     }
   }
@@ -415,13 +413,13 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
   String _operationTypeLabel(HistoricalOperationType type) {
     switch (type) {
       case .subscription:
-        return 'Suscripción';
+        return _l10n.subscription;
       case .redemption:
-        return 'Reembolso';
+        return _l10n.redemption;
       case .transferIn:
-        return 'Traspaso recibido';
+        return _l10n.receivedTransfer;
       case .transferOut:
-        return 'Traspaso enviado';
+        return _l10n.sentTransfer;
     }
   }
 
@@ -455,16 +453,16 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         [
           _dateFormat.format(operation.date),
           if (operation.units != null)
-            '${_numberFormat.format(operation.units)} participaciones',
+            _l10n.unitsPartsFormat(_numberFormat.format(operation.units)),
           if (operation.price != null)
-            'Precio: ${_numberFormat.format(operation.price)}',
+            _l10n.operationPriceLabel(_numberFormat.format(operation.price)),
           if (operation.description?.isNotEmpty == true) operation.description!,
           if (counterpartName != null &&
               operation.type == HistoricalOperationType.transferOut)
-            'Hacia: $counterpartName',
+            _l10n.transferToLabel(counterpartName),
           if (counterpartName != null &&
               operation.type == HistoricalOperationType.transferIn)
-            'Desde: $counterpartName',
+            _l10n.transferFromLabel(counterpartName),
         ].join(' · '),
       ),
       trailing: Row(
@@ -475,7 +473,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
             style: const TextStyle(fontWeight: .w600),
           ),
           PopupMenuButton<String>(
-            tooltip: 'Acciones de la operación',
+            tooltip: _l10n.operationActionsTooltip,
             onSelected: (action) {
               switch (action) {
                 case 'edit':
@@ -485,20 +483,20 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'edit',
                 child: ListTile(
                   dense: true,
                   leading: Icon(Icons.edit_outlined),
-                  title: Text('Editar'),
+                  title: Text(_l10n.editOperation),
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: ListTile(
                   dense: true,
                   leading: Icon(Icons.delete_outline, color: Colors.red),
-                  title: Text('Eliminar'),
+                  title: Text(_l10n.delete),
                 ),
               ),
             ],
@@ -528,7 +526,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
               ),
             ),
             PopupMenuButton<String>(
-              tooltip: 'Acciones de la inversión',
+              tooltip: _l10n.investmentActionsTooltip,
               onSelected: (action) {
                 switch (action) {
                   case 'add':
@@ -541,29 +539,29 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
               },
               itemBuilder: (context) => [
                 if (!isClosed)
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'add',
                     child: ListTile(
                       dense: true,
                       leading: Icon(Icons.add_circle_outline),
-                      title: Text('Añadir operación'),
+                      title: Text(_l10n.addOperationTooltip),
                     ),
                   ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'edit',
                   child: ListTile(
                     dense: true,
                     leading: Icon(Icons.edit_outlined),
-                    title: Text('Editar inversión'),
+                    title: Text(_l10n.editHistoricalInvestment),
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: ListTile(
                     dense: true,
                     leading: Icon(Icons.delete_outline, color: Colors.red),
                     title: Text(
-                      'Eliminar inversión',
+                      _l10n.deleteHistoricalInvestmentAction,
                       style: TextStyle(color: Colors.red),
                     ),
                   ),
@@ -575,12 +573,12 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
         subtitle: Text(
           [
             if (investment.isin?.isNotEmpty == true) investment.isin!,
-            '${operations.length} operaciones',
+            _l10n.historicalOperationsCount(operations.length),
           ].join(' · '),
         ),
         children: [
           if (operations.isEmpty)
-            const ListTile(title: Text('No hay operaciones registradas'))
+            ListTile(title: Text(_l10n.noHistoricalOperationsRegistered))
           else
             ...operations.map((operation) => _buildOperation(operation, data)),
 
@@ -603,7 +601,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Histórico de inversiones')),
+      appBar: AppBar(title: Text(_l10n.historicalInvestmentsTitle)),
       body: GradientBackground(
         child: FutureBuilder<_HistoricalPageData>(
           future: _pageDataFuture,
@@ -617,7 +615,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
                 child: Column(
                   mainAxisSize: .min,
                   children: [
-                    const Text('No se pudo cargar el histórico'),
+                    Text(_l10n.historicalInvestmentsLoadError),
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: () {
@@ -625,7 +623,7 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
                           _pageDataFuture = _loadPageData();
                         });
                       },
-                      child: const Text('Reintentar'),
+                      child: Text(_l10n.retry),
                     ),
                   ],
                 ),
@@ -636,11 +634,11 @@ class _HistoricalInvestmentsPageState extends State<HistoricalInvestmentsPage> {
             final investments = data.investments;
 
             if (investments.isEmpty) {
-              return const Center(
+              return Center(
                 child: Padding(
                   padding: .all(24),
                   child: Text(
-                    'Todavía no hay inversiones históricas guardadas.',
+                    _l10n.noHistoricalInvestmentsSaved,
                     textAlign: .center,
                   ),
                 ),

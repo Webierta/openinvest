@@ -721,7 +721,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get deleteOperationTitle => 'Eliminar Operación';
+  String get deleteOperationTitle => 'Eliminar operación';
 
   @override
   String get areYouSure => '¿Estás seguro?';
@@ -759,7 +759,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get priceNavLabel => 'Precio (VL)';
 
   @override
-  String get unitsLabel => 'Participaciones';
+  String get unitsLabel => 'número de participaciones';
 
   @override
   String get totalAmountLabel => 'Importe Total';
@@ -1535,6 +1535,229 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get weightsLabel => 'Pesos';
+
+  @override
+  String portfolioDataAsOf(String date) {
+    return 'Datos a fecha de $date';
+  }
+
+  @override
+  String get investmentSummaryTitle => 'Resumen de inversiones';
+
+  @override
+  String get activeFundsSubtitle => 'Fondos activos';
+
+  @override
+  String get investmentHistoryTitle => 'Histórico';
+
+  @override
+  String get investmentJourneySubtitle => 'Trayectoria inversora';
+
+  @override
+  String get globalSummaryTitle => 'Global';
+
+  @override
+  String get investorBalanceSubtitle => 'Balance inversor';
+
+  @override
+  String get cumulativeReturnDisclaimer =>
+      'La rentabilidad acumulada no está anualizada ni considera flujos de capital';
+
+  @override
+  String get cumulativeReturnLabel => 'Rentabilidad acumulada';
+
+  @override
+  String get annualizedMwrLabel => 'MWR anualizado';
+
+  @override
+  String get annualReportTitle => 'Informe anual';
+
+  @override
+  String get operationsTitle => 'Operaciones';
+
+  @override
+  String get csvSpreadsheetSubtitle => 'Hoja CSV';
+
+  @override
+  String get historicalInvestmentsTitle => 'Inversiones históricas';
+
+  @override
+  String get newHistoricalInvestmentTitle => 'Nueva inversión histórica';
+
+  @override
+  String get identificationSectionTitle => 'Identificación';
+
+  @override
+  String get historicalOperationsTitle => 'Operaciones históricas';
+
+  @override
+  String get addOperationTooltip => 'Añadir operación';
+
+  @override
+  String get operationDateLabel => 'Fecha de la operación';
+
+  @override
+  String get accept => 'Aceptar';
+
+  @override
+  String get amountLabel => 'importe';
+
+  @override
+  String enterValidNumber(String label) {
+    return 'Introduce un $label válido';
+  }
+
+  @override
+  String get addHistoricalOperationFirst =>
+      'Añade al menos una operación histórica';
+
+  @override
+  String get historicalInvestmentSaved =>
+      'Inversión histórica guardada correctamente';
+
+  @override
+  String historicalInvestmentSaveError(String error) {
+    return 'No se pudo guardar el histórico: $error';
+  }
+
+  @override
+  String get investmentNameLabel => 'Nombre de la inversión';
+
+  @override
+  String get enterInvestmentName => 'Introduce un nombre para la inversión';
+
+  @override
+  String get optionalIsinLabel => 'ISIN (opcional)';
+
+  @override
+  String get optionalDescriptionLabel => 'Descripción (opcional)';
+
+  @override
+  String get noHistoricalOperationsHint =>
+      'Todavía no hay operaciones.\nAñade la primera para construir el histórico.';
+
+  @override
+  String get historicalInvestmentInfoParagraphOne =>
+      'OpenInvest calcula la rentabilidad de la cartera global en base a los fondos que actualmente la componen. Pero cuando la inversión en alguno de estos fondos deriva de un traspaso desde otro fondo, se pierde información acumulada por el fondo de origen. También se pierde si se elimina un fondo con inversiones.';
+
+  @override
+  String get historicalInvestmentInfoParagraphTwo =>
+      'Para evitarlo, este registro permite reconstruir el histórico de inversiones pasadas (por ejemplo después de reembolsos o traspasos) e incorporar sus rentabilidades a los cálculos de la cartera aunque esos fondos no formen parte actualmente de ella o nunca lo hayan hecho.';
+
+  @override
+  String get saving => 'Guardando…';
+
+  @override
+  String get historicalOperationAdded =>
+      'Operación histórica añadida correctamente';
+
+  @override
+  String historicalOperationAddError(String error) {
+    return 'No se pudo añadir la operación: $error';
+  }
+
+  @override
+  String get historicalInvestmentUpdated =>
+      'Inversión histórica actualizada correctamente';
+
+  @override
+  String historicalInvestmentUpdateError(String error) {
+    return 'No se pudo actualizar la inversión: $error';
+  }
+
+  @override
+  String get deleteHistoricalInvestmentTitle => 'Eliminar inversión histórica';
+
+  @override
+  String deleteHistoricalInvestmentConfirm(String investmentName) {
+    return '¿Quieres eliminar \"$investmentName\"?\n\nTambién se eliminarán todas las operaciones históricas asociadas a esta inversión.\n\nEsta acción no se puede deshacer.';
+  }
+
+  @override
+  String get historicalInvestmentDeleted =>
+      'Inversión histórica eliminada correctamente';
+
+  @override
+  String historicalInvestmentDeleteError(String error) {
+    return 'No se pudo eliminar la inversión: $error';
+  }
+
+  @override
+  String get historicalOperationUpdated =>
+      'Operación histórica actualizada correctamente';
+
+  @override
+  String historicalOperationUpdateError(String error) {
+    return 'No se pudo actualizar la operación: $error';
+  }
+
+  @override
+  String deleteHistoricalOperationConfirm(String operationType, String amount) {
+    return '¿Quieres eliminar esta operación histórica?\n\n$operationType · $amount\n\nEsta acción no se puede deshacer.';
+  }
+
+  @override
+  String get historicalOperationDeleted => 'Operación histórica eliminada';
+
+  @override
+  String historicalOperationDeleteError(String error) {
+    return 'No se pudo eliminar la operación: $error';
+  }
+
+  @override
+  String get receivedTransfer => 'Traspaso recibido';
+
+  @override
+  String get sentTransfer => 'Traspaso enviado';
+
+  @override
+  String operationPriceLabel(String price) {
+    return 'Precio: $price';
+  }
+
+  @override
+  String transferToLabel(String fundName) {
+    return 'Hacia: $fundName';
+  }
+
+  @override
+  String transferFromLabel(String fundName) {
+    return 'Desde: $fundName';
+  }
+
+  @override
+  String get operationActionsTooltip => 'Acciones de la operación';
+
+  @override
+  String get investmentActionsTooltip => 'Acciones de la inversión';
+
+  @override
+  String get editHistoricalInvestment => 'Editar inversión';
+
+  @override
+  String get deleteHistoricalInvestmentAction => 'Eliminar inversión';
+
+  @override
+  String historicalOperationsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count operaciones',
+      one: '1 operación',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get noHistoricalOperationsRegistered =>
+      'No hay operaciones registradas';
+
+  @override
+  String get historicalInvestmentsLoadError => 'No se pudo cargar el histórico';
+
+  @override
+  String get noHistoricalInvestmentsSaved =>
+      'Todavía no hay inversiones históricas guardadas.';
 
   @override
   String get addAction => 'Añadir';

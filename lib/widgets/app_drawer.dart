@@ -72,7 +72,7 @@ class AppDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.history, color: Colors.white70),
             title: Text(
-              'Histórico',
+              l10n.historicalLabel,
               style: const TextStyle(color: Colors.white),
             ),
             onTap: () {

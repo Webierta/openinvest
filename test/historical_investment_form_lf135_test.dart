@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:investing/l10n/app_localizations.dart';
 import 'package:investing/models/historical_investment.dart';
 import 'package:investing/models/historical_operation.dart';
 import 'package:investing/screens/historical_investment_form_page.dart';
@@ -9,6 +10,18 @@ import 'package:investing/screens/historical_investments_page.dart';
 import 'package:investing/services/database_service.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+Widget _localizedApp({required Widget home}) {
+  return MaterialApp(
+    locale: const Locale('es'),
+    localizationsDelegates: [
+      AppLocalizations.delegate,
+      ...GlobalMaterialLocalizations.delegates,
+    ],
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: home,
+  );
+}
 
 void main() {
   group('LF-135: HistoricalInvestmentFormPage', () {
@@ -22,7 +35,7 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        const MaterialApp(home: HistoricalInvestmentFormPage()),
+        _localizedApp(home: const HistoricalInvestmentFormPage()),
       );
 
       expect(find.byType(Scaffold), findsOneWidget);
@@ -120,7 +133,7 @@ void main() {
         List<HistoricalOperation>? savedOperations;
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 savedInvestment = investment;
@@ -131,7 +144,7 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 savedInvestment = investment;
@@ -230,7 +243,7 @@ void main() {
         var saveCalled = false;
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 saveCalled = true;
@@ -286,7 +299,7 @@ void main() {
         var saveCalled = false;
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 saveCalled = true;
@@ -359,7 +372,7 @@ void main() {
         final yesterday = DateTime.now().subtract(const Duration(days: 1));
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 savedInvestment = investment;
@@ -481,7 +494,7 @@ void main() {
         }
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 savedInvestment = investment;
@@ -563,7 +576,7 @@ void main() {
         var saveCalls = 0;
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 saveCalls++;
@@ -654,7 +667,7 @@ void main() {
       'LF-142.63: conserva el formulario y muestra el error si falla el guardado',
       (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 throw Exception('Error de persistencia LF-142.63');
@@ -726,7 +739,7 @@ void main() {
         var saveCalls = 0;
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 saveCalls++;
@@ -817,7 +830,7 @@ void main() {
         var saveCalls = 0;
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 saveCalls++;
@@ -889,7 +902,7 @@ void main() {
         var saveCalls = 0;
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: HistoricalInvestmentFormPage(
               saveInvestment: (investment, operations) async {
                 saveCalls++;
@@ -965,7 +978,7 @@ void main() {
       var saveCalls = 0;
 
       await tester.pumpWidget(
-        MaterialApp(
+        _localizedApp(
           home: HistoricalInvestmentFormPage(
             saveInvestment: (investment, operations) async {
               saveCalls++;

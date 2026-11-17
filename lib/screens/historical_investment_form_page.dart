@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/historical_investment.dart';
 import '../models/historical_operation.dart';
 import '../providers/fund_provider.dart';
@@ -41,6 +42,7 @@ class _HistoricalInvestmentFormPageState
   bool _saving = false;
   static int _uidCounter = 0;
 
+  AppLocalizations get _l10n => AppLocalizations.of(context)!;
   String get _locale => Localizations.localeOf(context).toString();
 
   DateFormat get _dateFormat => DateFormat.yMMMd(_locale);
@@ -69,7 +71,13 @@ class _HistoricalInvestmentFormPageState
   String? _validateNumber(String? value, {required String label}) {
     final number = _parseNumber(value ?? '');
     if (number == null || !number.isFinite || number < 0) {
-      return 'Introduce un $label válido';
+      final localizedLabel = switch (label) {
+        'importe' => _l10n.amountLabel,
+        'número de participaciones' => _l10n.unitsLabel,
+        'precio' => _l10n.priceLabel,
+        _ => label,
+      };
+      return _l10n.enterValidNumber(localizedLabel);
     }
     return null;
   }
@@ -102,9 +110,9 @@ class _HistoricalInvestmentFormPageState
       initialDate: initialDate,
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
-      helpText: 'Fecha de la operación',
-      cancelText: 'Cancelar',
-      confirmText: 'Aceptar',
+      helpText: _l10n.operationDateLabel,
+      cancelText: _l10n.cancel,
+      confirmText: _l10n.accept,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -184,7 +192,7 @@ class _HistoricalInvestmentFormPageState
 
     if (_operations.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Añade al menos una operación histórica')),
+        SnackBar(content: Text(_l10n.addHistoricalOperationFirst)),
       );
       return;
     }
@@ -236,11 +244,9 @@ class _HistoricalInvestmentFormPageState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Inversión histórica guardada correctamente'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.historicalInvestmentSaved)));
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HistoricalInvestmentsPage()),
@@ -249,7 +255,7 @@ class _HistoricalInvestmentFormPageState
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo guardar el histórico: $error')),
+        SnackBar(content: Text(_l10n.historicalInvestmentSaveError('$error'))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -324,10 +330,10 @@ class _HistoricalInvestmentFormPageState
         TextFormField(
           controller: _nameController,
           style: const TextStyle(color: Colors.white),
-          decoration: _inputDecoration('Nombre de la inversión'),
+          decoration: _inputDecoration(_l10n.investmentNameLabel),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'Introduce un nombre para la inversión';
+              return _l10n.enterInvestmentName;
             }
             return null;
           },
@@ -337,13 +343,13 @@ class _HistoricalInvestmentFormPageState
           controller: _isinController,
           textCapitalization: .characters,
           style: const TextStyle(color: Colors.white),
-          decoration: _inputDecoration('ISIN (opcional)'),
+          decoration: _inputDecoration(_l10n.optionalIsinLabel),
         ),
         const SizedBox(height: 14),
         TextFormField(
           controller: _descriptionController,
           style: const TextStyle(color: Colors.white),
-          decoration: _inputDecoration('Descripción (opcional)'),
+          decoration: _inputDecoration(_l10n.optionalDescriptionLabel),
           maxLines: 3,
         ),
       ],
@@ -352,11 +358,11 @@ class _HistoricalInvestmentFormPageState
 
   Widget _buildOperationList() {
     if (_operations.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: .symmetric(vertical: 18),
         child: Center(
           child: Text(
-            'Todavía no hay operaciones.\nAñade la primera para construir el histórico.',
+            _l10n.noHistoricalOperationsHint,
             textAlign: .center,
             style: TextStyle(color: Colors.white54, height: 1.5),
           ),
@@ -369,10 +375,10 @@ class _HistoricalInvestmentFormPageState
         final operation = _operations[index];
 
         final title = switch (operation.type) {
-          HistoricalOperationType.subscription => 'Suscripción',
-          HistoricalOperationType.redemption => 'Reembolso',
-          HistoricalOperationType.transferIn => 'Traspaso de entrada',
-          HistoricalOperationType.transferOut => 'Traspaso de salida',
+          HistoricalOperationType.subscription => _l10n.subscription,
+          HistoricalOperationType.redemption => _l10n.redemption,
+          HistoricalOperationType.transferIn => _l10n.inTransfer,
+          HistoricalOperationType.transferOut => _l10n.outTransfer,
         };
 
         return Card(
@@ -420,9 +426,12 @@ class _HistoricalInvestmentFormPageState
                       setState(() => _operations.removeAt(index));
                     }
                   },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Editar')),
-                    PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text(_l10n.editOperation),
+                    ),
+                    PopupMenuItem(value: 'delete', child: Text(_l10n.delete)),
                   ],
                 ),
               ],
@@ -445,25 +454,16 @@ class _HistoricalInvestmentFormPageState
                 appBar: AppBar(
                   backgroundColor: const Color(0xFF1E293B),
                   elevation: 0,
-                  title: Text('Histórico de inversiones'),
+                  title: Text(_l10n.historicalInvestmentsTitle),
                 ),
                 body: SingleChildScrollView(
                   child: Padding(
                     padding: const .all(14),
                     child: Column(
                       children: [
-                        Text(
-                          'OpenInvest calcula la rentabilidad de la Cartera global en base a los fondos '
-                          'que actualmente la componen. Pero cuando la inversión de alguno de estos fondos deriva de '
-                          'un traspaso desde otro fondo, se pierde información acumulada por el fondo de origen. '
-                          'También se pierde si se elimina un fondo con inversiones.',
-                        ),
+                        Text(_l10n.historicalInvestmentInfoParagraphOne),
                         const SizedBox(height: 12),
-                        Text(
-                          'Para evitarlo, este regitro permite reconstruir el histórico de inversiones pasadas '
-                          '(por ejemplo después de reembolsos o traspasos) e incorporar sus rentabilidades a los cálculos de '
-                          'la Cartera aunque esos fondos no formen parte actualmente de la Cartera o nunca lo hicieran.',
-                        ),
+                        Text(_l10n.historicalInvestmentInfoParagraphTwo),
                       ],
                     ),
                   ),
@@ -481,7 +481,7 @@ class _HistoricalInvestmentFormPageState
     return Scaffold(
       backgroundColor: const Color(0xFF020617),
       appBar: AppBar(
-        title: const Text('Nueva inversión histórica'),
+        title: Text(_l10n.newHistoricalInvestmentTitle),
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
         actions: [
@@ -508,10 +508,10 @@ class _HistoricalInvestmentFormPageState
               children: [
                 // IDENTIFICACIÖN FONDO
                 _buildSection(
-                  title: 'Identificación',
+                  title: _l10n.identificationSectionTitle,
                   icon: Icons.account_balance,
                   action: IconButton(
-                    tooltip: 'Buscar fondo',
+                    tooltip: _l10n.searchFundAction,
                     onPressed: _searchFund,
                     icon: const Icon(Icons.search, color: Colors.amber),
                   ),
@@ -520,10 +520,10 @@ class _HistoricalInvestmentFormPageState
                 const SizedBox(height: 16),
                 // OPERACIONES
                 _buildSection(
-                  title: 'Operaciones históricas',
+                  title: _l10n.historicalOperationsTitle,
                   icon: Icons.history,
                   action: IconButton(
-                    tooltip: 'Añadir operación',
+                    tooltip: _l10n.addOperationTooltip,
                     onPressed: _addOperation,
                     icon: const Icon(
                       Icons.add_circle_outline,
@@ -541,8 +541,8 @@ class _HistoricalInvestmentFormPageState
                       onPressed: _saving
                           ? null
                           : () => Navigator.of(context).pop(),
-                      child: const Text(
-                        'Cancelar',
+                      child: Text(
+                        _l10n.cancel,
                         style: TextStyle(color: Colors.white70),
                       ),
                     ),
@@ -556,7 +556,7 @@ class _HistoricalInvestmentFormPageState
                             )
                           : const Icon(Icons.save_outlined),
                       label: Text(
-                        _saving ? 'Guardando…' : 'Guardar',
+                        _saving ? _l10n.saving : _l10n.save,
                         style: const TextStyle(fontSize: 16, fontWeight: .bold),
                       ),
                     ),

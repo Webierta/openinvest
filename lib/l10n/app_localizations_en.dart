@@ -716,7 +716,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get deleteOperationTitle => 'Delete Operation';
+  String get deleteOperationTitle => 'Delete operation';
 
   @override
   String get areYouSure => 'Are you sure?';
@@ -754,7 +754,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get priceNavLabel => 'Price (NAV)';
 
   @override
-  String get unitsLabel => 'Units';
+  String get unitsLabel => 'number of units';
 
   @override
   String get totalAmountLabel => 'Total Amount';
@@ -1525,6 +1525,228 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weightsLabel => 'Weights';
+
+  @override
+  String portfolioDataAsOf(String date) {
+    return 'Data as of $date';
+  }
+
+  @override
+  String get investmentSummaryTitle => 'Investment Summary';
+
+  @override
+  String get activeFundsSubtitle => 'Active Funds';
+
+  @override
+  String get investmentHistoryTitle => 'History';
+
+  @override
+  String get investmentJourneySubtitle => 'Investment History';
+
+  @override
+  String get globalSummaryTitle => 'Global';
+
+  @override
+  String get investorBalanceSubtitle => 'Investor Balance';
+
+  @override
+  String get cumulativeReturnDisclaimer =>
+      'Cumulative return is not annualized and does not account for capital flows';
+
+  @override
+  String get cumulativeReturnLabel => 'Cumulative Return';
+
+  @override
+  String get annualizedMwrLabel => 'Annualized MWR';
+
+  @override
+  String get annualReportTitle => 'Annual Report';
+
+  @override
+  String get operationsTitle => 'Transactions';
+
+  @override
+  String get csvSpreadsheetSubtitle => 'CSV Spreadsheet';
+
+  @override
+  String get historicalInvestmentsTitle => 'Historical Investments';
+
+  @override
+  String get newHistoricalInvestmentTitle => 'New Historical Investment';
+
+  @override
+  String get identificationSectionTitle => 'Identification';
+
+  @override
+  String get historicalOperationsTitle => 'Historical Operations';
+
+  @override
+  String get addOperationTooltip => 'Add operation';
+
+  @override
+  String get operationDateLabel => 'Operation date';
+
+  @override
+  String get accept => 'OK';
+
+  @override
+  String get amountLabel => 'amount';
+
+  @override
+  String enterValidNumber(String label) {
+    return 'Enter a valid $label';
+  }
+
+  @override
+  String get addHistoricalOperationFirst =>
+      'Add at least one historical operation';
+
+  @override
+  String get historicalInvestmentSaved =>
+      'Historical investment saved successfully';
+
+  @override
+  String historicalInvestmentSaveError(String error) {
+    return 'Could not save historical investment: $error';
+  }
+
+  @override
+  String get investmentNameLabel => 'Investment name';
+
+  @override
+  String get enterInvestmentName => 'Enter an investment name';
+
+  @override
+  String get optionalIsinLabel => 'ISIN (optional)';
+
+  @override
+  String get optionalDescriptionLabel => 'Description (optional)';
+
+  @override
+  String get noHistoricalOperationsHint =>
+      'There are no operations yet.\nAdd the first one to build the history.';
+
+  @override
+  String get historicalInvestmentInfoParagraphOne =>
+      'OpenInvest calculates global portfolio returns based on the funds currently in it. However, when an investment in one of these funds comes from a transfer from another fund, the accumulated information from the source fund is lost. The same happens if a fund with investments is deleted.';
+
+  @override
+  String get historicalInvestmentInfoParagraphTwo =>
+      'This record lets you reconstruct past investment history (for example, after redemptions or transfers) and include its returns in portfolio calculations, even if those funds are not currently part of the portfolio or never were.';
+
+  @override
+  String get saving => 'Saving…';
+
+  @override
+  String get historicalOperationAdded =>
+      'Historical operation added successfully';
+
+  @override
+  String historicalOperationAddError(String error) {
+    return 'Could not add operation: $error';
+  }
+
+  @override
+  String get historicalInvestmentUpdated =>
+      'Historical investment updated successfully';
+
+  @override
+  String historicalInvestmentUpdateError(String error) {
+    return 'Could not update investment: $error';
+  }
+
+  @override
+  String get deleteHistoricalInvestmentTitle => 'Delete historical investment';
+
+  @override
+  String deleteHistoricalInvestmentConfirm(String investmentName) {
+    return 'Do you want to delete \"$investmentName\"?\n\nAll historical operations associated with this investment will also be deleted.\n\nThis action cannot be undone.';
+  }
+
+  @override
+  String get historicalInvestmentDeleted =>
+      'Historical investment deleted successfully';
+
+  @override
+  String historicalInvestmentDeleteError(String error) {
+    return 'Could not delete investment: $error';
+  }
+
+  @override
+  String get historicalOperationUpdated =>
+      'Historical operation updated successfully';
+
+  @override
+  String historicalOperationUpdateError(String error) {
+    return 'Could not update operation: $error';
+  }
+
+  @override
+  String deleteHistoricalOperationConfirm(String operationType, String amount) {
+    return 'Do you want to delete this historical operation?\n\n$operationType · $amount\n\nThis action cannot be undone.';
+  }
+
+  @override
+  String get historicalOperationDeleted => 'Historical operation deleted';
+
+  @override
+  String historicalOperationDeleteError(String error) {
+    return 'Could not delete operation: $error';
+  }
+
+  @override
+  String get receivedTransfer => 'Received transfer';
+
+  @override
+  String get sentTransfer => 'Sent transfer';
+
+  @override
+  String operationPriceLabel(String price) {
+    return 'Price: $price';
+  }
+
+  @override
+  String transferToLabel(String fundName) {
+    return 'To: $fundName';
+  }
+
+  @override
+  String transferFromLabel(String fundName) {
+    return 'From: $fundName';
+  }
+
+  @override
+  String get operationActionsTooltip => 'Operation actions';
+
+  @override
+  String get investmentActionsTooltip => 'Investment actions';
+
+  @override
+  String get editHistoricalInvestment => 'Edit investment';
+
+  @override
+  String get deleteHistoricalInvestmentAction => 'Delete investment';
+
+  @override
+  String historicalOperationsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count operations',
+      one: '1 operation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get noHistoricalOperationsRegistered => 'No operations recorded';
+
+  @override
+  String get historicalInvestmentsLoadError => 'Could not load history';
+
+  @override
+  String get noHistoricalInvestmentsSaved =>
+      'There are no saved historical investments yet.';
 
   @override
   String get addAction => 'Add';

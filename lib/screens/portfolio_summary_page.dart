@@ -132,7 +132,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const .fromLTRB(20, 8, 20, 0),
+                          padding: const .fromLTRB(20, 8, 20, 8),
                           child: _buildActionGrid(context, provider),
                         ),
                       ),
@@ -295,7 +295,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                 mainAxisAlignment: .end,
                 children: [
                   Text(
-                    'Datos a fecha de ${dateFormat.format(ultimaFecha)}',
+                    l10n.portfolioDataAsOf(dateFormat.format(ultimaFecha)),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 12,
@@ -404,7 +404,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           Padding(
             padding: const .only(left: 16),
             child: Text(
-              'Resumen de inversiones',
+              l10n.investmentSummaryTitle,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 14,
@@ -412,8 +412,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
             ),
           ),
           _buildSummarySection(
-            title: 'Cartera',
-            subtitle: 'Fondos activos',
+            title: l10n.portfolioTitle,
+            subtitle: l10n.activeFundsSubtitle,
             icon: Icons.assessment_outlined,
             accentColor: Colors.blueAccent,
             inversion: portfolioMetrics.totalInvested,
@@ -424,8 +424,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           ),
           if (showHistorical) ...[
             _buildSummarySection(
-              title: 'Histórico',
-              subtitle: 'Trayectoria inversora',
+              title: l10n.investmentHistoryTitle,
+              subtitle: l10n.investmentJourneySubtitle,
               icon: Icons.history_outlined,
               accentColor: Colors.yellowAccent.shade700,
               inversion: historicalMetrics.totalContributions,
@@ -435,8 +435,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
               countInv: provider.historicalInvestments.length,
             ),
             _buildSummarySection(
-              title: 'Global',
-              subtitle: 'Balance inversor',
+              title: l10n.globalSummaryTitle,
+              subtitle: l10n.investorBalanceSubtitle,
               //icon: Icons.language_outlined,
               icon: Icons.account_balance_outlined,
               accentColor: Colors.tealAccent,
@@ -465,7 +465,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'La rentabilidad acumulada no está anualizada ni considera flujos de capital',
+                    l10n.cumulativeReturnDisclaimer,
                     style: TextStyle(fontSize: 11, color: Colors.white38),
                   ),
                 ),
@@ -516,7 +516,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         valueColor: profitColor,
       ),
       _buildSummaryMetric(
-        label: 'Rentabilidad acumulada',
+        label: l10n.cumulativeReturnLabel,
         value:
             '${rentabilidadSimple > 0 ? '+' : ''}'
             '${percentFormat.format(rentabilidadSimple)} %',
@@ -524,7 +524,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       ),
       if (mwr != null)
         _buildSummaryMetric(
-          label: 'MWR anualizado',
+          label: l10n.annualizedMwrLabel,
           value:
               '${mwr > 0 ? '+' : ''}'
               '${smartFormat.format(mwr * 100)} %',
@@ -767,8 +767,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           context,
           provider,
           icon: Icons.history,
-          title: 'Histórico',
-          subtitle: 'Trayectoria inversora',
+          title: l10n.investmentHistoryTitle,
+          subtitle: l10n.investmentJourneySubtitle,
           color: Colors.green,
           onTap: () {
             Navigator.push(
@@ -784,7 +784,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           context,
           provider,
           icon: Icons.picture_as_pdf,
-          title: 'Informe anual',
+          title: l10n.annualReportTitle,
           subtitle: 'PDF',
           color: Colors.teal,
           onTap: () {
@@ -801,8 +801,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           context,
           provider,
           icon: Icons.table_view,
-          title: 'Operaciones',
-          subtitle: 'Hoja CSV',
+          title: l10n.operationsTitle,
+          subtitle: l10n.csvSpreadsheetSubtitle,
           color: Colors.teal,
           onTap: () {
             final filesGenerator = FilesGenerator(
@@ -1103,7 +1103,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         Padding(
           padding: const .symmetric(horizontal: 24.0),
           child: Text(
-            'Inversiones históricas',
+            l10n.historicalInvestmentsTitle,
             style: const TextStyle(color: Colors.white70, fontWeight: .bold),
           ),
         ),

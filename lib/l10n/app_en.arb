@@ -557,6 +557,138 @@
   "absoluteReturnLabel": "Absolute Return",
   "relativeReturnLabel": "Relative Return",
   "weightsLabel": "Weights",
+  "portfolioDataAsOf": "Data as of {date}",
+  "@portfolioDataAsOf": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "investmentSummaryTitle": "Investment Summary",
+  "activeFundsSubtitle": "Active Funds",
+  "investmentHistoryTitle": "History",
+  "investmentJourneySubtitle": "Investment History",
+  "globalSummaryTitle": "Global",
+  "investorBalanceSubtitle": "Investor Balance",
+  "cumulativeReturnDisclaimer": "Cumulative return is not annualized and does not account for capital flows",
+  "cumulativeReturnLabel": "Cumulative Return",
+  "annualizedMwrLabel": "Annualized MWR",
+  "annualReportTitle": "Annual Report",
+  "operationsTitle": "Transactions",
+  "csvSpreadsheetSubtitle": "CSV Spreadsheet",
+  "historicalInvestmentsTitle": "Historical Investments",
+  "newHistoricalInvestmentTitle": "New Historical Investment",
+  "identificationSectionTitle": "Identification",
+  "historicalOperationsTitle": "Historical Operations",
+  "addOperationTooltip": "Add operation",
+  "operationDateLabel": "Operation date",
+  "accept": "OK",
+  "amountLabel": "amount",
+  "unitsLabel": "number of units",
+  "enterValidNumber": "Enter a valid {label}",
+  "@enterValidNumber": {
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
+  "addHistoricalOperationFirst": "Add at least one historical operation",
+  "historicalInvestmentSaved": "Historical investment saved successfully",
+  "historicalInvestmentSaveError": "Could not save historical investment: {error}",
+  "@historicalInvestmentSaveError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "investmentNameLabel": "Investment name",
+  "enterInvestmentName": "Enter an investment name",
+  "optionalIsinLabel": "ISIN (optional)",
+  "optionalDescriptionLabel": "Description (optional)",
+  "noHistoricalOperationsHint": "There are no operations yet.\nAdd the first one to build the history.",
+  "historicalInvestmentInfoParagraphOne": "OpenInvest calculates global portfolio returns based on the funds currently in it. However, when an investment in one of these funds comes from a transfer from another fund, the accumulated information from the source fund is lost. The same happens if a fund with investments is deleted.",
+  "historicalInvestmentInfoParagraphTwo": "This record lets you reconstruct past investment history (for example, after redemptions or transfers) and include its returns in portfolio calculations, even if those funds are not currently part of the portfolio or never were.",
+  "saving": "Saving…",
+  "historicalOperationAdded": "Historical operation added successfully",
+  "historicalOperationAddError": "Could not add operation: {error}",
+  "@historicalOperationAddError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "historicalInvestmentUpdated": "Historical investment updated successfully",
+  "historicalInvestmentUpdateError": "Could not update investment: {error}",
+  "@historicalInvestmentUpdateError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "deleteHistoricalInvestmentTitle": "Delete historical investment",
+  "deleteHistoricalInvestmentConfirm": "Do you want to delete \"{investmentName}\"?\n\nAll historical operations associated with this investment will also be deleted.\n\nThis action cannot be undone.",
+  "@deleteHistoricalInvestmentConfirm": {
+    "placeholders": {
+      "investmentName": { "type": "String" }
+    }
+  },
+  "historicalInvestmentDeleted": "Historical investment deleted successfully",
+  "historicalInvestmentDeleteError": "Could not delete investment: {error}",
+  "@historicalInvestmentDeleteError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "historicalOperationUpdated": "Historical operation updated successfully",
+  "historicalOperationUpdateError": "Could not update operation: {error}",
+  "@historicalOperationUpdateError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "deleteOperationTitle": "Delete operation",
+  "deleteHistoricalOperationConfirm": "Do you want to delete this historical operation?\n\n{operationType} · {amount}\n\nThis action cannot be undone.",
+  "@deleteHistoricalOperationConfirm": {
+    "placeholders": {
+      "operationType": { "type": "String" },
+      "amount": { "type": "String" }
+    }
+  },
+  "historicalOperationDeleted": "Historical operation deleted",
+  "historicalOperationDeleteError": "Could not delete operation: {error}",
+  "@historicalOperationDeleteError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "receivedTransfer": "Received transfer",
+  "sentTransfer": "Sent transfer",
+  "operationPriceLabel": "Price: {price}",
+  "@operationPriceLabel": {
+    "placeholders": {
+      "price": { "type": "String" }
+    }
+  },
+  "transferToLabel": "To: {fundName}",
+  "transferFromLabel": "From: {fundName}",
+  "@transferToLabel": {
+    "placeholders": {
+      "fundName": { "type": "String" }
+    }
+  },
+  "@transferFromLabel": {
+    "placeholders": {
+      "fundName": { "type": "String" }
+    }
+  },
+  "operationActionsTooltip": "Operation actions",
+  "investmentActionsTooltip": "Investment actions",
+  "editHistoricalInvestment": "Edit investment",
+  "deleteHistoricalInvestmentAction": "Delete investment",
+  "historicalOperationsCount": "{count, plural, =1{1 operation} other{{count} operations}}",
+  "@historicalOperationsCount": {
+    "placeholders": {
+      "count": { "type": "num" }
+    }
+  },
+  "noHistoricalOperationsRegistered": "No operations recorded",
+  "historicalInvestmentsLoadError": "Could not load history",
+  "noHistoricalInvestmentsSaved": "There are no saved historical investments yet.",
   "addAction": "Add",
   "newFundSubtitle": "New Fund",
   "twoFundsSubtitle": "2 Funds",
