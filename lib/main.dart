@@ -1,12 +1,10 @@
 import 'dart:io' show Platform;
 
 import 'package:material_ui/material_ui.dart';
-//import 'package:flutter_localizations/flutter_localizations.dart' show GlobalWidgetsLocalizations;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:provider/provider.dart';
 
 import 'package:investing/l10n/app_localizations.dart';
-//import 'l10n/app_localizations.dart';
 
 import 'providers/fund_provider.dart';
 import 'screens/portfolio_page.dart';
@@ -39,6 +37,52 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  static final List<LocalizationsDelegate<dynamic>> _localizationsDelegates = [
+    AppLocalizations.delegate,
+    ...GlobalMaterialLocalizations.delegates,
+  ];
+
+  static final ThemeData _theme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: const .dark(
+      primary: Color(0xFF38BDF8),
+      surface: Color(0xFF1E293B),
+      surfaceContainer: Color(0xFF0F172A),
+      primaryContainer: Color(0xFF0369A1),
+    ),
+    scaffoldBackgroundColor: Colors.transparent,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: false,
+    ),
+    cardTheme: CardThemeData(
+      color: const Color(0xFF1E293B).withValues(alpha: 0.4),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: .circular(16),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Color(0xFF0369A1),
+        foregroundColor: Colors.white,
+      ),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        shape: const RoundedRectangleBorder(borderRadius: .zero),
+        selectedBackgroundColor: Color(0xFF0369A1),
+        selectedForegroundColor: Colors.white,
+        backgroundColor: Colors.grey[200],
+        foregroundColor: Colors.black87,
+        side: const BorderSide(color: Colors.black, width: 1.5),
+      ),
+    ),
+  );
+
   @override
   void dispose() {
     // Cierra el cliente HTTP compartido
@@ -52,78 +96,19 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    const darkBlue = Color(0xFF0F172A);
-    const slateBlue = Color(0xFF1E293B);
-    const skyBlue = Color(0xFF38BDF8);
-
-    final provider = context.watch<FundProvider>();
+    //final provider = context.watch<FundProvider>();
+    final locale = context.select<FundProvider, Locale?>(
+      (provider) => provider.locale,
+    );
 
     return MaterialApp(
       title: 'OpenInvest',
       debugShowCheckedModeBanner: false,
-      /* localizationsDelegates: const [
-        AppLocalizations.delegate,        
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        //GlobalCupertinoLocalizations.delegate,
-      ], */
-      localizationsDelegates: [
-        AppLocalizations.delegate,
-        ...GlobalMaterialLocalizations.delegates,
-      ],
-      //localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: _localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: provider.locale,
+      locale: locale,
       navigatorObservers: [routeObserver],
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: const ColorScheme.dark(
-          primary: skyBlue,
-          surface: slateBlue,
-          surfaceContainer: darkBlue,
-          primaryContainer: Color(0xFF0369A1),
-        ),
-        scaffoldBackgroundColor: Colors.transparent,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: false,
-        ),
-        cardTheme: CardThemeData(
-          color: slateBlue.withValues(
-            alpha: 0.4,
-          ), // Más transparente para ver el fondo
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF0369A1),
-            foregroundColor: Colors.white,
-          ),
-        ),
-        segmentedButtonTheme: SegmentedButtonThemeData(
-          style: SegmentedButton.styleFrom(
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius
-                  .zero, // Elimina por completo el redondeado externa
-            ),
-            // Opcional: Personaliza colores
-            selectedBackgroundColor: Color(0xFF0369A1),
-            selectedForegroundColor: Colors.white,
-            backgroundColor: Colors.grey[200],
-            foregroundColor: Colors.black87,
-            side: const BorderSide(
-              color: Colors.black,
-              width: 1.5,
-            ), // Borde perimetral rígido
-          ),
-        ),
-      ),
+      theme: _theme,
       home: const AuthWrapper(),
     );
   }
@@ -226,7 +211,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         body: GradientBackground(
           child: Center(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: .center,
               children: [
                 const Icon(Icons.lock_outline, size: 80, color: Colors.white24),
                 const SizedBox(height: 24),

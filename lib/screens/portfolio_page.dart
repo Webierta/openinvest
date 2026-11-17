@@ -7,8 +7,10 @@ import 'package:investing/l10n/app_localizations.dart';
 
 import '../models/fund_data.dart';
 import '../providers/fund_provider.dart';
+import '../widgets/build_portfolio_header.dart';
 import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart';
+import '../widgets/history_chart_painter.dart';
 import '../widgets/portfolio_appbar.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/app_drawer.dart';
@@ -17,10 +19,11 @@ import 'fund_search_page.dart';
 import 'fund_details_page.dart';
 import '../utils/route_observer.dart';
 import '../utils/financial_calculator.dart';
-import 'portfolio_summary_page.dart';
 
-typedef _DatedPricePoint = ({DateTime date, PricePoint point, int index});
-typedef _DatedUnitChange = ({DateTime date, double units, int index});
+//import 'portfolio_summary_page.dart';
+
+//typedef _DatedPricePoint = ({DateTime date, PricePoint point, int index});
+//typedef _DatedUnitChange = ({DateTime date, double units, int index});
 
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
@@ -60,7 +63,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     context.read<FundProvider>().clearError();
   }
 
-  List<({DateTime date, double value})> _buildPortfolioHistory(
+  /* List<({DateTime date, double value})> _buildPortfolioHistory(
     List<FundData> funds,
     Map<String, double> exchangeRates,
   ) {
@@ -158,7 +161,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
     }
 
     return result;
-  }
+  } */
 
   // GETTERS
   AppLocalizations get l10n => AppLocalizations.of(context)!;
@@ -181,10 +184,10 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
 
     // Variación global entre las dos últimas valoraciones disponibles
     // de cada fondo, convertidas a euros.
-    double dailyChangeAbs = 0;
-    double previousPortfolioValue = 0;
+    //double dailyChangeAbs = 0;
+    //double previousPortfolioValue = 0;
 
-    for (final fund in provider.portfolio) {
+    /* for (final fund in provider.portfolio) {
       if (fund.history.length < 2) continue;
 
       final fundMetrics = FinancialCalculator.calculateFundMetrics(fund);
@@ -198,11 +201,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
 
       previousPortfolioValue +=
           fundMetrics.totalUnits * previousPrice * exchangeRate;
-    }
-
-    final dailyChangePercent = previousPortfolioValue > 0
-        ? dailyChangeAbs / previousPortfolioValue * 100
-        : null;
+    } */
 
     return Stack(
       children: [
@@ -300,12 +299,13 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                                   (showPortfolioSummary ? 1 : 0),
                               itemBuilder: (context, index) {
                                 if (showPortfolioSummary && index == 0) {
-                                  return _buildPortfolioHeader(
+                                  /* return _buildPortfolioHeader(
                                     portfolioMetrics,
                                     dailyChangeAbs,
                                     dailyChangePercent,
                                     provider,
-                                  );
+                                  ); */
+                                  return BuildPortfolioHeader();
                                 }
                                 final item =
                                     provider.portfolio[index -
@@ -367,7 +367,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   }
 
   // ENCABEZADO CARTERA
-  Widget _buildPortfolioHeader(
+  /* Widget _buildPortfolioHeader(
     GlobalMetrics metrics,
     double dailyChangeAbs,
     double? dailyChangePercent,
@@ -647,7 +647,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
         ),
       ),
     );
-  }
+  } */
 
   // TARJETA FONDO
   Widget _buildFundCard(
@@ -834,7 +834,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
                       height: 65,
                       width: double.infinity,
                       child: CustomPaint(
-                        painter: _HistoryChartPainter(
+                        painter: HistoryChartPainter(
                           chartValues,
                           lineColor: chartColor,
                           fillColor: chartColor.withValues(alpha: 0.25),
@@ -1095,7 +1095,7 @@ class _PortfolioPageState extends State<PortfolioPage> with RouteAware {
   }
 }
 
-class _HistoryChartPainter extends CustomPainter {
+/* class _HistoryChartPainter extends CustomPainter {
   final List<double> values;
   final Color lineColor;
   final Color fillColor;
@@ -1182,7 +1182,7 @@ class _HistoryChartPainter extends CustomPainter {
 
     return false;
   }
-}
+} */
 
 class MetricLabel extends StatelessWidget {
   final String value;
