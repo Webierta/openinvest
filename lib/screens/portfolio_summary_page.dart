@@ -11,6 +11,7 @@ import '../screens/correlation_matrix_page.dart';
 import '../screens/compara_page.dart';
 import '../tools/files_generator.dart';
 import '../utils/financial_calculator.dart';
+import '../widgets/build_summary_header.dart';
 import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
@@ -51,14 +52,14 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       provider.exchangeRates,
     );
 
-    final fechasCotizacion = provider.portfolio
+    /*final fechasCotizacion = provider.portfolio
         .where((fund) => fund.history.isNotEmpty)
         .map((fund) => fund.history.last.date)
-        .toList();
+        .toList();*/
 
-    final DateTime? ultimaFecha = fechasCotizacion.isEmpty
+    /*final DateTime? ultimaFecha = fechasCotizacion.isEmpty
         ? null
-        : fechasCotizacion.reduce((a, b) => a.isAfter(b) ? a : b);
+        : fechasCotizacion.reduce((a, b) => a.isAfter(b) ? a : b);*/
 
     final historicalMetrics =
         FinancialCalculator.calculateHistoricalInvestmentsMetrics(
@@ -94,11 +95,12 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: .all(16.0),
-                          child: _buildTotalValue(
+                          /*child: _buildTotalValue(
                             provider,
                             portfolioMetrics,
                             ultimaFecha: ultimaFecha,
-                          ),
+                          ),*/
+                          child: const BuildSummaryHeader(),
                         ),
                       ),
 
@@ -219,7 +221,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
 
   // --- WIDGETS AUXILIARES DE DISEÑO ---
 
-  Widget _buildTotalValue(
+  /*Widget _buildTotalValue(
     FundProvider provider,
     GlobalMetrics portfolioMetrics, {
     required DateTime? ultimaFecha,
@@ -308,9 +310,9 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
       ),
     );
-  }
+  }*/
 
-  Widget _buildPesos(FundProvider provider, GlobalMetrics metrics) {
+  /*Widget _buildPesos(FundProvider provider, GlobalMetrics metrics) {
     if (metrics.totalValue <= 0) {
       return SizedBox.shrink();
     }
@@ -374,7 +376,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ],
       ),
     );
-  }
+  }*/
 
   Widget _buildSummaryPanel({
     required GlobalMetrics portfolioMetrics,
