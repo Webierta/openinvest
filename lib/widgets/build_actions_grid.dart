@@ -123,17 +123,34 @@ class BuildActionsGrid extends StatelessWidget {
       return;
     }
 
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
     );
 
     final provider = context.read<FundProvider>();
-    await provider.loadCorrelationMatrix();
+    var loaded = false;
+    try {
+      loaded = await provider.loadCorrelationMatrix();
+    } catch (error) {
+      loaded = false;
+    } finally {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+    }
 
     if (!context.mounted) return;
-    Navigator.pop(context);
+    if (!loaded) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.correlationLoadError)));
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CorrelationMatrixPage()),

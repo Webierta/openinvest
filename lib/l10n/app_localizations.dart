@@ -3230,6 +3230,12 @@ abstract class AppLocalizations {
   /// **'Correlación'**
   String get correlationAction;
 
+  /// No description provided for @correlationLoadError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo calcular la matriz de correlación.'**
+  String get correlationLoadError;
+
   /// No description provided for @riskMatrixSubtitle.
   ///
   /// In es, this message translates to:

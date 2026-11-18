@@ -1772,6 +1772,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get correlationAction => 'Correlación';
 
   @override
+  String get correlationLoadError =>
+      'No se pudo calcular la matriz de correlación.';
+
+  @override
   String get riskMatrixSubtitle => 'Matriz de Riesgo';
 
   @override

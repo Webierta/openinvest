@@ -693,6 +693,7 @@
   "newFundSubtitle": "Nuevo Fondo",
   "twoFundsSubtitle": "2 Fondos",
   "correlationAction": "Correlación",
+  "correlationLoadError": "No se pudo calcular la matriz de correlación.",
   "riskMatrixSubtitle": "Matriz de Riesgo",
   "reportsAction": "Informes",
   "pdfCsvSubtitle": "PDF / CSV",

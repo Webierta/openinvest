@@ -2141,11 +2141,11 @@ class FundProvider with ChangeNotifier {
   // =============================================================
 
   /// Método optimizado para calcular la matriz en un isolate secundario
-  Future<void> loadCorrelationMatrix() async {
+  Future<bool> loadCorrelationMatrix() async {
     if (portfolio.length < 2) {
       _correlationMatrix = null;
       notifyListeners();
-      return;
+      return false;
     }
 
     _isCalculatingMatrix = true;
@@ -2154,9 +2154,11 @@ class FundProvider with ChangeNotifier {
     try {
       // 'compute' ejecuta la función en un hilo separado, evitando bloquear la UI
       _correlationMatrix = await compute(_calculateMatrixIsolate, portfolio);
+      return true;
     } catch (e) {
       debugPrint('Error calculando matriz de correlación: $e');
       _correlationMatrix = null;
+      return false;
     } finally {
       _isCalculatingMatrix = false;
       notifyListeners();

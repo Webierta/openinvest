@@ -693,6 +693,7 @@
   "newFundSubtitle": "New Fund",
   "twoFundsSubtitle": "2 Funds",
   "correlationAction": "Correlation",
+  "correlationLoadError": "Could not calculate the correlation matrix.",
   "riskMatrixSubtitle": "Risk Matrix",
   "reportsAction": "Reports",
   "pdfCsvSubtitle": "PDF / CSV",
