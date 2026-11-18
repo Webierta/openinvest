@@ -3,12 +3,12 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
-import '../models/historical_investment.dart';
 import '../providers/fund_provider.dart';
 import '../screens/correlation_matrix_page.dart';
 import '../screens/compara_page.dart';
 import '../tools/files_generator.dart';
 import '../widgets/build_funds_list.dart';
+import '../widgets/build_historical_investments.dart';
 import '../widgets/build_recent_operations.dart';
 import '../widgets/build_summary_header.dart';
 import '../widgets/build_summary_panel.dart';
@@ -149,10 +149,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .symmetric(horizontal: 8),
-                          /* child: _buildRecentOperations(
-                            context,
-                            provider.portfolio,
-                          ), */
                           child: const BuildRecentOperations(),
                         ),
                       ),
@@ -162,10 +158,11 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .symmetric(horizontal: 8),
-                          child: _buildHistoricalInvestments(
+                          /* child: _buildHistoricalInvestments(
                             context,
                             provider.historicalInvestments,
-                          ),
+                          ), */
+                          child: const BuildHistoricalInvestments(),
                         ),
                       ),
                       // Espacio final para que el FAB no tape el último elemento
@@ -386,135 +383,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     );
   }
 
-  /* Widget _buildRecentOperations(BuildContext context, List<FundData> funds) {
-    // 1. Aplanar todas las operaciones de todos los fondos
-    final List<FundOperation> allOps = [];
-    for (final fund in funds) {
-      for (final op in fund.operations) {
-        allOps.add(op);
-      }
-    }
-    // 2. Ordenar por fecha descendente (las más recientes primero)
-    allOps.sort((a, b) => b.date.compareTo(a.date));
-    // 3. Tomar solo las últimas 5 operaciones
-    final recentOps = allOps.take(5).toList();
-
-    if (recentOps.isEmpty) {
-      return const SizedBox.shrink(); // No mostramos nada si no hay operaciones
-    }
-
-    return Column(
-      crossAxisAlignment: .start,
-      children: [
-        Padding(
-          padding: const .symmetric(horizontal: 24.0),
-          child: Text(
-            l10n.recentOperationsTitle,
-            style: const TextStyle(color: Colors.white70, fontWeight: .bold),
-          ),
-        ),
-        Container(
-          margin: const .symmetric(horizontal: 16.0, vertical: 8.0),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: .circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: Column(
-            children: [
-              for (int i = 0; i < recentOps.length; i++) ...[
-                if (i > 0) const Divider(height: 1, color: Colors.white12),
-                _buildOperationTile(recentOps[i], funds),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  } */
-
-  /* Widget _buildOperationTile(FundOperation op, List<FundData> funds) {
-    // En compra el dinero sale (-), en venta entra (+)
-
-    Color color = Colors.greenAccent;
-    IconData icon = Icons.add_box_outlined;
-    //add_circle_outline;
-    String tooltip = l10n.subscription;
-    if (op.type == .sell) {
-      color = Colors.redAccent;
-      icon = Icons.indeterminate_check_box_outlined;
-      //remove_circle_outline;
-      tooltip = l10n.redemption;
-    } else if (op.type == .outTransfer) {
-      color = Colors.redAccent.shade100;
-      icon = Icons.output_outlined;
-      tooltip = l10n.outTransfer;
-    } else if (op.type == .inTransfer) {
-      color = Colors.greenAccent.shade100;
-      icon = Icons.input_outlined;
-      tooltip = l10n.inTransfer;
-    }
-
-    //final fund = funds.firstWhere((fund) => fund.isin == op.isin);
-    final fundIsin = funds.where((fund) => fund.isin == op.isin).toList();
-    if (fundIsin.isEmpty) return SizedBox.shrink();
-    final fund = fundIsin.first;
-
-    return ListTile(
-      contentPadding: const .symmetric(horizontal: 16, vertical: 8),
-      leading: Tooltip(
-        message: tooltip,
-        child: Container(
-          padding: const .all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.15),
-            shape: .circle,
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-      ),
-      title: Text(
-        fund.name,
-        maxLines: 1,
-        overflow: .ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          //fontWeight: FontWeight.w600,
-          fontSize: 15,
-        ),
-      ),
-      subtitle: Text(
-        dateFormat.format(op.date),
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.6),
-          fontSize: 13,
-        ),
-      ),
-      trailing: FittedBox(
-        child: Column(
-          mainAxisSize: .max,
-          mainAxisAlignment: .center,
-          crossAxisAlignment: .end,
-          children: [
-            Text(
-              '${smartFormat.format(op.amount)} ${fund.currency}',
-              style: TextStyle(color: color, fontWeight: .bold, fontSize: 14),
-            ),
-            Text(
-              //'${op.units.toStringAsFixed(3)} partes',
-              l10n.unitsPartsFormat(op.units.toStringAsFixed(3)),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  } */
-
-  Widget _buildHistoricalInvestments(
+  /* Widget _buildHistoricalInvestments(
     BuildContext context,
     List<HistoricalInvestment> allInvestments,
   ) {
@@ -556,7 +425,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
       ],
     );
-  }
+  } */
 
   Widget _buildEmptyState(BuildContext context) {
     return Center(
