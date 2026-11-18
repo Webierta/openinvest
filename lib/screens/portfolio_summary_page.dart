@@ -91,7 +91,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .fromLTRB(20, 8, 20, 8),
-                          //child: _buildActionGrid(context, provider),
                           child: const BuildActionsGrid(),
                         ),
                       ),
@@ -120,7 +119,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                           ),
                         )
                       else if (provider.portfolio.isEmpty)
-                        //Center(child: Text(l10n.emptyPortfolio))
                         SliverToBoxAdapter(
                           child: Center(child: Text(l10n.emptyPortfolio)),
                         )
