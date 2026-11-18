@@ -10,12 +10,10 @@ import '../providers/fund_provider.dart';
 import '../screens/correlation_matrix_page.dart';
 import '../screens/compara_page.dart';
 import '../tools/files_generator.dart';
-import '../utils/financial_calculator.dart';
+import '../widgets/build_funds_list.dart';
 import '../widgets/build_summary_header.dart';
 import '../widgets/build_summary_panel.dart';
-import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart';
-import 'fund_details_page.dart';
 import 'fund_search_page.dart';
 import 'historical_investment_form_page.dart';
 
@@ -139,11 +137,12 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                               index,
                             ) {
                               final fund = funds[index];
-                              return _buildFundListItem(
+                              /* return _buildFundListItem(
                                 context,
                                 provider,
                                 fund,
-                              );
+                              ); */
+                              return BuildFundsList(fund: fund);
                             }, childCount: funds.length),
                           ),
                         ),
@@ -389,7 +388,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     );
   }
 
-  Widget _buildFundListItem(
+  /* Widget _buildFundListItem(
     BuildContext context,
     FundProvider provider,
     FundData fund,
@@ -465,7 +464,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
       ),
     );
-  }
+  } */
 
   Widget _buildRecentOperations(BuildContext context, List<FundData> funds) {
     // 1. Aplanar todas las operaciones de todos los fondos
