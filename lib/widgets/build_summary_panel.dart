@@ -130,6 +130,9 @@ class BuildSummaryPanel extends StatelessWidget {
           rentabilidadSimple: metrics.profitRel ?? 0,
           mwr: metrics.mwrAnnualized,
           countInv: inputs.investments.length,
+          // Para que el contador refleje exactamente lo que calcula FinancialCalculator,
+          // debería contar los UID únicos:
+          // inputs.investments.map((i) => i.uid).toSet().length
         );
       },
     );
