@@ -9,6 +9,18 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('muestra la variación diaria absoluta en euros', (tester) async {
+    final provider = FundProvider()
+      ..portfolio = [_fund('USD1', previousPrice: 9)]
+      ..exchangeRates['USD'] = 1;
+    addTearDown(provider.dispose);
+
+    await tester.pumpWidget(_app(provider));
+    await tester.pump();
+
+    expect(find.textContaining('+1,00'), findsOneWidget);
+  });
+
   testWidgets('detecta mutaciones en sitio de cartera y tipos de cambio', (
     tester,
   ) async {
@@ -66,7 +78,7 @@ Widget _app(FundProvider provider) => ChangeNotifierProvider.value(
   ),
 );
 
-FundData _fund(String isin) {
+FundData _fund(String isin, {double? previousPrice}) {
   final date = DateTime(2026, 11, 1);
   return FundData(
     isin: isin,
@@ -75,7 +87,11 @@ FundData _fund(String isin) {
     lastValue: 10,
     currency: 'USD',
     date: date,
-    history: [PricePoint(date, 10)],
+    history: [
+      if (previousPrice != null)
+        PricePoint(date.subtract(const Duration(days: 1)), previousPrice),
+      PricePoint(date, 10),
+    ],
     operations: [
       FundOperation(
         isin: isin,

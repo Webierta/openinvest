@@ -33,11 +33,16 @@ class BuildFundCard extends StatelessWidget {
         final smartFormat = NumberFormat('#,##0.##', locale);
 
         double? dailyVariation;
+        double? dailyChangeAbs;
         Color? dailyVarColor;
         if (fund.history.length > 1) {
           final prev = fund.history[fund.history.length - 2].price;
           if (prev != 0) {
             dailyVariation = ((fund.lastValue - prev) / prev) * 100;
+            dailyChangeAbs =
+                metrics.totalUnits *
+                (fund.lastValue - prev) *
+                inputs.exchangeRate;
             if (dailyVariation > 0) {
               dailyVarColor = Colors.greenAccent[400];
             } else if (dailyVariation < 0) {
@@ -52,6 +57,7 @@ class BuildFundCard extends StatelessWidget {
             fund,
             metrics,
             dailyVariation,
+            dailyChangeAbs,
             dailyVarColor,
             priceFormat,
             percentFormat,
@@ -67,12 +73,18 @@ class BuildFundCard extends StatelessWidget {
     FundData fund,
     FundMetrics metrics,
     double? dailyVariation,
+    double? dailyChangeAbs,
     Color? dailyVarColor,
     NumberFormat priceFormat,
     NumberFormat percentFormat,
     NumberFormat smartFormat,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final currencyFormat = NumberFormat.currency(
+      locale: Localizations.localeOf(context).toString(),
+      symbol: '€',
+      decimalDigits: 2,
+    );
     final hasOps = fund.operations.isNotEmpty;
     final profitColor = metrics.profitAbs > 0
         ? Colors.greenAccent
@@ -224,20 +236,39 @@ class BuildFundCard extends StatelessWidget {
                                     ?.copyWith(fontWeight: .w700),
                               ),
                             ),
-                            Text(
-                              '${dailyVariation > 0
-                                  ? '\u25B2'
-                                  : dailyVariation < 0
-                                  ? '\u25BC'
-                                  : '='} '
-                              '${dailyVariation > 0 ? '+' : ''}'
-                              '${percentFormat.format(dailyVariation)} %',
-                              style: TextStyle(
-                                color:
-                                    dailyVarColor ?? Colors.blueGrey.shade200,
-                                fontWeight: .w600,
-                                fontSize: 16,
-                              ),
+                            Column(
+                              mainAxisSize: .min,
+                              crossAxisAlignment: .end,
+                              children: [
+                                Text(
+                                  '${dailyVariation > 0
+                                      ? '\u25B2'
+                                      : dailyVariation < 0
+                                      ? '\u25BC'
+                                      : '='} '
+                                  '${dailyVariation > 0 ? '+' : ''}'
+                                  '${percentFormat.format(dailyVariation)} %',
+                                  style: TextStyle(
+                                    color:
+                                        dailyVarColor ??
+                                        Colors.blueGrey.shade200,
+                                    fontWeight: .w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                if (hasOps && dailyChangeAbs != null)
+                                  Text(
+                                    '${dailyChangeAbs > 0 ? '+' : ''}'
+                                    '${currencyFormat.format(dailyChangeAbs)}',
+                                    style: TextStyle(
+                                      color:
+                                          dailyVarColor ??
+                                          Colors.blueGrey.shade200,
+                                      fontWeight: .w500,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
@@ -413,13 +444,17 @@ class BuildFundCard extends StatelessWidget {
 
 class _FundCardInputs {
   final FundData fund;
+  final double exchangeRate;
 
-  const _FundCardInputs(this.fund);
+  const _FundCardInputs(this.fund, this.exchangeRate);
 
   static _FundCardInputs? fromProvider(FundProvider provider, FundData fund) {
     for (final portfolioFund in provider.portfolio) {
       if (portfolioFund.isin == fund.isin) {
-        return _FundCardInputs(portfolioFund);
+        return _FundCardInputs(
+          portfolioFund,
+          provider.exchangeRates[portfolioFund.currency] ?? 1.0,
+        );
       }
     }
     return null;
@@ -429,6 +464,7 @@ class _FundCardInputs {
     final first = fund;
     final second = other.fund;
     return first.isin == second.isin &&
+        exchangeRate == other.exchangeRate &&
         first.name == second.name &&
         first.lastValue == second.lastValue &&
         first.currency == second.currency &&

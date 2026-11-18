@@ -266,19 +266,33 @@ class BuildPortfolioHeader extends StatelessWidget {
                       ),
                     ),
                     if (dailyChangePercent != null)
-                      Text(
-                        '${dailyChangePercent > 0
-                            ? '\u25B2'
-                            : dailyChangePercent < 0
-                            ? '\u25BC'
-                            : '='} '
-                        '${dailyChangePercent > 0 ? '+' : ''}'
-                        '${percentFormat.format(dailyChangePercent)} %',
-                        style: TextStyle(
-                          color: dailyColor,
-                          fontWeight: .w600,
-                          fontSize: 16,
-                        ),
+                      Column(
+                        crossAxisAlignment: .end,
+                        children: [
+                          Text(
+                            '${dailyChangePercent > 0
+                                ? '\u25B2'
+                                : dailyChangePercent < 0
+                                ? '\u25BC'
+                                : '='} '
+                            '${dailyChangePercent > 0 ? '+' : ''}'
+                            '${percentFormat.format(dailyChangePercent)} %',
+                            style: TextStyle(
+                              color: dailyColor,
+                              fontWeight: .w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            '${dailyChangeAbs > 0 ? '+' : ''}'
+                            '${currencyFormat.format(dailyChangeAbs)}',
+                            style: TextStyle(
+                              color: dailyColor,
+                              fontWeight: .w500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                   ],
                 ),
