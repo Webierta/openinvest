@@ -123,6 +123,8 @@ class BuildActionsGrid extends StatelessWidget {
       return;
     }
 
+    final provider = context.read<FundProvider>();
+
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -132,7 +134,6 @@ class BuildActionsGrid extends StatelessWidget {
       ),
     );
 
-    final provider = context.read<FundProvider>();
     var loaded = false;
     try {
       loaded = await provider.loadCorrelationMatrix();
@@ -140,7 +141,7 @@ class BuildActionsGrid extends StatelessWidget {
       loaded = false;
     } finally {
       if (context.mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context, rootNavigator: true).pop();
       }
     }
 
