@@ -4,9 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/fund_provider.dart';
-import '../screens/correlation_matrix_page.dart';
-import '../screens/compara_page.dart';
-import '../tools/files_generator.dart';
+import '../widgets/build_actions_grid.dart';
 import '../widgets/build_funds_list.dart';
 import '../widgets/build_historical_investments.dart';
 import '../widgets/build_recent_operations.dart';
@@ -14,7 +12,6 @@ import '../widgets/build_summary_header.dart';
 import '../widgets/build_summary_panel.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_search_page.dart';
-import 'historical_investment_form_page.dart';
 
 class PortfolioSummaryPage extends StatefulWidget {
   const PortfolioSummaryPage({super.key});
@@ -94,7 +91,8 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .fromLTRB(20, 8, 20, 8),
-                          child: _buildActionGrid(context, provider),
+                          //child: _buildActionGrid(context, provider),
+                          child: const BuildActionsGrid(),
                         ),
                       ),
                       const SliverToBoxAdapter(child: SizedBox(height: 16)),
@@ -128,7 +126,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                         )
                       else
                         SliverPadding(
-                          //padding: .fromLTRB(8, 0, 8, 16),
                           padding: .symmetric(horizontal: 16, vertical: 4),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate((
@@ -158,10 +155,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .symmetric(horizontal: 8),
-                          /* child: _buildHistoricalInvestments(
-                            context,
-                            provider.historicalInvestments,
-                          ), */
                           child: const BuildHistoricalInvestments(),
                         ),
                       ),
@@ -177,7 +170,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
 
   // --- WIDGETS AUXILIARES DE DISEÑO ---
 
-  Widget _buildActionGrid(BuildContext context, FundProvider provider) {
+  /* Widget _buildActionGrid(BuildContext context, FundProvider provider) {
     final screenWidth = MediaQuery.of(context).size.width;
     // Responsive: 6, 3, 2 y 1 columnas
     final int crossAxisCount = screenWidth > 1000
@@ -187,14 +180,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         : screenWidth > 350
         ? 2
         : 1;
-    // En pantallas muy pequeñas (<360px), hacemos las tarjetas un poco más altas
-    //(aspectRatio < 1.0) para evitar que el texto se desborde si ocupa 2 líneas.
-    /* final double aspectRatio = screenWidth > 1000
-        ? 0.5 // 1.0
-        : screenWidth > 650
-        ? 1.0 // 1.5
-        : 1.5; //2.0; */
-    //final double aspectRatio = 1;
 
     return GridView.count(
       padding: .zero,
@@ -316,9 +301,9 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
       ],
     );
-  }
+  } */
 
-  Widget _buildActionCard(
+  /* Widget _buildActionCard(
     BuildContext context,
     FundProvider provider, {
     required IconData icon,
@@ -380,50 +365,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
           ),
         ),
       ),
-    );
-  }
-
-  /* Widget _buildHistoricalInvestments(
-    BuildContext context,
-    List<HistoricalInvestment> allInvestments,
-  ) {
-    if (allInvestments.isEmpty) {
-      return const SizedBox.shrink();
-      // No mostramos nada si no hay inversiones históricas
-    }
-
-    return Column(
-      crossAxisAlignment: .start,
-      children: [
-        Padding(
-          padding: const .symmetric(horizontal: 24.0),
-          child: Text(
-            l10n.historicalInvestmentsTitle,
-            style: const TextStyle(color: Colors.white70, fontWeight: .bold),
-          ),
-        ),
-        Container(
-          margin: const .symmetric(horizontal: 16.0, vertical: 8.0),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: .circular(16),
-            border: .all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: Column(
-            children: [
-              for (int i = 0; i < allInvestments.length; i++) ...[
-                if (i > 0) const Divider(height: 1, color: Colors.white12),
-                //_buildOperationTile(recentOps[i], funds),
-                ListTile(
-                  contentPadding: const .symmetric(horizontal: 16, vertical: 8),
-                  leading: Icon(Icons.history),
-                  title: Text(allInvestments[i].name),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
     );
   } */
 
