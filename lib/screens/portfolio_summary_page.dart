@@ -12,6 +12,7 @@ import '../screens/compara_page.dart';
 import '../tools/files_generator.dart';
 import '../utils/financial_calculator.dart';
 import '../widgets/build_summary_header.dart';
+import '../widgets/build_summary_panel.dart';
 import '../widgets/circle_avatar_fund.dart';
 import '../widgets/gradient_background.dart';
 import 'fund_details_page.dart';
@@ -40,6 +41,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     final provider = context.watch<FundProvider>();
     final funds = provider.portfolio;
 
+    /*
     final globalMetrics = FinancialCalculator.calculateGlobalMetrics(
       provider.portfolio,
       provider.exchangeRates,
@@ -52,20 +54,12 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
       provider.exchangeRates,
     );
 
-    /*final fechasCotizacion = provider.portfolio
-        .where((fund) => fund.history.isNotEmpty)
-        .map((fund) => fund.history.last.date)
-        .toList();*/
-
-    /*final DateTime? ultimaFecha = fechasCotizacion.isEmpty
-        ? null
-        : fechasCotizacion.reduce((a, b) => a.isAfter(b) ? a : b);*/
-
     final historicalMetrics =
         FinancialCalculator.calculateHistoricalInvestmentsMetrics(
           provider.historicalInvestments,
           provider.historicalOperations,
         );
+    */
 
     return Scaffold(
       appBar: AppBar(
@@ -95,11 +89,6 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: .all(16.0),
-                          /*child: _buildTotalValue(
-                            provider,
-                            portfolioMetrics,
-                            ultimaFecha: ultimaFecha,
-                          ),*/
                           child: const BuildSummaryHeader(),
                         ),
                       ),
@@ -108,14 +97,15 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .all(16),
-                          child: _buildSummaryPanel(
+                          /*child: _buildSummaryPanel(
                             portfolioMetrics: portfolioMetrics,
                             historicalMetrics: historicalMetrics,
                             globalMetrics: globalMetrics,
                             showHistorical:
                                 provider.historicalInvestments.isNotEmpty,
                             provider: provider,
-                          ),
+                          ),*/
+                          child: const BuildSummaryPanel(),
                         ),
                       ),
 
@@ -221,164 +211,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
 
   // --- WIDGETS AUXILIARES DE DISEÑO ---
 
-  /*Widget _buildTotalValue(
-    FundProvider provider,
-    GlobalMetrics portfolioMetrics, {
-    required DateTime? ultimaFecha,
-  }) {
-    final portfolioProfitColor = portfolioMetrics.profitAbs >= 0
-        ? Colors.greenAccent[400]!
-        : Colors.redAccent[200]!;
-
-    return Container(
-      padding: const .all(12),
-      //padding: .fromLTRB(24, 24, 24, 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: .circular(20),
-        border: .all(color: Colors.white.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Column(
-          crossAxisAlignment: .start,
-          children: [
-            Text(
-              l10n.currentPortfolioValue,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  portfolioMetrics.profitAbs >= 0
-                      ? Icons.trending_up
-                      : Icons.trending_down,
-                  color: portfolioProfitColor,
-                  size: 40,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${smartFormat.format(portfolioMetrics.totalValue)} €',
-                  maxLines: 1,
-                  overflow: .ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: .bold,
-                    //letterSpacing: -1,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.assessment, color: Colors.white70, size: 24),
-                const SizedBox(width: 8),
-                Text(l10n.countFunds(provider.portfolio.length)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildPesos(provider, portfolioMetrics),
-            if (ultimaFecha != null) ...[
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: .end,
-                children: [
-                  Text(
-                    l10n.portfolioDataAsOf(dateFormat.format(ultimaFecha)),
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }*/
-
-  /*Widget _buildPesos(FundProvider provider, GlobalMetrics metrics) {
-    if (metrics.totalValue <= 0) {
-      return SizedBox.shrink();
-    }
-
-    return Container(
-      padding: const .all(24),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: .circular(20),
-        border: .all(color: Colors.white.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: .start,
-        children: [
-          Text(
-            l10n.weightsLabel,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: .circular(8),
-            child: SizedBox(
-              height: 18,
-              width: double.infinity,
-              child: Row(
-                children: provider.portfolio.map((item) {
-                  final calculateFundMetrics =
-                      FinancialCalculator.calculateFundMetrics(item);
-                  final double rate =
-                      provider.exchangeRates[item.currency] ?? 1.0;
-                  final fundValue = calculateFundMetrics.currentValue * rate;
-                  final weight = fundValue / metrics.totalValue;
-                  if (weight <= 0) return const SizedBox.shrink();
-                  return Expanded(
-                    flex: (weight * 1000).toInt(),
-                    child: Tooltip(
-                      message:
-                          '${item.name}\n${l10n.weightLabel}: ${percentFormat.format(weight * 100)}%',
-                      triggerMode: .tap,
-                      preferBelow: false,
-                      child: Container(
-                        color: CircleAvatarFund(fund: item).getFundColor,
-                        margin: const .symmetric(horizontal: 0.5),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }*/
-
-  Widget _buildSummaryPanel({
+  /*Widget _buildSummaryPanel({
     required GlobalMetrics portfolioMetrics,
     required HistoricalInvestmentMetrics historicalMetrics,
     required GlobalMetrics globalMetrics,
@@ -477,9 +310,9 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ],
       ),
     );
-  }
+  }*/
 
-  Widget _buildSummarySection({
+  /*Widget _buildSummarySection({
     required String title,
     required String subtitle,
     required IconData icon,
@@ -652,9 +485,9 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ],
       ),
     );
-  }
+  }*/
 
-  Widget _buildSummaryMetric({
+  /*Widget _buildSummaryMetric({
     required String label,
     required String value,
     required Color valueColor,
@@ -676,7 +509,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
       ],
     );
-  }
+  }*/
 
   Widget _buildActionGrid(BuildContext context, FundProvider provider) {
     final screenWidth = MediaQuery.of(context).size.width;
