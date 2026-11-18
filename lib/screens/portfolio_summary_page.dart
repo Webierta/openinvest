@@ -2,8 +2,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../models/fund_data.dart';
-
 import '../l10n/app_localizations.dart';
 import '../models/historical_investment.dart';
 import '../providers/fund_provider.dart';
@@ -11,6 +9,7 @@ import '../screens/correlation_matrix_page.dart';
 import '../screens/compara_page.dart';
 import '../tools/files_generator.dart';
 import '../widgets/build_funds_list.dart';
+import '../widgets/build_recent_operations.dart';
 import '../widgets/build_summary_header.dart';
 import '../widgets/build_summary_panel.dart';
 import '../widgets/gradient_background.dart';
@@ -137,12 +136,10 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                               index,
                             ) {
                               final fund = funds[index];
-                              /* return _buildFundListItem(
-                                context,
-                                provider,
-                                fund,
-                              ); */
-                              return BuildFundsList(fund: fund);
+                              return BuildFundsList(
+                                key: ValueKey(fund.isin),
+                                fund: fund,
+                              );
                             }, childCount: funds.length),
                           ),
                         ),
@@ -152,10 +149,11 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const .symmetric(horizontal: 8),
-                          child: _buildRecentOperations(
+                          /* child: _buildRecentOperations(
                             context,
                             provider.portfolio,
-                          ),
+                          ), */
+                          child: const BuildRecentOperations(),
                         ),
                       ),
                       const SliverToBoxAdapter(child: SizedBox(height: 16)),
@@ -388,85 +386,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
     );
   }
 
-  /* Widget _buildFundListItem(
-    BuildContext context,
-    FundProvider provider,
-    FundData fund,
-  ) {
-    final metrics = FinancialCalculator.calculateFundMetrics(fund);
-    return Card(
-      //margin: const .symmetric(horizontal: 12, vertical: 6),
-      color: Colors.white.withValues(alpha: 0.03),
-      child: InkWell(
-        borderRadius: .circular(16),
-        onTap: () {
-          provider.selectFund(fund);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const FundDetailsPage()),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Hero(
-                    tag: 'avatar_${fund.isin}',
-                    child: CircleAvatarFund(fund: fund),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: .start,
-                      children: [
-                        Hero(
-                          tag: 'name_${fund.isin}',
-                          child: Material(
-                            color: Colors.transparent,
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    fund.name,
-                                    overflow: .ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: .bold,
-                                      fontSize: 14,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Text(
-                          fund.isin,
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (fund.operations.isNotEmpty)
-                    Text(
-                      '${smartFormat.format(metrics.currentValue)} ${fund.currency}',
-                      style: TextStyle(fontSize: 12, color: Colors.white60),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  } */
-
-  Widget _buildRecentOperations(BuildContext context, List<FundData> funds) {
+  /* Widget _buildRecentOperations(BuildContext context, List<FundData> funds) {
     // 1. Aplanar todas las operaciones de todos los fondos
     final List<FundOperation> allOps = [];
     for (final fund in funds) {
@@ -511,9 +431,9 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
       ],
     );
-  }
+  } */
 
-  Widget _buildOperationTile(FundOperation op, List<FundData> funds) {
+  /* Widget _buildOperationTile(FundOperation op, List<FundData> funds) {
     // En compra el dinero sale (-), en venta entra (+)
 
     Color color = Colors.greenAccent;
@@ -592,7 +512,7 @@ class _PortfolioSummaryPageState extends State<PortfolioSummaryPage> {
         ),
       ),
     );
-  }
+  } */
 
   Widget _buildHistoricalInvestments(
     BuildContext context,
