@@ -24,9 +24,9 @@ Description: |-
 
 # Configuración de compilación para F-Droid
 Builds:
-  - versionName: 1.6.1
-    versionCode: 29
-    commit: v1.6.1
+  - versionName: 2.0.9
+    versionCode: 68
+    commit: v2.0.9
     subdir: .
     gradle:
       - yes
