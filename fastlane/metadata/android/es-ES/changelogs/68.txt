@@ -1,0 +1,3 @@
+- Se ha mejorado el resumen de la cartera con un diseño más rápido y adaptable.
+- Se han optimizado las secciones de fondos, resumen, acciones e inversiones para lograr una mayor estabilidad.
+- Se ha implementado una gestión más clara de la carga y de los errores en la matriz de correlación de riesgos.

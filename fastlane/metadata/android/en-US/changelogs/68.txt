@@ -1,0 +1,3 @@
+- Improved the portfolio summary with a faster, more responsive layout.
+- Refined fund, summary, actions, and investment sections for better stability.
+- Added clearer loading and error handling for the risk correlation matrix.
