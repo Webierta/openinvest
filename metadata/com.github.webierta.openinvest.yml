@@ -29,8 +29,7 @@ Builds:
       - $$flutter$$/bin/flutter config --no-analytics --no-cli-animations
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-    build:
-      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm
+    build: $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm
 
   - versionName: 2.0.10
     versionCode: 2069
@@ -48,8 +47,7 @@ Builds:
       - $$flutter$$/bin/flutter config --no-analytics --no-cli-animations
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-    build:
-      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm64
+    build: $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm64
 
   - versionName: 2.0.10
     versionCode: 4069
@@ -67,8 +65,7 @@ Builds:
       - $$flutter$$/bin/flutter config --no-analytics --no-cli-animations
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
-    build:
-      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-x64
+    build: $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-x64
 
 VercodeOperation:
   - 1000 + %c
