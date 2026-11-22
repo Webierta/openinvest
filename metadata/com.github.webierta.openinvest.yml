@@ -1,4 +1,6 @@
-AntiFeatures: []
+AntiFeatures:
+  NonFreeNet:
+    en-US: Fund search and market data depend on third-party services including Financial Times, Morningstar and Yahoo Finance.
 Categories:
   - Money
 License: GPL-3.0-or-later
@@ -25,8 +27,56 @@ Description: |-
 # Configuración de compilación para F-Droid
 Builds:
   - versionName: 2.0.10
-    versionCode: 69
-    commit: v2.0.10
-    subdir: .
-    gradle:
-      - yes
+    versionCode: 1069
+    commit: 536292fdb56793028465c20c6b937a8e0d3cb981
+    sudo:
+      - apt-get update
+      - apt-get install -y build-essential clang cmake ninja-build pkg-config
+    srclibs:
+      - flutter@3.50.0
+    prebuild:
+      - $$flutter$$/bin/flutter config --no-analytics --no-cli-animations
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
+    output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+    build:
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm
+
+  - versionName: 2.0.10
+    versionCode: 2069
+    commit: 536292fdb56793028465c20c6b937a8e0d3cb981
+    sudo:
+      - apt-get update
+      - apt-get install -y build-essential clang cmake ninja-build pkg-config
+    srclibs:
+      - flutter@3.50.0
+    prebuild:
+      - $$flutter$$/bin/flutter config --no-analytics --no-cli-animations
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
+    output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    build:
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-arm64
+
+  - versionName: 2.0.10
+    versionCode: 4069
+    commit: 536292fdb56793028465c20c6b937a8e0d3cb981
+    sudo:
+      - apt-get update
+      - apt-get install -y build-essential clang cmake ninja-build pkg-config
+    srclibs:
+      - flutter@3.50.0
+    prebuild:
+      - $$flutter$$/bin/flutter config --no-analytics --no-cli-animations
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
+    output: build/app/outputs/flutter-apk/app-x86_64-release.apk
+    build:
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform=android-x64
+
+VercodeOperation:
+  - 1000 + %c
+  - 2000 + %c
+  - 4000 + %c
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v.*$
+UpdateCheckData: pubspec.yaml|version:\s*[0-9.]+\+(\d+)|.|version:\s*([0-9.]+)\+
+CurrentVersion: 2.0.10
+CurrentVersionCode: 4069
