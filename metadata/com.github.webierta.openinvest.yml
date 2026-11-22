@@ -15,7 +15,7 @@ Summary: Open-source investment fund portfolio manager
 Builds:
   - versionName: 2.0.10
     versionCode: 1069
-    commit: 536292fdb56793028465c20c6b937a8e0d3cb981
+    commit: 514f14cd6f95cfdf1d6d139cc1cfbb9ed8a107f8
     sudo:
       - apt-get update
       - apt-get install -y build-essential clang cmake ninja-build pkg-config
@@ -34,7 +34,7 @@ Builds:
 
   - versionName: 2.0.10
     versionCode: 2069
-    commit: 536292fdb56793028465c20c6b937a8e0d3cb981
+    commit: 514f14cd6f95cfdf1d6d139cc1cfbb9ed8a107f8
     sudo:
       - apt-get update
       - apt-get install -y build-essential clang cmake ninja-build pkg-config
@@ -53,7 +53,7 @@ Builds:
 
   - versionName: 2.0.10
     versionCode: 4069
-    commit: 536292fdb56793028465c20c6b937a8e0d3cb981
+    commit: 514f14cd6f95cfdf1d6d139cc1cfbb9ed8a107f8
     sudo:
       - apt-get update
       - apt-get install -y build-essential clang cmake ninja-build pkg-config
