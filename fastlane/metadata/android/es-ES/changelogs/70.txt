@@ -1,0 +1,1 @@
+- Corrección de errores y mejora de estabilidad.

@@ -1,8 +1,9 @@
 AntiFeatures:
   NonFreeNet:
-    en-US: Fund search and market data depend on third-party services including Financial Times, Morningstar and Yahoo Finance.
+    en-US: Fund search and market data depend on third-party services including Financial
+      Times, Morningstar and Yahoo Finance.
 Categories:
-  - Money
+  - Finance Manager
 License: GPL-3.0-or-later
 AuthorName: Webierta
 WebSite: https://github.com/Webierta/openinvest
